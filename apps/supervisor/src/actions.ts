@@ -91,7 +91,7 @@ export const actionRegistry: Record<ActionName, ActionDefinition> = {
       },
     },
     outputSchema: { type: "object", description: "A persisted WorkOrder" },
-    actorKinds: ["human"],
+    actorKinds: ["human", "agent"],
     preconditions: ["A title and an original request are present"],
     approval: "none",
     idempotency: "A caller-supplied key will be added before connector intake",
@@ -203,8 +203,8 @@ export const actionRegistry: Record<ActionName, ActionDefinition> = {
       paused: { type: "boolean" }, expectedRevision: { type: "integer" },
     } },
     outputSchema: { type: "object", description: "The current durable policy" },
-    actorKinds: ["human"],
-    preconditions: ["Caller supplies the policy revision they inspected"],
+    actorKinds: ["human", "agent"],
+    preconditions: ["Caller supplies the policy revision they inspected", "Agents may pause but only the device owner may resume"],
     approval: "none",
     idempotency: "No revision change for a repeated value",
     auditEvent: "policy.dispatch_changed",
@@ -541,6 +541,9 @@ export async function performAction(
     if (typeof input.paused !== "boolean" || !Number.isSafeInteger(input.expectedRevision)) {
       throw new ActionError("paused and expectedRevision are required", "invalid_input");
     }
+    if (actor.kind === "agent" && !input.paused) {
+      throw new ActionError("Only the device owner may resume dispatch", "forbidden", 403);
+    }
     const current = context.storage.getPolicy();
     if (current.revision !== input.expectedRevision) {
       throw new ActionError("Policy revision changed", "policy_stale", 409);
@@ -661,7 +664,7 @@ export async function performAction(
         workOrderId: workOrder.id,
         runId: null,
         type: "workorder.created",
-        payload: { actor: actor.id, state },
+        payload: { actor: actor.id, actorKind: actor.kind, state },
       });
       return { workOrder, event };
     });

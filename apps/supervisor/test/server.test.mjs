@@ -141,7 +141,7 @@ test("restart holds an in-flight draft outcome for read-only reconciliation", as
   assert.equal(supervisor.storage.listEvents(order.id).at(-1).type, "publication.outcome_unknown");
 });
 
-test("agent endpoint shares the action path and cannot impersonate human approval", async (t) => {
+test("agent endpoint creates scoped work and can pause but cannot resume dispatch", async (t) => {
   const dataDir = mkdtempSync(join(tmpdir(), "sellerfi-supervisor-agent-"));
   t.after(() => rmSync(dataDir, { recursive: true, force: true }));
   const supervisor = createSupervisor({ dataDir });
@@ -154,14 +154,24 @@ test("agent endpoint shares the action path and cannot impersonate human approva
     headers: { "Content-Type": "application/json", "X-Factory-Token": token, Origin: origin },
     body: JSON.stringify({ action, input }),
   });
-  const denied = await invokeAgent("workorder.create", validInput);
-  assert.equal(denied.status, 403);
+  const agentCreated = await invokeAgent("workorder.create", {
+    ...validInput, title: "Agent triaged seller feedback",
+  });
+  assert.equal(agentCreated.status, 200);
+  const { result: agentOrder } = await agentCreated.json();
+  const agentDetail = await (await fetch(`${origin}/api/work-orders/${agentOrder.id}`)).json();
+  assert.equal(agentDetail.events[0].payload.actorKind, "agent");
   const note = await invokeAgent("workorder.note.add", {
     workOrderId: created.result.id, text: "Evidence reviewed by the factory agent.",
   });
   assert.equal(note.status, 200);
   const detail = await (await fetch(`${origin}/api/work-orders/${created.result.id}`)).json();
   assert.equal(detail.events.at(-1).payload.actorKind, "agent");
+  const paused = await invokeAgent("dispatch.set_paused", { paused: true, expectedRevision: 1 });
+  assert.equal(paused.status, 200);
+  const deniedResume = await invokeAgent("dispatch.set_paused", { paused: false, expectedRevision: 2 });
+  assert.equal(deniedResume.status, 403);
+  assert.equal((await (await fetch(`${origin}/api/policy`)).json()).policy.dispatchPaused, true);
 });
 
 test("app builder endpoint creates a linked scaffold without claiming verification", async (t) => {

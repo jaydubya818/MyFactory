@@ -1,5 +1,6 @@
 export type {
   Check,
+  CreateWorkOrderInput,
   ExternalAction,
   FactoryEvent,
   FactoryPolicy,

@@ -1,6 +1,6 @@
-import type { FactoryWorkOrdersResponse, FactoryPublicationRequest, WorkOrderDetail, FactoryEvent, FactoryPolicy, FactoryManifestResult, FactoryBuildManifest } from "../../shared/factory-types";
+import type { CreateWorkOrderInput, FactoryWorkOrdersResponse, FactoryPublicationRequest, WorkOrder, WorkOrderDetail, FactoryEvent, FactoryPolicy, FactoryManifestResult, FactoryBuildManifest } from "../../shared/factory-types";
 
-type AgentAction = "workorder.note.add" | "publication.request";
+type AgentAction = "workorder.create" | "workorder.note.add" | "dispatch.set_paused" | "publication.request";
 
 function supervisorOrigin(): string {
   // guard:allow-env-credential — This is a non-secret local service address, validated as loopback below.
@@ -123,6 +123,14 @@ async function agentAction<T>(action: AgentAction, input: unknown): Promise<T> {
 
 export function addFactoryNote(workOrderId: string, text: string): Promise<FactoryEvent> {
   return agentAction<FactoryEvent>("workorder.note.add", { workOrderId, text });
+}
+
+export function createFactoryWorkOrder(input: CreateWorkOrderInput): Promise<WorkOrder> {
+  return agentAction<WorkOrder>("workorder.create", input);
+}
+
+export function pauseFactoryDispatch(expectedRevision: number): Promise<FactoryPolicy> {
+  return agentAction<FactoryPolicy>("dispatch.set_paused", { paused: true, expectedRevision });
 }
 
 export function requestFactoryPublication(workOrderId: string, destination: string): Promise<FactoryPublicationRequest> {
