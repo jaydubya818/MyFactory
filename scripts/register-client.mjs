@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { chmodSync, existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { homedir } from "node:os";
 import { parseArgs } from "node:util";
 import { clientActions, readClients } from "../apps/supervisor/src/connections.ts";

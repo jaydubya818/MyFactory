@@ -48,13 +48,15 @@ export class LinearIntegration {
   }
 
   prepare(workOrder: WorkOrder): LinearLink {
-    const existing = this.#storage.getLinearLink(workOrder.id);
-    if (existing) return existing;
-    if (!this.status.configured || !this.status.teamId) throw new Error("Linear needs an API key and team ID on the factory host.");
-    return this.#storage.saveLinearLink({
-      workOrderId: workOrder.id, issueId: randomUUID(), teamId: this.status.teamId,
-      projectId: this.status.projectId, state: "pending", identifier: null, url: null,
-      error: null, updatedAt: new Date().toISOString(),
+    return this.#storage.transaction(() => {
+      const existing = this.#storage.getLinearLink(workOrder.id);
+      if (existing) return existing;
+      if (!this.status.configured || !this.status.teamId) throw new Error("Linear needs an API key and team ID on the factory host.");
+      return this.#storage.saveLinearLink({
+        workOrderId: workOrder.id, issueId: randomUUID(), teamId: this.status.teamId,
+        projectId: this.status.projectId, state: "pending", identifier: null, url: null,
+        error: null, updatedAt: new Date().toISOString(),
+      });
     });
   }
 
