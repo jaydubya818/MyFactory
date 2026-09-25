@@ -10,6 +10,7 @@ import type { FactoryEvent, WorkOrderDetail } from "../../../packages/contracts/
 import { listAppTemplates, LocalAppPreviewManager } from "../../../packages/app-builder/src/index.ts";
 import { openStorage } from "../../../packages/storage/src/index.ts";
 import { ActionError, actionRegistry, performAction, type ActionContext } from "./actions.ts";
+import { publishDraftPullRequest } from "./github.ts";
 import { JobManager, type JobDependencies } from "./jobs.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
@@ -135,6 +136,7 @@ export interface SupervisorOptions {
   startRun?: ActionContext["startRun"];
   cancelRun?: ActionContext["cancelRun"];
   confirmHumanPresence?: NonNullable<ActionContext["confirmHumanPresence"]>;
+  publishDraft?: NonNullable<ActionContext["publishDraft"]>;
   jobDependencies?: Partial<JobDependencies>;
 }
 
@@ -179,6 +181,19 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   };
   const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies);
   for (const order of storage.listWorkOrders()) {
+    for (const external of storage.listExternalActions(order.id)) {
+      if (external.kind !== "draft_pr" || external.state !== "dispatched") continue;
+      storage.transaction(() => {
+        storage.saveExternalAction({
+          ...external, state: "unknown", error: "Supervisor restarted before GitHub outcome was recorded",
+        });
+        storage.appendEvent({
+          workOrderId: order.id, runId: external.runId, type: "publication.outcome_unknown",
+          payload: { externalActionId: external.id, requestId: external.publicationRequestId,
+            reason: "Supervisor restarted before GitHub outcome was recorded" },
+        });
+      });
+    }
     const lastPreviewEvent = storage.listEvents(order.id)
       .filter((event) => event.type.startsWith("builder.preview_")).at(-1);
     if (lastPreviewEvent && ["builder.preview_requested", "builder.preview_started"].includes(lastPreviewEvent.type)) {
@@ -200,6 +215,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     appBuildDirectory: join(dataDir, "app-builds"),
     previewManager: previews,
     confirmHumanPresence: options.confirmHumanPresence ?? confirmHumanPresence,
+    publishDraft: options.publishDraft ?? publishDraftPullRequest,
     notify,
     startRun: options.startRun ?? ((workOrder) => jobs.startRun(workOrder)),
     cancelRun: options.cancelRun ?? ((workOrder) => jobs.cancelRun(workOrder)),

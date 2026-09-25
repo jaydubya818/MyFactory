@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { openStorage } from "../../../packages/storage/src/index.ts";
 import { createSupervisor as createSupervisorHost } from "../src/server.ts";
 
 function createSupervisor(options) {
@@ -107,6 +108,37 @@ test("a shared loopback token cannot authorize a human-only action", async (t) =
   assert.equal((await response.json()).code, "human_confirmation_denied");
   const policy = await (await fetch(`${origin}/api/policy`)).json();
   assert.equal(policy.policy.dispatchPaused, false);
+});
+
+test("restart holds an in-flight draft outcome for read-only reconciliation", async (t) => {
+  const dataDir = mkdtempSync(join(tmpdir(), "sellerfi-publication-restart-"));
+  t.after(() => rmSync(dataDir, { recursive: true, force: true }));
+  const storage = openStorage(join(dataDir, "factory.sqlite"));
+  const order = storage.createWorkOrder(validInput, "ready_for_review");
+  const started = storage.createRun({
+    workOrderId: order.id, workerProfile: "mac", inputCommit: "a".repeat(40),
+    workspacePath: join(dataDir, "workspace"),
+  });
+  const run = storage.saveRun({
+    ...started, state: "ready_for_review", candidateCommit: "b".repeat(40),
+    finishedAt: new Date().toISOString(),
+  });
+  const request = storage.createPublicationRequest({
+    workOrderId: order.id, runId: run.id, destination: "example/disposable",
+    candidateCommit: run.candidateCommit, evidenceDigest: "c".repeat(64), policyRevision: 1,
+  });
+  const prepared = storage.createExternalAction({
+    workOrderId: order.id, runId: run.id, kind: "draft_pr", candidateCommit: run.candidateCommit,
+    publicationRequestId: request.id, destination: request.destination,
+  });
+  storage.saveExternalAction({ ...prepared, state: "dispatched" });
+  storage.close();
+
+  const supervisor = createSupervisor({ dataDir });
+  t.after(() => supervisor.close());
+  const recovered = supervisor.storage.getExternalActionForRequest(request.id, "draft_pr");
+  assert.equal(recovered.state, "unknown");
+  assert.equal(supervisor.storage.listEvents(order.id).at(-1).type, "publication.outcome_unknown");
 });
 
 test("agent endpoint shares the action path and cannot impersonate human approval", async (t) => {

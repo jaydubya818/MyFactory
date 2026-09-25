@@ -13,6 +13,8 @@ import type {
   WorkOrderState,
 } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
+import { PublicationAdapterError, type DraftPublicationInput, type DraftPublicationOptions,
+  type DraftPublicationResult } from "./github.ts";
 
 export type Actor = { kind: "human" | "agent" | "system"; id: string };
 export type ActionName =
@@ -50,6 +52,7 @@ export interface ActionContext {
     status(workOrderId: string): unknown;
   };
   confirmHumanPresence?(request: HumanPresenceRequest): Promise<boolean>;
+  publishDraft?(input: DraftPublicationInput, options?: DraftPublicationOptions): Promise<DraftPublicationResult>;
   startRun(workOrder: WorkOrder): Promise<Run>;
   cancelRun(workOrder: WorkOrder): Promise<Run | null>;
   notify(event: FactoryEvent): void;
@@ -433,6 +436,79 @@ function currentRequestBinding(storage: FactoryStorage, request: PublicationRequ
   return current;
 }
 
+function draftPublicationInput(storage: FactoryStorage, request: PublicationRequest): DraftPublicationInput {
+  const order = storage.getWorkOrder(request.workOrderId);
+  const run = storage.getRun(request.runId);
+  if (!order || !run) throw new ActionError("Publication source is unavailable", "publication_source_missing", 409);
+  return {
+    destination: request.destination,
+    workOrderId: request.workOrderId,
+    workspacePath: run.workspacePath,
+    inputCommit: run.inputCommit,
+    candidateCommit: request.candidateCommit,
+    baseBranch: order.baseRef,
+    title: order.title,
+    body: [
+      `WorkOrder: ${order.id}`,
+      `Candidate: ${request.candidateCommit}`,
+      `Verification evidence: ${request.evidenceDigest}`,
+      `Policy revision: ${request.policyRevision}`,
+      `Publication request: ${request.id}`,
+    ].join("\n"),
+  };
+}
+
+async function executeDraftPublication(
+  context: ActionContext,
+  request: PublicationRequest,
+  actionId: string,
+  reconcileOnly: boolean,
+): Promise<unknown> {
+  if (!context.publishDraft) throw new ActionError("GitHub draft publication is unavailable", "publication_unavailable", 503);
+  const input = draftPublicationInput(context.storage, request);
+  try {
+    const result = await context.publishDraft(input, { reconcileOnly });
+    const { external, event } = context.storage.transaction(() => {
+      const live = context.storage.getExternalAction(actionId);
+      if (!live) throw new ActionError("Publication record disappeared", "publication_record_missing", 409);
+      if (live.state === "succeeded") return { external: live, event: null };
+      const external = context.storage.saveExternalAction({
+        ...live, state: "succeeded", remoteIdentity: result.url, error: null,
+      });
+      const event = context.storage.appendEvent({
+        workOrderId: request.workOrderId, runId: request.runId, type: "publication.succeeded",
+        payload: { requestId: request.id, externalActionId: external.id,
+          destination: request.destination, candidateCommit: request.candidateCommit,
+          url: result.url, reconciled: result.reconciled },
+      });
+      return { external, event };
+    });
+    if (event) context.notify(event);
+    return external;
+  } catch (error) {
+    const adapterError = error instanceof PublicationAdapterError ? error : null;
+    const nextState = reconcileOnly || !adapterError || adapterError.code === "uncertain" ? "unknown" : "failed";
+    const reason = adapterError?.message ?? "Draft publication outcome could not be confirmed";
+    const event = context.storage.transaction(() => {
+      const live = context.storage.getExternalAction(actionId);
+      if (!live || live.state === "succeeded") return null;
+      const external = context.storage.saveExternalAction({ ...live, state: nextState, error: reason });
+      return context.storage.appendEvent({
+        workOrderId: request.workOrderId, runId: request.runId,
+        type: nextState === "unknown" ? "publication.outcome_unknown" : "publication.failed",
+        payload: { requestId: request.id, externalActionId: external.id, reason },
+      });
+    });
+    if (event) context.notify(event);
+    if (!adapterError) {
+      throw new ActionError(reason, "publication_unknown", 409);
+    }
+    const status = adapterError.code === "invalid_input" ? 400 :
+      adapterError.code === "unavailable" ? 503 : 409;
+    throw new ActionError(reason, `publication_${adapterError.code}`, status);
+  }
+}
+
 async function requireHumanPresence(
   context: ActionContext,
   actor: Actor,
@@ -487,6 +563,19 @@ export async function performAction(
     const requestId = uuidValue(input.requestId, "requestId");
     const request = context.storage.getPublicationRequest(requestId);
     if (!request) throw new ActionError("Publication request not found", "not_found", 404);
+    if (action === "publication.publish_draft") {
+      const previous = context.storage.getExternalActionForRequest(requestId, "draft_pr");
+      if (previous?.state === "succeeded") return previous;
+      if (previous?.state === "unknown") {
+        return executeDraftPublication(context, request, previous.id, true);
+      }
+      if (previous?.state === "dispatched" || previous?.state === "prepared") {
+        throw new ActionError("Draft publication is already in progress", "publication_in_progress", 409);
+      }
+      if (previous?.state === "failed") {
+        throw new ActionError("This publication attempt failed; request and review a fresh proposal", "publication_failed", 409);
+      }
+    }
     const current = currentRequestBinding(context.storage, request);
     if (action === "publication.approve") {
       const candidateCommit = stringValue(input.candidateCommit, "candidateCommit", true);
@@ -527,7 +616,38 @@ export async function performAction(
         Date.parse(approval.expiresAt) <= Date.now()) {
       throw new ActionError("Publication approval is stale or expired", "approval_stale", 409);
     }
-    throw new ActionError("GitHub draft publication is not configured yet", "publication_unavailable", 503);
+    if (!context.publishDraft) {
+      throw new ActionError("GitHub draft publication is unavailable", "publication_unavailable", 503);
+    }
+    await requireHumanPresence(context, actor, "publication.publish_draft",
+      `Create a draft PR in ${request.destination} for candidate ${request.candidateCommit.slice(0, 12)}`);
+    const { external, event } = context.storage.transaction(() => {
+      const live = currentRequestBinding(context.storage, request);
+      const currentApproval = context.storage.getPublicationApproval(requestId);
+      if (!currentApproval || currentApproval.candidateCommit !== live.run.candidateCommit ||
+          currentApproval.evidenceDigest !== live.evidenceDigest ||
+          currentApproval.policyRevision !== live.policyRevision ||
+          Date.parse(currentApproval.expiresAt) <= Date.now()) {
+        throw new ActionError("Publication approval is stale or expired", "approval_stale", 409);
+      }
+      if (context.storage.getExternalActionForRequest(requestId, "draft_pr")) {
+        throw new ActionError("Draft publication was claimed by another request", "publication_in_progress", 409);
+      }
+      const prepared = context.storage.createExternalAction({
+        workOrderId: request.workOrderId, runId: request.runId, kind: "draft_pr",
+        candidateCommit: request.candidateCommit, publicationRequestId: request.id,
+        destination: request.destination,
+      });
+      const external = context.storage.saveExternalAction({ ...prepared, state: "dispatched" });
+      const event = context.storage.appendEvent({
+        workOrderId: request.workOrderId, runId: request.runId, type: "publication.dispatched",
+        payload: { requestId, externalActionId: external.id, destination: request.destination,
+          candidateCommit: request.candidateCommit },
+      });
+      return { external, event };
+    });
+    context.notify(event);
+    return executeDraftPublication(context, request, external.id, false);
   }
 
   if (action === "workorder.create") {

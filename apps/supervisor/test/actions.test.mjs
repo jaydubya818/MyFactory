@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { openStorage } from "../../../packages/storage/src/index.ts";
 import { performAction } from "../src/actions.ts";
+import { PublicationAdapterError } from "../src/github.ts";
 
 function readyFixture(t) {
   const directory = mkdtempSync(join(tmpdir(), "factory-approval-"));
@@ -136,6 +137,86 @@ test("human approval requires a fresh device-owner confirmation", async (t) => {
     evidenceDigest: request.evidenceDigest, policyRevision: request.policyRevision,
   }, human), (error) => error.code === "human_confirmation_denied");
   assert.equal(storage.getPublicationApproval(request.id), null);
+});
+
+test("an exact approved candidate records one draft PR and repeated calls stay local", async (t) => {
+  const { storage, order, context } = readyFixture(t);
+  const calls = [];
+  context.publishDraft = async (input, options) => {
+    calls.push({ input, options });
+    return {
+      destination: input.destination, branch: `codex/factory/wo-${order.id}`,
+      candidateCommit: input.candidateCommit, pullRequestNumber: 7,
+      url: "https://github.com/example/disposable/pull/7",
+      remoteIdentity: "example/disposable#7", reconciled: false,
+    };
+  };
+  const request = await performAction(context, "publication.request", {
+    workOrderId: order.id, destination: "example/disposable",
+  }, agent);
+  await performAction(context, "publication.approve", {
+    requestId: request.id, candidateCommit: request.candidateCommit,
+    evidenceDigest: request.evidenceDigest, policyRevision: request.policyRevision,
+  }, human);
+  const first = await performAction(context, "publication.publish_draft", { requestId: request.id }, human);
+  const repeated = await performAction(context, "publication.publish_draft", { requestId: request.id }, human);
+  assert.equal(first.state, "succeeded");
+  assert.equal(first.remoteIdentity, "https://github.com/example/disposable/pull/7");
+  assert.deepEqual(repeated, first);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].input.candidateCommit, request.candidateCommit);
+  assert.equal(calls[0].options.reconcileOnly, false);
+  assert.equal(storage.getExternalActionForRequest(request.id, "draft_pr").id, first.id);
+  assert.equal(storage.listEvents(order.id).at(-1).type, "publication.succeeded");
+});
+
+test("a changed candidate blocks draft publication before the adapter is called", async (t) => {
+  const { storage, order, run, context } = readyFixture(t);
+  let called = false;
+  context.publishDraft = async () => { called = true; throw new Error("unexpected publication"); };
+  const request = await performAction(context, "publication.request", {
+    workOrderId: order.id, destination: "example/disposable",
+  }, agent);
+  await performAction(context, "publication.approve", {
+    requestId: request.id, candidateCommit: request.candidateCommit,
+    evidenceDigest: request.evidenceDigest, policyRevision: request.policyRevision,
+  }, human);
+  storage.saveRun({ ...run, candidateCommit: "c".repeat(40) });
+  await assert.rejects(() => performAction(context, "publication.publish_draft", {
+    requestId: request.id,
+  }, human), (error) => error.code === "candidate_stale");
+  assert.equal(called, false);
+  assert.equal(storage.getExternalActionForRequest(request.id, "draft_pr"), null);
+});
+
+test("an uncertain draft outcome only reconciles remote state on retry", async (t) => {
+  const { storage, order, run, context } = readyFixture(t);
+  const modes = [];
+  context.publishDraft = async (input, options) => {
+    modes.push(options.reconcileOnly);
+    if (!options.reconcileOnly) throw new PublicationAdapterError("uncertain", "Response lost after dispatch");
+    return {
+      destination: input.destination, branch: `codex/factory/wo-${order.id}`,
+      candidateCommit: input.candidateCommit, pullRequestNumber: 8,
+      url: "https://github.com/example/disposable/pull/8",
+      remoteIdentity: "example/disposable#8", reconciled: true,
+    };
+  };
+  const request = await performAction(context, "publication.request", {
+    workOrderId: order.id, destination: "example/disposable",
+  }, agent);
+  await performAction(context, "publication.approve", {
+    requestId: request.id, candidateCommit: request.candidateCommit,
+    evidenceDigest: request.evidenceDigest, policyRevision: request.policyRevision,
+  }, human);
+  await assert.rejects(() => performAction(context, "publication.publish_draft", {
+    requestId: request.id,
+  }, human), (error) => error.code === "publication_uncertain");
+  assert.equal(storage.getExternalActionForRequest(request.id, "draft_pr").state, "unknown");
+  storage.saveRun({ ...run, candidateCommit: "c".repeat(40) });
+  const result = await performAction(context, "publication.publish_draft", { requestId: request.id }, human);
+  assert.equal(result.state, "succeeded");
+  assert.deepEqual(modes, [false, true]);
 });
 
 test("app builder creates a durable WorkOrder linked to a versioned scaffold", async (t) => {
