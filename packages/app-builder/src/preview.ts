@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import {
-  closeSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, writeSync,
+  closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, writeSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, posix, relative, resolve, sep } from "node:path";
@@ -67,12 +67,14 @@ function killWithGrace(child: ChildProcess): void {
 }
 
 function sanitizedEnvironment(home: string): NodeJS.ProcessEnv {
+  const localCache = join(homedir(), ".npm-cache");
   return {
     PATH: process.env.PATH ?? "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin",
     HOME: home,
     TMPDIR: tmpdir(),
     CI: "1",
-    npm_config_cache: process.env.npm_config_cache ?? join(homedir(), ".npm-cache"),
+    npm_config_cache: process.env.npm_config_cache ?? process.env.NPM_CONFIG_CACHE ??
+      (existsSync(localCache) ? localCache : join(homedir(), ".npm")),
     npm_config_offline: "true",
     npm_config_update_notifier: "false",
   };
@@ -135,7 +137,12 @@ export class LocalAppPreviewManager {
     };
     this.#entries.set(input.workOrderId, entry);
     this.#append(entry, `Preview requested for ${input.workOrderId}\n`);
-    this.#emit(entry, "builder.preview_requested");
+    try { this.#emit(entry, "builder.preview_requested"); }
+    catch (error) {
+      this.#closeLog(entry);
+      this.#entries.delete(input.workOrderId);
+      throw error;
+    }
     entry.startPromise = this.#buildAndLaunch(entry, input.outputDir);
     return entry.startPromise;
   }
@@ -175,20 +182,18 @@ export class LocalAppPreviewManager {
       this.#verifySource(entry, outputDir);
       await this.#runCommand(entry, "build", join(outputDir, "node_modules/.bin/vite"), ["build"], outputDir, env, CHECK_TIMEOUT_MS);
       this.#verifySource(entry, outputDir);
+      const builtIndex = lstatSync(join(outputDir, "dist", "index.html"));
+      if (!builtIndex.isFile() || builtIndex.size === 0) throw new Error("Production build has no index.html");
       if (entry.stopping) throw new PreviewStoppedError("Preview was stopped");
-      const url = await this.#launch(entry, outputDir, env);
-      if (entry.stopping) throw new PreviewStoppedError("Preview was stopped");
-      this.#append(entry, `Preview listening at ${url}\n`);
-      this.#update(entry, { status: "running", url, error: undefined });
-      this.#emit(entry, "builder.preview_started");
+      await this.#launch(entry, outputDir, env);
     } catch (error) {
       if (entry.stopping || error instanceof PreviewStoppedError) this.#markStopped(entry);
       else {
         const message = error instanceof Error ? error.message : "Preview failed";
         this.#append(entry, `Preview failed: ${message}\n`);
         this.#update(entry, { status: "failed", url: undefined, error: message });
-        this.#emit(entry, "builder.preview_failed");
-        this.#closeLog(entry);
+        try { this.#emit(entry, "builder.preview_failed"); }
+        finally { this.#closeLog(entry); }
       }
     }
     return { ...entry.snapshot };
@@ -234,6 +239,7 @@ export class LocalAppPreviewManager {
         if (stat.isSymbolicLink()) throw new Error(`Preview contains a symlink: ${path}`);
         if (!prefix && GENERATED_DIRECTORIES.has(item)) {
           if (!stat.isDirectory()) throw new Error(`Generated path is not a directory: ${path}`);
+          if (item !== "node_modules") this.#verifyGeneratedDirectory(fullPath, path);
           continue;
         }
         if (stat.isDirectory()) {
@@ -253,6 +259,17 @@ export class LocalAppPreviewManager {
     walk(outputDir, "");
     if (found.size !== expected.size) throw new Error("Preview source files are missing");
     this.#append(entry, `Verified manifest and ${found.size} source files\n`);
+  }
+
+  #verifyGeneratedDirectory(directory: string, prefix: string): void {
+    for (const item of readdirSync(directory)) {
+      const path = `${prefix}/${item}`;
+      const fullPath = join(directory, item);
+      const stat = lstatSync(fullPath);
+      if (stat.isSymbolicLink()) throw new Error(`Preview contains a symlink: ${path}`);
+      if (stat.isDirectory()) this.#verifyGeneratedDirectory(fullPath, path);
+      else if (!stat.isFile()) throw new Error(`Preview contains an unsupported entry: ${path}`);
+    }
   }
 
   async #runCommand(entry: PreviewEntry, label: string, command: string, args: string[], cwd: string,
@@ -313,8 +330,8 @@ export class LocalAppPreviewManager {
             const reason = entry.runtimeExitReason ?? `Production server exited with ${code ?? signal ?? "unknown status"}`;
             this.#append(entry, `${reason}\n`);
             this.#update(entry, { status: "failed", url: undefined, error: reason });
-            this.#emit(entry, "builder.preview_exited");
-            this.#closeLog(entry);
+            try { this.#emit(entry, "builder.preview_exited"); }
+            finally { this.#closeLog(entry); }
           }
         });
       });
@@ -326,10 +343,17 @@ export class LocalAppPreviewManager {
       };
       child.stdout?.on("data", (chunk: Buffer) => {
         onOutput(chunk);
-        if (ready) return;
+        if (ready || entry.runtimeExitReason) return;
         stdout += chunk.toString("utf8");
-        if (stdout.length > 10_000) stdout = stdout.slice(-10_000);
-        for (const line of stdout.split("\n")) {
+        if (stdout.length > 10_000) {
+          entry.runtimeExitReason = "Production server readiness output is too large";
+          killWithGrace(child);
+          return;
+        }
+        let newline: number;
+        while ((newline = stdout.indexOf("\n")) >= 0) {
+          const line = stdout.slice(0, newline);
+          stdout = stdout.slice(newline + 1);
           if (!line.startsWith("FACTORY_PREVIEW_READY ")) continue;
           try {
             const payload = JSON.parse(line.slice("FACTORY_PREVIEW_READY ".length)) as { url?: string };
@@ -337,9 +361,17 @@ export class LocalAppPreviewManager {
             if (url.protocol !== "http:" || url.hostname !== "127.0.0.1" || !url.port) {
               throw new Error("Production server returned a non-loopback URL");
             }
+            if (entry.stopping) throw new PreviewStoppedError("Preview was stopped");
+            if (child.exitCode !== null || child.signalCode !== null) {
+              throw new Error("Production server exited before readiness");
+            }
             clearTimeout(timeout);
+            const normalizedUrl = url.toString().replace(/\/$/, "");
+            this.#append(entry, `Preview listening at ${normalizedUrl}\n`);
+            this.#update(entry, { status: "running", url: normalizedUrl, error: undefined });
+            this.#emit(entry, "builder.preview_started");
             ready = true;
-            resolveReady(url.toString().replace(/\/$/, ""));
+            resolveReady(normalizedUrl);
             return;
           } catch (error) {
             entry.runtimeExitReason = error instanceof Error ? error.message : "Invalid preview URL";
@@ -378,8 +410,8 @@ export class LocalAppPreviewManager {
     if (entry.snapshot.status === "stopped") return;
     this.#append(entry, "Preview stopped\n");
     this.#update(entry, { status: "stopped", url: undefined, error: undefined });
-    this.#emit(entry, "builder.preview_stopped");
-    this.#closeLog(entry);
+    try { this.#emit(entry, "builder.preview_stopped"); }
+    finally { this.#closeLog(entry); }
   }
 
   #closeLog(entry: PreviewEntry): void {
