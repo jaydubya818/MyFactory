@@ -116,7 +116,7 @@ test("records survive close and reopen with contract shaped JSON and status", (t
 
   const database = new DatabaseSync(path);
   assert.equal(database.prepare("PRAGMA journal_mode").get().journal_mode, "wal");
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 5);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 6);
   database.close();
 });
 
@@ -156,7 +156,7 @@ test("migrates an existing v1 WorkOrder and preserves the new failure oracle", (
   t.after(() => reopened.close());
   assert.equal(reopened.getWorkOrder(id)?.expectedFailureText, "Expected '$0'");
   const database = new DatabaseSync(path);
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 5);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 6);
   database.close();
 });
 
@@ -380,6 +380,6 @@ test("v4 external actions migrate with null publication binding", (t) => {
   assert.equal(storage.getExternalAction("old-action")?.state, "failed");
   assert.equal(saved.publicationRequestId, null);
   const database = new DatabaseSync(path);
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 5);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 6);
   database.close();
 });

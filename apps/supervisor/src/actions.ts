@@ -13,6 +13,7 @@ import type {
   WorkOrderState,
 } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
+import type { LinearIntegration } from "./linear.ts";
 import { PublicationAdapterError, type DraftPublicationInput, type DraftPublicationOptions,
   type DraftPublicationResult } from "./github.ts";
 
@@ -20,6 +21,7 @@ export type Actor = { kind: "human" | "agent" | "system"; id: string };
 export type ActionName =
   | "workorder.create" | "workorder.note.add" | "builder.create" | "builder.preview.start" | "builder.preview.stop"
   | "signal.record" | "run.start" | "run.cancel"
+  | "linear.sync"
   | "dispatch.set_paused" | "publication.request" | "publication.approve"
   | "publication.publish_draft";
 
@@ -45,6 +47,7 @@ export interface HumanPresenceRequest {
 
 export interface ActionContext {
   storage: FactoryStorage;
+  linear?: LinearIntegration;
   appBuildDirectory?: string;
   previewManager?: {
     start(input: { workOrderId: string; outputDir: string; expectedManifestSha256: string }): Promise<unknown>;
@@ -88,15 +91,28 @@ export const actionRegistry: Record<ActionName, ActionDefinition> = {
         checkCommands: { type: "array", items: { type: "string" } },
         allowedPaths: { type: "array", items: { type: "string" } },
         workerProfile: { enum: ["container", "mac", "browser"] },
+        idempotencyKey: { type: "string", maxLength: 200 },
+        syncToLinear: { type: "boolean" },
       },
     },
     outputSchema: { type: "object", description: "A persisted WorkOrder" },
     actorKinds: ["human", "agent"],
     preconditions: ["A title and an original request are present"],
     approval: "none",
-    idempotency: "A caller-supplied key will be added before connector intake",
+    idempotency: "Caller-supplied idempotencyKey is bound to actor and normalized input; conflicts are rejected",
     auditEvent: "workorder.created",
     reconciliation: "Read the WorkOrder by returned ID",
+  },
+  "linear.sync": {
+    name: "linear.sync",
+    inputSchema: { type: "object", required: ["workOrderId"], properties: { workOrderId: { type: "string", format: "uuid" } } },
+    outputSchema: { type: "object", description: "Durable Linear issue link and sync outcome" },
+    actorKinds: ["human", "agent"],
+    preconditions: ["Linear is configured on the host", "WorkOrder exists"],
+    approval: "none",
+    idempotency: "Persist a UUID before the remote mutation; reconcile and reuse it on retries",
+    auditEvent: "linear.synced or linear.unknown",
+    reconciliation: "Look up the saved issue ID in Linear, including archived issues",
   },
   "builder.create": {
     name: "builder.create",
@@ -655,21 +671,61 @@ export async function performAction(
 
   if (action === "workorder.create") {
     const input = parseCreateInput(rawInput);
+    const raw = asObject(rawInput);
+    const key = raw.idempotencyKey == null ? null : stringValue(raw.idempotencyKey, "idempotencyKey", true);
+    if (key && key.length > 200) throw new ActionError("idempotencyKey is too long", "invalid_input");
+    if (raw.syncToLinear !== undefined && typeof raw.syncToLinear !== "boolean") {
+      throw new ActionError("syncToLinear must be a boolean", "invalid_input");
+    }
+    const digest = createHash("sha256").update(JSON.stringify({ input, syncToLinear: raw.syncToLinear ?? null })).digest("hex");
+    const intakeActor = `${actor.kind}:${actor.id}`;
+    const replay = () => {
+      const receipt = key ? context.storage.getIntake(intakeActor, key) : null;
+      if (!receipt) return null;
+      if (receipt.input_digest !== digest) throw new ActionError("This idempotency key belongs to a different request", "idempotency_conflict", 409);
+      return context.storage.getWorkOrder(receipt.work_order_id);
+    };
+    const existing = replay();
+    if (existing) return existing;
+    const syncToLinear = raw.syncToLinear ?? context.linear?.status.mode === "automatic";
+    if (syncToLinear && !context.linear?.status.configured) {
+      throw new ActionError("Configure Linear on the factory host before requesting issue creation", "linear_unavailable", 503);
+    }
     const state = admissionState(input);
     await requireHumanPresence(context, actor, "workorder.create",
       `Create WorkOrder ${input.title.slice(0, 80)} for ${input.repositoryPath.slice(0, 100)}`);
     const { workOrder, event } = context.storage.transaction(() => {
+      const repeated = replay();
+      if (repeated) return { workOrder: repeated, event: null };
       const workOrder = context.storage.createWorkOrder(input, state);
+      if (key) context.storage.recordIntake(intakeActor, key, digest, workOrder.id);
+      if (syncToLinear) context.linear!.prepare(workOrder);
       const event = context.storage.appendEvent({
         workOrderId: workOrder.id,
         runId: null,
         type: "workorder.created",
-        payload: { actor: actor.id, actorKind: actor.kind, state },
+        payload: { actor: actor.id, actorKind: actor.kind, state, syncToLinear },
       });
       return { workOrder, event };
     });
-    context.notify(event);
+    if (event) context.notify(event);
+    if (syncToLinear) {
+      // WorkOrder persistence succeeds even when Linear is offline. Its durable link exposes retry status.
+      await context.linear!.sync(workOrder, actor.id).catch(() => undefined);
+    }
     return workOrder;
+  }
+
+  if (action === "linear.sync") {
+    const id = workOrderId(rawInput);
+    const order = context.storage.getWorkOrder(id);
+    if (!order) throw new ActionError("WorkOrder not found", "not_found", 404);
+    if (!context.linear?.status.configured) throw new ActionError("Linear is not configured on the factory host", "linear_unavailable", 503);
+    try {
+      return await context.linear.sync(order, actor.id);
+    } catch (error) {
+      throw new ActionError(error instanceof Error ? error.message : "Linear sync could not finish", "linear_sync_failed", 502);
+    }
   }
 
   if (action === "builder.create") {

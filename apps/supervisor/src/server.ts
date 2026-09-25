@@ -12,6 +12,8 @@ import { openStorage } from "../../../packages/storage/src/index.ts";
 import { ActionError, actionRegistry, performAction, type ActionContext } from "./actions.ts";
 import { publishDraftPullRequest } from "./github.ts";
 import { JobManager, type JobDependencies } from "./jobs.ts";
+import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
+import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
 const confirmApprovalScript = fileURLToPath(new URL("../native/confirm-approval.swift", import.meta.url));
@@ -138,6 +140,7 @@ export interface SupervisorOptions {
   confirmHumanPresence?: NonNullable<ActionContext["confirmHumanPresence"]>;
   publishDraft?: NonNullable<ActionContext["publishDraft"]>;
   jobDependencies?: Partial<JobDependencies>;
+  linear?: LinearOptions;
 }
 
 async function confirmHumanPresence(request: Parameters<NonNullable<ActionContext["confirmHumanPresence"]>>[0]): Promise<boolean> {
@@ -159,6 +162,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const webDist = resolve(options.webDist ?? defaultWebDist);
   const token = sessionToken(dataDir);
   const storage = openStorage(resolve(dataDir, "factory.sqlite"));
+  const connectionsPath = resolve(dataDir, "connections.json");
   const subscribers = new Map<string, Set<ServerResponse>>();
 
   const notify = (event: FactoryEvent) => {
@@ -180,7 +184,12 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     if (listeners.size === 0) subscribers.delete(event.workOrderId);
   };
   const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies);
+  const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
+    const link = storage.getLinearLink(order.id);
+    if (link?.state === "syncing") {
+      storage.saveLinearLink({ ...link, state: "unknown", error: "Factory restarted before Linear confirmed the outcome. Retry to reconcile the saved issue ID." });
+    }
     for (const external of storage.listExternalActions(order.id)) {
       if (external.kind !== "draft_pr" || external.state !== "dispatched") continue;
       storage.transaction(() => {
@@ -212,6 +221,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   });
   const context: ActionContext = {
     storage,
+    linear,
     appBuildDirectory: join(dataDir, "app-builds"),
     previewManager: previews,
     confirmHumanPresence: options.confirmHumanPresence ?? confirmHumanPresence,
@@ -220,6 +230,16 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     startRun: options.startRun ?? ((workOrder) => jobs.startRun(workOrder)),
     cancelRun: options.cancelRun ?? ((workOrder) => jobs.cancelRun(workOrder)),
   };
+
+  function workOrderDetail(id: string): WorkOrderDetail | null {
+    const workOrder = storage.getWorkOrder(id);
+    if (!workOrder) return null;
+    const runs = storage.listRuns(id);
+    return { workOrder, runs, checks: runs.flatMap((run) => storage.listChecks(run.id)),
+      events: storage.listEvents(id), externalActions: storage.listExternalActions(id),
+      publicationRequests: storage.listPublicationRequests(id), publicationApprovals: storage.listPublicationApprovals(id),
+      linearLink: storage.getLinearLink(id) };
+  }
 
   const server = createServer(async (request, response) => {
     response.setHeader("X-Content-Type-Options", "nosniff");
@@ -232,6 +252,30 @@ export function createSupervisor(options: SupervisorOptions = {}) {
       const url = new URL(request.url ?? "/", `http://${host}`);
       const pathname = url.pathname;
 
+      if (pathname.startsWith("/api/connect/v1/")) {
+        const client = authenticateClient(request, readClients(connectionsPath));
+        if (request.method === "GET" && pathname === "/api/connect/v1/actions") {
+          return json(response, 200, { client: client.id, actions: client.actions.map((name) => actionRegistry[name as keyof typeof actionRegistry]) });
+        }
+        if (request.method === "GET" && pathname === "/api/connect/v1/work-orders") {
+          return json(response, 200, { workOrders: storage.listWorkOrders().filter((order) => canAccessRepository(client, order.repositoryPath)) });
+        }
+        const connectedDetail = /^\/api\/connect\/v1\/work-orders\/([0-9a-f-]{36})$/.exec(pathname);
+        if (request.method === "GET" && connectedDetail) {
+          const order = storage.getWorkOrder(connectedDetail[1]);
+          if (!order || !canAccessRepository(client, order.repositoryPath)) return json(response, 404, { error: "WorkOrder not found" });
+          return json(response, 200, workOrderDetail(order.id));
+        }
+        if (request.method === "POST" && pathname === "/api/connect/v1/actions") {
+          const body = await requestBody(request) as { action?: unknown; input?: unknown } | null;
+          if (!body || typeof body !== "object" || typeof body.action !== "string") throw new ActionError("Action name is required", "invalid_input");
+          const input = authorizeClientAction(client, body.action, body.input, (id) => storage.getWorkOrder(id));
+          const result = await performAction(context, body.action, input, { kind: "agent", id: `connection:${client.id}` });
+          return json(response, 200, { result });
+        }
+        return json(response, 404, { error: "Connection route not found" });
+      }
+
       if (request.method === "GET" && pathname === "/api/health") {
         return json(response, 200, { status: "ok" });
       }
@@ -240,6 +284,10 @@ export function createSupervisor(options: SupervisorOptions = {}) {
       }
       if (request.method === "GET" && pathname === "/api/actions") {
         return json(response, 200, { actions: Object.values(actionRegistry) });
+      }
+      if (request.method === "GET" && pathname === "/api/connections") {
+        return json(response, 200, { linear: linear.status,
+          clients: readClients(connectionsPath).map(({ id, name, actions, repositoryPaths }) => ({ id, name, actions, repositoryPaths })) });
       }
       if (request.method === "GET" && pathname === "/api/policy") {
         return json(response, 200, { policy: storage.getPolicy() });
@@ -259,18 +307,8 @@ export function createSupervisor(options: SupervisorOptions = {}) {
 
       const detailMatch = /^\/api\/work-orders\/([0-9a-f-]{36})$/.exec(pathname);
       if (request.method === "GET" && detailMatch) {
-        const workOrder = storage.getWorkOrder(detailMatch[1]);
-        if (!workOrder) return json(response, 404, { error: "WorkOrder not found" });
-        const runs = storage.listRuns(workOrder.id);
-        const detail: WorkOrderDetail = {
-          workOrder,
-          runs,
-          checks: runs.flatMap((run) => storage.listChecks(run.id)),
-          events: storage.listEvents(workOrder.id),
-          externalActions: storage.listExternalActions(workOrder.id),
-          publicationRequests: storage.listPublicationRequests(workOrder.id),
-          publicationApprovals: storage.listPublicationApprovals(workOrder.id),
-        };
+        const detail = workOrderDetail(detailMatch[1]);
+        if (!detail) return json(response, 404, { error: "WorkOrder not found" });
         return json(response, 200, detail);
       }
 
@@ -435,6 +473,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     context,
     jobs,
     close: async () => {
+      await linear.close();
       await previews.close();
       await jobs.close();
       for (const listeners of subscribers.values()) {

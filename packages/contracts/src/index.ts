@@ -27,6 +27,8 @@ export type RunState =
   | "cancelled";
 
 export interface CreateWorkOrderInput {
+  idempotencyKey?: string;
+  syncToLinear?: boolean;
   title: string;
   description: string;
   kind: WorkKind;
@@ -178,4 +180,27 @@ export interface WorkOrderDetail {
   externalActions: ExternalAction[];
   publicationRequests: PublicationRequest[];
   publicationApprovals: PublicationApproval[];
+  linearLink?: LinearLink | null;
+}
+
+export interface LinearLink {
+  workOrderId: string;
+  issueId: string;
+  teamId: string;
+  projectId: string | null;
+  state: "pending" | "syncing" | "synced" | "unknown";
+  identifier: string | null;
+  url: string | null;
+  error: string | null;
+  updatedAt: string;
+}
+
+export interface ConnectionStatus {
+  linear: {
+    configured: boolean;
+    mode: "manual" | "automatic";
+    teamId: string | null;
+    projectId: string | null;
+  };
+  clients: { id: string; name: string; actions: string[]; repositoryPaths: string[] }[];
 }

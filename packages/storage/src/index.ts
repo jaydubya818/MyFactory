@@ -8,6 +8,7 @@ import type {
   ExternalAction,
   FactoryEvent,
   FactoryPolicy,
+  LinearLink,
   PublicationApproval,
   PublicationRequest,
   Release,
@@ -340,6 +341,17 @@ const migrations = [
   CREATE UNIQUE INDEX external_actions_request_kind_idx
     ON external_actions(publication_request_id, kind)
     WHERE publication_request_id IS NOT NULL;`,
+  `CREATE TABLE work_order_intake (
+    actor_id TEXT NOT NULL,
+    intake_key TEXT NOT NULL,
+    input_digest TEXT NOT NULL,
+    work_order_id TEXT NOT NULL REFERENCES work_orders(id),
+    PRIMARY KEY (actor_id, intake_key)
+  ) STRICT;
+  CREATE TABLE linear_links (
+    work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id),
+    record_json TEXT NOT NULL CHECK (json_valid(record_json))
+  ) STRICT;`,
 ];
 
 function parseJson<T>(value: string): T {
@@ -604,6 +616,30 @@ export class FactoryStorage {
       );
     });
     return workOrder;
+  }
+
+  getIntake(actorId: string, key: string): { input_digest: string; work_order_id: string } | null {
+    return this.#database.prepare("SELECT input_digest, work_order_id FROM work_order_intake WHERE actor_id = ? AND intake_key = ?")
+      .get(actorId, key) as { input_digest: string; work_order_id: string } | undefined ?? null;
+  }
+
+  recordIntake(actorId: string, key: string, digest: string, workOrderId: string): void {
+    this.#database.prepare("INSERT INTO work_order_intake VALUES (?, ?, ?, ?)")
+      .run(actorId, key, digest, workOrderId);
+  }
+
+  getLinearLink(workOrderId: string): LinearLink | null {
+    const row = this.#database.prepare("SELECT record_json FROM linear_links WHERE work_order_id = ?")
+      .get(workOrderId) as { record_json: string } | undefined;
+    return row ? parseJson<LinearLink>(row.record_json) : null;
+  }
+
+  saveLinearLink(link: LinearLink): LinearLink {
+    const saved = { ...link, updatedAt: new Date().toISOString() };
+    this.#write(() => this.#database.prepare(`INSERT INTO linear_links VALUES (?, ?)
+      ON CONFLICT(work_order_id) DO UPDATE SET record_json = excluded.record_json`)
+      .run(saved.workOrderId, toJson(saved)));
+    return saved;
   }
 
   getWorkOrder(id: string): WorkOrder | null {
