@@ -289,6 +289,14 @@ time { white-space: nowrap; }
 .decision-card { border-color: #49634c; background: #24362a; }
 .decision-card h2 { margin: 5px 0; font-size: 18px; font-weight: 600; }
 .decision-card > p:last-child { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.local-preview > .muted-copy { margin: -5px 0 14px; font-size: 12px; line-height: 1.55; }
+.local-preview__state { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 12px 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); font-size: 12px; }
+.local-preview__state strong { color: var(--text); font-weight: 650; }
+.local-preview__state small { margin-left: auto; color: var(--subtle); font-size: 11px; }
+.local-preview__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.local-preview__actions .button { text-decoration: none; }
+.local-preview__error { margin: 12px 0 0; color: #f0c5c0; font-size: 12px; line-height: 1.5; }
+.local-preview__log { max-height: 300px; overflow: auto; margin: 14px 0 0; padding: 12px; border: 1px solid var(--line); border-radius: 5px; background: #142019; color: #d4e0d6; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .create-panel { max-width: 1050px; }
 .builder-page { max-width: 1110px; }

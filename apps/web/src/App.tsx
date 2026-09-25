@@ -265,7 +265,7 @@ export default function App() {
     try {
       const result = await sendAction<BuilderCreateResult>("builder.create", input);
       const id = createdWorkOrderId(result?.workOrder);
-      setNotice("App scaffold prepared for review. A WorkOrder was saved; no preview or publication was created.");
+      setNotice("App scaffold prepared. Open its WorkOrder to start a local preview when ready.");
       setShowingBuilder(false);
       if (id) {
         setSelectedId(id);

@@ -9,6 +9,7 @@ import type {
 } from "@factory/contracts";
 import { EmptyMessage, Icon, StatusPill } from "./components";
 import { formatDate, shortId, workOrderStates, type Tone } from "./domain";
+import LocalPreviewPanel from "./LocalPreviewPanel";
 import PublicationReview from "./PublicationReview";
 
 type Tab = "overview" | "activity" | "changes" | "verification" | "decisions";
@@ -71,11 +72,13 @@ function EventList({ events }: { events: FactoryEvent[] }) {
   );
 }
 
-function Overview({ detail, latestRun }: { detail: Detail; latestRun: Run | undefined }) {
+function Overview({ detail, latestRun, onRefresh }: { detail: Detail; latestRun: Run | undefined; onRefresh: () => void }) {
   const order = detail.workOrder;
+  const hasAppScaffold = detail.events.some((event) => event.type === "builder.scaffold_created");
   return (
     <div className="content-grid">
       <div className="content-grid__main">
+        {hasAppScaffold && <LocalPreviewPanel workOrderId={order.id} onRefresh={onRefresh} />}
         <section className="paper-card">
           <div className="card-heading"><p className="eyebrow">Definition</p><h2>Acceptance criteria</h2></div>
           {order.acceptanceCriteria.length > 0 ? <ol className="criteria-list">{order.acceptanceCriteria.map((criterion, index) => <li key={`${index}-${criterion}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{criterion}</p></li>)}</ol> : <p className="muted-copy">No acceptance criteria were recorded for this work order.</p>}
@@ -180,7 +183,7 @@ export default function WorkOrderDetail({ detail, onStart, onCancel, onRefresh, 
       <p className="detail-tabs__cue">Scroll sections <span aria-hidden="true">→</span></p>
       <nav className="detail-tabs" aria-label="Work order sections">{tabs.map((tab) => <button className={activeTab === tab.id ? "detail-tabs__button detail-tabs__button--active" : "detail-tabs__button"} type="button" key={tab.id} aria-current={activeTab === tab.id ? "page" : undefined} onClick={() => setActiveTab(tab.id)}>{tab.label}{tab.id === "activity" && detail.events.length > 0 && <span>{detail.events.length}</span>}{tab.id === "verification" && detail.checks.length > 0 && <span>{detail.checks.length}</span>}</button>)}</nav>
       <div className="detail-content" key={activeTab}>
-        {activeTab === "overview" && <Overview detail={detail} latestRun={latestRun} />}
+        {activeTab === "overview" && <Overview detail={detail} latestRun={latestRun} onRefresh={onRefresh} />}
         {activeTab === "activity" && <EventList events={detail.events} />}
         {activeTab === "changes" && <Changes latestRun={latestRun} actions={detail.externalActions} />}
         {activeTab === "verification" && <Verification checks={detail.checks} />}

@@ -8,7 +8,9 @@ import type {
   WorkOrderDetail,
 } from "@factory/contracts";
 
-type ActionName = "workorder.create" | "run.start" | "run.cancel" | "builder.create" | "dispatch.set_paused" | "publication.request" | "publication.approve" | "publication.publish_draft";
+type ActionName = "workorder.create" | "run.start" | "run.cancel" | "builder.create" |
+  "builder.preview.start" | "builder.preview.stop" | "dispatch.set_paused" |
+  "publication.request" | "publication.approve" | "publication.publish_draft";
 
 export interface TextEvidence {
   available: boolean;
@@ -33,6 +35,18 @@ export interface BuilderCreateResult {
   artifactPath: string;
   manifestPath: string;
   templateVersion: string;
+}
+
+export interface PreviewStatus {
+  status: "not_started" | "building" | "running" | "failed" | "stopped" | "interrupted";
+  url: string | null;
+  lastEvent: { type: string; createdAt: string; payload: Record<string, unknown> | null } | null;
+}
+
+export interface PreviewActionResult {
+  status: "building" | "running" | "failed" | "stopped";
+  url?: string;
+  error?: string;
 }
 
 let sessionTokenRequest: Promise<string> | null = null;
@@ -131,6 +145,19 @@ export function getWorkOrderDiff(workOrderId: string): Promise<TextEvidence> {
 
 export function getCheckLog(workOrderId: string, checkId: string): Promise<TextEvidence> {
   return textEvidence(`/api/work-orders/${encodeURIComponent(workOrderId)}/checks/${encodeURIComponent(checkId)}/log`);
+}
+
+export async function getPreviewStatus(workOrderId: string): Promise<PreviewStatus> {
+  const data = await request<PreviewStatus>(`/api/work-orders/${encodeURIComponent(workOrderId)}/preview`);
+  if (!data || !["not_started", "building", "running", "failed", "stopped", "interrupted"].includes(data.status) ||
+      (data.url !== null && typeof data.url !== "string")) {
+    throw new Error("The local service returned an invalid preview status.");
+  }
+  return data;
+}
+
+export function getPreviewLog(workOrderId: string): Promise<TextEvidence> {
+  return textEvidence(`/api/work-orders/${encodeURIComponent(workOrderId)}/preview/log`);
 }
 
 async function sessionToken(): Promise<string> {

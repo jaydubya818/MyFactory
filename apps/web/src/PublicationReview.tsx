@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Check, FactoryPolicy, PublicationApproval, PublicationRequest, Run, WorkOrderDetail } from "@factory/contracts";
+import type { Check, ExternalAction, FactoryPolicy, PublicationApproval, PublicationRequest, Run, WorkOrderDetail } from "@factory/contracts";
 import { getCheckLog, getPolicy, getWorkOrderDiff, sendAction, type TextEvidence } from "./api";
 import { errorText, formatDate } from "./domain";
 
@@ -34,6 +34,8 @@ export default function PublicationReview({ detail, onRefresh }: Props) {
   const checkEvidenceVersion = checks.map((check) => `${check.id}:${check.status}:${check.logSha256 ?? ""}`).join("|");
   const request = latestRequest(detail);
   const approval = request ? detail.publicationApprovals.find((item) => item.requestId === request.id) : undefined;
+  const external = request ? detail.externalActions.find((item) =>
+    item.kind === "draft_pr" && item.publicationRequestId === request.id) : undefined;
   const [evidence, setEvidence] = useState<ReviewEvidence | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -74,6 +76,7 @@ export default function PublicationReview({ detail, onRefresh }: Props) {
   const requestMatches = Boolean(request && run && evidence && request.runId === run.id && request.candidateCommit === run.candidateCommit && request.policyRevision === evidence.policy.revision);
   const approvalRecorded = Boolean(approval);
   const approvalCurrent = Boolean(approval && requestMatches && request && approval.candidateCommit === request.candidateCommit && approval.evidenceDigest === request.evidenceDigest && approval.policyRevision === request.policyRevision && Date.parse(approval.expiresAt) > Date.now());
+  const canReconcile = external?.state === "unknown";
   const destinationValid = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(destination.trim());
 
   async function perform(kind: "request" | "approve" | "publish") {
@@ -96,9 +99,11 @@ export default function PublicationReview({ detail, onRefresh }: Props) {
         setAcknowledged(false);
         setNotice("Approval recorded for this exact candidate and evidence. No code has been published.");
       } else {
-        if (!request || !approvalCurrent) return;
-        await sendAction("publication.publish_draft", { requestId: request.id });
-        setNotice("Draft publication action completed. Review the external action record for its result.");
+        if (!request || (!approvalCurrent && !canReconcile)) return;
+        const result = await sendAction<ExternalAction>("publication.publish_draft", { requestId: request.id });
+        setNotice(result.state === "succeeded"
+          ? "Draft pull request confirmed on GitHub. Review its link and external action record."
+          : "Publication outcome is still being checked.");
       }
       onRefresh();
       setRevision((value) => value + 1);
@@ -129,7 +134,7 @@ export default function PublicationReview({ detail, onRefresh }: Props) {
     <div className="publication-review__request"><label htmlFor="publication-destination">GitHub destination <span>owner/repo</span></label><div><input id="publication-destination" type="text" autoComplete="off" spellCheck={false} value={destination} onChange={(event) => setDestination(event.target.value)} placeholder="owner/repo" /><button className="button button--quiet" type="button" disabled={!ready || !artifactsAvailable || !destinationValid || pending !== null} onClick={() => void perform("request")}>{pending === "request" ? "Requesting…" : "Propose publication"}</button></div><p>Creates a local proposal. It does not authorize a push or draft pull request.</p></div>
     {request && <div className="publication-review__binding"><h3>Latest proposal</h3><dl className="stacked-values"><div><dt>Destination</dt><dd>{request.destination}</dd></div><div><dt>Candidate SHA</dt><dd><code>{request.candidateCommit}</code></dd></div><div><dt>Evidence digest</dt><dd><code>{request.evidenceDigest}</code></dd></div><div><dt>Policy revision</dt><dd>{request.policyRevision}</dd></div><div><dt>Requested</dt><dd>{formatDate(request.createdAt)}</dd></div></dl>{!requestMatches && <p className="review-evidence__missing">This proposal no longer matches the current candidate or policy. Create a fresh proposal after review.</p>}
       {requestMatches && !approvalRecorded && <div className="publication-review__approval"><label><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} /> I reviewed this candidate diff, the check logs and their digests, destination, and policy revision.</label><button className="button button--primary" type="button" disabled={!acknowledged || !artifactsAvailable || pending !== null} onClick={() => void perform("approve")}>{pending === "approve" ? "Approving…" : "Approve this exact proposal"}</button></div>}
-      {approval && <div className="publication-review__approved"><p>Approval recorded by {approval.approverId} at {formatDate(approval.approvedAt)}. It expires {formatDate(approval.expiresAt)}. The supervisor rechecks candidate, evidence, policy, and expiry before publication.</p>{!approvalCurrent && <p>This approval is stale or expired for the current proposal. Request publication again before proceeding.</p>}<button className="button button--quiet" type="button" disabled={!approvalCurrent || pending !== null} onClick={() => void perform("publish")}>{pending === "publish" ? "Checking publication…" : "Create draft pull request"}</button><small>Draft publishing currently needs an adapter. If unavailable, the supervisor refuses this action without publishing.</small></div>}
+      {approval && <div className="publication-review__approved"><p>Approval recorded by {approval.approverId} at {formatDate(approval.approvedAt)}. It expires {formatDate(approval.expiresAt)}. The supervisor rechecks candidate, evidence, policy, and expiry before new publication.</p>{!approvalCurrent && !canReconcile && external?.state !== "succeeded" && <p>This approval is stale or expired for the current proposal. Request publication again before proceeding.</p>}{external?.state === "succeeded" && external.remoteIdentity?.startsWith("https://github.com/") ? <a href={external.remoteIdentity} target="_blank" rel="noopener noreferrer">Open confirmed draft pull request ↗</a> : null}{external?.state === "failed" && <p>The publication attempt failed. Review a fresh proposal before retrying.</p>}{external?.state === "dispatched" && <p>Publication is in progress. Refresh this WorkOrder for its outcome.</p>}{(!external || canReconcile) && <button className="button button--quiet" type="button" disabled={(!approvalCurrent && !canReconcile) || pending !== null} onClick={() => void perform("publish")}>{pending === "publish" ? "Checking publication…" : canReconcile ? "Reconcile GitHub outcome" : "Create draft pull request"}</button>}<small>{canReconcile ? "Reconciliation reads GitHub state and does not repeat the push or PR creation." : "The host checks the exact review binding and asks for device-owner confirmation before publishing."}</small></div>}
     </div>}
     {notice && <p className="publication-review__notice" role="status">{notice}</p>}
     {actionError && <p className="review-evidence__missing" role="alert">{actionError}</p>}
