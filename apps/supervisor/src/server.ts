@@ -1,0 +1,340 @@
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createReadStream, existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { homedir } from "node:os";
+import { extname, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { FactoryEvent, WorkOrderDetail } from "../../../packages/contracts/src/index.ts";
+import { openStorage } from "../../../packages/storage/src/index.ts";
+import { ActionError, actionRegistry, performAction, type ActionContext } from "./actions.ts";
+import { JobManager, type JobDependencies } from "./jobs.ts";
+
+const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
+const defaultDataDir = resolve(homedir(), ".local", "share", "sellerfi-factory");
+const contentTypes: Record<string, string> = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".ico": "image/x-icon",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+};
+
+function sessionToken(dataDir: string): string {
+  mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+  const tokenPath = resolve(dataDir, "session-token");
+  if (!existsSync(tokenPath)) {
+    try {
+      writeFileSync(tokenPath, randomBytes(32).toString("hex"), {
+        encoding: "utf8",
+        flag: "wx",
+        mode: 0o600,
+      });
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes("EEXIST")) throw error;
+    }
+  }
+  const token = readFileSync(tokenPath, "utf8").trim();
+  if (!/^[0-9a-f]{64}$/.test(token)) throw new Error("Invalid local session token");
+  return token;
+}
+
+function json(response: ServerResponse, status: number, body: unknown): void {
+  response.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
+  response.end(JSON.stringify(body));
+}
+
+function isLocalHost(host: string | undefined): boolean {
+  return /^(127\.0\.0\.1|localhost)(:\d+)?$/i.test(host ?? "");
+}
+
+function allowedOrigin(origin: string | undefined, host: string | undefined): boolean {
+  if (!origin || !host) return false;
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol !== "http:") return false;
+    if (parsed.host === host && isLocalHost(host)) return true;
+    if (process.env.NODE_ENV !== "production") {
+      return ["http://127.0.0.1:5173", "http://localhost:5173"].includes(parsed.origin);
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function hasToken(request: IncomingMessage, token: string): boolean {
+  const submitted = request.headers["x-factory-token"];
+  if (typeof submitted !== "string" || !/^[0-9a-f]{64}$/.test(submitted)) return false;
+  return timingSafeEqual(Buffer.from(submitted), Buffer.from(token));
+}
+
+async function requestBody(request: IncomingMessage): Promise<unknown> {
+  if (!request.headers["content-type"]?.startsWith("application/json")) {
+    throw new ActionError("Content-Type must be application/json", "invalid_content_type", 415);
+  }
+  let body = "";
+  for await (const chunk of request) {
+    body += chunk.toString("utf8");
+    if (body.length > 1_000_000) {
+      throw new ActionError("Request is too large", "request_too_large", 413);
+    }
+  }
+  try {
+    return JSON.parse(body);
+  } catch {
+    throw new ActionError("Malformed JSON", "invalid_json");
+  }
+}
+
+function safeStaticPath(webDist: string, pathname: string): string | null {
+  const candidate = resolve(webDist, `.${pathname}`);
+  if (candidate !== webDist && !candidate.startsWith(`${webDist}${sep}`)) return null;
+  return candidate;
+}
+
+function staticFile(response: ServerResponse, path: string): void {
+  const file = statSync(path);
+  response.writeHead(200, {
+    "Content-Type": contentTypes[extname(path)] ?? "application/octet-stream",
+    "Content-Length": file.size,
+    "Cache-Control": path.endsWith("index.html") ? "no-store" : "public, max-age=3600",
+  });
+  createReadStream(path).pipe(response);
+}
+
+function artifactText(dataDir: string, candidate: unknown): string | null {
+  if (typeof candidate !== "string" || !existsSync(candidate)) return null;
+  const artifactRoot = resolve(dataDir, "artifacts");
+  if (!existsSync(artifactRoot)) return null;
+  const root = realpathSync(artifactRoot);
+  const path = realpathSync(candidate);
+  if (!path.startsWith(`${root}${sep}`) || !statSync(path).isFile() || statSync(path).size > 5_000_000) {
+    return null;
+  }
+  return readFileSync(path, "utf8");
+}
+
+export interface SupervisorOptions {
+  dataDir?: string;
+  webDist?: string;
+  startRun?: ActionContext["startRun"];
+  cancelRun?: ActionContext["cancelRun"];
+  jobDependencies?: Partial<JobDependencies>;
+}
+
+export function createSupervisor(options: SupervisorOptions = {}) {
+  const dataDir = resolve(options.dataDir ?? process.env.FACTORY_DATA_DIR ?? defaultDataDir);
+  const webDist = resolve(options.webDist ?? defaultWebDist);
+  const token = sessionToken(dataDir);
+  const storage = openStorage(resolve(dataDir, "factory.sqlite"));
+  const subscribers = new Map<string, Set<ServerResponse>>();
+
+  const notify = (event: FactoryEvent) => {
+    const listeners = subscribers.get(event.workOrderId);
+    if (!listeners) return;
+    for (const response of listeners) {
+      if (response.destroyed || response.writableLength > 1_000_000) {
+        response.destroy();
+        listeners.delete(response);
+        continue;
+      }
+      try {
+        response.write(`id: ${event.id}\ndata: ${JSON.stringify(event)}\n\n`);
+      } catch {
+        response.destroy();
+        listeners.delete(response);
+      }
+    }
+    if (listeners.size === 0) subscribers.delete(event.workOrderId);
+  };
+  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies);
+  const context: ActionContext = {
+    storage,
+    notify,
+    startRun: options.startRun ?? ((workOrder) => jobs.startRun(workOrder)),
+    cancelRun: options.cancelRun ?? ((workOrder) => jobs.cancelRun(workOrder)),
+  };
+
+  const server = createServer(async (request, response) => {
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setHeader("Referrer-Policy", "no-referrer");
+    response.setHeader("X-Frame-Options", "DENY");
+    const host = request.headers.host;
+    if (!isLocalHost(host)) return json(response, 403, { error: "Local host required" });
+
+    try {
+      const url = new URL(request.url ?? "/", `http://${host}`);
+      const pathname = url.pathname;
+
+      if (request.method === "GET" && pathname === "/api/health") {
+        return json(response, 200, { status: "ok" });
+      }
+      if (request.method === "GET" && pathname === "/api/session") {
+        return json(response, 200, { token });
+      }
+      if (request.method === "GET" && pathname === "/api/actions") {
+        return json(response, 200, { actions: Object.values(actionRegistry) });
+      }
+      if (request.method === "GET" && pathname === "/api/policy") {
+        return json(response, 200, { policy: storage.getPolicy() });
+      }
+      if (request.method === "GET" && pathname === "/api/work-orders") {
+        return json(response, 200, { workOrders: storage.listWorkOrders() });
+      }
+
+      const detailMatch = /^\/api\/work-orders\/([0-9a-f-]{36})$/.exec(pathname);
+      if (request.method === "GET" && detailMatch) {
+        const workOrder = storage.getWorkOrder(detailMatch[1]);
+        if (!workOrder) return json(response, 404, { error: "WorkOrder not found" });
+        const runs = storage.listRuns(workOrder.id);
+        const detail: WorkOrderDetail = {
+          workOrder,
+          runs,
+          checks: runs.flatMap((run) => storage.listChecks(run.id)),
+          events: storage.listEvents(workOrder.id),
+          externalActions: storage.listExternalActions(workOrder.id),
+          publicationRequests: storage.listPublicationRequests(workOrder.id),
+          publicationApprovals: storage.listPublicationApprovals(workOrder.id),
+        };
+        return json(response, 200, detail);
+      }
+
+      const diffMatch = /^\/api\/work-orders\/([0-9a-f-]{36})\/diff$/.exec(pathname);
+      if (request.method === "GET" && diffMatch) {
+        const workOrder = storage.getWorkOrder(diffMatch[1]);
+        if (!workOrder) return json(response, 404, { error: "WorkOrder not found" });
+        const run = storage.listRuns(workOrder.id).at(-1);
+        const event = storage.listEvents(workOrder.id)
+          .filter((item) => item.runId === run?.id && item.type === "run.candidate_committed" &&
+            item.payload.candidateCommit === run?.candidateCommit).at(-1);
+        const diff = artifactText(dataDir, event?.payload.diffPath);
+        if (diff === null) return json(response, 404, { error: "Candidate diff is unavailable" });
+        response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
+        response.end(diff);
+        return;
+      }
+
+      const checkLogMatch = /^\/api\/work-orders\/([0-9a-f-]{36})\/checks\/([0-9a-f-]{36})\/log$/.exec(pathname);
+      if (request.method === "GET" && checkLogMatch) {
+        const workOrder = storage.getWorkOrder(checkLogMatch[1]);
+        if (!workOrder) return json(response, 404, { error: "WorkOrder not found" });
+        const check = storage.listRuns(workOrder.id)
+          .flatMap((run) => storage.listChecks(run.id))
+          .find((item) => item.id === checkLogMatch[2]);
+        const log = artifactText(dataDir, check?.logPath);
+        if (log === null) return json(response, 404, { error: "Check log is unavailable" });
+        response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
+        response.end(log);
+        return;
+      }
+
+      const eventsMatch = /^\/api\/work-orders\/([0-9a-f-]{36})\/events$/.exec(pathname);
+      if (request.method === "GET" && eventsMatch) {
+        const workOrderId = eventsMatch[1];
+        if (!storage.getWorkOrder(workOrderId)) {
+          return json(response, 404, { error: "WorkOrder not found" });
+        }
+        const cursor = Number(url.searchParams.get("after") ?? 0);
+        if (!Number.isSafeInteger(cursor) || cursor < 0) {
+          throw new ActionError("Invalid event cursor", "invalid_input");
+        }
+        response.writeHead(200, {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-store",
+          Connection: "keep-alive",
+        });
+        response.write(": connected\n\n");
+        for (const event of storage.listEvents(workOrderId, cursor)) {
+          response.write(`id: ${event.id}\ndata: ${JSON.stringify(event)}\n\n`);
+        }
+        const listeners = subscribers.get(workOrderId) ?? new Set<ServerResponse>();
+        listeners.add(response);
+        subscribers.set(workOrderId, listeners);
+        const heartbeat = setInterval(() => response.write(": heartbeat\n\n"), 25_000);
+        request.on("close", () => {
+          clearInterval(heartbeat);
+          listeners.delete(response);
+          if (listeners.size === 0) subscribers.delete(workOrderId);
+        });
+        return;
+      }
+
+      if (request.method === "POST" &&
+          (pathname === "/api/actions" || pathname === "/api/agent/actions")) {
+        if (!allowedOrigin(request.headers.origin, host) || !hasToken(request, token)) {
+          return json(response, 403, { error: "Invalid local session or origin" });
+        }
+        const body = await requestBody(request);
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
+          throw new ActionError("Action request must be an object", "invalid_input");
+        }
+        const { action, input } = body as { action?: unknown; input?: unknown };
+        if (typeof action !== "string") {
+          throw new ActionError("Action name is required", "invalid_input");
+        }
+        const actor = pathname === "/api/agent/actions"
+          ? { kind: "agent" as const, id: "factory-agent" }
+          : { kind: "human" as const, id: "local-user" };
+        const result = await performAction(context, action, input, actor);
+        return json(response, 200, { result });
+      }
+
+      if (request.method === "GET" && !pathname.startsWith("/api/")) {
+        const path = safeStaticPath(webDist, pathname);
+        if (path && existsSync(path) && statSync(path).isFile()) {
+          return staticFile(response, path);
+        }
+        const index = resolve(webDist, "index.html");
+        if (existsSync(index)) return staticFile(response, index);
+        return json(response, 503, { error: "Web UI is not built yet" });
+      }
+
+      return json(response, 404, { error: "Route not found" });
+    } catch (error) {
+      if (error instanceof ActionError) {
+        return json(response, error.status, { error: error.message, code: error.code });
+      }
+      console.error("Supervisor request failed", error);
+      return json(response, 500, { error: "Internal supervisor error" });
+    }
+  });
+
+  return {
+    server,
+    storage,
+    context,
+    jobs,
+    close: async () => {
+      await jobs.close();
+      for (const listeners of subscribers.values()) {
+        for (const response of listeners) response.end();
+      }
+      await new Promise<void>((resolveClose, reject) => {
+        if (!server.listening) return resolveClose();
+        server.close((error) => error ? reject(error) : resolveClose());
+      });
+      storage.close();
+    },
+  };
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const port = Number(process.env.FACTORY_PORT ?? 8787);
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
+    throw new Error("FACTORY_PORT must be a valid TCP port");
+  }
+  const supervisor = createSupervisor();
+  supervisor.server.listen(port, "127.0.0.1", () => {
+    console.log(`Local Factory is ready at http://127.0.0.1:${port}`);
+  });
+  const shutdown = () => {
+    void supervisor.close().then(() => process.exit(0));
+  };
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
+}

@@ -1,0 +1,17 @@
+{
+  "name": "sellerfi-local-factory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": { "node": ">=24.15 <25" },
+  "scripts": {
+    "dev": "npm run dev --workspace @factory/supervisor",
+    "start": "npm run start --workspace @factory/supervisor",
+    "dev:web": "npm run dev --workspace @factory/web",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "smoke:docker": "node scripts/smoke-supervisor.mjs"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "sellerfi-phase-0-defect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Disposable defect fixture for the local software factory baseline",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
