@@ -37,6 +37,33 @@ function runInput(workOrderId) {
   };
 }
 
+function signalInput(sourceIdentity = "owner/repo#42") {
+  return {
+    source: "github-issues",
+    sourceIdentity,
+    sourceRevision: "2026-09-24T12:00:00Z",
+    sourceUrl: "https://github.com/owner/repo/issues/42",
+    title: "Feedback can be submitted twice",
+    summary: "A double click creates two submissions.",
+    provenance: { repository: "owner/repo", issue: 42 },
+    evidence: { steps: ["Open form", "Double click Submit"] },
+    coverage: "complete",
+    coverageDetail: null,
+  };
+}
+
+function releaseInput() {
+  return {
+    target: "demo-store",
+    sourceCommit: "a1b2c3",
+    artifactIdentity: "sha256:alpha",
+    stage: "beta",
+    status: "candidate",
+    policyRevision: 7,
+    previousKnownGoodArtifactIdentity: "sha256:stable",
+  };
+}
+
 test("records survive close and reopen with contract shaped JSON and status", (t) => {
   const path = fixture(t);
   const storage = openStorage(path);
@@ -89,7 +116,7 @@ test("records survive close and reopen with contract shaped JSON and status", (t
 
   const database = new DatabaseSync(path);
   assert.equal(database.prepare("PRAGMA journal_mode").get().journal_mode, "wal");
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 3);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 4);
   database.close();
 });
 
@@ -124,7 +151,7 @@ test("migrates an existing v1 WorkOrder and preserves the new failure oracle", (
   t.after(() => reopened.close());
   assert.equal(reopened.getWorkOrder(id)?.expectedFailureText, "Expected '$0'");
   const database = new DatabaseSync(path);
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 3);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 4);
   database.close();
 });
 
@@ -210,4 +237,80 @@ test("a state change and audit event roll back together", (t) => {
     });
   }), /FOREIGN KEY constraint failed/);
   assert.deepEqual(storage.listWorkOrders(), []);
+});
+
+test("signal ingestion is idempotent by source identity and preserves its WorkOrder link", (t) => {
+  const path = fixture(t);
+  const storage = openStorage(path);
+  const otherConnection = openStorage(path);
+  t.after(() => storage.close());
+  t.after(() => otherConnection.close());
+
+  const initial = storage.upsertSignal(signalInput());
+  assert.deepEqual(otherConnection.upsertSignal(signalInput()), initial);
+  const order = storage.createWorkOrder(workOrderInput());
+  const linked = storage.linkSignalToWorkOrder(initial.id, order.id);
+  assert.equal(linked.workOrderId, order.id);
+
+  const changed = otherConnection.upsertSignal({
+    ...signalInput(),
+    sourceRevision: "2026-09-25T12:00:00Z",
+    evidence: { steps: ["Open form", "Double click Submit"], affectedUsers: 3 },
+    coverage: "partial",
+    coverageDetail: "One page of comments was unavailable",
+  });
+  assert.equal(changed.id, initial.id);
+  assert.equal(changed.firstSeenAt, initial.firstSeenAt);
+  assert.equal(changed.workOrderId, order.id);
+  assert.deepEqual(storage.listSignals(order.id), [changed]);
+  assert.deepEqual(storage.upsertSignal({
+    ...signalInput(),
+    sourceRevision: "2026-09-25T12:00:00Z",
+    evidence: { steps: ["Open form", "Double click Submit"], affectedUsers: 3 },
+    coverage: "partial",
+    coverageDetail: "One page of comments was unavailable",
+  }), changed);
+
+  const differentIdentity = storage.upsertSignal(signalInput("owner/repo#43"));
+  const differentSource = storage.upsertSignal({ ...signalInput(), source: "support" });
+  assert.equal(new Set(storage.listSignals().map((signal) => signal.id)).size, 3);
+  assert.notEqual(differentIdentity.id, initial.id);
+  assert.notEqual(differentSource.id, initial.id);
+
+  const otherOrder = storage.createWorkOrder(workOrderInput("Another WorkOrder"));
+  assert.throws(() => storage.linkSignalToWorkOrder(initial.id, otherOrder.id), /already linked/);
+  assert.throws(() => storage.linkSignalToWorkOrder(differentIdentity.id, "missing-order"),
+    /FOREIGN KEY constraint failed/);
+  assert.equal(storage.getSignal(differentIdentity.id)?.workOrderId, null);
+  assert.throws(() => storage.upsertSignal({ ...signalInput("bad"), coverage: "unknown" }),
+    /CHECK constraint failed/);
+});
+
+test("release records retain artifact and prior known-good identity across restart", (t) => {
+  const path = fixture(t);
+  const storage = openStorage(path);
+  const beta = storage.createRelease(releaseInput());
+  const deployed = storage.setReleaseStatus(beta.id, "deployed");
+  assert.deepEqual(storage.setReleaseStatus(beta.id, "deployed"), deployed);
+  const production = storage.createRelease({
+    ...releaseInput(),
+    stage: "production",
+    status: "candidate",
+    previousKnownGoodArtifactIdentity: "sha256:production-stable",
+  });
+  storage.close();
+
+  const reopened = openStorage(path);
+  t.after(() => reopened.close());
+  assert.deepEqual(reopened.getRelease(beta.id), deployed);
+  assert.deepEqual(reopened.listReleases("demo-store").map((release) => release.id).sort(),
+    [beta.id, production.id].sort());
+  assert.equal(reopened.getRelease(production.id)?.previousKnownGoodArtifactIdentity,
+    "sha256:production-stable");
+  assert.equal(reopened.getRelease(production.id)?.policyRevision, 7);
+  assert.throws(() => reopened.createRelease({ ...releaseInput(), policyRevision: 0 }),
+    /CHECK constraint failed/);
+  assert.throws(() => reopened.setReleaseStatus(beta.id, "unknown"),
+    /CHECK constraint failed/);
+  assert.deepEqual(reopened.getRelease(beta.id), deployed);
 });

@@ -47,6 +47,41 @@ export interface WorkOrder extends CreateWorkOrderInput {
   updatedAt: string;
 }
 
+export type SignalCoverage = "complete" | "partial" | "unavailable";
+
+export interface Signal {
+  id: string;
+  source: string;
+  sourceIdentity: string;
+  sourceRevision: string | null;
+  sourceUrl: string | null;
+  title: string;
+  summary: string;
+  provenance: Record<string, unknown>;
+  evidence: Record<string, unknown>;
+  coverage: SignalCoverage;
+  coverageDetail: string | null;
+  workOrderId: string | null;
+  firstSeenAt: string;
+  updatedAt: string;
+}
+
+export type ReleaseStage = "beta" | "production";
+export type ReleaseStatus = "candidate" | "deployed" | "failed" | "rolled_back";
+
+export interface Release {
+  id: string;
+  target: string;
+  sourceCommit: string;
+  artifactIdentity: string;
+  stage: ReleaseStage;
+  status: ReleaseStatus;
+  policyRevision: number;
+  previousKnownGoodArtifactIdentity: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Run {
   id: string;
   workOrderId: string;

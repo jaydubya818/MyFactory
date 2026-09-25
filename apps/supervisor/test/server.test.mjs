@@ -135,4 +135,31 @@ test("app builder endpoint creates a linked scaffold without claiming verificati
   assert.equal(detail.workOrder.state, "awaiting_environment");
   assert.equal(detail.events.at(-1).type, "builder.scaffold_created");
   assert.equal(detail.checks.length, 0);
+  const manifestResponse = await fetch(`${origin}/api/work-orders/${result.workOrder.id}/build-manifest`);
+  assert.equal(manifestResponse.status, 200);
+  const manifest = await manifestResponse.json();
+  assert.equal(manifest.template.id, "feedback-hub");
+  assert.ok(manifest.files.some((file) => file.path === "src/App.tsx"));
+});
+
+test("manual signals are deduplicated and releases stay empty until recorded", async (t) => {
+  const dataDir = mkdtempSync(join(tmpdir(), "sellerfi-signal-api-"));
+  t.after(() => rmSync(dataDir, { recursive: true, force: true }));
+  const supervisor = createSupervisor({ dataDir });
+  t.after(() => supervisor.close());
+  const origin = await listen(supervisor);
+  const { token } = await (await fetch(`${origin}/api/session`)).json();
+  const input = { sourceIdentity: "feedback-1", title: "Export date range", summary: "A buyer saw an unexpected range." };
+  const record = () => fetch(`${origin}/api/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Factory-Token": token, Origin: origin },
+    body: JSON.stringify({ action: "signal.record", input }),
+  });
+  assert.equal((await record()).status, 200);
+  assert.equal((await record()).status, 200);
+  const signals = await (await fetch(`${origin}/api/signals`)).json();
+  assert.equal(signals.signals.length, 1);
+  assert.equal(signals.signals[0].coverage, "partial");
+  const releases = await (await fetch(`${origin}/api/releases`)).json();
+  assert.deepEqual(releases.releases, []);
 });

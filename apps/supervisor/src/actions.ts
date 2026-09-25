@@ -16,7 +16,7 @@ import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 
 export type Actor = { kind: "human" | "agent" | "system"; id: string };
 export type ActionName =
-  | "workorder.create" | "workorder.note.add" | "builder.create" | "run.start" | "run.cancel"
+  | "workorder.create" | "workorder.note.add" | "builder.create" | "signal.record" | "run.start" | "run.cancel"
   | "dispatch.set_paused" | "publication.request" | "publication.approve"
   | "publication.publish_draft";
 
@@ -95,6 +95,19 @@ export const actionRegistry: Record<ActionName, ActionDefinition> = {
     idempotency: "Each request creates a new named scaffold and WorkOrder",
     auditEvent: "builder.scaffold_created",
     reconciliation: "Read the WorkOrder event and build manifest",
+  },
+  "signal.record": {
+    name: "signal.record",
+    inputSchema: { type: "object", required: ["sourceIdentity", "title", "summary"], properties: {
+      sourceIdentity: { type: "string" }, title: { type: "string" }, summary: { type: "string" },
+    } },
+    outputSchema: { type: "object", description: "A persisted manual signal" },
+    actorKinds: ["human", "agent"],
+    preconditions: ["Caller supplies a stable source identity to prevent duplicate intake"],
+    approval: "none",
+    idempotency: "Upsert by manual source identity",
+    auditEvent: "signal.recorded",
+    reconciliation: "Read Signals by source identity",
   },
   "run.start": {
     name: "run.start",
@@ -509,6 +522,21 @@ export async function performAction(
       rmSync(build.outputDir, { recursive: true, force: true });
       throw error;
     }
+  }
+
+  if (action === "signal.record") {
+    const input = asObject(rawInput);
+    const sourceIdentity = stringValue(input.sourceIdentity, "sourceIdentity", true);
+    const title = stringValue(input.title, "title", true);
+    const summary = stringValue(input.summary, "summary", true);
+    if (sourceIdentity.length > 160 || title.length > 200 || summary.length > 10_000) {
+      throw new ActionError("Signal fields are too long", "invalid_input");
+    }
+    return context.storage.upsertSignal({
+      source: "manual", sourceIdentity, sourceRevision: null, sourceUrl: null,
+      title, summary, provenance: { actor: actor.id, actorKind: actor.kind },
+      evidence: {}, coverage: "partial", coverageDetail: "Manual report; reproduction and coverage have not been verified",
+    });
   }
 
   const id = workOrderId(rawInput);

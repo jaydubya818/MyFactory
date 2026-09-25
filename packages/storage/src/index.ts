@@ -10,7 +10,10 @@ import type {
   FactoryPolicy,
   PublicationApproval,
   PublicationRequest,
+  Release,
+  ReleaseStatus,
   Run,
+  Signal,
   WorkOrder,
   WorkOrderState,
 } from "../../contracts/src/index.ts";
@@ -28,6 +31,10 @@ export type CreateExternalActionInput = Pick<
 export type InsertCheckInput = Omit<Check, "id" | "logSha256"> & { logSha256?: string | null };
 
 export type AppendEventInput = Omit<FactoryEvent, "id" | "createdAt">;
+
+export type UpsertSignalInput = Omit<Signal, "id" | "workOrderId" | "firstSeenAt" | "updatedAt">;
+
+export type CreateReleaseInput = Omit<Release, "id" | "createdAt" | "updatedAt">;
 
 export interface StorageOptions {
   busyTimeoutMs?: number;
@@ -124,6 +131,36 @@ interface ExternalActionRow {
   candidate_commit: string;
   remote_identity: string | null;
   error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface SignalRow {
+  id: string;
+  source: string;
+  source_identity: string;
+  source_revision: string | null;
+  source_url: string | null;
+  title: string;
+  summary: string;
+  provenance_json: string;
+  evidence_json: string;
+  coverage: Signal["coverage"];
+  coverage_detail: string | null;
+  work_order_id: string | null;
+  first_seen_at: string;
+  updated_at: string;
+}
+
+interface ReleaseRow {
+  id: string;
+  target: string;
+  source_commit: string;
+  artifact_identity: string;
+  stage: Release["stage"];
+  status: Release["status"];
+  policy_revision: number;
+  previous_known_good_artifact_identity: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -259,6 +296,43 @@ const migrations = [
     approved_at TEXT NOT NULL,
     expires_at TEXT NOT NULL
   ) STRICT;`,
+  `CREATE TABLE signals (
+    id TEXT PRIMARY KEY,
+    source TEXT NOT NULL CHECK (length(trim(source)) > 0),
+    source_identity TEXT NOT NULL CHECK (length(trim(source_identity)) > 0),
+    source_revision TEXT,
+    source_url TEXT,
+    title TEXT NOT NULL CHECK (length(trim(title)) > 0),
+    summary TEXT NOT NULL,
+    provenance_json TEXT NOT NULL CHECK (
+      json_valid(provenance_json) AND json_type(provenance_json) = 'object'
+    ),
+    evidence_json TEXT NOT NULL CHECK (
+      json_valid(evidence_json) AND json_type(evidence_json) = 'object'
+    ),
+    coverage TEXT NOT NULL CHECK (coverage IN ('complete', 'partial', 'unavailable')),
+    coverage_detail TEXT,
+    work_order_id TEXT REFERENCES work_orders(id),
+    first_seen_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE (source, source_identity)
+  ) STRICT;
+  CREATE INDEX signals_updated_idx ON signals(updated_at DESC, id DESC);
+  CREATE INDEX signals_work_order_idx ON signals(work_order_id) WHERE work_order_id IS NOT NULL;
+
+  CREATE TABLE releases (
+    id TEXT PRIMARY KEY,
+    target TEXT NOT NULL CHECK (length(trim(target)) > 0),
+    source_commit TEXT NOT NULL CHECK (length(trim(source_commit)) > 0),
+    artifact_identity TEXT NOT NULL CHECK (length(trim(artifact_identity)) > 0),
+    stage TEXT NOT NULL CHECK (stage IN ('beta', 'production')),
+    status TEXT NOT NULL CHECK (status IN ('candidate', 'deployed', 'failed', 'rolled_back')),
+    policy_revision INTEGER NOT NULL CHECK (policy_revision > 0),
+    previous_known_good_artifact_identity TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  ) STRICT;
+  CREATE INDEX releases_target_stage_idx ON releases(target, stage, created_at DESC, id DESC);`,
 ];
 
 function parseJson<T>(value: string): T {
@@ -377,6 +451,40 @@ function mapExternalAction(row: ExternalActionRow): ExternalAction {
     candidateCommit: row.candidate_commit,
     remoteIdentity: row.remote_identity,
     error: row.error,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapSignal(row: SignalRow): Signal {
+  return {
+    id: row.id,
+    source: row.source,
+    sourceIdentity: row.source_identity,
+    sourceRevision: row.source_revision,
+    sourceUrl: row.source_url,
+    title: row.title,
+    summary: row.summary,
+    provenance: parseJson<Record<string, unknown>>(row.provenance_json),
+    evidence: parseJson<Record<string, unknown>>(row.evidence_json),
+    coverage: row.coverage,
+    coverageDetail: row.coverage_detail,
+    workOrderId: row.work_order_id,
+    firstSeenAt: row.first_seen_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapRelease(row: ReleaseRow): Release {
+  return {
+    id: row.id,
+    target: row.target,
+    sourceCommit: row.source_commit,
+    artifactIdentity: row.artifact_identity,
+    stage: row.stage,
+    status: row.status,
+    policyRevision: row.policy_revision,
+    previousKnownGoodArtifactIdentity: row.previous_known_good_artifact_identity,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -530,6 +638,142 @@ export class FactoryStorage {
       if (result.changes !== 1) throw new Error(`WorkOrder ${saved.id} was not found`);
     });
     return saved;
+  }
+
+  upsertSignal(input: UpsertSignalInput): Signal {
+    return this.#write(() => {
+      const existing = this.#database.prepare(
+        "SELECT * FROM signals WHERE source = ? AND source_identity = ?",
+      ).get(input.source, input.sourceIdentity) as unknown as SignalRow | undefined;
+      const provenanceJson = toJson(input.provenance);
+      const evidenceJson = toJson(input.evidence);
+
+      if (existing) {
+        if (existing.source_revision === input.sourceRevision &&
+          existing.source_url === input.sourceUrl &&
+          existing.title === input.title && existing.summary === input.summary &&
+          existing.provenance_json === provenanceJson &&
+          existing.evidence_json === evidenceJson &&
+          existing.coverage === input.coverage &&
+          existing.coverage_detail === input.coverageDetail) {
+          return mapSignal(existing);
+        }
+        const updatedAt = new Date().toISOString();
+        this.#database.prepare(`UPDATE signals SET
+          source_revision = ?, source_url = ?, title = ?, summary = ?,
+          provenance_json = ?, evidence_json = ?, coverage = ?,
+          coverage_detail = ?, updated_at = ? WHERE id = ?`).run(
+          input.sourceRevision, input.sourceUrl, input.title, input.summary,
+          provenanceJson, evidenceJson, input.coverage, input.coverageDetail,
+          updatedAt, existing.id,
+        );
+        return {
+          ...mapSignal(existing),
+          ...input,
+          updatedAt,
+        };
+      }
+
+      const timestamp = new Date().toISOString();
+      const signal: Signal = {
+        ...input,
+        id: randomUUID(),
+        workOrderId: null,
+        firstSeenAt: timestamp,
+        updatedAt: timestamp,
+      };
+      this.#database.prepare(`INSERT INTO signals (
+        id, source, source_identity, source_revision, source_url,
+        title, summary, provenance_json, evidence_json, coverage,
+        coverage_detail, work_order_id, first_seen_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        signal.id, signal.source, signal.sourceIdentity, signal.sourceRevision,
+        signal.sourceUrl, signal.title, signal.summary, provenanceJson,
+        evidenceJson, signal.coverage, signal.coverageDetail, null,
+        signal.firstSeenAt, signal.updatedAt,
+      );
+      return signal;
+    });
+  }
+
+  getSignal(id: string): Signal | null {
+    const row = this.#database.prepare("SELECT * FROM signals WHERE id = ?")
+      .get(id) as unknown as SignalRow | undefined;
+    return row ? mapSignal(row) : null;
+  }
+
+  listSignals(workOrderId?: string): Signal[] {
+    const rows = workOrderId === undefined
+      ? this.#database.prepare("SELECT * FROM signals ORDER BY updated_at DESC, id DESC")
+        .all() as unknown as SignalRow[]
+      : this.#database.prepare(`SELECT * FROM signals WHERE work_order_id = ?
+          ORDER BY updated_at DESC, id DESC`)
+        .all(workOrderId) as unknown as SignalRow[];
+    return rows.map(mapSignal);
+  }
+
+  linkSignalToWorkOrder(signalId: string, workOrderId: string): Signal {
+    return this.#write(() => {
+      const signal = this.getSignal(signalId);
+      if (!signal) throw new Error(`Signal ${signalId} was not found`);
+      if (signal.workOrderId === workOrderId) return signal;
+      if (signal.workOrderId !== null) {
+        throw new Error(`Signal ${signalId} is already linked to a WorkOrder`);
+      }
+      const updatedAt = new Date().toISOString();
+      this.#database.prepare(`UPDATE signals SET work_order_id = ?, updated_at = ?
+        WHERE id = ? AND work_order_id IS NULL`).run(workOrderId, updatedAt, signalId);
+      return { ...signal, workOrderId, updatedAt };
+    });
+  }
+
+  createRelease(input: CreateReleaseInput): Release {
+    const timestamp = new Date().toISOString();
+    const release: Release = {
+      ...input,
+      id: randomUUID(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.#write(() => {
+      this.#database.prepare(`INSERT INTO releases (
+        id, target, source_commit, artifact_identity, stage, status,
+        policy_revision, previous_known_good_artifact_identity, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        release.id, release.target, release.sourceCommit, release.artifactIdentity,
+        release.stage, release.status, release.policyRevision,
+        release.previousKnownGoodArtifactIdentity, release.createdAt, release.updatedAt,
+      );
+    });
+    return release;
+  }
+
+  getRelease(id: string): Release | null {
+    const row = this.#database.prepare("SELECT * FROM releases WHERE id = ?")
+      .get(id) as unknown as ReleaseRow | undefined;
+    return row ? mapRelease(row) : null;
+  }
+
+  listReleases(target?: string): Release[] {
+    const rows = target === undefined
+      ? this.#database.prepare("SELECT * FROM releases ORDER BY created_at DESC, id DESC")
+        .all() as unknown as ReleaseRow[]
+      : this.#database.prepare(`SELECT * FROM releases WHERE target = ?
+          ORDER BY created_at DESC, id DESC`)
+        .all(target) as unknown as ReleaseRow[];
+    return rows.map(mapRelease);
+  }
+
+  setReleaseStatus(id: string, status: ReleaseStatus): Release {
+    return this.#write(() => {
+      const release = this.getRelease(id);
+      if (!release) throw new Error(`Release ${id} was not found`);
+      if (release.status === status) return release;
+      const updatedAt = new Date().toISOString();
+      this.#database.prepare(`UPDATE releases SET status = ?, updated_at = ? WHERE id = ?`)
+        .run(status, updatedAt, id);
+      return { ...release, status, updatedAt };
+    });
   }
 
   createRun(input: CreateRunInput): Run {

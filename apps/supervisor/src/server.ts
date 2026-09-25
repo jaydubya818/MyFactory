@@ -108,16 +108,21 @@ function staticFile(response: ServerResponse, path: string): void {
   createReadStream(path).pipe(response);
 }
 
-function artifactText(dataDir: string, candidate: unknown): string | null {
-  if (typeof candidate !== "string" || !existsSync(candidate)) return null;
-  const artifactRoot = resolve(dataDir, "artifacts");
-  if (!existsSync(artifactRoot)) return null;
-  const root = realpathSync(artifactRoot);
-  const path = realpathSync(candidate);
-  if (!path.startsWith(`${root}${sep}`) || !statSync(path).isFile() || statSync(path).size > 5_000_000) {
+function containedText(rootDirectory: string, candidate: unknown, maxBytes = 5_000_000): string | null {
+  if (typeof candidate !== "string") return null;
+  try {
+    const root = realpathSync(rootDirectory);
+    const path = realpathSync(candidate);
+    const file = statSync(path);
+    if (!path.startsWith(`${root}${sep}`) || !file.isFile() || file.size > maxBytes) return null;
+    return readFileSync(path, "utf8");
+  } catch {
     return null;
   }
-  return readFileSync(path, "utf8");
+}
+
+function artifactText(dataDir: string, candidate: unknown): string | null {
+  return containedText(resolve(dataDir, "artifacts"), candidate);
 }
 
 export interface SupervisorOptions {
@@ -191,6 +196,12 @@ export function createSupervisor(options: SupervisorOptions = {}) {
       if (request.method === "GET" && pathname === "/api/work-orders") {
         return json(response, 200, { workOrders: storage.listWorkOrders() });
       }
+      if (request.method === "GET" && pathname === "/api/signals") {
+        return json(response, 200, { signals: storage.listSignals() });
+      }
+      if (request.method === "GET" && pathname === "/api/releases") {
+        return json(response, 200, { releases: storage.listReleases() });
+      }
 
       const detailMatch = /^\/api\/work-orders\/([0-9a-f-]{36})$/.exec(pathname);
       if (request.method === "GET" && detailMatch) {
@@ -207,6 +218,17 @@ export function createSupervisor(options: SupervisorOptions = {}) {
           publicationApprovals: storage.listPublicationApprovals(workOrder.id),
         };
         return json(response, 200, detail);
+      }
+
+      const buildManifestMatch = /^\/api\/work-orders\/([0-9a-f-]{36})\/build-manifest$/.exec(pathname);
+      if (request.method === "GET" && buildManifestMatch) {
+        const workOrder = storage.getWorkOrder(buildManifestMatch[1]);
+        if (!workOrder) return json(response, 404, { error: "WorkOrder not found" });
+        const event = storage.listEvents(workOrder.id)
+          .filter((item) => item.type === "builder.scaffold_created").at(-1);
+        const manifest = containedText(resolve(dataDir, "app-builds"), event?.payload.manifestPath, 1_000_000);
+        if (manifest === null) return json(response, 404, { error: "Build manifest is unavailable" });
+        return json(response, 200, JSON.parse(manifest));
       }
 
       const diffMatch = /^\/api\/work-orders\/([0-9a-f-]{36})\/diff$/.exec(pathname);
