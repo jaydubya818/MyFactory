@@ -43,3 +43,13 @@ test("remote intake cannot introduce arbitrary execution fields or escape paths"
   assert.throws(()=>parseInput({...input,allowedPaths:["../secrets"]}));
   assert.throws(()=>parseInput({...input,description:"MYFACTORY_REQUEST_V1"}));
 });
+
+test("Linear blank-line serialization preserves signed requests and receipts",()=>{
+  const value=issue();
+  const receipt={version:1,issueId:value.id,workOrderId:crypto.randomUUID(),state:"queued"};
+  const serialized=receiptDescription(value.description,receipt,keys.privateKey)
+    .replaceAll('-->\n```','-->\n\n```').replaceAll('```\n<!--','```\n\n<!--');
+  assert.deepEqual(readRequest({...value,description:serialized},client,config).input,input);
+  assert.deepEqual(readReceipt(serialized,keys.publicKey,value.id),receipt);
+  assert.throws(()=>readRequest({...value,description:serialized+'\n<!-- MYFACTORY_REQUEST_V1 -->'},client,config));
+});

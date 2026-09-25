@@ -29,11 +29,15 @@ export function requestId(clientId, key) {
 function block(marker, value) { return `<!-- ${marker} -->\n\`\`\`json\n${JSON.stringify(value)}\n\`\`\`\n<!-- /${marker} -->`; }
 function extract(description, marker) {
   if (typeof description !== "string" || description.length > 60000) throw new Error("Invalid factory envelope");
-  const start = `<!-- ${marker} -->\n\`\`\`json\n`, end = `\n\`\`\`\n<!-- /${marker} -->`;
+  // Linear inserts blank lines around fenced blocks. Only framing whitespace is
+  // flexible: the encoded payload is still authenticated byte for byte.
+  const start = `<!-- ${marker} -->`, end = `<!-- /${marker} -->`;
   if (description.split(start).length !== 2) throw new Error(`Missing or ambiguous ${marker}`);
   const rest = description.split(start)[1];
   if (rest.split(end).length !== 2) throw new Error(`Invalid ${marker}`);
-  return JSON.parse(rest.split(end)[0]);
+  const fenced = rest.split(end)[0].trim().match(/^```json\r?\n([\s\S]*?)\r?\n```$/);
+  if (!fenced) throw new Error(`Invalid ${marker} block`);
+  return JSON.parse(fenced[1]);
 }
 export function requestDescription(config, input, expiresAt = new Date(Date.now() + 7 * 86400000).toISOString()) {
   input = parseInput(input);
