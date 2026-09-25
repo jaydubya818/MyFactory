@@ -1,6 +1,7 @@
-import { isAbsolute, posix } from "node:path";
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { isAbsolute, join, posix } from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdirSync, readFileSync, rmSync } from "node:fs";
+import { instantiateApp } from "../../../packages/app-builder/src/index.ts";
 import type {
   CreateWorkOrderInput,
   FactoryEvent,
@@ -15,7 +16,7 @@ import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 
 export type Actor = { kind: "human" | "agent" | "system"; id: string };
 export type ActionName =
-  | "workorder.create" | "workorder.note.add" | "run.start" | "run.cancel"
+  | "workorder.create" | "workorder.note.add" | "builder.create" | "run.start" | "run.cancel"
   | "dispatch.set_paused" | "publication.request" | "publication.approve"
   | "publication.publish_draft";
 
@@ -36,6 +37,7 @@ export class ActionError extends Error {
 
 export interface ActionContext {
   storage: FactoryStorage;
+  appBuildDirectory?: string;
   startRun(workOrder: WorkOrder): Promise<Run>;
   cancelRun(workOrder: WorkOrder): Promise<Run | null>;
   notify(event: FactoryEvent): void;
@@ -80,6 +82,19 @@ export const actionRegistry: Record<ActionName, ActionDefinition> = {
     idempotency: "A caller-supplied key will be added before connector intake",
     auditEvent: "workorder.created",
     reconciliation: "Read the WorkOrder by returned ID",
+  },
+  "builder.create": {
+    name: "builder.create",
+    inputSchema: { type: "object", required: ["templateId", "title", "brief"], properties: {
+      templateId: { enum: ["feedback-hub"] }, title: { type: "string" }, brief: { type: "string" },
+    } },
+    outputSchema: { type: "object", description: "Scaffold artifact and linked WorkOrder" },
+    actorKinds: ["human", "agent"],
+    preconditions: ["Bundled template is available", "The build output directory can be created"],
+    approval: "none",
+    idempotency: "Each request creates a new named scaffold and WorkOrder",
+    auditEvent: "builder.scaffold_created",
+    reconciliation: "Read the WorkOrder event and build manifest",
   },
   "run.start": {
     name: "run.start",
@@ -439,6 +454,61 @@ export async function performAction(
     });
     context.notify(event);
     return workOrder;
+  }
+
+  if (action === "builder.create") {
+    const input = asObject(rawInput);
+    const templateId = stringValue(input.templateId, "templateId", true);
+    if (templateId !== "feedback-hub") throw new ActionError("Unknown app template", "invalid_input");
+    const title = stringValue(input.title, "title", true);
+    const brief = stringValue(input.brief, "brief", true);
+    if (title.length > 80 || brief.length > 10_000) {
+      throw new ActionError("Title or brief is too long", "invalid_input");
+    }
+    if (!context.appBuildDirectory) {
+      throw new ActionError("App builder output is not configured", "awaiting_environment", 503);
+    }
+    mkdirSync(context.appBuildDirectory, { recursive: true, mode: 0o700 });
+    const build = instantiateApp({
+      templateId,
+      taskDirectory: context.appBuildDirectory,
+      outputName: `feedback-hub-${randomUUID()}`,
+      productBrief: { name: title, description: brief },
+    });
+    try {
+      const { workOrder, event } = context.storage.transaction(() => {
+        const workOrder = context.storage.createWorkOrder({
+          title, description: brief, kind: "feature", repositoryPath: build.outputDir,
+          baseRef: "", acceptanceCriteria: [
+            "Inbox and detail views implement the product brief",
+            "The UI and agent use the same typed actions",
+            "Template tests and production build pass",
+          ],
+          reproductionCommand: null, expectedFailureText: null,
+          checkCommands: ["npm test", "npm run build"],
+          allowedPaths: ["src/**", "server/**", "scripts/**", "tests/**", "app.json",
+            "AGENTS.md", "README.md", "package.json", "package-lock.json", "vite.config.ts",
+            "tsconfig.json", "index.html", ".gitignore"],
+          workerProfile: "mac",
+        }, "awaiting_environment");
+        const event = context.storage.appendEvent({
+          workOrderId: workOrder.id, runId: null, type: "builder.scaffold_created",
+          payload: {
+            actor: actor.id, artifactPath: build.outputDir, manifestPath: build.manifestPath,
+            templateId: build.template.id, templateVersion: build.template.version,
+            templateSha256: build.template.sha256, fileCount: build.files.length,
+            nextStep: "Prepare Node 24 dependencies and independent verification before candidate review",
+          },
+        });
+        return { workOrder, event };
+      });
+      context.notify(event);
+      return { workOrder, artifactPath: build.outputDir, manifestPath: build.manifestPath,
+        templateVersion: build.template.version, templateSha256: build.template.sha256, files: build.files };
+    } catch (error) {
+      rmSync(build.outputDir, { recursive: true, force: true });
+      throw error;
+    }
   }
 
   const id = workOrderId(rawInput);

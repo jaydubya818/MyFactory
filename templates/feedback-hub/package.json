@@ -1,0 +1,28 @@
+{
+  "name": "feedback-hub-template",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.15 <25"
+  },
+  "scripts": {
+    "dev": "node server/index.ts",
+    "build": "tsc --noEmit && vite build",
+    "start": "node server/index.ts --production",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "agent": "node scripts/agent.ts"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "6.0.3",
+    "vite": "8.3.1"
+  }
+}

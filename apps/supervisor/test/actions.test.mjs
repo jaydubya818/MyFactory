@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -106,4 +106,26 @@ test("candidate, evidence, and policy changes invalidate an approved draft reque
   await assert.rejects(() => performAction(context, "publication.publish_draft", {
     requestId: request.id,
   }, human), (error) => error.code === "policy_stale");
+});
+
+test("app builder creates a durable WorkOrder linked to a versioned scaffold", async (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "factory-builder-action-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const storage = openStorage(join(directory, "factory.sqlite"));
+  t.after(() => storage.close());
+  const context = {
+    storage, appBuildDirectory: join(directory, "app-builds"), notify: () => {},
+    startRun: async () => { throw new Error("unexpected start"); },
+    cancelRun: async () => { throw new Error("unexpected cancel"); },
+  };
+  const result = await performAction(context, "builder.create", {
+    templateId: "feedback-hub", title: "SellerFi Feedback",
+    brief: "Capture buyer and seller feedback with one clear triage inbox.",
+  }, human);
+  assert.equal(result.workOrder.state, "awaiting_environment");
+  assert.equal(result.workOrder.repositoryPath, result.artifactPath);
+  assert.equal(result.templateVersion, "1.0.0");
+  assert.equal(JSON.parse(readFileSync(result.manifestPath, "utf8")).template.version, "1.0.0");
+  assert.equal(storage.getWorkOrder(result.workOrder.id)?.id, result.workOrder.id);
+  assert.equal(storage.listEvents(result.workOrder.id).at(-1).type, "builder.scaffold_created");
 });

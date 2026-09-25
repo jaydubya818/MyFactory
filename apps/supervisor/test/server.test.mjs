@@ -109,3 +109,30 @@ test("agent endpoint shares the action path and cannot impersonate human approva
   const detail = await (await fetch(`${origin}/api/work-orders/${created.result.id}`)).json();
   assert.equal(detail.events.at(-1).payload.actorKind, "agent");
 });
+
+test("app builder endpoint creates a linked scaffold without claiming verification", async (t) => {
+  const dataDir = mkdtempSync(join(tmpdir(), "sellerfi-builder-api-"));
+  t.after(() => rmSync(dataDir, { recursive: true, force: true }));
+  const supervisor = createSupervisor({ dataDir });
+  t.after(() => supervisor.close());
+  const origin = await listen(supervisor);
+  const { token } = await (await fetch(`${origin}/api/session`)).json();
+  const templatesResponse = await fetch(`${origin}/api/app-builder/templates`);
+  assert.equal(templatesResponse.status, 200);
+  const { templates } = await templatesResponse.json();
+  assert.equal(templates[0].id, "feedback-hub");
+  const response = await fetch(`${origin}/api/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Factory-Token": token, Origin: origin },
+    body: JSON.stringify({ action: "builder.create", input: {
+      templateId: "feedback-hub", title: "Buyer feedback",
+      brief: "Capture buyer concerns and decisions before deal review.",
+    } }),
+  });
+  assert.equal(response.status, 200);
+  const { result } = await response.json();
+  const detail = await (await fetch(`${origin}/api/work-orders/${result.workOrder.id}`)).json();
+  assert.equal(detail.workOrder.state, "awaiting_environment");
+  assert.equal(detail.events.at(-1).type, "builder.scaffold_created");
+  assert.equal(detail.checks.length, 0);
+});

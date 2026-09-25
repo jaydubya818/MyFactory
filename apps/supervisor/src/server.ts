@@ -2,9 +2,10 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { homedir } from "node:os";
-import { extname, resolve, sep } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { FactoryEvent, WorkOrderDetail } from "../../../packages/contracts/src/index.ts";
+import { listAppTemplates } from "../../../packages/app-builder/src/index.ts";
 import { openStorage } from "../../../packages/storage/src/index.ts";
 import { ActionError, actionRegistry, performAction, type ActionContext } from "./actions.ts";
 import { JobManager, type JobDependencies } from "./jobs.ts";
@@ -155,6 +156,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies);
   const context: ActionContext = {
     storage,
+    appBuildDirectory: join(dataDir, "app-builds"),
     notify,
     startRun: options.startRun ?? ((workOrder) => jobs.startRun(workOrder)),
     cancelRun: options.cancelRun ?? ((workOrder) => jobs.cancelRun(workOrder)),
@@ -182,6 +184,9 @@ export function createSupervisor(options: SupervisorOptions = {}) {
       }
       if (request.method === "GET" && pathname === "/api/policy") {
         return json(response, 200, { policy: storage.getPolicy() });
+      }
+      if (request.method === "GET" && pathname === "/api/app-builder/templates") {
+        return json(response, 200, { templates: listAppTemplates() });
       }
       if (request.method === "GET" && pathname === "/api/work-orders") {
         return json(response, 200, { workOrders: storage.listWorkOrders() });
