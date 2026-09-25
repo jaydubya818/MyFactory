@@ -7,7 +7,7 @@ import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import type { FactoryEvent, WorkOrderDetail } from "../../../packages/contracts/src/index.ts";
-import { listAppTemplates } from "../../../packages/app-builder/src/index.ts";
+import { listAppTemplates, LocalAppPreviewManager } from "../../../packages/app-builder/src/index.ts";
 import { openStorage } from "../../../packages/storage/src/index.ts";
 import { ActionError, actionRegistry, performAction, type ActionContext } from "./actions.ts";
 import { JobManager, type JobDependencies } from "./jobs.ts";
@@ -178,9 +178,27 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     if (listeners.size === 0) subscribers.delete(event.workOrderId);
   };
   const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies);
+  for (const order of storage.listWorkOrders()) {
+    const lastPreviewEvent = storage.listEvents(order.id)
+      .filter((event) => event.type.startsWith("builder.preview_")).at(-1);
+    if (lastPreviewEvent && ["builder.preview_requested", "builder.preview_started"].includes(lastPreviewEvent.type)) {
+      storage.appendEvent({
+        workOrderId: order.id, runId: null, type: "builder.preview_interrupted",
+        payload: { reason: "Supervisor restarted before the preview was stopped" },
+      });
+    }
+  }
+  const previews = new LocalAppPreviewManager({
+    evidenceDirectory: join(dataDir, "preview-artifacts"),
+    onEvent: (workOrderId, type, payload) => {
+      const event = storage.appendEvent({ workOrderId, runId: null, type, payload });
+      notify(event);
+    },
+  });
   const context: ActionContext = {
     storage,
     appBuildDirectory: join(dataDir, "app-builds"),
+    previewManager: previews,
     confirmHumanPresence: options.confirmHumanPresence ?? confirmHumanPresence,
     notify,
     startRun: options.startRun ?? ((workOrder) => jobs.startRun(workOrder)),
@@ -249,6 +267,46 @@ export function createSupervisor(options: SupervisorOptions = {}) {
         const manifest = containedText(resolve(dataDir, "app-builds"), event?.payload.manifestPath, 1_000_000);
         if (manifest === null) return json(response, 404, { error: "Build manifest is unavailable" });
         return json(response, 200, JSON.parse(manifest));
+      }
+
+      const previewMatch = /^\/api\/work-orders\/([0-9a-f-]{36})\/preview$/.exec(pathname);
+      if (request.method === "GET" && previewMatch) {
+        const workOrder = storage.getWorkOrder(previewMatch[1]);
+        if (!workOrder) return json(response, 404, { error: "WorkOrder not found" });
+        const lastEvent = storage.listEvents(workOrder.id)
+          .filter((event) => event.type.startsWith("builder.preview_")).at(-1);
+        const live = previews.status(workOrder.id);
+        const status = live?.status ?? ({
+          "builder.preview_requested": "interrupted",
+          "builder.preview_started": "interrupted",
+          "builder.preview_failed": "failed",
+          "builder.preview_stopped": "stopped",
+          "builder.preview_exited": "stopped",
+          "builder.preview_interrupted": "interrupted",
+        } as Record<string, string>)[lastEvent?.type ?? ""] ?? "not_started";
+        const lastPayload = lastEvent ? { ...lastEvent.payload } : null;
+        if (lastPayload) delete lastPayload.url;
+        return json(response, 200, {
+          status,
+          url: live?.status === "running" ? live.url : null,
+          lastEvent: lastEvent ? { type: lastEvent.type, createdAt: lastEvent.createdAt, payload: lastPayload } : null,
+        });
+      }
+
+      const previewLogMatch = /^\/api\/work-orders\/([0-9a-f-]{36})\/preview\/log$/.exec(pathname);
+      if (request.method === "GET" && previewLogMatch) {
+        const workOrder = storage.getWorkOrder(previewLogMatch[1]);
+        if (!workOrder) return json(response, 404, { error: "WorkOrder not found" });
+        const live = previews.status(workOrder.id);
+        const lastEvent = storage.listEvents(workOrder.id)
+          .filter((event) => event.type.startsWith("builder.preview_") &&
+            typeof event.payload.logPath === "string").at(-1);
+        const log = containedText(resolve(dataDir, "preview-artifacts"),
+          live?.logPath ?? lastEvent?.payload.logPath, 2_000_000);
+        if (log === null) return json(response, 404, { error: "Preview log is unavailable" });
+        response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
+        response.end(log);
+        return;
       }
 
       const diffMatch = /^\/api\/work-orders\/([0-9a-f-]{36})\/diff$/.exec(pathname);
@@ -361,6 +419,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     context,
     jobs,
     close: async () => {
+      await previews.close();
       await jobs.close();
       for (const listeners of subscribers.values()) {
         for (const response of listeners) response.end();

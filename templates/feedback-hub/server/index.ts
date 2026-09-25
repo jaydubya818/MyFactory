@@ -18,6 +18,16 @@ const mimeTypes: Record<string, string> = {
   ".svg": "image/svg+xml",
 };
 
+function hasLoopbackHost(req: IncomingMessage): boolean {
+  const hosts: string[] = [];
+  for (let index = 0; index < req.rawHeaders.length; index += 2) {
+    if (req.rawHeaders[index]?.toLowerCase() === "host") hosts.push(req.rawHeaders[index + 1] ?? "");
+  }
+  if (hosts.length !== 1 || hosts[0] !== req.headers.host) return false;
+  const match = /^(?:localhost|127\.0\.0\.1|\[::1\])(?::([1-9]\d{0,4}))?$/i.exec(hosts[0]);
+  return !!match && (match[1] === undefined || Number(match[1]) <= 65535);
+}
+
 function json(res: ServerResponse, status: number, value: unknown): void {
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
@@ -77,6 +87,10 @@ export async function createFeedbackServer(options: {
 
   const server = createServer(async (req, res) => {
     try {
+      if (!hasLoopbackHost(req)) {
+        json(res, 403, { error: "Forbidden host." });
+        return;
+      }
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
       if (pathname === "/api/health" && req.method === "GET") {
         json(res, 200, { status: "ok" });

@@ -1,6 +1,6 @@
-import { isAbsolute, join, posix } from "node:path";
+import { isAbsolute, join, posix, relative, sep } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { instantiateApp } from "../../../packages/app-builder/src/index.ts";
 import type {
   CreateWorkOrderInput,
@@ -16,7 +16,8 @@ import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 
 export type Actor = { kind: "human" | "agent" | "system"; id: string };
 export type ActionName =
-  | "workorder.create" | "workorder.note.add" | "builder.create" | "signal.record" | "run.start" | "run.cancel"
+  | "workorder.create" | "workorder.note.add" | "builder.create" | "builder.preview.start" | "builder.preview.stop"
+  | "signal.record" | "run.start" | "run.cancel"
   | "dispatch.set_paused" | "publication.request" | "publication.approve"
   | "publication.publish_draft";
 
@@ -38,6 +39,11 @@ export class ActionError extends Error {
 export interface ActionContext {
   storage: FactoryStorage;
   appBuildDirectory?: string;
+  previewManager?: {
+    start(input: { workOrderId: string; outputDir: string; expectedManifestSha256: string }): Promise<unknown>;
+    stop(workOrderId: string): Promise<unknown>;
+    status(workOrderId: string): unknown;
+  };
   confirmHumanPresence?(request: PublicationRequest): Promise<boolean>;
   startRun(workOrder: WorkOrder): Promise<Run>;
   cancelRun(workOrder: WorkOrder): Promise<Run | null>;
@@ -96,6 +102,32 @@ export const actionRegistry: Record<ActionName, ActionDefinition> = {
     idempotency: "Each request creates a new named scaffold and WorkOrder",
     auditEvent: "builder.scaffold_created",
     reconciliation: "Read the WorkOrder event and build manifest",
+  },
+  "builder.preview.start": {
+    name: "builder.preview.start",
+    inputSchema: { type: "object", required: ["workOrderId"], properties: {
+      workOrderId: { type: "string", format: "uuid" },
+    } },
+    outputSchema: { type: "object", description: "Local preview status and evidence" },
+    actorKinds: ["human", "agent"],
+    preconditions: ["The bundled scaffold is unchanged", "Offline Node 24 dependencies are available"],
+    approval: "none",
+    idempotency: "An already running preview returns its current status",
+    auditEvent: "builder.preview_started or builder.preview_failed",
+    reconciliation: "Read preview status and WorkOrder events; URLs are live only while the child runs",
+  },
+  "builder.preview.stop": {
+    name: "builder.preview.stop",
+    inputSchema: { type: "object", required: ["workOrderId"], properties: {
+      workOrderId: { type: "string", format: "uuid" },
+    } },
+    outputSchema: { type: ["object", "null"], description: "Stopped local preview status" },
+    actorKinds: ["human", "agent"],
+    preconditions: ["The WorkOrder was created from a bundled app scaffold"],
+    approval: "none",
+    idempotency: "Stopping an absent preview returns its last status",
+    auditEvent: "builder.preview_stopped",
+    reconciliation: "Read preview status and WorkOrder events",
   },
   "signal.record": {
     name: "signal.record",
@@ -516,6 +548,7 @@ export async function performAction(
       outputName: `feedback-hub-${randomUUID()}`,
       productBrief: { name: title, description: brief },
     });
+    const manifestSha256 = createHash("sha256").update(readFileSync(build.manifestPath)).digest("hex");
     try {
       const { workOrder, event } = context.storage.transaction(() => {
         const workOrder = context.storage.createWorkOrder({
@@ -536,6 +569,7 @@ export async function performAction(
           workOrderId: workOrder.id, runId: null, type: "builder.scaffold_created",
           payload: {
             actor: actor.id, artifactPath: build.outputDir, manifestPath: build.manifestPath,
+            manifestSha256,
             templateId: build.template.id, templateVersion: build.template.version,
             templateSha256: build.template.sha256, fileCount: build.files.length,
             nextStep: "Prepare Node 24 dependencies and independent verification before candidate review",
@@ -545,11 +579,46 @@ export async function performAction(
       });
       context.notify(event);
       return { workOrder, artifactPath: build.outputDir, manifestPath: build.manifestPath,
-        templateVersion: build.template.version, templateSha256: build.template.sha256, files: build.files };
+        manifestSha256, templateVersion: build.template.version,
+        templateSha256: build.template.sha256, files: build.files };
     } catch (error) {
       rmSync(build.outputDir, { recursive: true, force: true });
       throw error;
     }
+  }
+
+  if (action === "builder.preview.start" || action === "builder.preview.stop") {
+    const id = workOrderId(rawInput);
+    const workOrder = context.storage.getWorkOrder(id);
+    if (!workOrder) throw new ActionError("WorkOrder not found", "not_found", 404);
+    const scaffold = context.storage.listEvents(id)
+      .filter((event) => event.type === "builder.scaffold_created").at(-1);
+    if (!scaffold || typeof scaffold.payload.artifactPath !== "string" ||
+        typeof scaffold.payload.manifestSha256 !== "string" ||
+        !/^[0-9a-f]{64}$/.test(scaffold.payload.manifestSha256)) {
+      throw new ActionError("This WorkOrder has no previewable scaffold", "not_previewable", 409);
+    }
+    if (!context.appBuildDirectory || !context.previewManager) {
+      throw new ActionError("Local preview is not configured", "preview_unavailable", 503);
+    }
+    if (action === "builder.preview.stop") return context.previewManager.stop(id);
+    let buildRoot: string;
+    let outputDir: string;
+    try {
+      buildRoot = realpathSync(context.appBuildDirectory);
+      outputDir = realpathSync(scaffold.payload.artifactPath);
+    } catch {
+      throw new ActionError("Scaffold directory is unavailable", "preview_unavailable", 503);
+    }
+    const pathWithinBuildRoot = relative(buildRoot, outputDir);
+    if (!pathWithinBuildRoot || pathWithinBuildRoot === ".." || pathWithinBuildRoot.startsWith(`..${sep}`) ||
+        pathWithinBuildRoot.includes(sep) || isAbsolute(pathWithinBuildRoot) ||
+        workOrder.repositoryPath !== scaffold.payload.artifactPath) {
+      throw new ActionError("Scaffold path does not match this WorkOrder", "preview_scope_invalid", 409);
+    }
+    return context.previewManager.start({
+      workOrderId: id, outputDir, expectedManifestSha256: scaffold.payload.manifestSha256,
+    });
   }
 
   if (action === "signal.record") {

@@ -16,6 +16,9 @@ import {
 import { dirname, isAbsolute, join, posix, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+export { LocalAppPreviewManager } from "./preview.ts";
+export type { PreviewSnapshot } from "./preview.ts";
+
 const TEMPLATE_DIR = fileURLToPath(new URL("../../../templates/feedback-hub/", import.meta.url));
 const EXCLUDED_DIRECTORIES = new Set([".git", "node_modules", "dist", ".vite", "coverage"]);
 

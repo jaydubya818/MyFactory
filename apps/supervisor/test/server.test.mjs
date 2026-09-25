@@ -142,6 +142,63 @@ test("app builder endpoint creates a linked scaffold without claiming verificati
   assert.ok(manifest.files.some((file) => file.path === "src/App.tsx"));
 });
 
+test("explicit local preview serves generated UI and its action API, then stops truthfully", async (t) => {
+  const dataDir = mkdtempSync(join(tmpdir(), "sellerfi-preview-api-"));
+  t.after(() => rmSync(dataDir, { recursive: true, force: true }));
+  const supervisor = createSupervisor({ dataDir });
+  t.after(() => supervisor.close());
+  const origin = await listen(supervisor);
+  const { token } = await (await fetch(`${origin}/api/session`)).json();
+  const invoke = async (action, input) => fetch(`${origin}/api/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Factory-Token": token, Origin: origin },
+    body: JSON.stringify({ action, input }),
+  });
+  const createdResponse = await invoke("builder.create", {
+    templateId: "feedback-hub", title: "Buyer feedback", brief: "Review buyer reports.",
+  });
+  assert.equal(createdResponse.status, 200);
+  const { result: created } = await createdResponse.json();
+  const id = created.workOrder.id;
+  const initial = await (await fetch(`${origin}/api/work-orders/${id}/preview`)).json();
+  assert.equal(initial.status, "not_started");
+  assert.equal(initial.url, null);
+
+  const startedResponse = await invoke("builder.preview.start", { workOrderId: id });
+  assert.equal(startedResponse.status, 200);
+  const { result: started } = await startedResponse.json();
+  assert.equal(started.status, "running");
+  assert.match(started.url, /^http:\/\/127\.0\.0\.1:\d+\/?$/);
+  const live = await (await fetch(`${origin}/api/work-orders/${id}/preview`)).json();
+  assert.equal(live.status, "running");
+  assert.equal(live.url, started.url);
+  const logResponse = await fetch(`${origin}/api/work-orders/${id}/preview/log`);
+  assert.equal(logResponse.status, 200);
+  assert.match(await logResponse.text(), /npm ci --offline/);
+
+  const page = await fetch(started.url);
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /id="root"/);
+  const feedback = await fetch(new URL("/api/actions", started.url), {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "create_feedback", input: {
+      title: "Fee confusion", description: "A buyer could not see the fee due today.", source: "interview",
+    } }),
+  });
+  assert.equal(feedback.status, 200);
+  assert.equal((await feedback.json()).result.title, "Fee confusion");
+
+  const stoppedResponse = await invoke("builder.preview.stop", { workOrderId: id });
+  assert.equal(stoppedResponse.status, 200);
+  const stopped = await (await fetch(`${origin}/api/work-orders/${id}/preview`)).json();
+  assert.equal(stopped.status, "stopped");
+  assert.equal(stopped.url, null);
+  const detail = await (await fetch(`${origin}/api/work-orders/${id}`)).json();
+  assert.ok(detail.events.some((event) => event.type === "builder.preview_started"));
+  assert.equal(detail.events.at(-1).type, "builder.preview_stopped");
+  assert.equal(detail.checks.length, 0);
+});
+
 test("manual signals are deduplicated and releases stay empty until recorded", async (t) => {
   const dataDir = mkdtempSync(join(tmpdir(), "sellerfi-signal-api-"));
   t.after(() => rmSync(dataDir, { recursive: true, force: true }));
