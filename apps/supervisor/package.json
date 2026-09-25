@@ -3,10 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24.15 <25" },
+  "engines": {
+    "node": ">=24.15 <25"
+  },
   "scripts": {
     "dev": "node --watch src/server.ts",
     "start": "node src/server.ts",
     "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@vercel/connect": "0.8.0",
+    "@vercel/oidc": "3.8.4"
   }
 }

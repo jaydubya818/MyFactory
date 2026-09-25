@@ -21,6 +21,7 @@ const INITIAL_TOOL_NAMES = [
   "request-factory-publication",
   "get-factory-connections",
   "sync-factory-linear",
+  "verify-factory-linear",
 ];
 
 export default createAgentChatPlugin({

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createSupervisor } from "../src/server.ts";
 import { performAction } from "../src/actions.ts";
+import { linearAuthorization } from "../src/linear.ts";
 
 const order = { title: "Linear creation acceptance test", description: "A precise product request.",
   kind: "feature", repositoryPath: "/private/local-repo", baseRef: "main",
@@ -98,4 +99,49 @@ test("GraphQL errors are not success, secrets are not recorded, and interrupted 
   assert.equal(f.host.storage.getLinearLink(created.id).state, "unknown");
   f.remote.reject = false;
   assert.equal((await f.action("linear.sync", { workOrderId: created.id })).state, "synced");
+});
+
+test("existing OAuth connection refreshes authorization and binds sync to the recovered workspace", async (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "factory-oauth-"));
+  let workspaceId = "workspace-existing";
+  let authorizations = 0;
+  let creations = 0;
+  const host = createSupervisor({ dataDir: directory, linear: {
+    connector: "linear/existing", vercelProjectId: "prj_existing", vercelTeamId: "team_existing",
+    teamId: "linear-team", workspaceId: "workspace-existing",
+    authorization: async () => `Bearer refreshed-${++authorizations}`,
+    fetch: async (_url, request) => {
+      assert.equal(request.headers.Authorization, `Bearer refreshed-${authorizations}`);
+      const { query, variables } = JSON.parse(request.body);
+      if (query.includes("FactoryConnection")) return Response.json({ data: {
+        viewer: { organization: { id: workspaceId } }, team: { id: "linear-team", key: "MYE", name: "MyEveBot" },
+      } });
+      if (query.includes("FactoryIssueCreate")) {
+        creations++;
+        assert.equal(variables.input.delegateId, undefined, "tracking must not start Foreman execution");
+        return Response.json({ data: { issueCreate: { success: true, issue: {
+          id: variables.input.id, identifier: "MYE-TEST", url: "https://linear.app/myevebot/issue/MYE-TEST", team: { id: "linear-team" },
+        } } } });
+      }
+      return Response.json({ data: { issues: { nodes: [] } } });
+    },
+  } });
+  t.after(async () => { await host.close(); rmSync(directory, { recursive: true, force: true }); });
+  const verified = await performAction(host.context, "linear.verify", {}, actor);
+  assert.equal(verified.teamName, "MyEveBot (MYE)");
+  assert.ok(verified.verifiedAt);
+  const created = await performAction(host.context, "workorder.create", { ...order, syncToLinear: true }, actor);
+  assert.equal(host.storage.getLinearLink(created.id).state, "synced");
+  assert.equal(creations, 1);
+  assert.equal(authorizations, 4);
+  workspaceId = "different-workspace";
+  const rejected = await performAction(host.context, "workorder.create", { ...order, idempotencyKey: "wrong-workspace", syncToLinear: true }, actor);
+  assert.equal(host.storage.getLinearLink(rejected.id).state, "unknown");
+  assert.equal(creations, 1);
+  assert.equal(host.context.linear.status.verifiedAt, null);
+});
+
+test("OAuth failures never expose provider credentials in the action error", async () => {
+  await assert.rejects(linearAuthorization({ authorization: async () => { throw new Error("provider echoed secret-token"); } }),
+    (error) => error.message.includes("could not be refreshed") && !error.message.includes("secret-token"));
 });

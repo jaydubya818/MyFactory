@@ -10,7 +10,7 @@ import type {
 } from "@factory/contracts";
 
 type ActionName = "workorder.create" | "run.start" | "run.cancel" | "builder.create" |
-  "linear.sync" |
+  "linear.sync" | "linear.verify" |
   "builder.preview.start" | "builder.preview.stop" | "dispatch.set_paused" |
   "publication.request" | "publication.approve" | "publication.publish_draft";
 
@@ -198,7 +198,7 @@ export async function sendAction<T = unknown>(
     { paused: boolean; expectedRevision: number } |
     { workOrderId: string; destination: string } |
     { requestId: string; candidateCommit: string; evidenceDigest: string; policyRevision: number } |
-    { requestId: string },
+    { requestId: string } | Record<string, never>,
 ): Promise<T> {
   const data = await authenticatedPost<{ result: T }>("/api/actions", { action, input });
   if (!data || !("result" in data)) {

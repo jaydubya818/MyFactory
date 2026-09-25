@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ConnectionStatus } from "@factory/contracts";
-import { getConnections } from "./api";
+import { getConnections, sendAction } from "./api";
 import { errorText } from "./domain";
 
 export function useConnections() {
@@ -18,19 +18,30 @@ export function useConnections() {
 
 export default function ConnectionsPage() {
   const { status, error, refresh } = useConnections();
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  async function verifyLinear() {
+    setChecking(true); setCheckError(null);
+    try { await sendAction("linear.verify", {}); }
+    catch (error) { setCheckError(errorText(error)); }
+    finally { setChecking(false); refresh(); }
+  }
   return <main className="main-panel" id="main-content">
     <div className="page-topline"><div><p className="eyebrow">Workspace</p><h1>Connections</h1><p className="page-lede">Choose how work enters the factory and where it is tracked.</p></div><button className="button button--quiet" onClick={refresh}>Refresh connections</button></div>
     {error && <p className="form-error" role="alert">{error}</p>}
     {!status && !error && <p role="status">Loading connections…</p>}
     {status && <div className="connection-cards">
       <section className="paper-card"><div className="card-heading"><p className="eyebrow">Issue tracking</p><h2>Linear</h2></div>
-        <p className="muted-copy">{status.linear.configured ? "Configured on this factory host. The first sync verifies access to Linear." : "Not connected. New WorkOrders are saved in MyFactory only."}</p>
+        <p className="muted-copy">{status.linear.verifiedAt ? `Access verified ${new Date(status.linear.verifiedAt).toLocaleString()}.` : status.linear.configured ? "Configured on this factory host. Verify access to check the existing connection." : "Not connected. New WorkOrders are saved in MyFactory only."}</p>
+        {status.linear.connector && <p className="muted-copy">Vercel Connect · <code>{status.linear.connector}</code></p>}
+        {status.linear.configured && <button className="button button--quiet" disabled={checking} onClick={() => void verifyLinear()}>{checking ? "Verifying…" : "Verify Linear access"}</button>}
+        {checkError && <p className="form-error" role="alert">{checkError}</p>}
         <dl className="stacked-values"><div><dt>New WorkOrders</dt><dd>{status.linear.configured ? status.linear.mode === "automatic" ? "Create a Linear issue by default; you can opt out on each WorkOrder." : "Choose “Create a Linear issue” on each WorkOrder." : "Local only until a connection is configured."}</dd></div>
-          {status.linear.teamId && <div><dt>Team</dt><dd><code>{status.linear.teamId}</code></dd></div>}
+          {status.linear.teamId && <div><dt>Team</dt><dd>{status.linear.teamName ?? <code>{status.linear.teamId}</code>}</dd></div>}
           {status.linear.projectId && <div><dt>Project</dt><dd><code>{status.linear.projectId}</code></dd></div>}
           <div><dt>Shared with Linear</dt><dd>Title, description, acceptance criteria, type, and WorkOrder ID.</dd></div>
           <div><dt>Tracking</dt><dd>MyFactory shows the issue link and sync outcome. Execution and publication decisions remain in MyFactory.</dd></div></dl>
-        <details className="payload-details"><summary>Host setup</summary><p>Set FACTORY_LINEAR_API_KEY and FACTORY_LINEAR_TEAM_ID in the supervisor environment, then restart it. FACTORY_LINEAR_PROJECT_ID is optional. Set FACTORY_LINEAR_MODE to manual or automatic.</p><p>Keep the API key on the host. It is never sent to this browser or connected apps.</p></details>
+        <details className="payload-details"><summary>Host setup</summary><p>Use an existing Vercel Connect connector with its authorized project and team, or a Linear API key. Set the destination Linear team and optional project on the host. The connection guide documents both options.</p><p>Authorization stays on the host and is never sent to this browser or connected apps.</p></details>
       </section>
       <section className="paper-card"><div className="card-heading"><p className="eyebrow">Approved apps</p><h2>MyEve, Relay, and sibling apps</h2></div>
         <p className="muted-copy">App backends can create work, read evidence records, and add notes through the factory’s shared actions. Each connection is limited to its configured repositories and actions.</p>

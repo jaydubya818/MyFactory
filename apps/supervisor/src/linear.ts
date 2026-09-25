@@ -1,9 +1,16 @@
 import { randomUUID } from "node:crypto";
+import { getToken } from "@vercel/connect";
+import { getVercelOidcToken } from "@vercel/oidc";
 import type { FactoryEvent, LinearLink, WorkOrder, ConnectionStatus } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 
 export interface LinearOptions {
   apiKey?: string;
+  connector?: string;
+  vercelProjectId?: string;
+  vercelTeamId?: string;
+  workspaceId?: string;
+  authorization?: () => Promise<string>;
   teamId?: string;
   projectId?: string;
   mode?: "manual" | "automatic";
@@ -22,10 +29,29 @@ export function linearOptionsFromEnvironment(): LinearOptions {
   if (!["manual", "automatic"].includes(mode)) throw new Error("FACTORY_LINEAR_MODE must be manual or automatic");
   return {
     apiKey: process.env.FACTORY_LINEAR_API_KEY,
+    connector: process.env.FACTORY_LINEAR_CONNECTOR,
+    vercelProjectId: process.env.FACTORY_VERCEL_PROJECT_ID,
+    vercelTeamId: process.env.FACTORY_VERCEL_TEAM_ID,
+    workspaceId: process.env.FACTORY_LINEAR_WORKSPACE_ID,
     teamId: process.env.FACTORY_LINEAR_TEAM_ID,
     projectId: process.env.FACTORY_LINEAR_PROJECT_ID,
     mode: mode as LinearOptions["mode"],
   };
+}
+
+export async function linearAuthorization(options: LinearOptions): Promise<string> {
+  if (options.apiKey) return options.apiKey;
+  try {
+    if (options.authorization) return await options.authorization();
+    const identity = await getVercelOidcToken({ project: options.vercelProjectId,
+      team: options.vercelTeamId, expirationBufferMs: 60_000 });
+    const token = await getToken(options.connector!, { subject: { type: "app" }, scopes: ["read", "write"] },
+      { vercelToken: identity, forceRefresh: true });
+    return `Bearer ${token}`;
+  } catch {
+    // SDK errors can contain provider response bodies. Do not persist them in audit records.
+    throw new Error("Linear authorization could not be refreshed. Check the existing Vercel login and connector access, then retry.");
+  }
 }
 
 export class LinearIntegration {
@@ -40,10 +66,14 @@ export class LinearIntegration {
     this.#options = options;
     this.#notify = notify;
     this.status = {
-      configured: Boolean(options.apiKey?.trim() && options.teamId?.trim()),
+      configured: Boolean((options.apiKey?.trim() || (options.connector?.trim() &&
+        options.vercelProjectId?.trim() && options.vercelTeamId?.trim())) && options.teamId?.trim()),
       mode: options.mode ?? "manual",
       teamId: options.teamId?.trim() || null,
       projectId: options.projectId?.trim() || null,
+      connector: options.connector?.trim() || null,
+      verifiedAt: null,
+      teamName: null,
     };
   }
 
@@ -51,7 +81,7 @@ export class LinearIntegration {
     return this.#storage.transaction(() => {
       const existing = this.#storage.getLinearLink(workOrder.id);
       if (existing) return existing;
-      if (!this.status.configured || !this.status.teamId) throw new Error("Linear needs an API key and team ID on the factory host.");
+      if (!this.status.configured || !this.status.teamId) throw new Error("Linear needs host authorization and a team ID.");
       return this.#storage.saveLinearLink({
         workOrderId: workOrder.id, issueId: randomUUID(), teamId: this.status.teamId,
         projectId: this.status.projectId, state: "pending", identifier: null, url: null,
@@ -72,12 +102,29 @@ export class LinearIntegration {
     await Promise.allSettled(this.#inFlight.values());
   }
 
+  async verify(): Promise<ConnectionStatus["linear"]> {
+    this.status.verifiedAt = null;
+    this.status.teamName = null;
+    if (!this.status.configured) throw new Error("Linear is not configured on this host.");
+    const data = await this.#graphql<{ viewer: { organization: { id: string } }; team: { id: string; name: string; key: string } }>(
+      `query FactoryConnection($team: String!) { viewer { organization { id } } team(id: $team) { id name key } }`,
+      { team: this.status.teamId });
+    if (data.team?.id !== this.status.teamId || (this.#options.workspaceId &&
+        data.viewer?.organization?.id !== this.#options.workspaceId)) {
+      throw new Error("Linear returned a different workspace or team. Check the configured destination.");
+    }
+    this.status.teamName = `${data.team.name} (${data.team.key})`;
+    this.status.verifiedAt = new Date().toISOString();
+    return { ...this.status };
+  }
+
   async #graphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    const authorization = await linearAuthorization(this.#options);
     let response: Response;
     try {
       response = await (this.#options.fetch ?? fetch)("https://api.linear.app/graphql", {
         method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
-        headers: { "Content-Type": "application/json", Authorization: this.#options.apiKey! },
+        headers: { "Content-Type": "application/json", Authorization: authorization },
         body: JSON.stringify({ query, variables }),
       });
     } catch {
@@ -86,7 +133,7 @@ export class LinearIntegration {
     if (!response.ok) throw new Error(`Linear returned HTTP ${response.status}. Check the host connection and retry.`);
     const body = await response.json().catch(() => null) as { data?: T; errors?: unknown[] } | null;
     // Provider errors can echo submitted data. Keep credentials and raw responses out of audit events.
-    if (!body?.data || body.errors?.length) throw new Error("Linear rejected the request. Check the API key, team, project, and issue permissions, then retry.");
+    if (!body?.data || body.errors?.length) throw new Error("Linear rejected the request. Check authorization, team, project, and issue permissions, then retry.");
     return body.data;
   }
 
@@ -111,6 +158,7 @@ export class LinearIntegration {
     }
     link = this.#save({ ...link, state: "syncing", error: null }, actorId);
     try {
+      if (this.#options.connector || this.#options.workspaceId) await this.verify();
       const found = await this.#graphql<{ issues: { nodes: LinearIssue[] } }>(
         `query FactoryIssue($id: ID!) { issues(first: 1, includeArchived: true, filter: { id: { eq: $id } }) {
           nodes { id identifier url team { id } }

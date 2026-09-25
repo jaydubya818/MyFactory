@@ -21,7 +21,7 @@ export type Actor = { kind: "human" | "agent" | "system"; id: string };
 export type ActionName =
   | "workorder.create" | "workorder.note.add" | "builder.create" | "builder.preview.start" | "builder.preview.stop"
   | "signal.record" | "run.start" | "run.cancel"
-  | "linear.sync"
+  | "linear.sync" | "linear.verify"
   | "dispatch.set_paused" | "publication.request" | "publication.approve"
   | "publication.publish_draft";
 
@@ -113,6 +113,17 @@ export const actionRegistry: Record<ActionName, ActionDefinition> = {
     idempotency: "Persist a UUID before the remote mutation; reconcile and reuse it on retries",
     auditEvent: "linear.synced or linear.unknown",
     reconciliation: "Look up the saved issue ID in Linear, including archived issues",
+  },
+  "linear.verify": {
+    name: "linear.verify",
+    inputSchema: { type: "object", properties: {} },
+    outputSchema: { type: "object", description: "Verified Linear team and connection timestamp" },
+    actorKinds: ["human", "agent"],
+    preconditions: ["Linear is configured on the host"],
+    approval: "none",
+    idempotency: "Read-only connection check",
+    auditEvent: "none; no external mutation",
+    reconciliation: "Repeat the check to verify current access",
   },
   "builder.create": {
     name: "builder.create",
@@ -716,6 +727,11 @@ export async function performAction(
     return workOrder;
   }
 
+  if (action === "linear.verify") {
+    if (!context.linear) throw new ActionError("Linear is not configured", "linear_not_configured");
+    try { return await context.linear.verify(); }
+    catch (error) { throw new ActionError(error instanceof Error ? error.message : "Linear verification failed", "linear_verification_failed", 502); }
+  }
   if (action === "linear.sync") {
     const id = workOrderId(rawInput);
     const order = context.storage.getWorkOrder(id);

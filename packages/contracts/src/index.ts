@@ -201,6 +201,9 @@ export interface ConnectionStatus {
     mode: "manual" | "automatic";
     teamId: string | null;
     projectId: string | null;
+    connector?: string | null;
+    verifiedAt?: string | null;
+    teamName?: string | null;
   };
   clients: { id: string; name: string; actions: string[]; repositoryPaths: string[] }[];
 }
