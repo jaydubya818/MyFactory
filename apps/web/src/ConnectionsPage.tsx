@@ -31,6 +31,12 @@ export default function ConnectionsPage() {
     {error && <p className="form-error" role="alert">{error}</p>}
     {!status && !error && <p role="status">Loading connections…</p>}
     {status && <div className="connection-cards">
+      {status.hostedRouting?.enabled && <section className="paper-card"><div className="card-heading"><p className="eyebrow">Hosted apps → this Mac</p><h2>Hosted intake</h2></div>
+        <p className="muted-copy">Sofie and Relay send signed requests through the Linear intake queue. This host checks every 15 seconds and returns a signed WorkOrder receipt.</p>
+        <p className="muted-copy">{status.hostedRouting.lastCheckedAt ? `Last checked ${new Date(status.hostedRouting.lastCheckedAt).toLocaleString()}.` : "Waiting for the first queue check…"} {status.hostedRouting.imported ?? 0} received since startup.</p>
+        {status.hostedRouting.error && <p className="form-error" role="alert">{status.hostedRouting.error}</p>}
+        <p className="muted-copy">If the Mac is offline, requests wait in Linear. Receiving a WorkOrder does not start a coding attempt or approve publication.</p>
+      </section>}
       <section className="paper-card"><div className="card-heading"><p className="eyebrow">Issue tracking</p><h2>Linear</h2></div>
         <p className="muted-copy">{status.linear.verifiedAt ? `Access verified ${new Date(status.linear.verifiedAt).toLocaleString()}.` : status.linear.configured ? "Configured on this factory host. Verify access to check the existing connection." : "Not connected. New WorkOrders are saved in MyFactory only."}</p>
         {status.linear.connector && <p className="muted-copy">Vercel Connect · <code>{status.linear.connector}</code></p>}

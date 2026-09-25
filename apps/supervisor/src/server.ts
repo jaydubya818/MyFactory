@@ -13,6 +13,7 @@ import { ActionError, actionRegistry, performAction, type ActionContext } from "
 import { publishDraftPullRequest } from "./github.ts";
 import { JobManager, type JobDependencies } from "./jobs.ts";
 import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
+import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
@@ -230,6 +231,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     startRun: options.startRun ?? ((workOrder) => jobs.startRun(workOrder)),
     cancelRun: options.cancelRun ?? ((workOrder) => jobs.cancelRun(workOrder)),
   };
+  const hostedIntake = process.env.FACTORY_HOSTED_INTAKE === "true" ? new HostedIntake(context, linear, dataDir) : null;
 
   function workOrderDetail(id: string): WorkOrderDetail | null {
     const workOrder = storage.getWorkOrder(id);
@@ -286,7 +288,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
         return json(response, 200, { actions: Object.values(actionRegistry) });
       }
       if (request.method === "GET" && pathname === "/api/connections") {
-        return json(response, 200, { linear: linear.status,
+        return json(response, 200, { linear: linear.status, hostedRouting: hostedIntake?.status ?? { enabled: false },
           clients: readClients(connectionsPath).map(({ id, name, actions, repositoryPaths }) => ({ id, name, actions, repositoryPaths })) });
       }
       if (request.method === "GET" && pathname === "/api/policy") {
@@ -472,7 +474,9 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     storage,
     context,
     jobs,
+    hostedIntake,
     close: async () => {
+      await hostedIntake?.close();
       await linear.close();
       await previews.close();
       await jobs.close();
@@ -496,6 +500,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const supervisor = createSupervisor();
   supervisor.server.listen(port, "127.0.0.1", () => {
     console.log(`Local Factory is ready at http://127.0.0.1:${port}`);
+    supervisor.hostedIntake?.start();
   });
   const shutdown = () => {
     void supervisor.close().then(() => process.exit(0));

@@ -196,6 +196,7 @@ export interface LinearLink {
 }
 
 export interface ConnectionStatus {
+  hostedRouting?: { enabled: boolean; lastCheckedAt?: string | null; imported?: number; rejected?: number; error?: string | null };
   linear: {
     configured: boolean;
     mode: "manual" | "automatic";

@@ -102,6 +102,10 @@ export class LinearIntegration {
     await Promise.allSettled(this.#inFlight.values());
   }
 
+  graphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    return this.#graphql<T>(query, variables);
+  }
+
   async verify(): Promise<ConnectionStatus["linear"]> {
     this.status.verifiedAt = null;
     this.status.teamName = null;
