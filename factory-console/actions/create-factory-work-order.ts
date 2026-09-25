@@ -6,6 +6,8 @@ import { createFactoryWorkOrder } from "../server/lib/factory-supervisor";
 export default defineAction({
   description: "Create a durable, scoped Factory WorkOrder from a user-requested task. This records the request and does not start a coding attempt.",
   schema: z.object({
+    idempotencyKey: z.string().trim().min(1).max(200).optional(),
+    syncToLinear: z.boolean().optional(),
     title: z.string().trim().min(1).max(200),
     description: z.string().trim().min(1).max(10_000),
     kind: z.enum(["defect", "feature", "investigation"]),

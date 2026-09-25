@@ -1,6 +1,7 @@
 import type { CreateWorkOrderInput, FactoryWorkOrdersResponse, FactoryPublicationRequest, WorkOrder, WorkOrderDetail, FactoryEvent, FactoryPolicy, FactoryManifestResult, FactoryBuildManifest } from "../../shared/factory-types";
+import type { ConnectionStatus, LinearLink } from "../../shared/factory-types";
 
-type AgentAction = "workorder.create" | "workorder.note.add" | "dispatch.set_paused" | "publication.request";
+type AgentAction = "workorder.create" | "workorder.note.add" | "dispatch.set_paused" | "publication.request" | "linear.sync";
 
 function supervisorOrigin(): string {
   // guard:allow-env-credential — This is a non-secret local service address, validated as loopback below.
@@ -114,7 +115,7 @@ async function agentAction<T>(action: AgentAction, input: unknown): Promise<T> {
       Origin: origin,
     },
     body: JSON.stringify({ action, input }),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(40_000),
   });
   const result = await jsonResponse<{ result: T }>(response);
   if (!("result" in result)) throw new Error("Factory supervisor did not return an action result.");
@@ -123,6 +124,14 @@ async function agentAction<T>(action: AgentAction, input: unknown): Promise<T> {
 
 export function addFactoryNote(workOrderId: string, text: string): Promise<FactoryEvent> {
   return agentAction<FactoryEvent>("workorder.note.add", { workOrderId, text });
+}
+
+export function getFactoryConnections(): Promise<ConnectionStatus> {
+  return get<ConnectionStatus>("/api/connections");
+}
+
+export function syncFactoryLinear(workOrderId: string): Promise<LinearLink> {
+  return agentAction<LinearLink>("linear.sync", { workOrderId });
 }
 
 export function createFactoryWorkOrder(input: CreateWorkOrderInput): Promise<WorkOrder> {

@@ -1,5 +1,6 @@
 import type {
   CreateWorkOrderInput,
+  ConnectionStatus,
   FactoryPolicy,
   FactoryEvent,
   PublicationApproval,
@@ -9,6 +10,7 @@ import type {
 } from "@factory/contracts";
 
 type ActionName = "workorder.create" | "run.start" | "run.cancel" | "builder.create" |
+  "linear.sync" |
   "builder.preview.start" | "builder.preview.stop" | "dispatch.set_paused" |
   "publication.request" | "publication.approve" | "publication.publish_draft";
 
@@ -98,6 +100,10 @@ export async function getWorkOrders(): Promise<WorkOrder[]> {
     throw new Error("The local service returned an invalid work queue.");
   }
   return data.workOrders;
+}
+
+export function getConnections(): Promise<ConnectionStatus> {
+  return request<ConnectionStatus>("/api/connections");
 }
 
 export async function getWorkOrderDetail(id: string): Promise<WorkOrderDetail> {

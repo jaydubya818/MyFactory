@@ -1,6 +1,8 @@
 export type {
   Check,
   CreateWorkOrderInput,
+  ConnectionStatus,
+  LinearLink,
   ExternalAction,
   FactoryEvent,
   FactoryPolicy,

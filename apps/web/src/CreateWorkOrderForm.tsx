@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { CreateWorkOrderInput, WorkKind, WorkerProfile } from "@factory/contracts";
 import { lines } from "./domain";
 import { Icon } from "./components";
+import { useConnections } from "./ConnectionsPage";
 
 interface Props {
   onSubmit: (input: CreateWorkOrderInput) => Promise<void>;
@@ -23,6 +24,10 @@ export default function CreateWorkOrderForm({ onSubmit, onCancel, pending, serve
   const [allowedPaths, setAllowedPaths] = useState("");
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile>("mac");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const { status: connections, error: connectionError, refresh: refreshConnections } = useConnections();
+  const [linearChoice, setLinearChoice] = useState<boolean | null>(null);
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const syncToLinear = linearChoice ?? (connections?.linear.configured && connections.linear.mode === "automatic") ?? false;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,6 +53,8 @@ export default function CreateWorkOrderForm({ onSubmit, onCancel, pending, serve
     }
 
     await onSubmit({
+      idempotencyKey,
+      syncToLinear,
       title: title.trim(),
       description: description.trim(),
       kind,
@@ -112,8 +119,11 @@ export default function CreateWorkOrderForm({ onSubmit, onCancel, pending, serve
           </div>
         </section>
 
+        <section className="form-section" aria-labelledby="tracking-title"><div className="form-section__intro"><span className="section-number">04</span><div><h2 id="tracking-title">Connected tracking</h2><p>Keep a linked issue in Linear.</p></div></div><div className="form-section__fields"><div className="field field--full">
+          {connectionError ? <><p className="form-error" role="alert">{connectionError}</p><button type="button" className="button button--quiet" onClick={refreshConnections}>Retry connection</button></> : !connections ? <p role="status">Checking Linear connection…</p> : connections.linear.configured ? <><label className="checkbox-label"><input type="checkbox" checked={syncToLinear} onChange={(event) => setLinearChoice(event.target.checked)} /> Create a Linear issue</label><p className="field-help">Shares this title, description, acceptance criteria, type, and ID with team {connections.linear.teamId}{connections.linear.projectId ? `, project ${connections.linear.projectId}` : ""}. The saved WorkOrder shows the issue link or a retry option.</p></> : <p className="field-help">Linear is not connected. This WorkOrder will be saved in MyFactory only. <a href="?view=connections" target="_blank" rel="noreferrer">View connections</a></p>}
+        </div></div></section>
         {(validationError || serverError) && <div className="form-error" role="alert">{validationError || serverError}</div>}
-        <div className="form-actions"><button className="button button--quiet" type="button" onClick={onCancel} disabled={pending}>Cancel</button><button className="button button--primary" type="submit" disabled={pending}>{pending ? "Creating…" : "Create work order"}<Icon name="arrow" size={17} /></button></div>
+        <div className="form-actions"><button className="button button--quiet" type="button" onClick={onCancel} disabled={pending}>Cancel</button><button className="button button--primary" type="submit" disabled={pending || !connections}>{pending ? "Creating…" : "Create work order"}<Icon name="arrow" size={17} /></button></div>
       </form>
     </main>
   );

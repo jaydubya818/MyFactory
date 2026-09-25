@@ -33,6 +33,7 @@ export default defineAction({
         const latestRun = [...detail.runs].sort((a, b) => b.attemptNumber - a.attemptNumber)[0] ?? null;
         screen.factory = {
           workOrder: detail.workOrder,
+          linearLink: detail.linearLink ?? null,
           policy,
           activeTab: activeTab ?? "overview",
           selectedEvidenceId: selectedEvidenceId ?? null,

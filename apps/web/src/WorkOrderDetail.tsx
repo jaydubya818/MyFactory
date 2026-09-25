@@ -11,6 +11,7 @@ import { EmptyMessage, Icon, StatusPill } from "./components";
 import { formatDate, shortId, workOrderStates, type Tone } from "./domain";
 import LocalPreviewPanel from "./LocalPreviewPanel";
 import PublicationReview from "./PublicationReview";
+import LinearPanel from "./LinearPanel";
 
 type Tab = "overview" | "activity" | "changes" | "verification" | "decisions";
 
@@ -96,6 +97,7 @@ function Overview({ detail, latestRun, onRefresh }: { detail: Detail; latestRun:
         </section>
       </div>
       <aside className="content-grid__aside" aria-label="Attempt summary">
+        <LinearPanel workOrderId={order.id} link={detail.linearLink} onRefresh={onRefresh} />
         <section className="paper-card paper-card--tinted">
           <div className="card-heading"><p className="eyebrow">Execution</p><h2>Latest attempt</h2></div>
           {latestRun ? <RunSummary run={latestRun} /> : <p className="muted-copy">No attempt has started. Its inputs and result will appear here once work begins.</p>}
