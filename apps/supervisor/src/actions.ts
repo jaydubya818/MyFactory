@@ -36,6 +36,11 @@ export class ActionError extends Error {
   }
 }
 
+export interface HumanPresenceRequest {
+  action: ActionName;
+  summary: string;
+}
+
 export interface ActionContext {
   storage: FactoryStorage;
   appBuildDirectory?: string;
@@ -44,7 +49,7 @@ export interface ActionContext {
     stop(workOrderId: string): Promise<unknown>;
     status(workOrderId: string): unknown;
   };
-  confirmHumanPresence?(request: PublicationRequest): Promise<boolean>;
+  confirmHumanPresence?(request: HumanPresenceRequest): Promise<boolean>;
   startRun(workOrder: WorkOrder): Promise<Run>;
   cancelRun(workOrder: WorkOrder): Promise<Run | null>;
   notify(event: FactoryEvent): void;
@@ -428,6 +433,21 @@ function currentRequestBinding(storage: FactoryStorage, request: PublicationRequ
   return current;
 }
 
+async function requireHumanPresence(
+  context: ActionContext,
+  actor: Actor,
+  action: ActionName,
+  summary: string,
+): Promise<void> {
+  if (actor.kind !== "human") return;
+  if (!context.confirmHumanPresence) {
+    throw new ActionError("Device-owner confirmation is unavailable", "human_confirmation_unavailable", 503);
+  }
+  if (!(await context.confirmHumanPresence({ action, summary }))) {
+    throw new ActionError("Device owner did not confirm the action", "human_confirmation_denied", 403);
+  }
+}
+
 export async function performAction(
   context: ActionContext,
   action: string,
@@ -450,6 +470,8 @@ export async function performAction(
       throw new ActionError("Policy revision changed", "policy_stale", 409);
     }
     if (current.dispatchPaused === input.paused) return current;
+    await requireHumanPresence(context, actor, "dispatch.set_paused",
+      `${input.paused ? "Pause" : "Resume"} factory dispatch at policy revision ${current.revision}`);
     try {
       return context.storage.setDispatchPaused(input.paused, current.revision, actor.id);
     } catch (error) {
@@ -476,12 +498,8 @@ export async function performAction(
       }
       const existing = context.storage.getPublicationApproval(requestId);
       if (existing) return existing;
-      if (!context.confirmHumanPresence) {
-        throw new ActionError("Human presence verification is unavailable", "approval_unavailable", 503);
-      }
-      if (!(await context.confirmHumanPresence(request))) {
-        throw new ActionError("Human presence was not confirmed; approval was not recorded", "approval_denied", 409);
-      }
+      await requireHumanPresence(context, actor, "publication.approve",
+        `Approve draft PR request for ${request.destination}, candidate ${request.candidateCommit.slice(0, 12)}, evidence ${request.evidenceDigest.slice(0, 12)}, policy v${request.policyRevision}`);
       const { approval, event } = context.storage.transaction(() => {
         currentRequestBinding(context.storage, request);
         const approval = context.storage.createPublicationApproval({
@@ -515,6 +533,8 @@ export async function performAction(
   if (action === "workorder.create") {
     const input = parseCreateInput(rawInput);
     const state = admissionState(input);
+    await requireHumanPresence(context, actor, "workorder.create",
+      `Create WorkOrder ${input.title.slice(0, 80)} for ${input.repositoryPath.slice(0, 100)}`);
     const { workOrder, event } = context.storage.transaction(() => {
       const workOrder = context.storage.createWorkOrder(input, state);
       const event = context.storage.appendEvent({
@@ -695,8 +715,16 @@ export async function performAction(
     if (context.storage.listRuns(id).length >= 2) {
       throw new ActionError("Attempt limit reached", "attempt_limit", 409);
     }
+    await requireHumanPresence(context, actor, "run.start",
+      `Start a coding attempt for ${workOrder.title.slice(0, 80)} in ${workOrder.repositoryPath.slice(0, 100)}`);
+    if (context.storage.getWorkOrder(id)?.updatedAt !== workOrder.updatedAt ||
+        context.storage.getPolicy().dispatchPaused) {
+      throw new ActionError("WorkOrder or dispatch policy changed before start", "state_stale", 409);
+    }
     return context.startRun(workOrder);
   }
 
+  await requireHumanPresence(context, actor, "run.cancel",
+    `Cancel the active coding attempt for ${workOrder.title.slice(0, 80)}`);
   return context.cancelRun(workOrder);
 }

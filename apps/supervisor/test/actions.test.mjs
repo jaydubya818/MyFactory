@@ -134,7 +134,7 @@ test("human approval requires a fresh device-owner confirmation", async (t) => {
   await assert.rejects(() => performAction(context, "publication.approve", {
     requestId: request.id, candidateCommit: request.candidateCommit,
     evidenceDigest: request.evidenceDigest, policyRevision: request.policyRevision,
-  }, human), (error) => error.code === "approval_denied");
+  }, human), (error) => error.code === "human_confirmation_denied");
   assert.equal(storage.getPublicationApproval(request.id), null);
 });
 

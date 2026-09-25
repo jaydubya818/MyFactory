@@ -140,7 +140,7 @@ export interface SupervisorOptions {
 
 async function confirmHumanPresence(request: Parameters<NonNullable<ActionContext["confirmHumanPresence"]>>[0]): Promise<boolean> {
   if (process.platform !== "darwin") return false;
-  const reason = `Approve a draft PR request for ${request.destination}, candidate ${request.candidateCommit.slice(0, 12)}, evidence ${request.evidenceDigest.slice(0, 12)}, policy v${request.policyRevision}`;
+  const reason = `Factory ${request.action}: ${request.summary.replace(/[\x00-\x1f\x7f]/g, " ").slice(0, 250)}`;
   try {
     await execFileAsync("/usr/bin/swift", [confirmApprovalScript, reason], {
       timeout: 120_000,

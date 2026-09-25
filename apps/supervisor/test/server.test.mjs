@@ -3,7 +3,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createSupervisor } from "../src/server.ts";
+import { createSupervisor as createSupervisorHost } from "../src/server.ts";
+
+function createSupervisor(options) {
+  return createSupervisorHost({ ...options, confirmHumanPresence: async () => true });
+}
 
 async function listen(supervisor) {
   await new Promise((resolve) => supervisor.server.listen(0, "127.0.0.1", resolve));
@@ -85,6 +89,24 @@ test("state-changing actions require a local origin and session token", async (t
   const queue = await (await fetch(`${origin}/api/work-orders`)).json();
   assert.equal(queue.workOrders.length, 1);
   assert.equal(queue.workOrders[0].state, "needs_investigation");
+});
+
+test("a shared loopback token cannot authorize a human-only action", async (t) => {
+  const dataDir = mkdtempSync(join(tmpdir(), "sellerfi-supervisor-owner-"));
+  t.after(() => rmSync(dataDir, { recursive: true, force: true }));
+  const supervisor = createSupervisorHost({ dataDir, confirmHumanPresence: async () => false });
+  t.after(() => supervisor.close());
+  const origin = await listen(supervisor);
+  const { token } = await (await fetch(`${origin}/api/session`)).json();
+  const response = await fetch(`${origin}/api/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Factory-Token": token, Origin: origin },
+    body: JSON.stringify({ action: "dispatch.set_paused", input: { paused: true, expectedRevision: 1 } }),
+  });
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).code, "human_confirmation_denied");
+  const policy = await (await fetch(`${origin}/api/policy`)).json();
+  assert.equal(policy.policy.dispatchPaused, false);
 });
 
 test("agent endpoint shares the action path and cannot impersonate human approval", async (t) => {
