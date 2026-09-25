@@ -10,6 +10,7 @@ export function parseInput(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid factory request");
   const keys = ["idempotencyKey", "title", "description", "kind", "acceptanceCriteria", "allowedPaths"];
   if (Object.keys(input).some(key => !keys.includes(key))) throw new Error("Unsupported factory request field");
+  if (Buffer.byteLength(JSON.stringify(input), "utf8") > 20000) throw new Error("Factory request exceeds the 20 KB intake limit");
   if (!["feature", "defect", "investigation"].includes(input.kind)) throw new Error("Invalid work kind");
   const list = (value, name) => {
     if (!Array.isArray(value) || !value.length || value.length > 30) throw new Error(`Invalid ${name}`);

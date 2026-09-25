@@ -53,3 +53,9 @@ test("Linear blank-line serialization preserves signed requests and receipts",()
   assert.deepEqual(readReceipt(serialized,keys.publicKey,value.id),receipt);
   assert.throws(()=>readRequest({...value,description:serialized+'\n<!-- MYFACTORY_REQUEST_V1 -->'},client,config));
 });
+
+test("oversized envelopes fail before an external issue is created",async()=>{
+ let requests=0;const graphql=async()=>{requests++;return {issues:{nodes:[]}};};
+ await assert.rejects(submitHostedRequest(config,{...input,description:'a'.repeat(12000),acceptanceCriteria:Array(30).fill('b'.repeat(500))},graphql),/20 KB/);
+ assert.equal(requests,0);
+});
