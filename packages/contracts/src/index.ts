@@ -162,6 +162,8 @@ export interface ExternalAction {
   kind: "push" | "draft_pr";
   state: ExternalActionState;
   candidateCommit: string;
+  publicationRequestId: string | null;
+  destination: string | null;
   remoteIdentity: string | null;
   error: string | null;
   createdAt: string;

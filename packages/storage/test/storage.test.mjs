@@ -116,7 +116,7 @@ test("records survive close and reopen with contract shaped JSON and status", (t
 
   const database = new DatabaseSync(path);
   assert.equal(database.prepare("PRAGMA journal_mode").get().journal_mode, "wal");
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 4);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 5);
   database.close();
 });
 
@@ -132,6 +132,11 @@ test("migrates an existing v1 WorkOrder and preserves the new failure oracle", (
     created_at TEXT NOT NULL, updated_at TEXT NOT NULL
   ) STRICT;
   CREATE TABLE checks (id TEXT PRIMARY KEY) STRICT;
+  CREATE TABLE external_actions (
+    id TEXT PRIMARY KEY, work_order_id TEXT NOT NULL, run_id TEXT NOT NULL,
+    kind TEXT NOT NULL, state TEXT NOT NULL, candidate_commit TEXT NOT NULL,
+    remote_identity TEXT, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+  ) STRICT;
   PRAGMA user_version = 1;`);
   const id = "00000000-0000-4000-8000-000000000001";
   legacy.prepare(`INSERT INTO work_orders VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
@@ -151,7 +156,7 @@ test("migrates an existing v1 WorkOrder and preserves the new failure oracle", (
   t.after(() => reopened.close());
   assert.equal(reopened.getWorkOrder(id)?.expectedFailureText, "Expected '$0'");
   const database = new DatabaseSync(path);
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 4);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 5);
   database.close();
 });
 
@@ -313,4 +318,68 @@ test("release records retain artifact and prior known-good identity across resta
   assert.throws(() => reopened.setReleaseStatus(beta.id, "unknown"),
     /CHECK constraint failed/);
   assert.deepEqual(reopened.getRelease(beta.id), deployed);
+});
+
+test("external actions are uniquely tied to an exact publication request and destination", (t) => {
+  const path = fixture(t);
+  const storage = openStorage(path);
+  t.after(() => storage.close());
+  const order = storage.createWorkOrder(workOrderInput());
+  const run = storage.createRun(runInput(order.id));
+  const request = storage.createPublicationRequest({
+    workOrderId: order.id, runId: run.id, destination: "owner/repo",
+    candidateCommit: "def456", evidenceDigest: "evidence-hash", policyRevision: 1,
+  });
+  const input = {
+    workOrderId: order.id, runId: run.id, kind: "draft_pr",
+    candidateCommit: "def456", publicationRequestId: request.id,
+    destination: request.destination,
+  };
+  const created = storage.createExternalAction(input);
+  assert.equal(created.state, "prepared");
+  assert.deepEqual(storage.getExternalActionForRequest(request.id, "draft_pr"), created);
+  assert.deepEqual(storage.listExternalActions(order.id), [created]);
+  assert.throws(() => storage.createExternalAction(input), /UNIQUE constraint failed/);
+  assert.throws(() => storage.createExternalAction({ ...input, destination: "other/repo" }),
+    /does not match its publication request/);
+  assert.throws(() => storage.createExternalAction({ ...input, publicationRequestId: null }),
+    /must be supplied together/);
+  assert.throws(() => storage.createExternalAction({ ...input, candidateCommit: "different" }),
+    /does not match its publication request/);
+
+  const dispatched = storage.saveExternalAction({ ...created, state: "dispatched" });
+  assert.deepEqual(storage.getExternalActionForRequest(request.id, "draft_pr"), dispatched);
+  assert.throws(() => storage.saveExternalAction({ ...dispatched, destination: "other/repo" }),
+    /was not found/);
+  assert.deepEqual(storage.getExternalActionForRequest(request.id, "draft_pr"), dispatched);
+});
+
+test("v4 external actions migrate with null publication binding", (t) => {
+  const path = fixture(t);
+  const legacy = new DatabaseSync(path);
+  legacy.exec(`CREATE TABLE publication_requests (id TEXT PRIMARY KEY) STRICT;
+    CREATE TABLE external_actions (
+      id TEXT PRIMARY KEY, work_order_id TEXT NOT NULL, run_id TEXT NOT NULL,
+      kind TEXT NOT NULL, state TEXT NOT NULL, candidate_commit TEXT NOT NULL,
+      remote_identity TEXT, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    ) STRICT;
+    INSERT INTO external_actions VALUES (
+      'old-action', 'old-order', 'old-run', 'draft_pr', 'unknown', 'abc123',
+      NULL, NULL, '2026-09-24T00:00:00.000Z', '2026-09-24T00:00:00.000Z'
+    );
+    PRAGMA user_version = 4;`);
+  legacy.close();
+
+  const storage = openStorage(path);
+  t.after(() => storage.close());
+  const oldAction = storage.getExternalAction("old-action");
+  assert.equal(oldAction.publicationRequestId, null);
+  assert.equal(oldAction.destination, null);
+  assert.equal(storage.getExternalActionForRequest("missing", "draft_pr"), null);
+  const saved = storage.saveExternalAction({ ...oldAction, state: "failed", error: "Old attempt failed" });
+  assert.equal(storage.getExternalAction("old-action")?.state, "failed");
+  assert.equal(saved.publicationRequestId, null);
+  const database = new DatabaseSync(path);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 5);
+  database.close();
 });

@@ -26,7 +26,7 @@ export type CreateRunInput = Pick<
 export type CreateExternalActionInput = Pick<
   ExternalAction,
   "workOrderId" | "runId" | "kind" | "candidateCommit"
->;
+> & Partial<Pick<ExternalAction, "publicationRequestId" | "destination">>;
 
 export type InsertCheckInput = Omit<Check, "id" | "logSha256"> & { logSha256?: string | null };
 
@@ -129,6 +129,8 @@ interface ExternalActionRow {
   kind: ExternalAction["kind"];
   state: ExternalAction["state"];
   candidate_commit: string;
+  publication_request_id: string | null;
+  destination: string | null;
   remote_identity: string | null;
   error: string | null;
   created_at: string;
@@ -333,6 +335,11 @@ const migrations = [
     updated_at TEXT NOT NULL
   ) STRICT;
   CREATE INDEX releases_target_stage_idx ON releases(target, stage, created_at DESC, id DESC);`,
+  `ALTER TABLE external_actions ADD COLUMN publication_request_id TEXT REFERENCES publication_requests(id);
+  ALTER TABLE external_actions ADD COLUMN destination TEXT;
+  CREATE UNIQUE INDEX external_actions_request_kind_idx
+    ON external_actions(publication_request_id, kind)
+    WHERE publication_request_id IS NOT NULL;`,
 ];
 
 function parseJson<T>(value: string): T {
@@ -449,6 +456,8 @@ function mapExternalAction(row: ExternalActionRow): ExternalAction {
     kind: row.kind,
     state: row.state,
     candidateCommit: row.candidate_commit,
+    publicationRequestId: row.publication_request_id,
+    destination: row.destination,
     remoteIdentity: row.remote_identity,
     error: row.error,
     createdAt: row.created_at,
@@ -995,22 +1004,38 @@ export class FactoryStorage {
       ...input,
       id: randomUUID(),
       state: "prepared",
+      publicationRequestId: input.publicationRequestId ?? null,
+      destination: input.destination ?? null,
       remoteIdentity: null,
       error: null,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
     this.#write(() => {
+      if ((action.publicationRequestId === null) !== (action.destination === null)) {
+        throw new Error("Publication request and destination must be supplied together");
+      }
+      if (action.publicationRequestId !== null) {
+        const request = this.getPublicationRequest(action.publicationRequestId);
+        if (!request || request.workOrderId !== action.workOrderId ||
+            request.runId !== action.runId ||
+            request.candidateCommit !== action.candidateCommit ||
+            request.destination !== action.destination) {
+          throw new Error("External action does not match its publication request");
+        }
+      }
       this.#database.prepare(`INSERT INTO external_actions (
         id, work_order_id, run_id, kind, state, candidate_commit,
-        remote_identity, error, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        publication_request_id, destination, remote_identity, error, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         action.id,
         action.workOrderId,
         action.runId,
         action.kind,
         action.state,
         action.candidateCommit,
+        action.publicationRequestId,
+        action.destination,
         action.remoteIdentity,
         action.error,
         action.createdAt,
@@ -1023,6 +1048,12 @@ export class FactoryStorage {
   getExternalAction(id: string): ExternalAction | null {
     const row = this.#database.prepare("SELECT * FROM external_actions WHERE id = ?")
       .get(id) as unknown as ExternalActionRow | undefined;
+    return row ? mapExternalAction(row) : null;
+  }
+
+  getExternalActionForRequest(requestId: string, kind: ExternalAction["kind"]): ExternalAction | null {
+    const row = this.#database.prepare(`SELECT * FROM external_actions
+      WHERE publication_request_id = ? AND kind = ?`).get(requestId, kind) as unknown as ExternalActionRow | undefined;
     return row ? mapExternalAction(row) : null;
   }
 
@@ -1039,7 +1070,8 @@ export class FactoryStorage {
       const result = this.#database.prepare(`UPDATE external_actions SET
         state = ?, remote_identity = ?, error = ?, updated_at = ?
         WHERE id = ? AND work_order_id = ? AND run_id = ? AND kind = ?
-          AND candidate_commit = ? AND created_at = ?`).run(
+          AND candidate_commit = ? AND publication_request_id IS ?
+          AND destination IS ? AND created_at = ?`).run(
         saved.state,
         saved.remoteIdentity,
         saved.error,
@@ -1049,6 +1081,8 @@ export class FactoryStorage {
         saved.runId,
         saved.kind,
         saved.candidateCommit,
+        saved.publicationRequestId,
+        saved.destination,
         saved.createdAt,
       );
       if (result.changes !== 1) {
