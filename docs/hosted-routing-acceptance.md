@@ -29,9 +29,7 @@ These were **routing tests**. Their WorkOrders remain queued with no coding atte
 
 ## Relay live acceptance status
 
-The owner approved the production-only connector attachment and then the exact Relay production patch. Both are complete. **Hosted Relay has not yet passed end-to-end routing acceptance:** its owner UI is signed out, and the configured bootstrap credentials are not accepted by the current application account.
-
-After owner sign-in, exercise the hosted owner UI and scoped MCP flow through Linear to an actual local receipt. A deployed build and successful access-control checks do not establish successful routing.
+The owner approved the production-only connector attachment and then the exact Relay production patch. Both are complete. **The hosted Relay owner UI route passed live acceptance** after the owner signed in. Scoped agent MCP acceptance is still pending the factory-only credential setup described below.
 
 ## Source and operations
 
@@ -60,4 +58,25 @@ Live terminal checks used authenticated `vercel curl` to reach the application t
 
 The normal application login endpoint rejected the existing configured credentials with `Email or password is incorrect.` Browser inspection confirmed the owner sign-in form remains open. The owner has been asked to sign in; no password reset, session fabrication, or authentication bypass was attempted.
 
-Local intake health at `2026-09-25T22:22:45.323Z`: enabled, polling, zero rejected items, no error. No live Relay factory request has yet been submitted. Remaining acceptance: authenticated owner UI create, Linear admission, local WorkOrder UI confirmation, verified hosted receipt, and scoped agent MCP create/read. The separate Golden Work coding-to-review milestone remains unqualified.
+Local intake health at `2026-09-25T22:22:45.323Z`: enabled, polling, zero rejected items, no error. The separate Golden Work coding-to-review milestone remains unqualified.
+
+## Relay owner UI routing acceptance
+
+The owner signed in and the live `/factory` form submitted `Relay live routing qualification — 2026-09-25`.
+
+| Check | Evidence |
+| --- | --- |
+| Hosted UI create | Returned waiting for the local factory and linked [MYE-13](https://linear.app/myevebot/issue/MYE-13/relay-live-routing-qualification-2026-09-25). |
+| Local admission | WorkOrder `96b25424-2355-4350-96d0-56c9267ebea2`, created at `2026-09-25T22:30:19.796Z`. |
+| Local UI | Displayed matching title, repository, criteria, MYE-13 link, and `Hosted Intake Received` / `Workorder Created` activity. |
+| Local API | Confirmed actor `connection:relay`, transport `linear`, and issue ID `04615485-9f0d-4e2e-af98-4857d1500882`. |
+| Hosted receipt UI | `Check factory receipt` returned `Received by local factory` with the same WorkOrder ID. Repeated lookup retained the same result. |
+| Independent terminal verification | Ed25519 receipt signature verified using the host public key at `2026-09-25T22:32:59.478Z`; exactly one matching local WorkOrder. |
+
+This test explicitly covers routing only: its WorkOrder remains queued, with no coding attempt or publication. It does not qualify the larger engineering execution cycle.
+
+### Remaining scoped-agent qualification
+
+The live Agents screen had zero agents and a disabled memory-only profile. The API supports explicit capabilities, but the UI could not create a factory-only credential. Fixed that gap in Relay commit `86c558d` on PR 20, mirrored as `ae00cab` on PR 19. The form now offers `MyFactory — create and read WorkOrders`, which sends exactly `factory.workorder.create` and `factory.workorder.read` through the existing API. Existing authorization checks remain in the API/action path.
+
+Typecheck, all 10 routing tests, and production build passed for this follow-up. It has not been deployed or UI-qualified yet. Requested approval for that exact production follow-up and a temporary factory-only test agent, whose credential will be revoked after the live MCP test. No new agent or credential has been created at this checkpoint.
