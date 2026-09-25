@@ -6,7 +6,7 @@ The factory turns selected issues, feedback, and errors into reviewable software
 
 The **first milestone** is one reproducible defect becoming a supervisor-verified candidate commit, visible with its evidence in the UI, then one authorized draft PR. Service restart must preserve its history and reconcile an uncertain publication result. Merge, deployment, public replies, issue closure, recurring autonomy, and production promotion are separate later capabilities.
 
-Phase 0 is **in progress**, not complete. A dependency-free defect fixture and failing regression test are documented in [phase-0-baseline.md](phase-0-baseline.md). No coding agent, Docker worker, target repository, or GitHub publication has been qualified for this project.
+Phase 0 remains **in progress**. The dependency-free defect fixture was corrected by host Codex and checked independently in Docker, and the integrated supervisor passed a fixture smoke; see [phase-0-baseline.md](phase-0-baseline.md). A real target repository, its checks, and live GitHub draft publication still need qualification. The host-side publication adapter and local approval path have test coverage but have not published a real PR for a WorkOrder.
 
 ## Components and authority
 
