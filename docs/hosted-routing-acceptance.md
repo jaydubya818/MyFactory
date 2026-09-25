@@ -40,3 +40,13 @@ After approval: attach production only, set the scoped MyFactory environment con
 - Relay: PR 19 in `jaydubya818/relay`, branch `codex/myfactory-hosted-routing`.
 - Local service: `com.myfactory.supervisor`, starts at login and restarts after process exit; loopback port 8788.
 - Setup and wire contract: [hosted-routing.md](hosted-routing.md).
+
+## Relay live-test preparation update
+
+The owner subsequently requested the live Relay test and approved the production-only connector attachment. The attachment succeeded for `linear/myeve-foreman` on project `prj_3IRvr9knK5VJcBTgTYMvhv6ixmJK`; Vercel reported only the `production` environment. Seven scoped MyFactory settings were saved for its next deployment.
+
+The currently deployed Relay base is `7ea29b2886d2b8bad7b1a1ca1c3e8df1d39ee9ee`; main is `a0e6b3ca297836aba442c43c975d4fd267614346`. Main includes unrelated features and migrations 0021–0023, so an isolated deployment branch was created from the exact live base. Only the four factory commits were applied. Candidate `6967261` on `codex/myfactory-relay-live` passed typecheck, all 10 routing tests and production build. No schema or migration files changed. The branch is pushed and reviewable in Relay PR 20; PR 19 remains the implementation branch based on main.
+
+**New remaining gate:** automatic approval review rejected the production deployment because the newly supplied Golden Work instructions explicitly forbid production deployment. Explicit approval of an exception for Relay commit `6967261` is pending. The deployment did not execute. No production database access occurred in this preparation turn.
+
+**UI preflight:** the hosted Relay tab reached `/login`; Chrome blocked automation due to an open extension UI. Requested that the owner dismiss the popup and sign in. No live factory request has yet been sent through Relay. Do not treat the successful connector attachment or local tests as end-to-end acceptance.
