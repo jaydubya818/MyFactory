@@ -90,6 +90,38 @@ else process.exit(127);
     }
   });
 
+  await t.test("git diff --check validates the candidate commit without requiring .git in the source export", async () => {
+    const whitespaceRepository = join(root, "whitespace-repo");
+    mkdirSync(whitespaceRepository);
+    execFileSync("git", ["init", "-q", whitespaceRepository]);
+    writeFileSync(join(whitespaceRepository, "value.txt"), "baseline\n");
+    commit(whitespaceRepository, "baseline");
+    writeFileSync(join(whitespaceRepository, "value.txt"), "clean candidate\n");
+    const cleanCandidate = commit(whitespaceRepository, "clean candidate");
+
+    const clean = await verifyCandidate({
+      repositoryPath: whitespaceRepository,
+      candidateSha: cleanCandidate,
+      artifactDir,
+      commands: ["git diff --check"],
+    });
+    assert.deepEqual(clean.checks.map((check) => check.status), ["passed"]);
+    assert.match(readFileSync(clean.checks[0].logPath, "utf8"), /No whitespace errors found/);
+
+    writeFileSync(join(whitespaceRepository, "value.txt"), "trailing space \n");
+    const invalidCandidate = commit(whitespaceRepository, "candidate with trailing whitespace");
+    const invalid = await verifyCandidate({
+      repositoryPath: whitespaceRepository,
+      candidateSha: invalidCandidate,
+      artifactDir,
+      commands: ["git diff --check"],
+    });
+    assert.deepEqual(invalid.checks.map((check) => check.status), ["failed"]);
+    assert.notEqual(invalid.checks[0].exitCode, 0);
+    assert.match(readFileSync(invalid.checks[0].logPath, "utf8"), /trailing whitespace/);
+    assert.equal(readFileSync(capturePath, "utf8").trim().split("\n").length, 3);
+  });
+
   await t.test("archive attributes that omit committed content block verification", async () => {
     writeFileSync(join(repositoryPath, ".gitattributes"), "value.txt export-ignore\n");
     const omittedSha = commit(repositoryPath, "omit tracked content from archive");

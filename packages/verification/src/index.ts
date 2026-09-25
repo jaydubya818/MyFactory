@@ -311,6 +311,54 @@ function unavailableCheck(
   };
 }
 
+async function verifyWhitespace(
+  repositoryPath: string,
+  result: VerificationResult,
+  command: string,
+  index: number,
+  directory: string,
+  signal?: AbortSignal,
+): Promise<VerificationCheck> {
+  const startedAt = new Date().toISOString();
+  let status: VerificationCheck["status"] = "passed";
+  let exitCode: number | null = 0;
+  let reason: string | null = null;
+  let output = "No whitespace errors found.\n";
+
+  try {
+    await runTool("git", [
+      "-C", repositoryPath, "diff-tree", "--root", "--check", "--no-commit-id", "-r", result.candidateCommit,
+    ], 30_000, signal);
+  } catch (error) {
+    const details = error as NodeJS.ErrnoException & { stdout?: Buffer | string; stderr?: Buffer | string };
+    const stdout = Buffer.isBuffer(details.stdout) ? details.stdout.toString("utf8") : details.stdout ?? "";
+    const stderr = Buffer.isBuffer(details.stderr) ? details.stderr.toString("utf8") : details.stderr ?? "";
+    output = `${stdout}${stderr}` || `${details.message}\n`;
+    exitCode = typeof details.code === "number" ? details.code : null;
+    if (signal?.aborted || exitCode === null) {
+      status = "unavailable";
+      reason = signal?.aborted ? "Whitespace check cancelled" : `Git unavailable: ${details.message}`;
+    } else {
+      status = "failed";
+    }
+  }
+
+  const finishedAt = new Date().toISOString();
+  const logPath = join(directory, `check-${String(index + 1).padStart(3, "0")}.log`);
+  writeFileSync(logPath, output, { mode: 0o600 });
+  return {
+    candidateCommit: result.candidateCommit,
+    candidateTree: result.candidateTree,
+    command,
+    status,
+    exitCode,
+    startedAt,
+    finishedAt,
+    logPath,
+    reason,
+  };
+}
+
 function persistManifest(result: VerificationResult): void {
   writeFileSync(result.manifestPath, `${JSON.stringify(result, null, 2)}\n`, { mode: 0o600 });
 }
@@ -395,6 +443,16 @@ export async function verifyCandidate(input: VerificationInput): Promise<Verific
       if (input.signal?.aborted) infrastructureFailure = "Verification cancelled";
       if (infrastructureFailure) {
         result.checks.push(unavailableCheck(result, command, index, evidenceDir, infrastructureFailure));
+        persistManifest(result);
+        continue;
+      }
+      if (command === "git diff --check") {
+        const repositoryPath = realpathSync(input.repositoryPath);
+        const check = await verifyWhitespace(
+          repositoryPath, result, command, index, evidenceDir, input.signal,
+        );
+        result.checks.push(check);
+        if (check.status === "unavailable") infrastructureFailure = check.reason;
         persistManifest(result);
         continue;
       }
