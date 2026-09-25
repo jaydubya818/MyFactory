@@ -1,9 +1,11 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { execFile } from "node:child_process";
 import { createReadStream, existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { homedir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import type { FactoryEvent, WorkOrderDetail } from "../../../packages/contracts/src/index.ts";
 import { listAppTemplates } from "../../../packages/app-builder/src/index.ts";
 import { openStorage } from "../../../packages/storage/src/index.ts";
@@ -11,6 +13,8 @@ import { ActionError, actionRegistry, performAction, type ActionContext } from "
 import { JobManager, type JobDependencies } from "./jobs.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
+const confirmApprovalScript = fileURLToPath(new URL("../native/confirm-approval.swift", import.meta.url));
+const execFileAsync = promisify(execFile);
 const defaultDataDir = resolve(homedir(), ".local", "share", "sellerfi-factory");
 const contentTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -130,7 +134,22 @@ export interface SupervisorOptions {
   webDist?: string;
   startRun?: ActionContext["startRun"];
   cancelRun?: ActionContext["cancelRun"];
+  confirmHumanPresence?: NonNullable<ActionContext["confirmHumanPresence"]>;
   jobDependencies?: Partial<JobDependencies>;
+}
+
+async function confirmHumanPresence(request: Parameters<NonNullable<ActionContext["confirmHumanPresence"]>>[0]): Promise<boolean> {
+  if (process.platform !== "darwin") return false;
+  const reason = `Approve a draft PR request for ${request.destination}, candidate ${request.candidateCommit.slice(0, 12)}, evidence ${request.evidenceDigest.slice(0, 12)}, policy v${request.policyRevision}`;
+  try {
+    await execFileAsync("/usr/bin/swift", [confirmApprovalScript, reason], {
+      timeout: 120_000,
+      maxBuffer: 10_000,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function createSupervisor(options: SupervisorOptions = {}) {
@@ -162,6 +181,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const context: ActionContext = {
     storage,
     appBuildDirectory: join(dataDir, "app-builds"),
+    confirmHumanPresence: options.confirmHumanPresence ?? confirmHumanPresence,
     notify,
     startRun: options.startRun ?? ((workOrder) => jobs.startRun(workOrder)),
     cancelRun: options.cancelRun ?? ((workOrder) => jobs.cancelRun(workOrder)),
@@ -241,6 +261,10 @@ export function createSupervisor(options: SupervisorOptions = {}) {
             item.payload.candidateCommit === run?.candidateCommit).at(-1);
         const diff = artifactText(dataDir, event?.payload.diffPath);
         if (diff === null) return json(response, 404, { error: "Candidate diff is unavailable" });
+        const observedHash = createHash("sha256").update(diff).digest("hex");
+        if (event?.payload.diffSha256 !== observedHash) {
+          return json(response, 409, { error: "Candidate diff changed since it was recorded", code: "evidence_stale" });
+        }
         response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
         response.end(diff);
         return;

@@ -34,6 +34,16 @@ function readyFixture(t) {
     finishedAt: new Date().toISOString(),
   });
   const logPath = join(directory, "verification.log");
+  const diffPath = join(directory, "candidate.patch");
+  const diffText = "diff --git a/src/report.ts b/src/report.ts\n+selectedRange=true\n";
+  writeFileSync(diffPath, diffText);
+  storage.appendEvent({
+    workOrderId: order.id, runId: run.id, type: "run.candidate_committed",
+    payload: {
+      candidateCommit: run.candidateCommit, diffPath,
+      diffSha256: createHash("sha256").update(diffText).digest("hex"),
+    },
+  });
   writeFileSync(logPath, "1 test passed\n");
   storage.insertCheck({
     runId: run.id, candidateCommit: run.candidateCommit, command: "npm test",
@@ -44,11 +54,12 @@ function readyFixture(t) {
   const events = [];
   const context = {
     storage,
+    confirmHumanPresence: async () => true,
     notify: (event) => events.push(event),
     startRun: async () => { throw new Error("startRun should not run"); },
     cancelRun: async () => { throw new Error("cancelRun should not run"); },
   };
-  return { storage, order, run, logPath, context, events };
+  return { storage, order, run, logPath, diffPath, context, events };
 }
 
 const human = { kind: "human", id: "reviewer" };
@@ -61,7 +72,7 @@ test("agent note changes durable UI data but cannot grant publication approval",
   }, agent);
   assert.equal(note.type, "workorder.note_added");
   assert.equal(note.payload.actorKind, "agent");
-  assert.deepEqual(storage.listEvents(order.id), [note]);
+  assert.equal(storage.listEvents(order.id).at(-1).id, note.id);
   assert.deepEqual(events, [note]);
 
   const request = await performAction(context, "publication.request", {
@@ -74,7 +85,7 @@ test("agent note changes durable UI data but cannot grant publication approval",
 });
 
 test("candidate, evidence, and policy changes invalidate an approved draft request", async (t) => {
-  const { storage, order, run, logPath, context } = readyFixture(t);
+  const { storage, order, run, logPath, diffPath, context } = readyFixture(t);
   const request = await performAction(context, "publication.request", {
     workOrderId: order.id, destination: "example/disposable",
   }, agent);
@@ -99,6 +110,12 @@ test("candidate, evidence, and policy changes invalidate an approved draft reque
   }, human), (error) => error.code === "evidence_stale");
   writeFileSync(logPath, "1 test passed\n");
 
+  writeFileSync(diffPath, "The displayed candidate patch changed after review.\n");
+  await assert.rejects(() => performAction(context, "publication.publish_draft", {
+    requestId: request.id,
+  }, human), (error) => error.code === "evidence_stale");
+  writeFileSync(diffPath, "diff --git a/src/report.ts b/src/report.ts\n+selectedRange=true\n");
+
   const policy = storage.getPolicy();
   await performAction(context, "dispatch.set_paused", {
     paused: true, expectedRevision: policy.revision,
@@ -106,6 +123,19 @@ test("candidate, evidence, and policy changes invalidate an approved draft reque
   await assert.rejects(() => performAction(context, "publication.publish_draft", {
     requestId: request.id,
   }, human), (error) => error.code === "policy_stale");
+});
+
+test("human approval requires a fresh device-owner confirmation", async (t) => {
+  const { storage, order, context } = readyFixture(t);
+  const request = await performAction(context, "publication.request", {
+    workOrderId: order.id, destination: "example/disposable",
+  }, agent);
+  context.confirmHumanPresence = async () => false;
+  await assert.rejects(() => performAction(context, "publication.approve", {
+    requestId: request.id, candidateCommit: request.candidateCommit,
+    evidenceDigest: request.evidenceDigest, policyRevision: request.policyRevision,
+  }, human), (error) => error.code === "approval_denied");
+  assert.equal(storage.getPublicationApproval(request.id), null);
 });
 
 test("app builder creates a durable WorkOrder linked to a versioned scaffold", async (t) => {

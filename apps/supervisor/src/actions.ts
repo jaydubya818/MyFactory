@@ -38,6 +38,7 @@ export class ActionError extends Error {
 export interface ActionContext {
   storage: FactoryStorage;
   appBuildDirectory?: string;
+  confirmHumanPresence?(request: PublicationRequest): Promise<boolean>;
   startRun(workOrder: WorkOrder): Promise<Run>;
   cancelRun(workOrder: WorkOrder): Promise<Run | null>;
   notify(event: FactoryEvent): void;
@@ -322,6 +323,24 @@ function currentPublicationEvidence(storage: FactoryStorage, requestWorkOrderId:
   if (!run || run.state !== "ready_for_review" || order.state !== "ready_for_review" || !run.candidateCommit) {
     throw new ActionError("The latest run is not ready for review", "not_ready", 409);
   }
+  const committed = storage.listEvents(order.id)
+    .filter((event) => event.runId === run.id && event.type === "run.candidate_committed" &&
+      event.payload.candidateCommit === run.candidateCommit).at(-1);
+  if (!committed || typeof committed.payload.diffPath !== "string" ||
+      typeof committed.payload.diffSha256 !== "string" ||
+      !/^[0-9a-f]{64}$/.test(committed.payload.diffSha256)) {
+    throw new ActionError("Candidate diff evidence is incomplete", "evidence_incomplete", 409);
+  }
+  try {
+    const observedDiff = createHash("sha256")
+      .update(readFileSync(committed.payload.diffPath)).digest("hex");
+    if (observedDiff !== committed.payload.diffSha256) {
+      throw new ActionError("Candidate diff changed since it was recorded", "evidence_stale", 409);
+    }
+  } catch (error) {
+    if (error instanceof ActionError) throw error;
+    throw new ActionError("Candidate diff is unavailable", "evidence_stale", 409);
+  }
   const checks = storage.listChecks(run.id);
   const required = order.kind === "defect" && order.reproductionCommand
     ? [...new Set([order.reproductionCommand, ...order.checkCommands])]
@@ -345,14 +364,17 @@ function currentPublicationEvidence(storage: FactoryStorage, requestWorkOrderId:
       throw new ActionError("Verification log changed since it was recorded", "evidence_stale", 409);
     }
   }
-  const evidenceDigest = createHash("sha256").update(JSON.stringify(checks.map((check) => ({
-    id: check.id,
-    candidateCommit: check.candidateCommit,
-    command: check.command,
-    status: check.status,
-    exitCode: check.exitCode,
-    logSha256: check.logSha256,
-  })))).digest("hex");
+  const evidenceDigest = createHash("sha256").update(JSON.stringify({
+    diffSha256: committed.payload.diffSha256,
+    checks: checks.map((check) => ({
+      id: check.id,
+      candidateCommit: check.candidateCommit,
+      command: check.command,
+      status: check.status,
+      exitCode: check.exitCode,
+      logSha256: check.logSha256,
+    })),
+  })).digest("hex");
   return { order, run, evidenceDigest, policyRevision: storage.getPolicy().revision };
 }
 
@@ -422,6 +444,12 @@ export async function performAction(
       }
       const existing = context.storage.getPublicationApproval(requestId);
       if (existing) return existing;
+      if (!context.confirmHumanPresence) {
+        throw new ActionError("Human presence verification is unavailable", "approval_unavailable", 503);
+      }
+      if (!(await context.confirmHumanPresence(request))) {
+        throw new ActionError("Human presence was not confirmed; approval was not recorded", "approval_denied", 409);
+      }
       const { approval, event } = context.storage.transaction(() => {
         currentRequestBinding(context.storage, request);
         const approval = context.storage.createPublicationApproval({

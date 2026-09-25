@@ -203,6 +203,9 @@ export class JobManager {
       workspacePath = createdPath;
       if (active.controller.signal.aborted) throw new ActionError("Start was cancelled", "cancelled", 409);
       const { run, event } = this.storage.transaction(() => {
+        if (this.storage.getPolicy().dispatchPaused) {
+          throw new ActionError("Dispatch is paused", "dispatch_paused", 409);
+        }
         const run = this.storage.createRun({
           workOrderId: workOrder.id,
           workerProfile: workOrder.workerProfile,
@@ -356,11 +359,13 @@ export class JobManager {
         workOrder.allowedPaths,
         artifactDir,
       );
+      const diffSha256 = createHash("sha256").update(await readFile(candidate.diffPath)).digest("hex");
       run = this.#transition(run, "verifying", "verifying", "run.candidate_committed", {
         candidateCommit: candidate.commit,
         candidateTree: candidate.tree,
         changedPaths: candidate.changedPaths,
         diffPath: candidate.diffPath,
+        diffSha256,
       }, { candidateCommit: candidate.commit });
       const verificationCommands = workOrder.kind === "defect" && workOrder.reproductionCommand
         ? [...new Set([workOrder.reproductionCommand, ...workOrder.checkCommands])]

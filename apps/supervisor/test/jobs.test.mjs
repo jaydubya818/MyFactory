@@ -113,12 +113,17 @@ test("post-fix reproduction failure blocks ready for review despite another pass
       return { success: true, status: "completed", threadId: "fixture-thread", usage: null,
         eventsPath: "/tmp/fixture-events.jsonl" };
     },
-    commitCandidate: async () => ({
-      commit: CANDIDATE_COMMIT,
-      tree: "c".repeat(40),
-      changedPaths: ["src/revenue.js"],
-      diffPath: "/tmp/fixture.patch",
-    }),
+    commitCandidate: async (_workspacePath, _inputCommit, _allowedPaths, artifactDir) => {
+      await mkdir(artifactDir, { recursive: true });
+      const diffPath = join(artifactDir, "candidate.patch");
+      await writeFile(diffPath, "diff --git a/src/revenue.js b/src/revenue.js\n", "utf8");
+      return {
+        commit: CANDIDATE_COMMIT,
+        tree: "c".repeat(40),
+        changedPaths: ["src/revenue.js"],
+        diffPath,
+      };
+    },
   });
   const order = work.storage.createWorkOrder(orderInput());
   const started = await work.jobs.startRun(order);
@@ -168,6 +173,30 @@ test("cancel during worktree creation removes the workspace and frees the active
   await waitForRun(work.storage, second.id, "failed");
   assert.equal(creates, 2);
   assert.equal(work.storage.getWorkOrder(order.id).state, "needs_investigation");
+});
+
+test("pausing dispatch while a start resolves its workspace prevents a new run", async (t) => {
+  const entered = deferred();
+  const release = deferred();
+  const removed = [];
+  const work = await harness(t, {
+    resolveCommit: async () => INPUT_COMMIT,
+    createTaskWorktree: async () => {
+      entered.resolve();
+      await release.promise;
+      return join(tmpdir(), "paused-worktree");
+    },
+    removeTaskWorktree: async (_repositoryPath, workspacePath) => { removed.push(workspacePath); },
+  });
+  const order = work.storage.createWorkOrder(orderInput());
+  const pending = work.jobs.startRun(order);
+  await entered.promise;
+  const policy = work.storage.getPolicy();
+  work.storage.setDispatchPaused(true, policy.revision, "reviewer");
+  release.resolve();
+  await assert.rejects(pending, (error) => error.code === "dispatch_paused");
+  assert.deepEqual(work.storage.listRuns(order.id), []);
+  assert.deepEqual(removed, [join(tmpdir(), "paused-worktree")]);
 });
 
 test("restart holds an untracked worker and preserves completed history", async (t) => {
