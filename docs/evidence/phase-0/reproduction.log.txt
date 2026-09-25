@@ -1,0 +1,40 @@
+
+> sellerfi-phase-0-defect@1.0.0 test
+> node --test
+
+✔ formats a positive annual revenue in USD (9.68475ms)
+✖ shows a reported zero instead of treating it as missing (0.738333ms)
+✔ shows an explicit missing value for absent revenue (0.053125ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 78.423125
+
+✖ failing tests:
+
+test at test/formatAnnualRevenue.test.js:9:1
+✖ shows a reported zero instead of treating it as missing (0.738333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Not provided'
+  - '$0'
+  
+      at TestContext.<anonymous> (/private/tmp/sellerfi-factory-phase0.ccFLYb/test/formatAnnualRevenue.test.js:10:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Not provided',
+    expected: '$0',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

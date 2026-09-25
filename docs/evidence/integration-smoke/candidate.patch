@@ -1,0 +1,11 @@
+diff --git a/src/formatAnnualRevenue.js b/src/formatAnnualRevenue.js
+index 83b7419..05b61b7 100644
+--- a/src/formatAnnualRevenue.js
++++ b/src/formatAnnualRevenue.js
+@@ -1,5 +1,5 @@
+ function formatAnnualRevenue(annualRevenue) {
+-  if (!annualRevenue) {
++  if (annualRevenue == null) {
+     return "Not provided";
+   }
+ 

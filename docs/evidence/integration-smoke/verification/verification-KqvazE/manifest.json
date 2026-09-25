@@ -1,0 +1,21 @@
+{
+  "candidateCommit": "7d8afa379d233f650302b879d68a5e879f3bf0d0",
+  "candidateTree": "9bab694e8a8bb677fc2b489d22b943144c654739",
+  "image": "node:22-bookworm",
+  "checks": [
+    {
+      "candidateCommit": "7d8afa379d233f650302b879d68a5e879f3bf0d0",
+      "candidateTree": "9bab694e8a8bb677fc2b489d22b943144c654739",
+      "command": "npm test",
+      "status": "passed",
+      "exitCode": 0,
+      "startedAt": "2026-09-25T05:17:46.153Z",
+      "finishedAt": "2026-09-25T05:17:46.501Z",
+      "logPath": "/private/var/folders/1h/qb01w7v52bb72nzk2dh3szbc0000gn/T/factory-supervisor-smoke-FqQArf/data/artifacts/d8d828ac-3e63-403f-b007-6ba67170fd1b/verification/verification-KqvazE/check-001.log",
+      "reason": null
+    }
+  ],
+  "manifestPath": "/private/var/folders/1h/qb01w7v52bb72nzk2dh3szbc0000gn/T/factory-supervisor-smoke-FqQArf/data/artifacts/d8d828ac-3e63-403f-b007-6ba67170fd1b/verification/verification-KqvazE/manifest.json",
+  "exportStatus": "ready",
+  "reason": null
+}

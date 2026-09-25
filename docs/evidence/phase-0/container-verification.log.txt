@@ -1,0 +1,32 @@
+
+> sellerfi-phase-0-defect@1.0.0 test
+> node --test
+
+TAP version 13
+# Subtest: formats a positive annual revenue in USD
+ok 1 - formats a positive annual revenue in USD
+  ---
+  duration_ms: 7.67875
+  type: 'test'
+  ...
+# Subtest: shows a reported zero instead of treating it as missing
+ok 2 - shows a reported zero instead of treating it as missing
+  ---
+  duration_ms: 0.104542
+  type: 'test'
+  ...
+# Subtest: shows an explicit missing value for absent revenue
+ok 3 - shows an explicit missing value for absent revenue
+  ---
+  duration_ms: 0.047042
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 39.724583
