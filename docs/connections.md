@@ -1,6 +1,6 @@
 # App connections and Linear
 
-MyFactory accepts requests from approved app backends through the same actions used by its console. The host API and TypeScript client are implemented. MyEve and Relay still need backend wiring and host registration; neither is connected merely because this feature is installed.
+MyFactory accepts requests from approved app backends through the same actions used by its console. The host API, TypeScript client, and local command adapter are implemented. Registration authorizes an app identity; a hosted app still needs a configured transport to reach this local host.
 
 ## Linear setup and behavior
 
@@ -12,6 +12,48 @@ FACTORY_LINEAR_TEAM_ID=<team UUID>
 FACTORY_LINEAR_PROJECT_ID=<optional project UUID>
 FACTORY_LINEAR_MODE=manual
 ```
+
+### Reuse an existing Vercel Connect authorization
+
+An API key is not required when the workspace already uses Vercel Connect. Set:
+
+```sh
+FACTORY_LINEAR_CONNECTOR=linear/existing-connector
+FACTORY_VERCEL_PROJECT_ID=prj_existing_authorized_project
+FACTORY_VERCEL_TEAM_ID=team_existing_vercel_team
+FACTORY_LINEAR_WORKSPACE_ID=existing_linear_workspace_uuid
+FACTORY_LINEAR_TEAM_ID=existing_linear_team_uuid
+FACTORY_LINEAR_MODE=automatic
+```
+
+The official Vercel OIDC SDK uses the existing local CLI login to refresh the authorized project's development identity. Connect exchanges it for a Linear OAuth token scoped to `read` and `write`. Tokens stay in host memory and the SDK's existing credential cache; they are never returned by factory actions. Keep the Vercel login valid and the project's connector access enabled. The app subject must already be installed and authorized for that project. No new connector, delegate, or trigger is created.
+
+**Verify Linear access** and the agent action `verify-factory-linear` check the exact configured workspace/team without creating issues. OAuth sync repeats the destination check before creation. Issue tracking does not delegate to Foreman or start another executor.
+
+Reference: [Vercel Connect authorization and token refresh](https://vercel.com/kb/guide/vercel-connect).
+
+### This local workspace
+
+Recovered from the existing MyEve/Foreman and Relay tasks on September 25, 2026:
+
+| App | Existing repository or connection |
+| --- | --- |
+| MyEve / Sofie | `jaydubya818/MyEveBot`, checkout `/Users/jaywest/Myeve` |
+| Relay / Atlas | `jaydubya818/relay`, checkout `/Users/jaywest/Documents/ChatGPT/New project/relay-protocol-canonical` |
+| Linear | `MyEveBot` workspace, `MYE` team, `linear/myeve-foreman` |
+| Authorized Vercel project | Existing `myeve-foreman` project |
+
+The local host configuration is saved in ignored `data/connections.env`. Run `npm run start:connected` to restore the connected host at port 8788. This machine is configured for automatic Linear issue creation; each WorkOrder can opt out. No Linear project is selected because the existing Foreman configuration targets the team directly.
+
+MyEve and Relay have separate host registrations limited to their respective checkouts, with create, note, and Linear sync scopes. Their private tokens are in `data/myeve-factory-token` and `data/relay-factory-token`. Local backends with an approved command bridge can call:
+
+```sh
+node scripts/app-client.mjs --id myeve --command list
+node scripts/app-client.mjs --id relay --command list
+node scripts/app-client.mjs --id myeve --command create --input /path/to/work-order.json
+```
+
+Run from the MyFactory checkout, or pass an absolute script path and `--data-dir`. The create input follows `CreateWorkOrderInput` and requires a stable `idempotencyKey`. The host enforces repository and action scopes. This command adapter does not install tools into hosted Sofie or Relay, and registration does not imply those hosted runtimes can reach localhost.
 
 Keep the key in a local secret store or ignored environment file. The supervisor reads process environment and does not automatically load `.env`. Node 24 can load an explicit file with `node --env-file=/path/to/private.env apps/supervisor/src/server.ts`.
 
