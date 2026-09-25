@@ -27,11 +27,11 @@ These were **routing tests**. Their WorkOrders remain queued with no coding atte
 - Sofie TypeScript, capability registry, executor governance and four new authority/destination tests passed. Production deployment succeeded.
 - Relay TypeScript and production build passed. Ten new tests cover owner/origin/account restrictions, destination verification, invalid inputs, MCP grant projection, revoked credentials and guessed tools without grants.
 
-## Relay deployment gate
+## Relay live acceptance status
 
-Relay source is implemented and pushed in `jaydubya818/relay` PR 19. **Hosted Relay has not passed live acceptance and is not deployed by this task.** Automatic approval review rejected attaching the existing Linear connector to Relay across all environments. A narrower request for explicit owner approval to attach `linear/myeve-foreman` to Relay **production only** is pending. Do not bypass that decision with another API or proxy.
+The owner approved the production-only connector attachment and then the exact Relay production patch. Both are complete. **Hosted Relay has not yet passed end-to-end routing acceptance:** its owner UI is signed out, and the configured bootstrap credentials are not accepted by the current application account.
 
-After approval: attach production only, set the scoped MyFactory environment configuration, deploy the tested branch while preserving current production changes, then exercise the hosted owner UI and scoped MCP flow through Linear to an actual local receipt.
+After owner sign-in, exercise the hosted owner UI and scoped MCP flow through Linear to an actual local receipt. A deployed build and successful access-control checks do not establish successful routing.
 
 ## Source and operations
 
@@ -45,8 +45,19 @@ After approval: attach production only, set the scoped MyFactory environment con
 
 The owner subsequently requested the live Relay test and approved the production-only connector attachment. The attachment succeeded for `linear/myeve-foreman` on project `prj_3IRvr9knK5VJcBTgTYMvhv6ixmJK`; Vercel reported only the `production` environment. Seven scoped MyFactory settings were saved for its next deployment.
 
-The currently deployed Relay base is `7ea29b2886d2b8bad7b1a1ca1c3e8df1d39ee9ee`; main is `a0e6b3ca297836aba442c43c975d4fd267614346`. Main includes unrelated features and migrations 0021–0023, so an isolated deployment branch was created from the exact live base. Only the four factory commits were applied. Candidate `6967261` on `codex/myfactory-relay-live` passed typecheck, all 10 routing tests and production build. No schema or migration files changed. The branch is pushed and reviewable in Relay PR 20; PR 19 remains the implementation branch based on main.
+The previous Relay production base was `7ea29b2886d2b8bad7b1a1ca1c3e8df1d39ee9ee`; main at preparation was `a0e6b3ca297836aba442c43c975d4fd267614346`. Main includes unrelated features and migrations 0021–0023, so an isolated deployment branch was created from the exact live base. Only the four factory commits were applied. Candidate `6967261` on `codex/myfactory-relay-live` passed typecheck, all 10 routing tests and production build. No schema or migration files changed. The branch is pushed and reviewable in Relay PR 20; PR 19 remains the implementation branch based on main.
 
-**New remaining gate:** automatic approval review rejected the production deployment because the newly supplied Golden Work instructions explicitly forbid production deployment. Explicit approval of an exception for Relay commit `6967261` is pending. The deployment did not execute. No production database access occurred in this preparation turn.
+## Approved Relay deployment and live checks
 
-**UI preflight:** the hosted Relay tab reached `/login`; Chrome blocked automation due to an open extension UI. Requested that the owner dismiss the popup and sign in. No live factory request has yet been sent through Relay. Do not treat the successful connector attachment or local tests as end-to-end acceptance.
+The owner explicitly approved the exception for Relay commit `6967261`. Deployment succeeded and Vercel reported READY:
+
+- Deployment: `dpl_3mKUdqAMH342SRAVSiEsuh4KNxcs`.
+- Immutable URL: https://relay-qtl5evio4-jaydubya818.vercel.app.
+- Production alias: https://relay-jaydubya818.vercel.app.
+- No direct production database access or migrations were performed during this deployment and verification.
+
+Live terminal checks used authenticated `vercel curl` to reach the application through Vercel protection without changing that protection. The owner factory endpoint rejected an unauthenticated read with HTTP 401 and `Dashboard authentication required.` The MCP endpoint rejected a request without a Relay credential with HTTP 401 and `INVALID_CREDENTIAL`.
+
+The normal application login endpoint rejected the existing configured credentials with `Email or password is incorrect.` Browser inspection confirmed the owner sign-in form remains open. The owner has been asked to sign in; no password reset, session fabrication, or authentication bypass was attempted.
+
+Local intake health at `2026-09-25T22:22:45.323Z`: enabled, polling, zero rejected items, no error. No live Relay factory request has yet been submitted. Remaining acceptance: authenticated owner UI create, Linear admission, local WorkOrder UI confirmation, verified hosted receipt, and scoped agent MCP create/read. The separate Golden Work coding-to-review milestone remains unqualified.
