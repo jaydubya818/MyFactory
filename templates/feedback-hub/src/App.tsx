@@ -84,10 +84,12 @@ function Detail({
   onCopyBrief: () => Promise<void>;
 }) {
   const [note, setNote] = useState("");
+  const [noteError, setNoteError] = useState<string | null>(null);
 
   async function submitNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (await onAddNote(note)) setNote("");
+    if (await onAddNote(note)) { setNote(""); setNoteError(null); }
+    else setNoteError("The note could not be saved. Your text is still here.");
   }
 
   return <article className="detail">
@@ -111,7 +113,7 @@ function Detail({
 
     <section className="detail-section" aria-labelledby="notes-heading">
       <div className="section-heading"><h3 id="notes-heading">Internal notes</h3><span>{detail.notes.length}</span></div>
-      <form className="note-form" onSubmit={submitNote}><label className="sr-only" htmlFor="new-note">Add an internal note</label><textarea id="new-note" rows={3} maxLength={2000} required value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add evidence, context, or the reason for a decision…" /><button className="button button--dark" disabled={busy || !note.trim()} type="submit">{busy ? "Saving…" : "Add note"}</button></form>
+      <form className="note-form" onSubmit={submitNote}><label className="sr-only" htmlFor="new-note">Add an internal note</label><textarea id="new-note" rows={3} maxLength={2000} required value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add evidence, context, or the reason for a decision…" />{noteError && <p className="form-error" role="alert">{noteError}</p>}<button className="button button--dark" disabled={busy || !note.trim()} type="submit">{busy ? "Saving…" : "Add note"}</button></form>
       {detail.notes.length === 0 ? <p className="subtle-message">No notes yet. Add the first decision or finding.</p> : <div className="notes-list">{detail.notes.map((item) => <div className="note" key={item.id}><div className="note__meta"><strong>{item.actor === "agent" ? "Agent" : "You"}</strong><time dateTime={item.createdAt}>{dateLabel(item.createdAt)}</time></div><p>{item.body}</p></div>)}</div>}
     </section>
 
