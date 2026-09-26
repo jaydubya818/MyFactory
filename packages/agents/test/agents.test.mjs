@@ -130,7 +130,8 @@ test("malformed JSONL prevents success", async (t) => {
 
 test("timeout and abort stop the process group", async (t) => {
   const work = await fixture(t);
-  const timedOut = await work.adapter.runCodex(options(work, "hang-with-child", { timeoutMs: 200 }));
+  // Allow the fixture's own Node process to start and record its child before timing it out.
+  const timedOut = await work.adapter.runCodex(options(work, "hang-with-child", { timeoutMs: 3_000 }));
   assert.equal(timedOut.status, "timed_out");
   assert.equal(timedOut.success, false);
   const childPid = Number(await readFile(`${timedOut.finalMessagePath}.child-pid`, "utf8"));
