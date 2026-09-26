@@ -12,6 +12,7 @@ Requires Node 24. Coding attempts use a logged-in Codex CLI on the Mac host and 
 
 ```sh
 npm ci
+npm run preview:prepare
 npm run build
 npm start --workspace @factory/supervisor
 ```
@@ -22,7 +23,7 @@ The [standalone Agent-Native console](factory-console/README.md) has a contextua
 
 ## Build a Feedback Hub
 
-Open **App builder**, choose the versioned Feedback Hub starter, and enter a product brief. The factory saves a linked WorkOrder and a file manifest with source hashes. Open that WorkOrder and choose **Start local preview**. The supervisor checks the unchanged scaffold, installs cached dependencies offline with scripts disabled, runs typecheck and build, and starts a loopback preview of the app and its action API. Preview status and bounded logs remain in the WorkOrder. **Stop preview** ends the child process. This is a template preview, not independent verification of a modified candidate.
+Open **App builder**, choose the versioned Feedback Hub starter, and enter a product brief. The factory saves a linked WorkOrder and a file manifest with source hashes. `npm run preview:prepare` fetches the pinned starter dependencies once during host setup; it disables package scripts. Open the WorkOrder and choose **Start local preview**. The supervisor checks the unchanged scaffold, installs those cached dependencies offline with scripts disabled, runs typecheck and build, and starts a loopback preview of the app and its action API. Preview status and bounded logs remain in the WorkOrder. **Stop preview** ends the child process. This is a template preview, not independent verification of a modified candidate.
 
 ## Run and review a coding WorkOrder
 
