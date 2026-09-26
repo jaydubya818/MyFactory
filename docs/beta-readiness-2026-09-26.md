@@ -8,6 +8,7 @@ The local Factory and generated Feedback Hub were qualified against a clean chec
 - The work desk loaded in a browser with an isolated data directory. App builder saved a Feedback Hub WorkOrder and launched its local preview.
 - The generated app captured feedback, changed its status to Reviewing, saved a note, and retained the record after page reload.
 - Its agent CLI read that same record with `get_agent_context` and added a note. Refreshing the UI displayed the agent note and activity. This confirms the shared action path for this template.
+- The separate Agent-Native Factory console built and typechecked, but its `pnpm test` command found no test files. The local console could not complete a browser run because the Mac volume had only about 116 MiB free; PGlite migrations failed with `ENOSPC`. Its production configuration also reports missing `BETTER_AUTH_SECRET` and persistent `DATABASE_URL`. A successful build exit does not qualify console deployment.
 
 ## Related hosted work
 
@@ -21,5 +22,6 @@ The local Factory and generated Feedback Hub were qualified against a clean chec
 3. Finish the MyEve Builder's Relay pairing path and test a disposable tester deployment with a tester-owned Vercel token. The public Builder currently stops at that token step and does not configure Relay automatically.
 4. Complete a live, model-authored Ava/Sofie message exchange and an approved memory share across separate stores. The local deterministic harness is supporting evidence only.
 5. Obtain the first tester's intended email address, generate an account-bound invite, and walk through the public URL in a clean browser session.
+6. Free disk space and run the standalone Factory console against the supervisor in a browser; configure its production auth secret and Postgres database before any hosted console release.
 
 Do not call the beta ready until these hosted checks pass. The local Factory worker was unavailable in the isolated browser run, so an autonomous coding attempt and draft PR were not qualified by that run.
