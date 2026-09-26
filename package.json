@@ -11,6 +11,7 @@
     "start:connected": "node --env-file=data/connections.env apps/supervisor/src/server.ts",
     "dev:web": "npm run dev --workspace @factory/web",
     "build": "npm run build --workspaces --if-present",
+    "preview:prepare": "npm ci --prefix templates/feedback-hub --ignore-scripts --no-audit --no-fund",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "smoke:docker": "node scripts/smoke-supervisor.mjs"
