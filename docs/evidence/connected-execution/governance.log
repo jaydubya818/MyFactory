@@ -1,0 +1,5 @@
+
+> sellerfi-local-factory@0.1.0 check:producer-governance
+> node scripts/check-producer-governance.mjs
+
+Q37 producer governance PASS: 3 inventoried new runtime sources; 7 reviewed modified sources; UNKNOWN=0
