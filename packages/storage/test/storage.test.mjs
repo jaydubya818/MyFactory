@@ -116,8 +116,35 @@ test("records survive close and reopen with contract shaped JSON and status", (t
 
   const database = new DatabaseSync(path);
   assert.equal(database.prepare("PRAGMA journal_mode").get().journal_mode, "wal");
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 6);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 7);
   database.close();
+});
+
+test("hosted bindings and signed result bytes remain immutable across reopen", (t) => {
+  const path = fixture(t);
+  const storage = openStorage(path);
+  const work = storage.createWorkOrder(workOrderInput());
+  const run = storage.createRun(runInput(work.id));
+  const issueId = "linear-issue-1";
+  const digest = "a".repeat(64);
+  const binding = { ownerId: "owner", workId: "work", workVersion: 1 };
+  storage.recordHostedBinding(issueId, "myeve", work.id, binding, digest);
+  storage.recordHostedBinding(issueId, "myeve", work.id, binding, digest);
+  assert.throws(() => storage.recordHostedBinding(issueId, "other-client", work.id, binding, digest), /conflict/);
+  assert.throws(() => storage.recordHostedBinding(issueId, "myeve", work.id,
+    { ...binding, workVersion: 2 }, digest), /conflict/);
+  const result = { operationId: "b".repeat(64), issueId, workOrderId: work.id,
+    runId: run.id, encoded: "dGVzdA", digest: "c".repeat(64) };
+  storage.saveHostedResult(result);
+  storage.saveHostedResult(result);
+  assert.throws(() => storage.saveHostedResult({ ...result, encoded: "dGFtcGVy" }), /conflict/);
+  storage.close();
+  const reopened = openStorage(path);
+  t.after(() => reopened.close());
+  assert.deepEqual(reopened.getHostedBinding(work.id), { issueId, clientId: "myeve", binding, digest });
+  assert.deepEqual(reopened.getHostedResult(issueId, run.id), {
+    operationId: result.operationId, encoded: result.encoded, digest: result.digest,
+  });
 });
 
 test("migrates an existing v1 WorkOrder and preserves the new failure oracle", (t) => {
@@ -156,7 +183,7 @@ test("migrates an existing v1 WorkOrder and preserves the new failure oracle", (
   t.after(() => reopened.close());
   assert.equal(reopened.getWorkOrder(id)?.expectedFailureText, "Expected '$0'");
   const database = new DatabaseSync(path);
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 6);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 7);
   database.close();
 });
 
@@ -380,6 +407,6 @@ test("v4 external actions migrate with null publication binding", (t) => {
   assert.equal(storage.getExternalAction("old-action")?.state, "failed");
   assert.equal(saved.publicationRequestId, null);
   const database = new DatabaseSync(path);
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 6);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 7);
   database.close();
 });

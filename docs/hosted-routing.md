@@ -11,6 +11,14 @@ Hosted apps submit signed WorkOrder requests through the existing Linear connect
 - A receipt proves local admission and reports current WorkOrder state. It does not prove coding or publication completed. Existing execution, candidate verification and human approval gates remain in force.
 - If the Mac is offline, the request waits in Linear. After restart the durable idempotency record prevents duplicate work, including when receipt delivery previously failed.
 
+### Q37 bounded candidate return (offline prototype)
+
+An optional `factoryBinding` inside the signed request pins owner/Agent/Work/version/generation, submission digest, expected Factory ID and expected FactoryVersion. The local host stores that binding with the WorkOrder. Before a hosted run performs work, it records its clean source commit/tree and a digest of the effective model, agent/skill version, worker/verifier configuration, checks, scope and input commit. A mismatch with the authenticated pin stops the run.
+
+For one completed bound Run, the host freezes the exact candidate commit object, patch, check records and logs into a size-limited manifest. It verifies the patch reconstructs the candidate tree, hashes artifact bytes, persists the result, and adds a separate Ed25519-signed `MYFACTORY_RESULT_V1` block to the original Linear issue. A hosted caller rereads the same issue/request ID to reconcile a lost response. The loopback connected result route also requires the originating client ID and exact WorkOrder/Run IDs; it is not a cloud callback. Existing requests without `factoryBinding` retain admission/status behavior.
+
+This transport is limited to **36 KB JSON / 48 KB encoded result, 16 KB per artifact, and a 60 KB issue description**. Larger changes fail closed and need a separate authenticated artifact channel. Signing keys currently use one `ed25519-v1` key without a trusted rotation/revocation registry; consumer observation is not yet a durable admission record. Therefore Gate C is **partial**, Gate B writer handoff is **not implemented**, and a signed return grants no MyEve writer, verification, publication or readiness authority. No live Factory execution is qualified by these offline tests.
+
 ## Host configuration
 
 Private files under ignored `data/`: `connections.env`, `connections.json`, `hosted-routing.json`, `hosted-receipt-key.pem`. Keep private keys and app client tokens out of Git. Set `FACTORY_HOSTED_INTAKE=true` and the existing Linear OAuth settings. Each route maps a client ID to `repository`, `repositoryPath`, `baseRef`, and `checkCommands`.

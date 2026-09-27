@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createPublicKey } from "node:crypto";
-import { peekClientId, readRequest, readReceipt, receiptDescription } from "../../../packages/hosted-routing/src/index.mjs";
+import { peekClientId, readRequest, readReceipt, readResult, receiptDescription,
+  resultDescription } from "../../../packages/hosted-routing/src/index.mjs";
 import { ActionError, performAction, type ActionContext } from "./actions.ts";
 import { authorizeClientAction, readClients } from "./connections.ts";
 import type { LinearIntegration } from "./linear.ts";
 import type { WorkOrder } from "../../../packages/contracts/src/index.ts";
+import { freezeHostedResult } from "./hosted-result.ts";
 
 interface Issue { id: string; title: string; description: string; identifier: string; url: string; team: { id: string } }
 interface RoutingConfig { routes: Record<string, { repository: string; repositoryPath: string; baseRef: string; checkCommands: string[] }> }
@@ -60,7 +62,9 @@ export class HostedIntake {
         baseRef: route.baseRef, checkCommands: route.checkCommands, workerProfile: "mac", syncToLinear: false,
         reproductionCommand: null, expectedFailureText: null,
       }, id => this.#context.storage.getWorkOrder(id));
-      work = await performAction(this.#context, "workorder.create", input, { kind: "agent", id: `connection:${client.id}` }) as WorkOrder;
+      work = await performAction(this.#context, "workorder.create", input, { kind: "agent", id: `connection:${client.id}` },
+        payload.input.factoryBinding ? { issueId: issue.id, clientId: client.id,
+          binding: payload.input.factoryBinding } : undefined) as WorkOrder;
       } catch (error) {
         if (!(error instanceof ActionError) || error.status >= 500) throw error;
         this.status.rejected++;
@@ -79,12 +83,24 @@ export class HostedIntake {
       });
       const receipt = { version: 1, issueId: issue.id, workOrderId: work.id, state: work.state,
         updatedAt: work.updatedAt, workOrderUrl: `http://127.0.0.1:8788/?workOrder=${work.id}` };
+      let description = issue.description;
+      const latestRun = this.#context.storage.listRuns(work.id).at(-1);
+      if (payload.input.factoryBinding && latestRun?.state === "ready_for_review") {
+        const encoded = await freezeHostedResult(this.#context.storage, this.#dataDir,
+          issue.id, work.id, latestRun.id);
+        const existing = readResult(description, publicKey, issue.id);
+        if (existing && Buffer.from(encoded, "base64url").toString("utf8") !== JSON.stringify(existing))
+          throw new Error("Hosted result already published with different bytes");
+        description = resultDescription(description, encoded, privateKey);
+        if (!readResult(description, publicKey, issue.id)) throw new Error("Hosted result self-verification failed");
+      }
       let previous;
       try { previous = readReceipt(issue.description, publicKey, issue.id); } catch { previous = null; }
-      if (JSON.stringify(previous) !== JSON.stringify(receipt)) {
+      if (JSON.stringify(previous) !== JSON.stringify(receipt)) description = receiptDescription(description, receipt, privateKey);
+      if (description !== issue.description) {
         const result = await this.#linear.graphql<{ issueUpdate: { success: boolean } }>(
           "mutation FactoryHostedReceipt($id: String!, $input: IssueUpdateInput!) { issueUpdate(id:$id,input:$input) {success} }",
-          { id: issue.id, input: { description: receiptDescription(issue.description, receipt, privateKey) } });
+          { id: issue.id, input: { description } });
         if (!result.issueUpdate.success) throw new Error("Hosted receipt was not confirmed");
       }
     }

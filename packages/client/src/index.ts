@@ -40,6 +40,14 @@ export class FactoryClient {
     return this.#request(`work-orders/${encodeURIComponent(id)}`);
   }
 
+  /** Exact immutable signed result. The caller must verify the Factory key and
+   * current Work binding before treating any returned bytes as candidate custody. */
+  getSignedResult(workOrderId: string, runId: string): Promise<{
+    issueId: string; workOrderId: string; runId: string; signedResult: string;
+  }> {
+    return this.#request(`work-orders/${encodeURIComponent(workOrderId)}/runs/${encodeURIComponent(runId)}/result`);
+  }
+
   createWorkOrder(input: CreateWorkOrderInput & { idempotencyKey: string }): Promise<WorkOrder> {
     return this.#action("workorder.create", input);
   }

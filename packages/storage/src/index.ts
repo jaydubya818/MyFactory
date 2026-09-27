@@ -352,6 +352,23 @@ const migrations = [
     work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id),
     record_json TEXT NOT NULL CHECK (json_valid(record_json))
   ) STRICT;`,
+  `CREATE TABLE hosted_bindings (
+    issue_id TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    work_order_id TEXT NOT NULL UNIQUE REFERENCES work_orders(id),
+    binding_json TEXT NOT NULL CHECK (json_valid(binding_json)),
+    binding_digest TEXT NOT NULL CHECK (length(binding_digest) = 64)
+  ) STRICT;
+  CREATE TABLE hosted_results (
+    operation_id TEXT PRIMARY KEY,
+    issue_id TEXT NOT NULL REFERENCES hosted_bindings(issue_id),
+    work_order_id TEXT NOT NULL REFERENCES work_orders(id),
+    run_id TEXT NOT NULL UNIQUE REFERENCES runs(id),
+    encoded TEXT NOT NULL,
+    result_digest TEXT NOT NULL CHECK (length(result_digest) = 64),
+    created_at TEXT NOT NULL,
+    UNIQUE(issue_id, run_id)
+  ) STRICT;`,
 ];
 
 function parseJson<T>(value: string): T {
@@ -626,6 +643,51 @@ export class FactoryStorage {
   recordIntake(actorId: string, key: string, digest: string, workOrderId: string): void {
     this.#database.prepare("INSERT INTO work_order_intake VALUES (?, ?, ?, ?)")
       .run(actorId, key, digest, workOrderId);
+  }
+
+  recordHostedBinding(issueId: string, clientId: string, workOrderId: string, binding: unknown, digest: string): void {
+    this.#write(() => {
+      const saved = this.getHostedBinding(workOrderId);
+      if (saved) {
+        if (saved.issueId !== issueId || saved.clientId !== clientId || saved.digest !== digest || toJson(saved.binding) !== toJson(binding))
+          throw new Error("Hosted request binding conflict");
+        return;
+      }
+      this.#database.prepare(`INSERT INTO hosted_bindings
+        (issue_id, client_id, work_order_id, binding_json, binding_digest) VALUES (?, ?, ?, ?, ?)`).run(
+        issueId, clientId, workOrderId, toJson(binding), digest);
+    });
+  }
+
+  getHostedBinding(workOrderId: string): { issueId: string; clientId: string; binding: unknown; digest: string } | null {
+    const row = this.#database.prepare(`SELECT issue_id, client_id, binding_json, binding_digest
+      FROM hosted_bindings WHERE work_order_id = ?`).get(workOrderId) as
+      { issue_id: string; client_id: string; binding_json: string; binding_digest: string } | undefined;
+    return row ? { issueId: row.issue_id, clientId: row.client_id,
+      binding: parseJson(row.binding_json), digest: row.binding_digest } : null;
+  }
+
+  saveHostedResult(input: { operationId: string; issueId: string; workOrderId: string;
+    runId: string; encoded: string; digest: string }): void {
+    this.#write(() => {
+      const existing = this.getHostedResult(input.issueId, input.runId);
+      if (existing) {
+        if (existing.operationId !== input.operationId || existing.encoded !== input.encoded ||
+            existing.digest !== input.digest) throw new Error("Hosted result operation conflict");
+        return;
+      }
+      this.#database.prepare(`INSERT INTO hosted_results
+        (operation_id, issue_id, work_order_id, run_id, encoded, result_digest, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`).run(input.operationId, input.issueId, input.workOrderId,
+        input.runId, input.encoded, input.digest, new Date().toISOString());
+    });
+  }
+
+  getHostedResult(issueId: string, runId: string): { operationId: string; encoded: string; digest: string } | null {
+    const row = this.#database.prepare(`SELECT operation_id, encoded, result_digest FROM hosted_results
+      WHERE issue_id = ? AND run_id = ?`).get(issueId, runId) as
+      { operation_id: string; encoded: string; result_digest: string } | undefined;
+    return row ? { operationId: row.operation_id, encoded: row.encoded, digest: row.result_digest } : null;
   }
 
   getLinearLink(workOrderId: string): LinearLink | null {

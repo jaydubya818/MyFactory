@@ -7,6 +7,7 @@ import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 import { verifyCandidate } from "../../../packages/verification/src/index.ts";
 import { ActionError } from "./actions.ts";
 import { commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
+import { captureFactoryVersion, skillReferenceCommit } from "./factory-version.ts";
 
 interface ActiveJob {
   workOrderId: string;
@@ -14,6 +15,7 @@ interface ActiveJob {
   controller: AbortController;
   reason: "user_cancel" | "service_shutdown" | null;
   done: Promise<void> | null;
+  model: string;
 }
 
 export interface JobDependencies {
@@ -24,6 +26,7 @@ export interface JobDependencies {
   createTaskWorktree: typeof createTaskWorktree;
   removeTaskWorktree: typeof removeTaskWorktree;
   commitCandidate: typeof commitCandidate;
+  captureFactoryVersion: typeof captureFactoryVersion;
 }
 
 const defaultDependencies: JobDependencies = {
@@ -34,6 +37,7 @@ const defaultDependencies: JobDependencies = {
   createTaskWorktree,
   removeTaskWorktree,
   commitCandidate,
+  captureFactoryVersion,
 };
 
 function message(error: unknown): string {
@@ -168,6 +172,7 @@ export class JobManager {
       controller: new AbortController(),
       reason: null,
       done: null,
+      model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
     };
     this.#active = active;
     const started = this.#initializeRun(workOrder, active);
@@ -220,8 +225,8 @@ export class JobManager {
           payload: {
             inputCommit,
             workerProfile: workOrder.workerProfile,
-            model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
-            skillReferenceCommit: "fd8f20a879b507cf09feba08663a1edf7a949353",
+            model: active.model,
+            skillReferenceCommit,
           },
         });
         return { run, event };
@@ -252,6 +257,23 @@ export class JobManager {
     const signal = active.controller.signal;
     try {
       await mkdir(artifactDir, { recursive: true, mode: 0o700 });
+      const hosted = this.storage.getHostedBinding(workOrder.id);
+      let hostedPreflight: Awaited<ReturnType<typeof preflightCodex>> | undefined;
+      if (hosted) {
+        hostedPreflight = await this.dependencies.preflightCodex();
+        if (!hostedPreflight.binaryAvailable || !hostedPreflight.authenticated || !hostedPreflight.version)
+          throw new Error("Coding agent version is unavailable for hosted attestation");
+        const snapshot = await this.dependencies.captureFactoryVersion({ dataDir: this.dataDir, workOrder,
+          inputCommit: run.inputCommit, model: active.model, agentVersion: hostedPreflight.version });
+        const expected = hosted.binding as { expectedFactoryId?: string; expectedFactoryVersion?: unknown };
+        if (expected.expectedFactoryId !== snapshot.factoryId ||
+            JSON.stringify(expected.expectedFactoryVersion) !== JSON.stringify(snapshot.factoryVersion))
+          throw new Error("Actual FactoryVersion differs from the authenticated request pin");
+        this.#event(workOrder.id, run.id, "run.factory_version_attested", {
+          ...snapshot, requestBindingDigest: hosted.digest, issueId: hosted.issueId,
+          inputCommit: run.inputCommit, attemptNumber: run.attemptNumber,
+        });
+      }
       if (workOrder.kind === "defect" && workOrder.reproductionCommand) {
         this.#event(workOrder.id, run.id, "run.reproduction_started", {
           command: workOrder.reproductionCommand,
@@ -298,7 +320,7 @@ export class JobManager {
         }
       }
 
-      const preflight = await this.dependencies.preflightCodex();
+      const preflight = hostedPreflight ?? await this.dependencies.preflightCodex();
       if (!preflight.binaryAvailable || !preflight.authenticated) {
         run = this.#transition(run, "failed", "awaiting_environment", "run.agent_unavailable", {
           reason: preflight.error ?? "Codex CLI is unavailable or unauthenticated",
@@ -324,7 +346,7 @@ export class JobManager {
       const codex = await this.dependencies.runCodex({
         workspacePath: run.workspacePath,
         prompt,
-        model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
+        model: active.model,
         timeoutMs: 30 * 60 * 1000,
         artifactsDir: artifactDir,
         signal,

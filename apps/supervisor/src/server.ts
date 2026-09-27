@@ -15,6 +15,7 @@ import { JobManager, type JobDependencies } from "./jobs.ts";
 import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
 import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
+import { resultDescription } from "../../../packages/hosted-routing/src/index.mjs";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
 const confirmApprovalScript = fileURLToPath(new URL("../native/confirm-approval.swift", import.meta.url));
@@ -267,6 +268,19 @@ export function createSupervisor(options: SupervisorOptions = {}) {
           const order = storage.getWorkOrder(connectedDetail[1]);
           if (!order || !canAccessRepository(client, order.repositoryPath)) return json(response, 404, { error: "WorkOrder not found" });
           return json(response, 200, workOrderDetail(order.id));
+        }
+        const connectedResult = /^\/api\/connect\/v1\/work-orders\/([0-9a-f-]{36})\/runs\/([0-9a-f-]{36})\/result$/.exec(pathname);
+        if (request.method === "GET" && connectedResult) {
+          const order = storage.getWorkOrder(connectedResult[1]);
+          if (!order || !canAccessRepository(client, order.repositoryPath))
+            return json(response, 404, { error: "WorkOrder not found" });
+          const binding = storage.getHostedBinding(order.id);
+          const result = binding && storage.getHostedResult(binding.issueId, connectedResult[2]);
+          if (!result || binding.clientId !== client.id)
+            return json(response, 404, { error: "Exact result is unavailable" });
+          const privateKey = readFileSync(join(dataDir, "hosted-receipt-key.pem"), "utf8");
+          return json(response, 200, { issueId: binding.issueId, workOrderId: order.id,
+            runId: connectedResult[2], signedResult: resultDescription("", result.encoded, privateKey) });
         }
         if (request.method === "POST" && pathname === "/api/connect/v1/actions") {
           const body = await requestBody(request) as { action?: unknown; input?: unknown } | null;

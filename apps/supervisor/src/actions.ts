@@ -556,6 +556,7 @@ export async function performAction(
   action: string,
   rawInput: unknown,
   actor: Actor,
+  trustedHosted?: { issueId: string; clientId: string; binding: unknown },
 ): Promise<unknown> {
   const definition = actionRegistry[action as ActionName];
   if (!definition) throw new ActionError("Unknown action", "unknown_action", 404);
@@ -688,7 +689,8 @@ export async function performAction(
     if (raw.syncToLinear !== undefined && typeof raw.syncToLinear !== "boolean") {
       throw new ActionError("syncToLinear must be a boolean", "invalid_input");
     }
-    const digest = createHash("sha256").update(JSON.stringify({ input, syncToLinear: raw.syncToLinear ?? null })).digest("hex");
+    const digest = createHash("sha256").update(JSON.stringify({ input, syncToLinear: raw.syncToLinear ?? null,
+      ...(trustedHosted ? { hosted: trustedHosted } : {}) })).digest("hex");
     const intakeActor = `${actor.kind}:${actor.id}`;
     const replay = () => {
       const receipt = key ? context.storage.getIntake(intakeActor, key) : null;
@@ -710,6 +712,8 @@ export async function performAction(
       if (repeated) return { workOrder: repeated, event: null };
       const workOrder = context.storage.createWorkOrder(input, state);
       if (key) context.storage.recordIntake(intakeActor, key, digest, workOrder.id);
+      if (trustedHosted) context.storage.recordHostedBinding(trustedHosted.issueId, trustedHosted.clientId, workOrder.id,
+        trustedHosted.binding, createHash("sha256").update(JSON.stringify(trustedHosted.binding)).digest("hex"));
       if (syncToLinear) context.linear!.prepare(workOrder);
       const event = context.storage.appendEvent({
         workOrderId: workOrder.id,
