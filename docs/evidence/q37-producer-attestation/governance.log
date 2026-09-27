@@ -1,0 +1,5 @@
+
+> sellerfi-local-factory@0.1.0 check:producer-governance
+> node scripts/check-producer-governance.mjs
+
+Q37 producer governance PASS: 2 new runtime sources; UNKNOWN=0; existing sources/inventories not reclassified

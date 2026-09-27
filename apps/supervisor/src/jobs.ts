@@ -7,6 +7,7 @@ import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 import { verifyCandidate } from "../../../packages/verification/src/index.ts";
 import { ActionError } from "./actions.ts";
 import { commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
+import { ProducerResults } from "./producer-results.ts";
 
 interface ActiveJob {
   workOrderId: string;
@@ -14,6 +15,8 @@ interface ActiveJob {
   controller: AbortController;
   reason: "user_cancel" | "service_shutdown" | null;
   done: Promise<void> | null;
+  model: string;
+  preflight: Awaited<ReturnType<typeof preflightCodex>> | null;
 }
 
 export interface JobDependencies {
@@ -56,17 +59,20 @@ export class JobManager {
   private readonly dataDir: string;
   private readonly notify: (event: FactoryEvent) => void;
   private readonly dependencies: JobDependencies;
+  private readonly producer: ProducerResults | undefined;
 
   constructor(
     storage: FactoryStorage,
     dataDir: string,
     notify: (event: FactoryEvent) => void,
     dependencies: Partial<JobDependencies> = {},
+    producer?: ProducerResults,
   ) {
     this.storage = storage;
     this.dataDir = dataDir;
     this.notify = notify;
     this.dependencies = { ...defaultDependencies, ...dependencies };
+    this.producer = producer;
     this.#recoverInterrupted();
   }
 
@@ -161,6 +167,7 @@ export class JobManager {
 
   async startRun(workOrder: WorkOrder): Promise<Run> {
     if (this.#active) throw new ActionError("Another run is already active", "concurrency_limit", 409);
+    workOrder = structuredClone(workOrder);
     this.#clearRecoveryHold(workOrder);
     const active: ActiveJob = {
       workOrderId: workOrder.id,
@@ -168,6 +175,8 @@ export class JobManager {
       controller: new AbortController(),
       reason: null,
       done: null,
+      model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
+      preflight: null,
     };
     this.#active = active;
     const started = this.#initializeRun(workOrder, active);
@@ -193,6 +202,12 @@ export class JobManager {
           503,
         );
       }
+      if (this.producer) {
+        active.preflight = await this.dependencies.preflightCodex();
+        if (!active.preflight.binaryAvailable || !active.preflight.authenticated || !active.preflight.version) {
+          throw new ActionError("Executor version is unavailable for attestation", "awaiting_environment", 503);
+        }
+      }
       const inputCommit = await this.dependencies.resolveCommit(workOrder.repositoryPath, workOrder.baseRef);
       if (active.controller.signal.aborted) throw new ActionError("Start was cancelled", "cancelled", 409);
       const createdPath = await this.dependencies.createTaskWorktree(
@@ -212,6 +227,7 @@ export class JobManager {
           inputCommit,
           workspacePath: createdPath,
         });
+        this.producer?.capture(workOrder, run, active.model, active.preflight!.version!);
         this.storage.saveWorkOrder({ ...workOrder, state: "planning" });
         const event = this.storage.appendEvent({
           workOrderId: workOrder.id,
@@ -220,7 +236,7 @@ export class JobManager {
           payload: {
             inputCommit,
             workerProfile: workOrder.workerProfile,
-            model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
+            model: active.model,
             skillReferenceCommit: "fd8f20a879b507cf09feba08663a1edf7a949353",
           },
         });
@@ -248,6 +264,7 @@ export class JobManager {
 
   async #execute(workOrder: WorkOrder, initialRun: Run, active: ActiveJob): Promise<void> {
     let run = initialRun;
+    const snapshot = this.producer?.snapshot(run);
     const artifactDir = join(this.dataDir, "artifacts", run.id);
     const signal = active.controller.signal;
     try {
@@ -263,6 +280,7 @@ export class JobManager {
           commands: [workOrder.reproductionCommand],
           artifactDir: join(artifactDir, "reproduction"),
           signal,
+          ...(snapshot ? { image: snapshot.configuration.verificationImage } : {}),
         });
         const result = reproduction.checks[0];
         const observedFailureText = result?.logPath && result.status === "failed"
@@ -284,8 +302,9 @@ export class JobManager {
           return;
         }
         if (result?.status !== "failed") {
-          run = this.#transition(run, "failed", "awaiting_environment", "run.reproduction_unavailable", {
+          run = this.#transition(run, this.producer ? "interrupted" : "failed", "awaiting_environment", this.producer ? "run.recovery_hold" : "run.reproduction_unavailable", {
             reason: result?.reason ?? reproduction.reason ?? "Reproduction could not run",
+            ...(this.producer ? { previousState: "verifying", pid: null } : {}),
           }, { failure: "Reproduction environment unavailable" });
           return;
         }
@@ -299,6 +318,9 @@ export class JobManager {
       }
 
       const preflight = await this.dependencies.preflightCodex();
+      if (snapshot && preflight.version !== snapshot.configuration.executorVersion) {
+        throw new Error("Executor version changed after attempt admission");
+      }
       if (!preflight.binaryAvailable || !preflight.authenticated) {
         run = this.#transition(run, "failed", "awaiting_environment", "run.agent_unavailable", {
           reason: preflight.error ?? "Codex CLI is unavailable or unauthenticated",
@@ -324,8 +346,8 @@ export class JobManager {
       const codex = await this.dependencies.runCodex({
         workspacePath: run.workspacePath,
         prompt,
-        model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
-        timeoutMs: 30 * 60 * 1000,
+        model: snapshot?.configuration.model ?? active.model,
+        timeoutMs: snapshot?.configuration.timeoutMs ?? 30 * 60 * 1000,
         artifactsDir: artifactDir,
         signal,
         onProcessStart: (processIdentity) => {
@@ -347,6 +369,14 @@ export class JobManager {
       });
       if (signal.aborted) throw new Error("Run interrupted during agent execution");
       if (!codex.success) {
+        if (codex.status === "timed_out") {
+          const processEvent = this.storage.listEvents(workOrder.id).filter(event => event.runId === run.id && event.type === "agent.process_started").at(-1);
+          run = this.#transition(run, "interrupted", "awaiting_environment", "run.recovery_hold", {
+            reason: "Worker timed out; reconcile this attempt before retrying",
+            previousState: "implementing", pid: processEvent?.payload.pid ?? null,
+          }, { failure: codex.error ?? "Worker outcome unresolved" });
+          return;
+        }
         run = this.#transition(run, "failed", "failed", "run.agent_failed", {
           reason: codex.error ?? "Codex did not complete successfully",
         }, { failure: codex.error ?? "Coding agent failed" });
@@ -367,15 +397,16 @@ export class JobManager {
         diffPath: candidate.diffPath,
         diffSha256,
       }, { candidateCommit: candidate.commit });
-      const verificationCommands = workOrder.kind === "defect" && workOrder.reproductionCommand
+      const verificationCommands = snapshot?.configuration.commands ?? (workOrder.kind === "defect" && workOrder.reproductionCommand
         ? [...new Set([workOrder.reproductionCommand, ...workOrder.checkCommands])]
-        : workOrder.checkCommands;
+        : workOrder.checkCommands);
       const verification = await this.dependencies.verifyCandidate({
         repositoryPath: run.workspacePath,
         candidateSha: candidate.commit,
         commands: verificationCommands,
         artifactDir: join(artifactDir, "verification"),
         signal,
+        ...(snapshot ? { image: snapshot.configuration.verificationImage } : {}),
       });
       for (const check of verification.checks) {
         const logSha256 = createHash("sha256").update(await readFile(check.logPath)).digest("hex");
@@ -400,8 +431,9 @@ export class JobManager {
       if (verification.checks.length === 0 || verification.checks.some((check) => check.status !== "passed")) {
         const unavailable = verification.checks.length === 0 ||
           verification.checks.some((check) => check.status === "unavailable");
-        run = this.#transition(run, "failed", unavailable ? "awaiting_environment" : "failed", "run.verification_failed", {
+        run = this.#transition(run, unavailable && this.producer ? "interrupted" : "failed", unavailable ? "awaiting_environment" : "failed", unavailable && this.producer ? "run.recovery_hold" : "run.verification_failed", {
           candidateCommit: candidate.commit,
+          ...(unavailable && this.producer ? { previousState: "verifying", pid: null, reason: "Verifier outcome unresolved; reconcile before retrying" } : {}),
         }, { failure: unavailable ? "A required check was unavailable" : "One or more required checks failed" });
         return;
       }
@@ -417,6 +449,12 @@ export class JobManager {
       this.#transition(run, runState, orderState, `run.${runState}`, {
         reason: message(error),
       }, { failure: message(error) });
+    } finally {
+      const current = this.storage.getRun(initialRun.id);
+      if (this.producer && current && ["ready_for_review", "failed", "cancelled"].includes(current.state)) {
+        try { this.producer.finalize(current); }
+        catch (error) { this.#event(current.workOrderId, current.id, "run.result_unavailable", { reason: message(error) }); }
+      }
     }
   }
 

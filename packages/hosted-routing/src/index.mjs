@@ -1,7 +1,23 @@
-import { createHash, createHmac, timingSafeEqual, sign, verify } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual, sign, verify, createPrivateKey, createPublicKey } from "node:crypto";
 
 const REQUEST = "MYFACTORY_REQUEST_V1";
 const RECEIPT = "MYFACTORY_RECEIPT_V1";
+function signingDomain(domain) {
+  if (![RECEIPT, "MYFACTORY_RESULT_V1"].includes(domain)) throw new Error("Unknown signing protocol");
+}
+export function signProtocolPayload(domain, encoded, privateKey) {
+  signingDomain(domain);
+  const key = privateKey?.type === "private" ? privateKey : createPrivateKey(privateKey);
+  if (key.asymmetricKeyType !== "ed25519") throw new Error("Factory requires an Ed25519 signing key");
+  return sign(null, Buffer.from(`${domain}\0${encoded}`), key).toString("base64url");
+}
+export function verifyProtocolPayload(domain, encoded, signature, publicKey) {
+  signingDomain(domain);
+  if (typeof encoded !== "string" || typeof signature !== "string" || !/^[A-Za-z0-9_-]{86}$/.test(signature)) return false;
+  const key = publicKey?.type === "public" ? publicKey : createPublicKey(publicKey);
+  if (key.asymmetricKeyType !== "ed25519") return false;
+  return verify(null, Buffer.from(`${domain}\0${encoded}`), key, Buffer.from(signature, "base64url"));
+}
 function text(value, name, max) {
   if (typeof value !== "string" || !value.trim() || value.length > max) throw new Error(`Invalid ${name}`);
   return value.trim();
@@ -69,7 +85,7 @@ export function peekClientId(issue) {
 }
 export function receiptDescription(description, receipt, privateKey) {
   const encoded = Buffer.from(JSON.stringify(receipt)).toString("base64url");
-  const signature = sign(null, Buffer.from(`${RECEIPT}\0${encoded}`), privateKey).toString("base64url");
+  const signature = signProtocolPayload(RECEIPT, encoded, privateKey);
   const marker = `<!-- ${RECEIPT} -->`;
   const base = description.includes(marker) ? description.slice(0, description.indexOf(marker)).trimEnd() : description.trimEnd();
   return `${base}\n\n${block(RECEIPT, { encoded, signature })}`;
@@ -78,7 +94,7 @@ export function readReceipt(description, publicKey, issueId) {
   if (!description?.includes(`<!-- ${RECEIPT} -->`)) return null;
   const { encoded, signature } = extract(description, RECEIPT);
   if (typeof encoded !== "string" || encoded.length > 8000 || typeof signature !== "string" ||
-      !verify(null, Buffer.from(`${RECEIPT}\0${encoded}`), publicKey, Buffer.from(signature, "base64url"))) throw new Error("Unverified factory receipt");
+      !verifyProtocolPayload(RECEIPT, encoded, signature, publicKey)) throw new Error("Unverified factory receipt");
   const receipt = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
   if (receipt.version !== 1 || receipt.issueId !== issueId || typeof receipt.workOrderId !== "string") throw new Error("Wrong factory receipt");
   return receipt;

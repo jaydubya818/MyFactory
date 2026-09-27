@@ -1,4 +1,6 @@
 export interface HostedInput { idempotencyKey: string; title: string; description: string; kind: "feature" | "defect" | "investigation"; acceptanceCriteria: string[]; allowedPaths: string[] }
+export function signProtocolPayload(domain: string, encoded: string, privateKey: any): string;
+export function verifyProtocolPayload(domain: string, encoded: string, signature: string, publicKey: any): boolean;
 export interface HostedConfig { clientId: string; repository: string; teamId: string; token: string; labelId?: string; receiptPublicKey: string }
 export interface HostedReceipt { version: number; issueId: string; workOrderId: string; state: string; updatedAt: string; workOrderUrl: string }
 export interface HostedResult { requestId: string; issueIdentifier: string; issueUrl: string; receipt: HostedReceipt | null }

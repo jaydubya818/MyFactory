@@ -715,7 +715,8 @@ export async function performAction(
         workOrderId: workOrder.id,
         runId: null,
         type: "workorder.created",
-        payload: { actor: actor.id, actorKind: actor.kind, state, syncToLinear },
+        payload: { actor: actor.id, actorKind: actor.kind, state, syncToLinear,
+          requestId: `local-request:${createHash("sha256").update(JSON.stringify([intakeActor, key ?? workOrder.id])).digest("hex")}` },
       });
       return { workOrder, event };
     });

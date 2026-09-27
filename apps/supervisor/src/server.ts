@@ -15,6 +15,7 @@ import { JobManager, type JobDependencies } from "./jobs.ts";
 import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
 import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
+import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
 const confirmApprovalScript = fileURLToPath(new URL("../native/confirm-approval.swift", import.meta.url));
@@ -134,6 +135,7 @@ function artifactText(dataDir: string, candidate: unknown): string | null {
 }
 
 export interface SupervisorOptions {
+  resultSigning?: ProducerOptions;
   dataDir?: string;
   webDist?: string;
   startRun?: ActionContext["startRun"];
@@ -184,7 +186,9 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     }
     if (listeners.size === 0) subscribers.delete(event.workOrderId);
   };
-  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies);
+  const signing = options.resultSigning ?? producerOptions(dataDir);
+  const producer = signing ? new ProducerResults(storage, dataDir, signing) : undefined;
+  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer);
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
     const link = storage.getLinearLink(order.id);
@@ -256,6 +260,16 @@ export function createSupervisor(options: SupervisorOptions = {}) {
 
       if (pathname.startsWith("/api/connect/v1/")) {
         const client = authenticateClient(request, readClients(connectionsPath));
+        const resultRoute = /^\/api\/connect\/v1\/work-orders\/([0-9a-f-]{36})\/runs\/([0-9a-f-]{36})\/result$/.exec(pathname);
+        if (request.method === "GET" && resultRoute) {
+          const order = storage.getWorkOrder(resultRoute[1]);
+          const run = storage.getRun(resultRoute[2]);
+          if (!order || !run || run.workOrderId !== order.id || !canAccessRepository(client, order.repositoryPath)) {
+            return json(response, 404, { error: "Attempt not found" });
+          }
+          if (!producer) return json(response, 503, { error: "Producer result attestation is not configured" });
+          return json(response, 200, producer.read(run));
+        }
         if (request.method === "GET" && pathname === "/api/connect/v1/actions") {
           return json(response, 200, { client: client.id, actions: client.actions.map((name) => actionRegistry[name as keyof typeof actionRegistry]) });
         }

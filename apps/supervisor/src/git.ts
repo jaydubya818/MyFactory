@@ -173,7 +173,7 @@ export async function commitCandidate(
     await git(workspacePath, ["update-ref", "HEAD", commit, baseCommit]);
     await git(workspacePath, ["read-tree", commit]);
     const diffPath = join(artifactDir, "candidate.patch");
-    await writeFile(diffPath, await git(workspacePath, ["show", "--format=", "--binary", commit]), {
+    await writeFile(diffPath, await git(workspacePath, ["show", "--format=", "--binary", "--no-ext-diff", "--no-textconv", commit]), {
       mode: 0o600,
     });
     return { commit, tree, changedPaths, diffPath };
