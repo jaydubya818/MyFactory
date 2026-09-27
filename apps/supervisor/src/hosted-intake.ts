@@ -1,13 +1,13 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createPublicKey } from "node:crypto";
-import { peekClientId, readRequest, readReceipt, readResult, receiptDescription,
+import { peekClientId, readRequest, readReceipt, readResult, inspectResult, receiptDescription,
   resultDescription } from "../../../packages/hosted-routing/src/index.mjs";
+import { loadHostedSigningKeyring } from "../../../packages/hosted-routing/src/keyring.mjs";
 import { ActionError, performAction, type ActionContext } from "./actions.ts";
 import { authorizeClientAction, readClients } from "./connections.ts";
 import type { LinearIntegration } from "./linear.ts";
 import type { WorkOrder } from "../../../packages/contracts/src/index.ts";
-import { freezeHostedResult } from "./hosted-result.ts";
+import { freezeHostedResult, publishHostedArtifacts } from "./hosted-result.ts";
 
 interface Issue { id: string; title: string; description: string; identifier: string; url: string; team: { id: string } }
 interface RoutingConfig { routes: Record<string, { repository: string; repositoryPath: string; baseRef: string; checkCommands: string[] }> }
@@ -36,8 +36,7 @@ export class HostedIntake {
   async poll() {
     const config = JSON.parse(readFileSync(join(this.#dataDir, "hosted-routing.json"), "utf8")) as RoutingConfig;
     const clients = readClients(join(this.#dataDir, "connections.json"));
-    const privateKey = readFileSync(join(this.#dataDir, "hosted-receipt-key.pem"), "utf8");
-    const publicKey = createPublicKey(privateKey);
+    const keyring = loadHostedSigningKeyring(this.#dataDir);
     await this.#linear.verify();
     const page = await this.#linear.graphql<{ issues: { nodes: Issue[]; pageInfo: { hasNextPage: boolean; endCursor: string } } }>(
       `query FactoryHostedQueue($team: ID!, $after: String) {
@@ -88,15 +87,19 @@ export class HostedIntake {
       if (payload.input.factoryBinding && latestRun?.state === "ready_for_review") {
         const encoded = await freezeHostedResult(this.#context.storage, this.#dataDir,
           issue.id, work.id, latestRun.id);
-        const existing = readResult(description, publicKey, issue.id);
-        if (existing && Buffer.from(encoded, "base64url").toString("utf8") !== JSON.stringify(existing))
+        const existing = inspectResult(description, keyring, issue.id);
+        if (existing && existing.envelope.encoded !== encoded)
           throw new Error("Hosted result already published with different bytes");
-        description = resultDescription(description, encoded, privateKey);
-        if (!readResult(description, publicKey, issue.id)) throw new Error("Hosted result self-verification failed");
+        await publishHostedArtifacts(this.#linear, this.#context.storage, this.#dataDir,
+          issue.id, work.id, latestRun.id, encoded);
+        if (!existing) {
+          description = resultDescription(description, encoded, keyring);
+          if (!readResult(description, keyring, issue.id)) throw new Error("Hosted result self-verification failed");
+        }
       }
       let previous;
-      try { previous = readReceipt(issue.description, publicKey, issue.id); } catch { previous = null; }
-      if (JSON.stringify(previous) !== JSON.stringify(receipt)) description = receiptDescription(description, receipt, privateKey);
+      try { previous = readReceipt(issue.description, keyring, issue.id); } catch { previous = null; }
+      if (JSON.stringify(previous) !== JSON.stringify(receipt)) description = receiptDescription(description, receipt, keyring);
       if (description !== issue.description) {
         const result = await this.#linear.graphql<{ issueUpdate: { success: boolean } }>(
           "mutation FactoryHostedReceipt($id: String!, $input: IssueUpdateInput!) { issueUpdate(id:$id,input:$input) {success} }",

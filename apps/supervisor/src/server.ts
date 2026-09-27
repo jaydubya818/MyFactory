@@ -16,6 +16,9 @@ import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } f
 import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
 import { resultDescription } from "../../../packages/hosted-routing/src/index.mjs";
+import { loadHostedSigningKeyring } from "../../../packages/hosted-routing/src/keyring.mjs";
+import { hostedArtifactPath, HOSTED_ARTIFACT_CHUNK_BYTES,
+  MAX_HOSTED_ARTIFACT_BYTES } from "./hosted-result.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
 const confirmApprovalScript = fileURLToPath(new URL("../native/confirm-approval.swift", import.meta.url));
@@ -278,9 +281,43 @@ export function createSupervisor(options: SupervisorOptions = {}) {
           const result = binding && storage.getHostedResult(binding.issueId, connectedResult[2]);
           if (!result || binding.clientId !== client.id)
             return json(response, 404, { error: "Exact result is unavailable" });
-          const privateKey = readFileSync(join(dataDir, "hosted-receipt-key.pem"), "utf8");
+          const keyring = loadHostedSigningKeyring(dataDir);
           return json(response, 200, { issueId: binding.issueId, workOrderId: order.id,
-            runId: connectedResult[2], signedResult: resultDescription("", result.encoded, privateKey) });
+            runId: connectedResult[2], signedResult: resultDescription("", result.encoded, keyring) });
+        }
+        const connectedArtifact = /^\/api\/connect\/v1\/work-orders\/([0-9a-f-]{36})\/runs\/([0-9a-f-]{36})\/artifacts\/((?:patch|log):[a-f0-9]{64})$/.exec(pathname);
+        if (request.method === "GET" && connectedArtifact) {
+          const [, workOrderId, runId, artifactId] = connectedArtifact;
+          const order = storage.getWorkOrder(workOrderId);
+          const binding = order && storage.getHostedBinding(workOrderId);
+          const result = binding && storage.getHostedResult(binding.issueId, runId);
+          if (!order || !canAccessRepository(client, order.repositoryPath) ||
+              binding?.clientId !== client.id || !result ||
+              storage.getRun(runId)?.workOrderId !== workOrderId)
+            return json(response, 404, { error: "Exact artifact is unavailable" });
+          const envelope = JSON.parse(Buffer.from(result.encoded, "base64url").toString("utf8")) as {
+            operationId: string; manifest: { artifacts: { id: string; byteLength: number;
+              sha256: string; reference: { expiresAt: string } }[] } };
+          const item = envelope.manifest.artifacts.find(artifact => artifact.id === artifactId);
+          if (!item || item.byteLength > MAX_HOSTED_ARTIFACT_BYTES ||
+              Date.parse(item.reference.expiresAt) <= Date.now())
+            return json(response, 404, { error: "Exact artifact is unavailable or expired" });
+          const offset = Number(url.searchParams.get("offset") ?? "0");
+          if (!Number.isSafeInteger(offset) || offset < 0 || offset > item.byteLength)
+            return json(response, 400, { error: "Invalid artifact offset" });
+          const path = hostedArtifactPath(dataDir, envelope.operationId, artifactId);
+          let bytes: Buffer;
+          try {
+            const file = statSync(path);
+            if (!file.isFile() || file.size !== item.byteLength) throw new Error("Artifact size changed");
+            bytes = readFileSync(path);
+          } catch { return json(response, 404, { error: "Artifact is missing or changed" }); }
+          if (bytes.length !== item.byteLength || createHash("sha256").update(bytes).digest("hex") !== item.sha256)
+            return json(response, 409, { error: "Artifact integrity changed" });
+          const chunk = bytes.subarray(offset, offset + HOSTED_ARTIFACT_CHUNK_BYTES);
+          return json(response, 200, { operationId: envelope.operationId, artifactId,
+            offset, byteLength: item.byteLength, sha256: item.sha256,
+            bytes: chunk.toString("base64url"), nextOffset: offset + chunk.length });
         }
         if (request.method === "POST" && pathname === "/api/connect/v1/actions") {
           const body = await requestBody(request) as { action?: unknown; input?: unknown } | null;

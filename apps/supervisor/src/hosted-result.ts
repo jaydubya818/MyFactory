@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
-import { readFile, realpath, stat, unlink } from "node:fs/promises";
+import { mkdir, readFile, realpath, stat, unlink, writeFile } from "node:fs/promises";
 import { join, sep } from "node:path";
 import { promisify } from "node:util";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
@@ -28,14 +28,39 @@ async function verifyPatchReconstructsTree(workspacePath: string, root: string,
   }
 }
 
+export const MAX_HOSTED_ARTIFACT_BYTES = 128_000;
+export const MAX_HOSTED_RESULT_ARTIFACT_BYTES = 256_000;
+export const HOSTED_ARTIFACT_CHUNK_BYTES = 8_000;
+
 async function artifact(root: string, path: string, kind: "patch" | "log") {
   const [base, actual] = await Promise.all([realpath(root), realpath(path)]);
   const details = await stat(actual);
-  if (!actual.startsWith(`${base}${sep}`) || !details.isFile() || details.size > 16_000)
+  if (!actual.startsWith(`${base}${sep}`) || !details.isFile() || details.size > MAX_HOSTED_ARTIFACT_BYTES)
     throw new Error("Hosted result artifact exceeds its bound or escapes custody");
   const bytes = await readFile(actual);
   return { id: `${kind}:${hash(bytes)}`, kind, byteLength: bytes.length,
-    sha256: hash(bytes), bytes: bytes.toString("base64url") };
+    sha256: hash(bytes), bytes };
+}
+
+/** The reference is an identity only. Connection authentication and the exact
+ * WorkOrder/request/attempt binding authorize every read. */
+export function hostedArtifactPath(dataDir: string, operationId: string, artifactId: string): string {
+  if (!/^[a-f0-9]{64}$/.test(operationId) || !/^(patch|log):[a-f0-9]{64}$/.test(artifactId))
+    throw new Error("Invalid hosted artifact identity");
+  return join(dataDir, "hosted-result-artifacts", operationId, artifactId);
+}
+
+async function preserveArtifact(dataDir: string, operationId: string, item: Awaited<ReturnType<typeof artifact>>) {
+  const path = hostedArtifactPath(dataDir, operationId, item.id);
+  await mkdir(join(dataDir, "hosted-result-artifacts", operationId), { recursive: true, mode: 0o700 });
+  try {
+    await writeFile(path, item.bytes, { flag: "wx", mode: 0o600 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    const existing = await readFile(path);
+    if (existing.length !== item.byteLength || hash(existing) !== item.sha256)
+      throw new Error("Hosted artifact custody conflict");
+  }
 }
 
 /** Builds a bounded immutable export from one saved, completed attempt. The
@@ -82,6 +107,8 @@ export async function freezeHostedResult(storage: FactoryStorage, dataDir: strin
   if (logs.some((log, i) => log.sha256 !== checks[i].logSha256))
     throw new Error("Check evidence changed before attestation");
   const objects = [patch, ...logs];
+  if (objects.reduce((size, item) => size + item.byteLength, 0) > MAX_HOSTED_RESULT_ARTIFACT_BYTES)
+    throw new Error("Hosted result artifacts exceed aggregate bound");
   if (new Set(objects.map(item => item.id)).size !== objects.length)
     throw new Error("Duplicate hosted artifact identity");
   const actualTree = (await git(run.workspacePath, ["rev-parse", `${run.candidateCommit}^{tree}`])).trim();
@@ -91,6 +118,9 @@ export async function freezeHostedResult(storage: FactoryStorage, dataDir: strin
   if (actualTree !== candidate.candidateTree || !commitObject.includes(`tree ${actualTree}\n`) ||
       !commitObject.includes(`parent ${run.inputCommit}\n`))
     throw new Error("Candidate Git object differs from saved attempt");
+  const operationId = hash(JSON.stringify(["myfactory-result-v1", issueId, runId]));
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  for (const item of objects) await preserveArtifact(dataDir, operationId, item);
   const manifest = {
     requestBindingDigest: binding.digest, workOrderId, runId, attemptNumber: run.attemptNumber,
     inputCommit: run.inputCommit, candidateCommit: run.candidateCommit, candidateTree: actualTree,
@@ -98,10 +128,11 @@ export async function freezeHostedResult(storage: FactoryStorage, dataDir: strin
     checks: checks.map(check => ({ id: check.id, command: check.command,
       candidateCommit: check.candidateCommit, status: check.status, exitCode: check.exitCode,
       startedAt: check.startedAt, finishedAt: check.finishedAt, logSha256: check.logSha256 })),
-    artifacts: objects,
+    artifacts: objects.map(({ bytes: _bytes, ...item }) => ({ ...item,
+      reference: { version: 1, transport: "linear-comments-v1", expiresAt } })),
   };
   const result = { version: 1, keyVersion: "ed25519-v1", issueId,
-    operationId: hash(JSON.stringify(["myfactory-result-v1", issueId, runId])),
+    operationId,
     factoryId: snapshot.factoryId, factoryVersion: snapshot.factoryVersion,
     manifestDigest: hash(JSON.stringify(manifest)), manifest, issuedAt: new Date().toISOString() };
   const encoded = Buffer.from(JSON.stringify(result)).toString("base64url");
@@ -110,4 +141,107 @@ export async function freezeHostedResult(storage: FactoryStorage, dataDir: strin
   storage.saveHostedResult({ operationId: result.operationId, issueId, workOrderId, runId,
     encoded, digest: hash(encoded) });
   return encoded;
+}
+
+export const HOSTED_CHUNK_MARKER = "MYFACTORY_ARTIFACT_CHUNK_V1";
+export const HOSTED_CHUNK_QUERY = `query FactoryArtifactChunks($id: String!, $after: String) {
+  issue(id: $id) { id comments(first: 50, after: $after) {
+    nodes { id body } pageInfo { hasNextPage endCursor }
+  } }
+}`;
+
+type ArtifactGraphql = { graphql<T>(query: string, variables: Record<string, unknown>): Promise<T> };
+type ChunkComment = { id: string; body: string };
+
+function chunkId(operationId: string, artifactId: string, index: number): string {
+  const digest = hash(JSON.stringify(["myfactory-artifact-chunk-v1", operationId, artifactId, index]));
+  return `${digest.slice(0, 8)}-${digest.slice(8, 12)}-4${digest.slice(13, 16)}-a${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
+}
+
+function sameChunkBody(actual: string | undefined, expected: string): boolean {
+  if (actual === expected) return true;
+  if (typeof actual !== "string") return false;
+  const marker = `<!-- ${HOSTED_CHUNK_MARKER} -->`;
+  const end = `<!-- /${HOSTED_CHUNK_MARKER} -->`;
+  const payload = (body: string) => {
+    const normalized = body.trim().replace(/\r\n/g, "\n");
+    if (!normalized.startsWith(marker) || !normalized.endsWith(end)) return null;
+    try { return JSON.stringify(JSON.parse(normalized.slice(marker.length, -end.length).trim())); }
+    catch { return null; }
+  };
+  return payload(actual) !== null && payload(actual) === payload(expected);
+}
+
+/** Read every comment page so a retry can reconcile uncertain mutations before
+ * it creates any new chunk. Linear authentication is supplied by the caller. */
+async function listArtifactComments(linear: ArtifactGraphql, issueId: string): Promise<ChunkComment[]> {
+  const comments: ChunkComment[] = [];
+  let after: string | null = null;
+  for (let page = 0; page < 20; page++) {
+    const result: { issue: { id: string; comments: { nodes: ChunkComment[];
+      pageInfo: { hasNextPage: boolean; endCursor: string | null } } } | null } =
+      await linear.graphql(HOSTED_CHUNK_QUERY, { id: issueId, after });
+    if (result.issue?.id !== issueId || !Array.isArray(result.issue.comments?.nodes))
+      throw new Error("Hosted artifact issue identity changed");
+    comments.push(...result.issue.comments.nodes);
+    if (!result.issue.comments.pageInfo.hasNextPage) return comments;
+    after = result.issue.comments.pageInfo.endCursor;
+    if (!after) throw new Error("Hosted artifact comment cursor is missing");
+  }
+  throw new Error("Hosted artifact comment pagination bound exceeded");
+}
+
+/** Publish chunks before publishing the signed manifest. Deterministic comment
+ * IDs plus readback make retries safe after an unknown provider outcome. */
+export async function publishHostedArtifacts(linear: ArtifactGraphql, storage: FactoryStorage,
+  dataDir: string, issueId: string, workOrderId: string, runId: string, encoded: string): Promise<void> {
+  const binding = storage.getHostedBinding(workOrderId);
+  const saved = storage.getHostedResult(issueId, runId);
+  if (!binding || binding.issueId !== issueId || !saved || saved.encoded !== encoded ||
+      storage.getRun(runId)?.workOrderId !== workOrderId)
+    throw new Error("Hosted artifact publication requires exact saved result binding");
+  const result = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as {
+    operationId: string; manifest: { artifacts: { id: string; byteLength: number; sha256: string;
+      reference: { expiresAt: string } }[] } };
+  if (!/^[a-f0-9]{64}$/.test(result.operationId) || result.manifest.artifacts.length > 21)
+    throw new Error("Invalid saved hosted artifact manifest");
+  const existing = new Map((await listArtifactComments(linear, issueId)).map(comment => [comment.id, comment.body]));
+  for (const item of result.manifest.artifacts) {
+    if (!/^(patch|log):[a-f0-9]{64}$/.test(item.id) || item.byteLength > MAX_HOSTED_ARTIFACT_BYTES ||
+        Date.parse(item.reference.expiresAt) <= Date.now())
+      throw new Error("Invalid hosted artifact bound");
+    const bytes = await readFile(hostedArtifactPath(dataDir, result.operationId, item.id));
+    if (bytes.length !== item.byteLength || hash(bytes) !== item.sha256)
+      throw new Error("Hosted artifact changed before publication");
+    const count = Math.max(1, Math.ceil(bytes.length / HOSTED_ARTIFACT_CHUNK_BYTES));
+    for (let index = 0; index < count; index++) {
+      const id = chunkId(result.operationId, item.id, index);
+      const body = `<!-- ${HOSTED_CHUNK_MARKER} -->\n${JSON.stringify({ version: 1,
+        operationId: result.operationId, artifactId: item.id, index, count,
+        bytes: bytes.subarray(index * HOSTED_ARTIFACT_CHUNK_BYTES,
+          (index + 1) * HOSTED_ARTIFACT_CHUNK_BYTES).toString("base64url") })}\n<!-- /${HOSTED_CHUNK_MARKER} -->`;
+      if (existing.has(id)) {
+        if (!sameChunkBody(existing.get(id), body)) throw new Error("Hosted artifact chunk conflict");
+        continue;
+      }
+      try {
+        const created = await linear.graphql<{ commentCreate: { success: boolean;
+          comment: ChunkComment | null } }>(
+          "mutation FactoryArtifactChunk($input: CommentCreateInput!) { commentCreate(input: $input) { success comment { id body } } }",
+          { input: { id, issueId, body } });
+        if (!created.commentCreate?.success || created.commentCreate.comment?.id !== id ||
+            !sameChunkBody(created.commentCreate.comment?.body, body))
+          throw new Error("Hosted artifact chunk was not confirmed");
+      } catch (error) {
+        const observed = (await listArtifactComments(linear, issueId)).find(comment => comment.id === id);
+        if (!sameChunkBody(observed?.body, body)) throw error;
+      }
+      existing.set(id, body);
+    }
+  }
+  const observed = new Map((await listArtifactComments(linear, issueId)).map(comment => [comment.id, comment.body]));
+  for (const [id, body] of existing) {
+    if (body.includes(HOSTED_CHUNK_MARKER) && !sameChunkBody(observed.get(id), body))
+      throw new Error("Hosted artifact publication readback failed");
+  }
 }

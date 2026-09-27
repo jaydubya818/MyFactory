@@ -1,4 +1,4 @@
-import { createHash, createHmac, timingSafeEqual, sign, verify } from "node:crypto";
+import { createHash, createHmac, createPublicKey, timingSafeEqual, sign, verify } from "node:crypto";
 
 const REQUEST = "MYFACTORY_REQUEST_V1";
 const RECEIPT = "MYFACTORY_RECEIPT_V1";
@@ -54,6 +54,51 @@ export function requestId(clientId, key) {
   return `${hash.slice(0,8)}-${hash.slice(8,12)}-4${hash.slice(13,16)}-a${hash.slice(17,20)}-${hash.slice(20,32)}`;
 }
 function block(marker, value) { return `<!-- ${marker} -->\n\`\`\`json\n${JSON.stringify(value)}\n\`\`\`\n<!-- /${marker} -->`; }
+function signingMaterial(key, marker, encoded) {
+  if (key?.version === 1 && Array.isArray(key.keys)) {
+    const active = key.keys.find(item => item.id === key.activeKeyId && item.status === "active");
+    if (!active?.privateKeyPem || active.version !== "ed25519-v1") throw new Error("No active hosted signing key");
+    return { keyId: active.id, signature: sign(null,
+      Buffer.from(`${marker}\0${active.id}\0${encoded}`), active.privateKeyPem).toString("base64url") };
+  }
+  return { signature: sign(null, Buffer.from(`${marker}\0${encoded}`), key).toString("base64url") };
+}
+function verifyMaterial(envelope, trust, marker, encoded) {
+  if (!envelope || typeof envelope !== "object" || Array.isArray(envelope) ||
+      Object.keys(envelope).some(key => !["encoded", "signature", "keyId"].includes(key)))
+    throw new Error("Invalid hosted signed envelope");
+  if (typeof envelope.signature !== "string" || !/^[A-Za-z0-9_-]{86}$/.test(envelope.signature))
+    throw new Error("Invalid hosted signature");
+  const signature = Buffer.from(envelope.signature, "base64url");
+  if (signature.toString("base64url") !== envelope.signature) throw new Error("Invalid hosted signature encoding");
+  if (trust?.version === 1 && Array.isArray(trust.keys)) {
+    if (typeof envelope.keyId !== "string") {
+      // Pre-keyring receipts/results are attributable to exactly one imported
+      // public key. This path exists only for historical envelopes.
+      const matches = trust.keys.filter(key => verify(null, Buffer.from(`${marker}\0${encoded}`), key.publicKeyPem, signature));
+      if (matches.length !== 1) throw new Error("Unknown hosted signing key");
+      return { keyId: matches[0].id, keyVersion: matches[0].version, trustStatus: matches[0].status,
+        cryptographicallyValid: true, legacyEnvelope: true };
+    }
+    const key = trust.keys.find(item => item.id === envelope.keyId);
+    if (!key || key.version !== "ed25519-v1" ||
+        !verify(null, Buffer.from(`${marker}\0${key.id}\0${encoded}`), key.publicKeyPem, signature))
+      throw new Error("Unknown or invalid hosted signing key");
+    return { keyId: key.id, keyVersion: key.version, trustStatus: key.status,
+      cryptographicallyValid: true, legacyEnvelope: false };
+  }
+  if (envelope.keyId !== undefined) {
+    const publicKey = trust?.type === "public" ? trust : createPublicKey(trust);
+    const id = `ed25519-${createHash("sha256").update(publicKey.export({ format: "der", type: "spki" })).digest("hex").slice(0, 32)}`;
+    if (envelope.keyId !== id || !verify(null, Buffer.from(`${marker}\0${id}\0${encoded}`), publicKey, signature))
+      throw new Error("Unverified hosted signature");
+    return { keyId: id, keyVersion: "ed25519-v1", trustStatus: "active",
+      cryptographicallyValid: true, legacyEnvelope: false };
+  }
+  if (!verify(null, Buffer.from(`${marker}\0${encoded}`), trust, signature)) throw new Error("Unverified hosted signature");
+  return { keyId: null, keyVersion: "ed25519-v1", trustStatus: "active",
+    cryptographicallyValid: true, legacyEnvelope: true };
+}
 function extract(description, marker) {
   if (typeof description !== "string" || description.length > 60000) throw new Error("Invalid factory envelope");
   // Linear inserts blank lines around fenced blocks. Only framing whitespace is
@@ -95,19 +140,26 @@ export function peekClientId(issue) {
 }
 export function receiptDescription(description, receipt, privateKey) {
   const encoded = Buffer.from(JSON.stringify(receipt)).toString("base64url");
-  const signature = sign(null, Buffer.from(`${RECEIPT}\0${encoded}`), privateKey).toString("base64url");
   const marker = `<!-- ${RECEIPT} -->`;
   const base = description.includes(marker) ? description.slice(0, description.indexOf(marker)).trimEnd() : description.trimEnd();
-  return `${base}\n\n${block(RECEIPT, { encoded, signature })}`;
+  return `${base}\n\n${block(RECEIPT, { encoded, ...signingMaterial(privateKey, RECEIPT, encoded) })}`;
 }
 export function readReceipt(description, publicKey, issueId) {
+  const inspected = inspectReceipt(description, publicKey, issueId);
+  if (inspected?.trust.trustStatus === "revoked") throw new Error("Revoked factory receipt signing key");
+  return inspected?.receipt ?? null;
+}
+export function inspectReceipt(description, publicKey, issueId) {
   if (!description?.includes(`<!-- ${RECEIPT} -->`)) return null;
-  const { encoded, signature } = extract(description, RECEIPT);
-  if (typeof encoded !== "string" || encoded.length > 8000 || typeof signature !== "string" ||
-      !verify(null, Buffer.from(`${RECEIPT}\0${encoded}`), publicKey, Buffer.from(signature, "base64url"))) throw new Error("Unverified factory receipt");
+  const envelope = extract(description, RECEIPT);
+  const { encoded } = envelope;
+  if (typeof encoded !== "string" || encoded.length > 8000) throw new Error("Unverified factory receipt");
+  const trust = verifyMaterial(envelope, publicKey, RECEIPT, encoded);
   const receipt = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
   if (receipt.version !== 1 || receipt.issueId !== issueId || typeof receipt.workOrderId !== "string") throw new Error("Wrong factory receipt");
-  return receipt;
+  return { receipt, trust, envelope: { encoded, signature: envelope.signature,
+    ...(envelope.keyId ? { keyId: envelope.keyId } : {}) },
+    envelopeDigest: createHash("sha256").update(JSON.stringify(envelope)).digest("hex") };
 }
 
 /** A distinct signed result domain. The encoded bytes are the exact immutable
@@ -115,24 +167,24 @@ export function readReceipt(description, publicKey, issueId) {
 export function resultDescription(description, encoded, privateKey) {
   if (typeof encoded !== "string" || encoded.length > 48000 || !/^[A-Za-z0-9_-]+$/.test(encoded))
     throw new Error("Invalid bounded factory result");
-  const signature = sign(null, Buffer.from(`${RESULT}\0${encoded}`), privateKey).toString("base64url");
   const marker = `<!-- ${RESULT} -->`;
   const receiptMarker = `<!-- ${RECEIPT} -->`;
   const beforeReceipt = description.includes(receiptMarker) ? description.slice(0, description.indexOf(receiptMarker)).trimEnd() : description.trimEnd();
   const oldResult = beforeReceipt.includes(marker) ? beforeReceipt.slice(0, beforeReceipt.indexOf(marker)).trimEnd() : beforeReceipt;
   const receipt = description.includes(receiptMarker) ? description.slice(description.indexOf(receiptMarker)).trim() : "";
-  const updated = `${oldResult}\n\n${block(RESULT, { encoded, signature })}${receipt ? `\n\n${receipt}` : ""}`;
+  const updated = `${oldResult}\n\n${block(RESULT, { encoded, ...signingMaterial(privateKey, RESULT, encoded) })}${receipt ? `\n\n${receipt}` : ""}`;
   if (Buffer.byteLength(updated, "utf8") > 60000) throw new Error("Hosted result exceeds issue transport limit");
   return updated;
 }
 
-export function readResult(description, publicKey, issueId) {
+export function inspectResult(description, publicKey, issueId) {
   if (!description?.includes(`<!-- ${RESULT} -->`)) return null;
-  const { encoded, signature } = extract(description, RESULT);
+  const envelope = extract(description, RESULT);
+  const { encoded } = envelope;
   if (typeof encoded !== "string" || encoded.length > 48000 || !/^[A-Za-z0-9_-]+$/.test(encoded) ||
-      typeof signature !== "string" || !/^[A-Za-z0-9_-]{86}$/.test(signature) ||
-      !verify(null, Buffer.from(`${RESULT}\0${encoded}`), publicKey, Buffer.from(signature, "base64url")))
+      typeof envelope.signature !== "string")
     throw new Error("Unverified factory result");
+  const trust = verifyMaterial(envelope, publicKey, RESULT, encoded);
   const bytes = Buffer.from(encoded, "base64url");
   if (bytes.length > 36000 || bytes.toString("base64url") !== encoded) throw new Error("Invalid factory result encoding");
   const result = JSON.parse(bytes.toString("utf8"));
@@ -149,14 +201,25 @@ export function readResult(description, publicKey, issueId) {
       result.operationId !== createHash("sha256").update(JSON.stringify(["myfactory-result-v1", issueId, manifest.runId])).digest("hex"))
     throw new Error("Invalid factory result manifest");
   const ids = new Set();
+  let referencedBytes = 0;
   for (const item of manifest.artifacts) {
     if (!item || !["patch", "log"].includes(item.kind) || typeof item.id !== "string" || ids.has(item.id) ||
         !hex64.test(item.sha256) || !Number.isSafeInteger(item.byteLength) || item.byteLength < 0 ||
-        item.byteLength > 16000 || typeof item.bytes !== "string") throw new Error("Invalid factory artifact");
-    const artifactBytes = Buffer.from(item.bytes, "base64url");
-    if (artifactBytes.toString("base64url") !== item.bytes || artifactBytes.length !== item.byteLength ||
-        createHash("sha256").update(artifactBytes).digest("hex") !== item.sha256 ||
-        item.id !== `${item.kind}:${item.sha256}`) throw new Error("Factory artifact integrity failed");
+        item.id !== `${item.kind}:${item.sha256}`) throw new Error("Invalid factory artifact");
+    if (item.reference) {
+      referencedBytes += item.byteLength;
+      if (item.bytes !== undefined || item.byteLength > 128_000 || referencedBytes > 256_000 ||
+          item.reference.version !== 1 ||
+          item.reference.transport !== "linear-comments-v1" ||
+          typeof item.reference.expiresAt !== "string" || !Number.isFinite(Date.parse(item.reference.expiresAt)))
+        throw new Error("Invalid factory artifact reference");
+    } else {
+      if (item.byteLength > 16000 || typeof item.bytes !== "string") throw new Error("Invalid factory artifact");
+      const artifactBytes = Buffer.from(item.bytes, "base64url");
+      if (artifactBytes.toString("base64url") !== item.bytes || artifactBytes.length !== item.byteLength ||
+          createHash("sha256").update(artifactBytes).digest("hex") !== item.sha256)
+        throw new Error("Factory artifact integrity failed");
+    }
     ids.add(item.id);
   }
   const rawCommit = Buffer.from(manifest.commitObject ?? "", "base64url");
@@ -171,7 +234,15 @@ export function readResult(description, publicKey, issueId) {
       !manifest.artifacts.some(item => item.kind === "log" && item.sha256 === check.logSha256)) ||
       !manifest.artifacts.some(item => item.kind === "patch"))
     throw new Error("Factory check evidence integrity failed");
-  return result;
+  return { result, trust, envelope: { encoded, signature: envelope.signature,
+    ...(envelope.keyId ? { keyId: envelope.keyId } : {}) },
+    envelopeDigest: createHash("sha256").update(JSON.stringify(envelope)).digest("hex") };
+}
+
+export function readResult(description, publicKey, issueId) {
+  const inspected = inspectResult(description, publicKey, issueId);
+  if (inspected?.trust.trustStatus === "revoked") throw new Error("Revoked factory result signing key");
+  return inspected?.result ?? null;
 }
 
 const FIELDS = "id identifier url title description team { id }";
@@ -188,9 +259,13 @@ export async function submitHostedRequest(config, rawInput, graphql) {
   }
   const payload = readRequest(issue, { id: config.clientId, tokenSha256: createHash("sha256").update(config.token).digest("hex") }, config);
   if (JSON.stringify(payload.input) !== JSON.stringify(input)) throw new Error("Idempotency key belongs to another factory request");
+  const trust = config.signingKeyring ?? config.receiptPublicKey;
+  const inspected = inspectResult(issue.description, trust, id);
+  const inspectedReceipt = inspectReceipt(issue.description, trust, id);
   return { requestId: id, issueIdentifier: issue.identifier, issueUrl: issue.url,
-    receipt: readReceipt(issue.description, config.receiptPublicKey, id),
-    result: readResult(issue.description, config.receiptPublicKey, id) };
+    receipt: inspectedReceipt?.receipt ?? null, receiptTrust: inspectedReceipt?.trust ?? null,
+    result: inspected?.result ?? null, resultEnvelope: inspected?.envelope ?? null,
+    resultEnvelopeDigest: inspected?.envelopeDigest ?? null, resultTrust: inspected?.trust ?? null };
 }
 
 export async function getHostedRequest(config, id, graphql) {
@@ -198,7 +273,11 @@ export async function getHostedRequest(config, id, graphql) {
   const issue = (await graphql(`query FactoryHostedStatus($id: ID!) { issues(first: 1, includeArchived: true, filter: {id: {eq: $id}}) { nodes { ${FIELDS} } } }`, { id })).issues.nodes[0];
   if (!issue) throw new Error("Factory request was not found");
   readRequest(issue, { id: config.clientId, tokenSha256: createHash("sha256").update(config.token).digest("hex") }, config, 0);
+  const trust = config.signingKeyring ?? config.receiptPublicKey;
+  const inspected = inspectResult(issue.description, trust, id);
+  const inspectedReceipt = inspectReceipt(issue.description, trust, id);
   return { requestId: id, issueIdentifier: issue.identifier, issueUrl: issue.url,
-    receipt: readReceipt(issue.description, config.receiptPublicKey, id),
-    result: readResult(issue.description, config.receiptPublicKey, id) };
+    receipt: inspectedReceipt?.receipt ?? null, receiptTrust: inspectedReceipt?.trust ?? null,
+    result: inspected?.result ?? null, resultEnvelope: inspected?.envelope ?? null,
+    resultEnvelopeDigest: inspected?.envelopeDigest ?? null, resultTrust: inspected?.trust ?? null };
 }
