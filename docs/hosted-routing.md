@@ -19,6 +19,8 @@ For one completed bound Run, the host freezes the exact candidate commit object,
 
 This transport is limited to **36 KB JSON / 48 KB encoded result, 16 KB per artifact, and a 60 KB issue description**. Larger changes fail closed and need a separate authenticated artifact channel. Signing keys currently use one `ed25519-v1` key without a trusted rotation/revocation registry; consumer observation is not yet a durable admission record. Therefore Gate C is **partial**, Gate B writer handoff is **not implemented**, and a signed return grants no MyEve writer, verification, publication or readiness authority. No live Factory execution is qualified by these offline tests.
 
+The Q37 continuation confirmed that MyEve's current Work and task tables cannot safely persist a Factory result admission with exact replay/conflict identity and staged provenance. A new MyEve migration is required; work stopped before creating or reserving one, as the qualification brief requires. Signing-key lifecycle, large immutable artifact transport, and the complete local Golden Case remain unqualified. The existing small inline result is not a reusable public artifact URL or a general-size export.
+
 ## Host configuration
 
 Private files under ignored `data/`: `connections.env`, `connections.json`, `hosted-routing.json`, `hosted-receipt-key.pem`. Keep private keys and app client tokens out of Git. Set `FACTORY_HOSTED_INTAKE=true` and the existing Linear OAuth settings. Each route maps a client ID to `repository`, `repositoryPath`, `baseRef`, and `checkCommands`.

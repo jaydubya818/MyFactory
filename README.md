@@ -8,6 +8,8 @@ The work desk now includes **Connections** and optional Linear issue creation. A
 
 **Q37 Gate C status:** A bounded offline prototype now binds an authenticated hosted request to a WorkOrder, captures the actual clean Factory source/configuration before a hosted attempt, and exports one signed candidate, patch, Git commit object, and check logs through the existing Linear issue. The connected readback route requires the originating client identity. The full MyFactory test suite passes locally with loopback socket access. This is **not a qualified live Digital Worker handoff**: trusted signing-key lifecycle and durable MyEve admission remain outstanding, and no live MyFactory execution was performed. The [hosted routing contract](docs/hosted-routing.md) records the bounds. Gate B remains a single-writer coordination task with the M1/ER1 owner.
 
+**Build qualification:** The original checkout's `node_modules` stalled both web TypeScript and Vite without diagnostics. A disposable checkout with byte-identical web/contract source and lockfile, installed using `npm ci --offline --ignore-scripts`, passed `npm run typecheck` and `npm run build`. This classifies the earlier incomplete runs as a local dependency-tree/filesystem environment issue; the original checkout's installation has not been replaced. The [Q37 Gate C dossier](https://github.com/jaydubya818/MyEveBot/blob/codex/q37-integration/docs/verification/2026-09-27-q37-integration/myfactory/gate-c/REPORT.md) records the command evidence and the separate MyEve migration stop.
+
 ## Run the work desk
 
 Requires Node 24. Coding attempts use a logged-in Codex CLI on the Mac host and Docker Desktop with the cached `node:22-bookworm` image for offline verification.
