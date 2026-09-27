@@ -1,5 +1,7 @@
 # Producer result attestation, version 1
 
+**Superseded by (for connected execution control):** [Connected execution protocol](connected-execution-protocol.md). This document remains the canonical signed-result format; the newer protocol adds a durable dispatch fence and supplies a prepared MyEve request ID to the existing execution snapshot. The signed result bytes and verification rules are unchanged.
+
 This opt-in protocol extends MyFactory's existing Ed25519 receipt mechanism. It proves what the trusted supervisor recorded and returned. It does not prove an uncompromised host, independently verify a software change, or grant consumer authority. MyEve integration, writer handoff, production delivery and live Q37 execution remain unqualified.
 
 ## Existing boundary and extension
@@ -19,7 +21,7 @@ This opt-in protocol extends MyFactory's existing Ed25519 receipt mechanism. It 
 | Candidate | MISSING | Actual Git commit/tree objects, base identity and patch SHA-256 |
 | Evidence/artifacts | MISSING | Check metadata and exact bytes, separate canonical digests bound by the result |
 
-The legacy hosted request and status receipt wire formats remain compatible. A result is not appended to Linear or sent to MyEve by this tranche. Its scoped local readback is available to existing registered backend clients. A cloud consumer still needs an authorized delivery path.
+The legacy hosted request and status receipt wire formats remain compatible. A result is not appended to Linear or sent to MyEve by this tranche. Its scoped local readback is available to existing registered backend clients. The connected execution protocol supplies exact Stage-1 dispatch and Stage-2 Run correlation before this result is consumed. A cloud consumer still needs an authorized delivery path.
 
 ## Admission capture and trust
 

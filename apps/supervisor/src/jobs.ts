@@ -13,7 +13,7 @@ interface ActiveJob {
   workOrderId: string;
   runId: string | null;
   controller: AbortController;
-  reason: "user_cancel" | "service_shutdown" | null;
+  reason: "user_cancel" | "service_shutdown" | "deadline" | null;
   done: Promise<void> | null;
   model: string;
   preflight: Awaited<ReturnType<typeof preflightCodex>> | null;
@@ -60,6 +60,23 @@ export class JobManager {
   private readonly notify: (event: FactoryEvent) => void;
   private readonly dependencies: JobDependencies;
   private readonly producer: ProducerResults | undefined;
+
+  isActive(workOrderId: string, runId?: string): boolean {
+    return this.#active?.workOrderId === workOrderId &&
+      (runId === undefined || this.#active.runId === null || this.#active.runId === runId);
+  }
+
+  async prepareConnectedVersion(workOrder: WorkOrder): Promise<{
+    factoryId:string; factoryVersion:string; model:string; executorVersion:string;
+  }> {
+    if (!this.producer) throw new ActionError("Producer signing is not configured", "awaiting_environment", 503);
+    const model=process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5";
+    const preflight=await this.dependencies.preflightCodex();
+    if (!preflight.binaryAvailable || !preflight.authenticated || !preflight.version)
+      throw new ActionError("Executor version is unavailable for attestation", "awaiting_environment", 503);
+    const version=this.producer.prepareVersion(workOrder,model,preflight.version);
+    return {factoryId:version.factoryId,factoryVersion:version.factoryVersion,model,executorVersion:preflight.version};
+  }
 
   constructor(
     storage: FactoryStorage,
@@ -137,11 +154,11 @@ export class JobManager {
     }
   }
 
-  #clearRecoveryHold(workOrder: WorkOrder): void {
+  #clearRecoveryHold(workOrder: WorkOrder): WorkOrder {
     const lastRecoveryEvent = this.storage.listEvents(workOrder.id)
       .filter((event) => ["run.recovery_hold", "run.recovery_cleared"].includes(event.type))
       .at(-1);
-    if (lastRecoveryEvent?.type !== "run.recovery_hold") return;
+    if (lastRecoveryEvent?.type !== "run.recovery_hold") return workOrder;
     const pid = lastRecoveryEvent.payload.pid;
     if (lastRecoveryEvent.payload.previousState !== "implementing" ||
         typeof pid !== "number" || !processGroupAbsent(pid)) {
@@ -163,35 +180,48 @@ export class JobManager {
       });
     });
     this.notify(event);
+    return this.storage.getWorkOrder(workOrder.id)!;
   }
 
-  async startRun(workOrder: WorkOrder): Promise<Run> {
+  async startRun(workOrder: WorkOrder, connected?: {
+    dispatchOperationId: string; requestId: string; factoryVersion: string; model: string; deadline: string;
+  }): Promise<Run> {
     if (this.#active) throw new ActionError("Another run is already active", "concurrency_limit", 409);
+    const open=this.storage.getOpenConnectedExecution(workOrder.id);
+    if ((open && open.dispatchOperationId!==connected?.dispatchOperationId) ||
+        (connected && (!open || open.state!=="STARTING")))
+      throw new ActionError("WorkOrder execution authority changed", "execution_owned", 409);
     workOrder = structuredClone(workOrder);
-    this.#clearRecoveryHold(workOrder);
+    workOrder=this.#clearRecoveryHold(workOrder);
     const active: ActiveJob = {
       workOrderId: workOrder.id,
       runId: null,
       controller: new AbortController(),
       reason: null,
       done: null,
-      model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
+      model: connected?.model ?? process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
       preflight: null,
     };
     this.#active = active;
-    const started = this.#initializeRun(workOrder, active);
+    const deadlineTimer=connected ? setTimeout(()=>{
+      if (!active.controller.signal.aborted) {active.reason="deadline";active.controller.abort();}
+    },Math.max(0,Date.parse(connected.deadline)-Date.now())) : null;
+    const started = this.#initializeRun(workOrder, active, connected);
     active.done = started.then((run) => {
       active.runId = run.id;
       return this.#execute(workOrder, run, active);
     }).catch(() => {
       // The caller receives initialization errors through `started`.
     }).finally(() => {
+      if (deadlineTimer) clearTimeout(deadlineTimer);
       if (this.#active === active) this.#active = null;
     });
     return started;
   }
 
-  async #initializeRun(workOrder: WorkOrder, active: ActiveJob): Promise<Run> {
+  async #initializeRun(workOrder: WorkOrder, active: ActiveJob, connected?: {
+    dispatchOperationId: string; requestId: string; factoryVersion: string; model: string; deadline: string;
+  }): Promise<Run> {
     let workspacePath: string | null = null;
     let registered = false;
     try {
@@ -218,16 +248,26 @@ export class JobManager {
       workspacePath = createdPath;
       if (active.controller.signal.aborted) throw new ActionError("Start was cancelled", "cancelled", 409);
       const { run, event } = this.storage.transaction(() => {
+        if (this.storage.getWorkOrder(workOrder.id)?.updatedAt!==workOrder.updatedAt)
+          throw new ActionError("WorkOrder changed before execution admission", "state_stale", 409);
         if (this.storage.getPolicy().dispatchPaused) {
           throw new ActionError("Dispatch is paused", "dispatch_paused", 409);
         }
+        const open=this.storage.getOpenConnectedExecution(workOrder.id);
+        if ((open && open.dispatchOperationId!==connected?.dispatchOperationId) ||
+            (connected && (!open || !["STARTING","STOPPING"].includes(open.state))))
+          throw new ActionError("WorkOrder execution authority changed", "execution_owned", 409);
         const run = this.storage.createRun({
           workOrderId: workOrder.id,
           workerProfile: workOrder.workerProfile,
           inputCommit,
           workspacePath: createdPath,
         });
-        this.producer?.capture(workOrder, run, active.model, active.preflight!.version!);
+        this.producer?.capture(workOrder, run, active.model, active.preflight!.version!,
+          connected ? {requestId:connected.requestId,expectedFactoryVersion:connected.factoryVersion} : undefined);
+        if (connected) this.storage.transitionConnectedExecution(connected.dispatchOperationId,
+          ["STARTING","STOPPING"],this.storage.getConnectedExecution(connected.dispatchOperationId)!.state,
+          {runId:run.id,attemptNumber:run.attemptNumber,startedAt:run.startedAt});
         this.storage.saveWorkOrder({ ...workOrder, state: "planning" });
         const event = this.storage.appendEvent({
           workOrderId: workOrder.id,

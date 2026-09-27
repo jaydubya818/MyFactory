@@ -14,7 +14,8 @@ import { publishDraftPullRequest } from "./github.ts";
 import { JobManager, type JobDependencies } from "./jobs.ts";
 import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
 import { HostedIntake } from "./hosted-intake.ts";
-import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
+import { authenticateClient, authorizeClientAction, authorizeExecutionCapability, canAccessRepository, executionActionRegistry, readClients } from "./connections.ts";
+import { ConnectedExecutionControl } from "./connected-execution.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
@@ -189,6 +190,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const signing = options.resultSigning ?? producerOptions(dataDir);
   const producer = signing ? new ProducerResults(storage, dataDir, signing) : undefined;
   const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer);
+  const connectedExecution = new ConnectedExecutionControl(storage,jobs,producer);
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
     const link = storage.getLinearLink(order.id);
@@ -260,6 +262,31 @@ export function createSupervisor(options: SupervisorOptions = {}) {
 
       if (pathname.startsWith("/api/connect/v1/")) {
         const client = authenticateClient(request, readClients(connectionsPath));
+        const versionRoute=/^\/api\/connect\/v1\/work-orders\/([0-9a-f-]{36})\/execution-version$/.exec(pathname);
+        if (request.method==="GET" && versionRoute) {
+          authorizeExecutionCapability(client,"factory.execution.prepare");
+          return json(response,200,await connectedExecution.describe(client,versionRoute[1]));
+        }
+        if (request.method === "POST" && pathname === "/api/connect/v1/executions") {
+          authorizeExecutionCapability(client,"factory.execution.prepare");
+          return json(response,200,await connectedExecution.prepare(client,await requestBody(request)));
+        }
+        const executionRoute=/^\/api\/connect\/v1\/executions\/([0-9a-f-]{36})(?:\/(start|stop))?$/.exec(pathname);
+        if (executionRoute) {
+          const [,id,operation]=executionRoute;
+          if (request.method === "GET" && !operation) {
+            authorizeExecutionCapability(client,"factory.execution.read");
+            return json(response,200,connectedExecution.read(client,id));
+          }
+          if (request.method === "POST" && operation === "start") {
+            authorizeExecutionCapability(client,"factory.execution.start");
+            return json(response,200,await connectedExecution.start(client,id));
+          }
+          if (request.method === "POST" && operation === "stop") {
+            authorizeExecutionCapability(client,"factory.execution.stop");
+            return json(response,200,await connectedExecution.stop(client,id));
+          }
+        }
         const resultRoute = /^\/api\/connect\/v1\/work-orders\/([0-9a-f-]{36})\/runs\/([0-9a-f-]{36})\/result$/.exec(pathname);
         if (request.method === "GET" && resultRoute) {
           const order = storage.getWorkOrder(resultRoute[1]);
@@ -271,7 +298,8 @@ export function createSupervisor(options: SupervisorOptions = {}) {
           return json(response, 200, producer.read(run));
         }
         if (request.method === "GET" && pathname === "/api/connect/v1/actions") {
-          return json(response, 200, { client: client.id, actions: client.actions.map((name) => actionRegistry[name as keyof typeof actionRegistry]) });
+          return json(response, 200, { client: client.id, actions: client.actions.map((name) =>
+            actionRegistry[name as keyof typeof actionRegistry] ?? executionActionRegistry[name as keyof typeof executionActionRegistry]) });
         }
         if (request.method === "GET" && pathname === "/api/connect/v1/work-orders") {
           return json(response, 200, { workOrders: storage.listWorkOrders().filter((order) => canAccessRepository(client, order.repositoryPath)) });

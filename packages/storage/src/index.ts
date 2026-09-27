@@ -41,6 +41,32 @@ export interface StorageOptions {
   busyTimeoutMs?: number;
 }
 
+export type ConnectedExecutionState =
+  "PREPARED" | "STARTING" | "RUNNING" | "STOPPING" | "UNKNOWN" |
+  "COMPLETED" | "FAILED" | "CANCELLED" | "FENCED";
+
+export interface ConnectedExecution {
+  dispatchOperationId: string;
+  clientId: string;
+  factoryId: string;
+  factoryVersion: string;
+  requestId: string;
+  workOrderId: string;
+  workDigest: string;
+  policyRevision: number;
+  deadline: string;
+  model: string;
+  executorVersion: string;
+  state: ConnectedExecutionState;
+  runId: string | null;
+  attemptNumber: number | null;
+  createdAt: string;
+  startedAt: string | null;
+  stopRequestedAt: string | null;
+  terminalAt: string | null;
+  resultManifestDigest: string | null;
+}
+
 interface WorkOrderRow {
   id: string;
   title: string;
@@ -71,6 +97,15 @@ interface RunRow {
   started_at: string;
   finished_at: string | null;
   failure: string | null;
+}
+
+interface ConnectedExecutionRow {
+  dispatch_operation_id: string; client_id: string; factory_id: string; factory_version: string;
+  request_id: string; work_order_id: string; work_digest: string; policy_revision: number;
+  deadline: string; model: string; executor_version: string; state: ConnectedExecutionState;
+  run_id: string | null; attempt_number: number | null; created_at: string;
+  started_at: string | null; stop_requested_at: string | null; terminal_at: string | null;
+  result_manifest_digest: string | null;
 }
 
 interface CheckRow {
@@ -352,6 +387,39 @@ const migrations = [
     work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id),
     record_json TEXT NOT NULL CHECK (json_valid(record_json))
   ) STRICT;`,
+  `CREATE TABLE connected_executions (
+    dispatch_operation_id TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    factory_id TEXT NOT NULL,
+    factory_version TEXT NOT NULL,
+    request_id TEXT NOT NULL,
+    work_order_id TEXT NOT NULL REFERENCES work_orders(id),
+    work_digest TEXT NOT NULL,
+    policy_revision INTEGER NOT NULL CHECK (policy_revision > 0),
+    deadline TEXT NOT NULL,
+    model TEXT NOT NULL,
+    executor_version TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN (
+      'PREPARED','STARTING','RUNNING','STOPPING','UNKNOWN','COMPLETED','FAILED','CANCELLED','FENCED'
+    )),
+    run_id TEXT UNIQUE REFERENCES runs(id),
+    attempt_number INTEGER CHECK (attempt_number > 0),
+    created_at TEXT NOT NULL,
+    started_at TEXT,
+    stop_requested_at TEXT,
+    terminal_at TEXT,
+    result_manifest_digest TEXT,
+    CHECK ((run_id IS NULL) = (attempt_number IS NULL)),
+    CHECK (terminal_at IS NULL OR state IN ('COMPLETED','FAILED','CANCELLED','FENCED')),
+    CHECK (state <> 'FENCED' OR run_id IS NULL),
+    CHECK (state NOT IN ('COMPLETED','FAILED','CANCELLED') OR
+      (run_id IS NOT NULL AND result_manifest_digest IS NOT NULL AND terminal_at IS NOT NULL)),
+    CHECK (result_manifest_digest IS NULL OR
+      (length(result_manifest_digest) = 64 AND result_manifest_digest NOT GLOB '*[^0-9a-f]*'))
+  ) STRICT;
+  CREATE INDEX connected_executions_work_idx ON connected_executions(work_order_id,state);
+  CREATE UNIQUE INDEX connected_executions_open_work_idx ON connected_executions(work_order_id)
+    WHERE state IN ('PREPARED','STARTING','RUNNING','STOPPING','UNKNOWN');`,
 ];
 
 function parseJson<T>(value: string): T {
@@ -397,6 +465,18 @@ function mapRun(row: RunRow): Run {
     startedAt: row.started_at,
     finishedAt: row.finished_at,
     failure: row.failure,
+  };
+}
+
+function mapConnectedExecution(row: ConnectedExecutionRow): ConnectedExecution {
+  return {
+    dispatchOperationId: row.dispatch_operation_id, clientId: row.client_id,
+    factoryId: row.factory_id, factoryVersion: row.factory_version, requestId: row.request_id,
+    workOrderId: row.work_order_id, workDigest: row.work_digest, policyRevision: row.policy_revision,
+    deadline: row.deadline, model: row.model, executorVersion: row.executor_version,
+    state: row.state, runId: row.run_id, attemptNumber: row.attempt_number,
+    createdAt: row.created_at, startedAt: row.started_at, stopRequestedAt: row.stop_requested_at,
+    terminalAt: row.terminal_at, resultManifestDigest: row.result_manifest_digest,
   };
 }
 
@@ -856,6 +936,76 @@ export class FactoryStorage {
         run.failure,
       );
       return run;
+    });
+  }
+
+  getConnectedExecution(dispatchOperationId: string): ConnectedExecution | null {
+    const row = this.#database.prepare("SELECT * FROM connected_executions WHERE dispatch_operation_id = ?")
+      .get(dispatchOperationId) as unknown as ConnectedExecutionRow | undefined;
+    return row ? mapConnectedExecution(row) : null;
+  }
+
+  getOpenConnectedExecution(workOrderId: string): ConnectedExecution | null {
+    const row = this.#database.prepare(`SELECT * FROM connected_executions WHERE work_order_id=?
+      AND state IN ('PREPARED','STARTING','RUNNING','STOPPING','UNKNOWN') LIMIT 1`)
+      .get(workOrderId) as unknown as ConnectedExecutionRow | undefined;
+    return row ? mapConnectedExecution(row) : null;
+  }
+
+  createConnectedExecution(input: Omit<ConnectedExecution, "state" | "runId" | "attemptNumber" |
+    "createdAt" | "startedAt" | "stopRequestedAt" | "terminalAt" | "resultManifestDigest">,
+    expectedWorkUpdatedAt: string): ConnectedExecution {
+    return this.#write(() => {
+      const work=this.getWorkOrder(input.workOrderId);
+      const policy=this.getPolicy();
+      if (!work || work.state!=="queued" || work.updatedAt!==expectedWorkUpdatedAt ||
+          policy.revision!==input.policyRevision || policy.dispatchPaused ||
+          this.listRuns(work.id).some(run=>!run.finishedAt))
+        throw new Error("Prepared WorkOrder or policy changed");
+      const now = new Date().toISOString();
+      this.#database.prepare(`INSERT OR IGNORE INTO connected_executions (
+        dispatch_operation_id,client_id,factory_id,factory_version,request_id,work_order_id,
+        work_digest,policy_revision,deadline,model,executor_version,state,created_at
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,'PREPARED',?)`).run(
+        input.dispatchOperationId,input.clientId,input.factoryId,input.factoryVersion,input.requestId,
+        input.workOrderId,input.workDigest,input.policyRevision,input.deadline,input.model,input.executorVersion,now,
+      );
+      const saved = this.getConnectedExecution(input.dispatchOperationId);
+      if (!saved || Object.entries(input).some(([key,value]) =>
+        saved[key as keyof ConnectedExecution] !== value)) throw new Error("Dispatch operation binding conflict");
+      return saved;
+    });
+  }
+
+  transitionConnectedExecution(id: string, expected: ConnectedExecutionState[],
+    state: ConnectedExecutionState, update: Partial<Pick<ConnectedExecution,
+      "runId" | "attemptNumber" | "startedAt" | "stopRequestedAt" | "terminalAt" | "resultManifestDigest">> = {}): ConnectedExecution {
+    return this.#write(() => {
+      const current = this.getConnectedExecution(id);
+      if (!current || !expected.includes(current.state)) throw new Error("Connected execution state conflict");
+      if (["COMPLETED","FAILED","CANCELLED","FENCED"].includes(current.state) && state !== current.state)
+        throw new Error("Terminal execution fence is immutable");
+      const allowed:Record<ConnectedExecutionState,ConnectedExecutionState[]> = {
+        PREPARED:["PREPARED","STARTING","FENCED"],STARTING:["STARTING","RUNNING","STOPPING","UNKNOWN","COMPLETED","FAILED","CANCELLED"],
+        RUNNING:["RUNNING","STOPPING","UNKNOWN","COMPLETED","FAILED","CANCELLED"],
+        STOPPING:["STOPPING","UNKNOWN","FENCED","COMPLETED","FAILED","CANCELLED"],
+        UNKNOWN:["UNKNOWN","STOPPING","FENCED","COMPLETED","FAILED","CANCELLED"],
+        COMPLETED:["COMPLETED"],FAILED:["FAILED"],CANCELLED:["CANCELLED"],FENCED:["FENCED"],
+      };
+      if (!allowed[current.state].includes(state)) throw new Error("Connected execution transition denied");
+      const next = { ...current, ...update, state };
+      if (current.runId && next.runId !== current.runId) throw new Error("Execution identity is immutable");
+      if (current.attemptNumber && next.attemptNumber !== current.attemptNumber) throw new Error("Attempt identity is immutable");
+      if (current.stopRequestedAt && next.stopRequestedAt !== current.stopRequestedAt) throw new Error("Stop fence is immutable");
+      if (current.terminalAt && next.terminalAt !== current.terminalAt) throw new Error("Terminal evidence is immutable");
+      if (current.resultManifestDigest && next.resultManifestDigest !== current.resultManifestDigest)
+        throw new Error("Signed result identity is immutable");
+      this.#database.prepare(`UPDATE connected_executions SET state=?,run_id=?,attempt_number=?,started_at=?,
+        stop_requested_at=?,terminal_at=?,result_manifest_digest=? WHERE dispatch_operation_id=?`).run(
+        next.state,next.runId,next.attemptNumber,next.startedAt,next.stopRequestedAt,next.terminalAt,
+        next.resultManifestDigest,id,
+      );
+      return next;
     });
   }
 

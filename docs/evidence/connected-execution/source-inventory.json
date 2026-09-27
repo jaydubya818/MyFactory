@@ -1,0 +1,48 @@
+{
+  "baseline": "fcd8afd6fbaa2b9045b9e9700608d546edf011a9",
+  "supersedes": "docs/evidence/q37-producer-attestation/source-inventory.json for modified files only",
+  "added": {
+    "apps/supervisor/src/connected-execution.ts": {
+      "classification": "CONNECTED_EXECUTION_CONTROL",
+      "authorityBoundary": "Server-side prepare/start/read/stop coordinator; no publication authority and no false quiescence.",
+      "sha256": "6faf629e9172e295942c1a21b713c3240e45f7d1087304599009664f328b8d3d"
+    }
+  },
+  "modified": {
+    "apps/supervisor/src/actions.ts": {
+      "classification": "HUMAN_ACTION_GUARD",
+      "authorityBoundary": "Retains human-only run actions and blocks overlap with an open connected execution.",
+      "sha256": "dde83d1415d4ef61a00cb82a6d264406fd400e18d4d3f4d3e71b86742ebc941f"
+    },
+    "apps/supervisor/src/connections.ts": {
+      "classification": "CONNECTED_CAPABILITY_AUTHORIZATION",
+      "authorityBoundary": "Four separate opt-in execution capabilities; repository-scoped token identity.",
+      "sha256": "418c058eb9760b8554eb5feade2d00296a50e9239ea8a702ece440ef2bc5b357"
+    },
+    "apps/supervisor/src/jobs.ts": {
+      "classification": "CANONICAL_RUN_ENGINE",
+      "authorityBoundary": "Uses existing JobManager with durable dispatch binding, deadline abort and unchanged worker pipeline.",
+      "sha256": "04dfd87ec1dfcecea45ca9b93072cf6aee467731bfe05bb6e09a039f7b6a2c5c"
+    },
+    "apps/supervisor/src/producer-results.ts": {
+      "classification": "SIGNED_PRODUCER_ATTESTATION",
+      "authorityBoundary": "Prepares a content-derived FactoryVersion and immutably captures the connected request in the existing result snapshot.",
+      "sha256": "198abb635a61ea1cdc40e6a72aae3bacde62de9dd677fd1f9b750ad801182ba0"
+    },
+    "apps/supervisor/src/server.ts": {
+      "classification": "LOOPBACK_CONNECTION_ROUTER",
+      "authorityBoundary": "Authenticates each connected execution route and preserves existing action boundary.",
+      "sha256": "ed95d16146d26a44a6b2568973137ac84f2fef3b51421bd42a2f8b56890aa524"
+    },
+    "packages/client/src/index.ts": {
+      "classification": "TYPED_BACKEND_CLIENT",
+      "authorityBoundary": "Typed loopback backend calls; no browser token exposure.",
+      "sha256": "5d7b7451f1625b73dcaf4988fabd2fdeafec916fbab3e1ccbd561d7d84377171"
+    },
+    "packages/storage/src/index.ts": {
+      "classification": "DURABLE_DISPATCH_STORE",
+      "authorityBoundary": "SQLite unique identity, exact attempt binding, terminal fence and transactional migration.",
+      "sha256": "d85c8d45712630fc3567d220545050c5ff522f0aa35d563d33057c5b9b7c7001"
+    }
+  }
+}

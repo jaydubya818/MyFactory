@@ -5,7 +5,31 @@ import type { IncomingMessage } from "node:http";
 import type { WorkOrder } from "../../../packages/contracts/src/index.ts";
 import { ActionError } from "./actions.ts";
 
-export const clientActions = ["workorder.create", "workorder.note.add", "publication.request", "linear.sync"] as const;
+export const executionCapabilities = ["factory.execution.prepare", "factory.execution.start",
+  "factory.execution.read", "factory.execution.stop"] as const;
+export const executionActionRegistry: Record<typeof executionCapabilities[number],{
+  name:string;inputSchema:Record<string,unknown>;outputSchema:Record<string,unknown>;
+  idempotency:string;approval:string;
+}> = {
+  "factory.execution.prepare": {name:"factory.execution.prepare",
+    inputSchema:{type:"object",required:["dispatchOperationId","requestId","workOrderId","factoryId","factoryVersion","deadline"]},
+    outputSchema:{type:"object",description:"Durable bounded dispatch identity"},
+    idempotency:"One immutable record per dispatchOperationId",approval:"separately scoped connection"},
+  "factory.execution.start": {name:"factory.execution.start",
+    inputSchema:{type:"object",required:["dispatchOperationId"]},
+    outputSchema:{type:"object",description:"Exact execution and attempt readback"},
+    idempotency:"One logical Run per dispatchOperationId",approval:"separately scoped connection"},
+  "factory.execution.read": {name:"factory.execution.read",
+    inputSchema:{type:"object",required:["dispatchOperationId"]},
+    outputSchema:{type:"object",description:"Exact state and terminal evidence"},
+    idempotency:"Read only",approval:"separately scoped connection"},
+  "factory.execution.stop": {name:"factory.execution.stop",
+    inputSchema:{type:"object",required:["dispatchOperationId"]},
+    outputSchema:{type:"object",description:"Durable fence and current stop state"},
+    idempotency:"Stop fence is permanent for the dispatch",approval:"separately scoped connection"},
+};
+export const clientActions = ["workorder.create", "workorder.note.add", "publication.request", "linear.sync",
+  ...executionCapabilities] as const;
 export interface FactoryClient {
   id: string;
   name: string;
@@ -59,7 +83,8 @@ export function canAccessRepository(client: FactoryClient, repositoryPath: strin
 
 export function authorizeClientAction(client: FactoryClient, action: string, input: unknown,
   getWorkOrder: (id: string) => WorkOrder | null): Record<string, unknown> {
-  if (!clientActions.includes(action as typeof clientActions[number]) || !client.actions.includes(action)) {
+  if (executionCapabilities.includes(action as typeof executionCapabilities[number]) ||
+      !clientActions.includes(action as typeof clientActions[number]) || !client.actions.includes(action)) {
     throw new ActionError("This connection cannot perform that action", "forbidden", 403);
   }
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new ActionError("Action input must be an object", "invalid_input");
@@ -84,4 +109,10 @@ export function authorizeClientAction(client: FactoryClient, action: string, inp
     ? { ...data, repositoryPath: realpathSync(repositoryPath),
       ...(!client.actions.includes("linear.sync") ? { syncToLinear: false } : {}) }
     : data;
+}
+
+export function authorizeExecutionCapability(client: FactoryClient,
+  capability: typeof executionCapabilities[number]): void {
+  if (!client.actions.includes(capability))
+    throw new ActionError("This connection cannot control execution", "forbidden", 403);
 }

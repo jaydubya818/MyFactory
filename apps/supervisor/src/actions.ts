@@ -898,6 +898,9 @@ export async function performAction(
   }
 
   if (action === "run.start") {
+    if (context.storage.getOpenConnectedExecution(id)) {
+      throw new ActionError("A connected execution owns this WorkOrder", "execution_owned", 409);
+    }
     if (context.storage.getPolicy().dispatchPaused) {
       throw new ActionError("Dispatch is paused", "dispatch_paused", 409);
     }

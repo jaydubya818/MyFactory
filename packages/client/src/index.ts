@@ -1,6 +1,20 @@
 import type { CreateWorkOrderInput, FactoryEvent, LinearLink, PublicationRequest, WorkOrder, WorkOrderDetail } from "../../contracts/src/index.ts";
 import type { SignedResult } from "../../hosted-routing/src/result.ts";
 
+export type ConnectedExecutionState = "PREPARED" | "STARTING" | "RUNNING" | "STOPPING" |
+  "UNKNOWN" | "COMPLETED" | "FAILED" | "CANCELLED" | "FENCED";
+export interface ConnectedExecutionReadback {
+  dispatchOperationId:string;clientId:string;factoryId:string;factoryVersion:string;
+  requestId:string;workOrderId:string;workDigest:string;policyRevision:number;
+  deadline:string;state:ConnectedExecutionState;runId:string|null;attemptNumber:number|null;
+  createdAt:string;startedAt:string|null;stopRequestedAt:string|null;terminalAt:string|null;
+  resultManifestDigest:string|null;resultUrl:string|null;quiescent:boolean;
+}
+export interface ConnectedExecutionPrepare {
+  dispatchOperationId:string;requestId:string;workOrderId:string;
+  factoryId:string;factoryVersion:string;deadline:string;
+}
+
 /** Backend client for approved apps on the same host. Never put the token in browser code. */
 export class FactoryClient {
   readonly #origin: string;
@@ -47,6 +61,29 @@ export class FactoryClient {
     result: SignedResult | null;
   }> {
     return this.#request(`work-orders/${encodeURIComponent(workOrderId)}/runs/${encodeURIComponent(runId)}/result`);
+  }
+
+  getExecutionVersion(workOrderId:string):Promise<{
+    factoryId:string;factoryVersion:string;model:string;executorVersion:string;
+    workOrderId:string;workDigest:string;policyRevision:number;
+  }> {
+    return this.#request(`work-orders/${encodeURIComponent(workOrderId)}/execution-version`);
+  }
+
+  prepareExecution(input:ConnectedExecutionPrepare):Promise<ConnectedExecutionReadback> {
+    return this.#request("executions",input);
+  }
+
+  startExecution(dispatchOperationId:string):Promise<ConnectedExecutionReadback> {
+    return this.#request(`executions/${encodeURIComponent(dispatchOperationId)}/start`,{});
+  }
+
+  readExecution(dispatchOperationId:string):Promise<ConnectedExecutionReadback> {
+    return this.#request(`executions/${encodeURIComponent(dispatchOperationId)}`);
+  }
+
+  stopExecution(dispatchOperationId:string):Promise<ConnectedExecutionReadback> {
+    return this.#request(`executions/${encodeURIComponent(dispatchOperationId)}/stop`,{});
   }
 
   createWorkOrder(input: CreateWorkOrderInput & { idempotencyKey: string }): Promise<WorkOrder> {

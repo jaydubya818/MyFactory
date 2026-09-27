@@ -85,7 +85,10 @@ export class ProducerResults {
       !actual.export({type:'spki',format:'der'}).equals(expected.export({type:'spki',format:'der'}))) throw new Error('Signing key does not match configured producer');
   }
   private assertSource(): void { if (sourceIdentity() !== loadedSource) throw new Error('Producer source changed; restart before attesting'); }
-  capture(work: WorkOrder, run: Run, model: string, executorVersion: string): ExecutionSnapshot {
+  prepareVersion(work: WorkOrder, model: string, executorVersion: string): {
+    factoryId: string; factoryVersion: string; sourceDigest: string;
+    configurationDigest: string; configuration: ExecutionConfiguration;
+  } {
     this.assertSource();
     const key=this.options.keys.find(k => k.factoryId === this.options.factoryId && k.keyId === this.options.currentKeyId)!;
     const now=Date.now();
@@ -93,25 +96,34 @@ export class ProducerResults {
       throw new Error('Current producer signing key is unavailable for admission');
     }
     if (!executorVersion || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(model)) throw new Error('Execution configuration unavailable');
-    const events=this.storage.listEvents(work.id);
-    const intake=events.filter(e => e.type === 'hosted.intake_received');
-    if (intake.length > 1) throw new Error('Ambiguous initiating request');
-    const created=events.find(e => e.type === 'workorder.created');
-    const requestId=intake[0]?.payload.issueId ?? created?.payload.requestId ?? `local-workorder:${work.id}`;
-    if (typeof requestId !== 'string' || !requestId) throw new Error('Request identity missing');
     const configuration: ExecutionConfiguration = {
       model, executor:'codex-cli', executorVersion, skillRevision:'fd8f20a879b507cf09feba08663a1edf7a949353',
-      workerProfile:run.workerProfile, verificationImage:DEFAULT_VERIFICATION_IMAGE,
+      workerProfile:work.workerProfile, verificationImage:DEFAULT_VERIFICATION_IMAGE,
       nodeVersion:process.version, platform:process.platform, architecture:process.arch,
       commands:work.kind === 'defect' && work.reproductionCommand ? [...new Set([work.reproductionCommand,...work.checkCommands])] : [...work.checkCommands],
       allowedPaths:[...work.allowedPaths], timeoutMs:30*60*1000,
     };
     const configurationDigest=digest(configuration);
+    return {factoryId:this.options.factoryId,factoryVersion:digest({sourceDigest:loadedSource,configurationDigest}),
+      sourceDigest:loadedSource,configurationDigest,configuration};
+  }
+  capture(work: WorkOrder, run: Run, model: string, executorVersion: string,
+    connected?: {requestId:string;expectedFactoryVersion:string}): ExecutionSnapshot {
+    const prepared=this.prepareVersion(work,model,executorVersion);
+    if(connected && prepared.factoryVersion!==connected.expectedFactoryVersion)
+      throw new Error('Prepared FactoryVersion changed before execution');
+    const events=this.storage.listEvents(work.id);
+    const intake=events.filter(e => e.type === 'hosted.intake_received');
+    if (intake.length > 1) throw new Error('Ambiguous initiating request');
+    const created=events.find(e => e.type === 'workorder.created');
+    const requestId=connected?.requestId ?? intake[0]?.payload.issueId ?? created?.payload.requestId ?? `local-workorder:${work.id}`;
+    if (typeof requestId !== 'string' || !requestId) throw new Error('Request identity missing');
     // Hash the admitted Work, not mutable current Factory state or a completion callback.
     const requestDigest=digest({requestId, work});
     const snapshot: ExecutionSnapshot = {
-      version:1, factoryId:this.options.factoryId, factoryVersion:digest({sourceDigest:loadedSource,configurationDigest}),
-      sourceDigest:loadedSource, configurationDigest, configuration, requestId, requestDigest,
+      version:1, factoryId:prepared.factoryId, factoryVersion:prepared.factoryVersion,
+      sourceDigest:prepared.sourceDigest, configurationDigest:prepared.configurationDigest,
+      configuration:prepared.configuration, requestId, requestDigest,
       workOrderId:work.id, runId:run.id, attemptNumber:run.attemptNumber, inputCommit:run.inputCommit, capturedAt:run.startedAt,
     };
     return saveRunRecord(this.storage,run,SNAPSHOT_EVENT,snapshot);

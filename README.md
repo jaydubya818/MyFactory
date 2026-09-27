@@ -12,6 +12,8 @@ The opt-in [result protocol](docs/producer-result-protocol.md) captures an immut
 
 This is **local synthetic producer qualification**, documented in the [Q37 evidence dossier](docs/evidence/q37-producer-attestation/REPORT.md). Receipts grant no consumer writer, publication, approval, budget or Ready authority. **MyEve Gate C consumer integration and Gate B writer handoff are not implemented here; live Q37 Factory execution is NOT_RUN.** No production keys are created or changed automatically.
 
+The opt-in [connected execution protocol](docs/connected-execution-protocol.md) adds separately scoped PREPARE, START, READ and STOP around the existing Run engine. It persists one dispatch operation, binds the exact attempt and FactoryVersion, and denies delayed starts after a durable stop fence. UNKNOWN and STOPPING never claim quiescence. This producer-side contract is locally tested with connected-client fixtures; **MyEve Gate B adapter integration and live qualification remain NOT_RUN**.
+
 ## Run the work desk
 
 Requires Node 24. Coding attempts use a logged-in Codex CLI on the Mac host and Docker Desktop with the cached `node:22-bookworm` image for offline verification.
@@ -37,7 +39,7 @@ Open **App builder**, choose the versioned Feedback Hub starter, and enter a pro
 3. Review the candidate diff, check logs and digests, and policy revision. A publication request is a local proposal. The device owner must confirm approval of the exact request. A changed candidate, diff, check log, policy, or expired approval blocks a new draft PR.
 4. After approval, the host-side GitHub adapter checks the destination branch and existing PR, pushes the exact candidate only to an absent stable WorkOrder branch, and creates a draft PR. It records the external outcome. If the response is uncertain, retries are read-only reconciliation; the factory does not repeat an unconfirmed push or PR creation.
 
-Human-only actions use macOS device-owner confirmation because the loopback browser token is available to local processes. The agent can create a WorkOrder, add a note, pause dispatch, prepare a local preview, and propose publication through shared typed actions. It cannot resume dispatch, start or cancel a coding run, approve publication, or publish a draft on its own.
+Human-only actions use macOS device-owner confirmation because the loopback browser token is available to local processes. The general agent can create a WorkOrder, add a note, pause dispatch, prepare a local preview, and propose publication through shared typed actions. It cannot resume dispatch, call the human start/cancel actions, approve publication, or publish a draft on its own. A separately registered backend connection may receive only the bounded connected execution capabilities described above.
 
 The Mac coding agent may inherit host credentials and network access under its Codex sandbox. The supervisor checks the resulting candidate, but this is not a complete sandbox for the host coding step. Docker verification receives an exported commit tree without `.git`, the Docker socket, or model credentials. Keep work within trusted local repositories and review the exact candidate before publication.
 

@@ -82,7 +82,7 @@ node scripts/register-client.mjs \
   --token-file /path/to/private/myeve-factory-token
 ```
 
-Defaults are `workorder.create` and `workorder.note.add`. Repeated `--action` flags specify the complete desired list; add `linear.sync` or `publication.request` only when authorized. Register Relay separately. Tokens are written with owner-only permissions and never printed. The host stores only token digests. The Connections page displays scopes without secrets.
+Defaults are `workorder.create` and `workorder.note.add`. Repeated `--action` flags specify the complete desired list; add `linear.sync` or `publication.request` only when authorized. The four `factory.execution.*` capabilities are separate, opt-in grants; consult the [connected execution protocol](connected-execution-protocol.md) before adding them. Register Relay separately. Tokens are written with owner-only permissions and never printed. The host stores only token digests. The Connections page displays scopes without secrets.
 
 Revoke immediately without restarting:
 
@@ -90,7 +90,7 @@ Revoke immediately without restarting:
 node scripts/register-client.mjs --data-dir /path/to/factory-data --id myeve --revoke
 ```
 
-Clients read WorkOrders and evidence records only in their exact configured repositories. Identity comes from the token, never the request body. Client tokens cannot start execution, approve or publish drafts, merge, or deploy. Trusted local processes with direct filesystem/host access are outside this connection credential boundary.
+Clients read WorkOrders and evidence records only in their exact configured repositories. Identity comes from the token, never the request body. Ordinary client tokens cannot start execution. A connection with each explicit `factory.execution.*` grant may prepare, start, read and stop one bounded dispatch through the separate protocol; these grants do not authorize approval, draft publication, merge or deployment. Trusted local processes with direct filesystem/host access are outside this connection credential boundary.
 
 The service stays on loopback. A cloud app requires a separately configured authenticated transport to this host; do not expose the local console port publicly.
 
@@ -131,8 +131,13 @@ Creation requires a stable key scoped to the authenticated actor. Equivalent ret
 | GET | `/api/connect/v1/work-orders` | List accessible work |
 | GET | `/api/connect/v1/work-orders/:id` | Read work, evidence records, decisions, and Linear link |
 | POST | `/api/connect/v1/actions` | Execute `{ action, input }` |
+| GET | `/api/connect/v1/work-orders/:id/execution-version` | Read exact FactoryVersion before PREPARE; requires `factory.execution.prepare` |
+| POST | `/api/connect/v1/executions` | PREPARE a durable dispatch; requires `factory.execution.prepare` |
+| POST | `/api/connect/v1/executions/:id/start` | START once; requires `factory.execution.start` |
+| GET | `/api/connect/v1/executions/:id` | READ exact attempt and state; requires `factory.execution.read` |
+| POST | `/api/connect/v1/executions/:id/stop` | Fence/STOP; requires `factory.execution.stop` |
 
-All routes require `Authorization: Bearer <connection-token>`. Browser-origin requests to this backend API are rejected.
+All routes require `Authorization: Bearer <connection-token>`. Browser-origin requests to this backend API are rejected. Connected execution methods are also available on the typed backend `FactoryClient` as `getExecutionVersion`, `prepareExecution`, `startExecution`, `readExecution` and `stopExecution`.
 
 ## Verification
 
