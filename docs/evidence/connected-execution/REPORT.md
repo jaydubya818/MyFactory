@@ -49,4 +49,6 @@ These are test assertions, **not live telemetry**. In the process-loss fixture, 
 
 MyEve integration must read the FactoryVersion through the prepare-scoped endpoint, establish its own Stage-1 Work/writer/request fence, PREPARE with its request UUID and a fresh dispatch UUID, START once, READ the **same** dispatch after any lost response, bind returned WorkOrder/Run/attempt immutably as Stage 2, admit the exact signed result through Gate C, and wait for `quiescent: true` before releasing its Factory writer. It must treat a later result from a superseded writer as historical. The candidate still requires independent MyEve protected verification. See [protocol](../../connected-execution-protocol.md).
 
+The canonical MyEve integration worktree was actively modified by another task when this producer branch qualified. Its in-progress adapter uses a different dispatch route and response shape. [Exact consumer handoff and mismatch](MYEVE-HANDOFF.md) document the required reconciliation; no MyEve files were modified here.
+
 **MyEve consumer:** NOT YET INTEGRATED. **Gate C two-stage binding:** NOT YET QUALIFIED. **Gate B live adapter:** NOT YET QUALIFIED. **Live MyFactory:** NOT_RUN / NOT_READY. This report authorizes no live execution.
