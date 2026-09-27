@@ -1,4 +1,5 @@
 import {execFile} from 'node:child_process';
+import {randomBytes} from 'node:crypto';
 import {promisify} from 'node:util';
 import {realpathSync} from 'node:fs';
 import {ActionError,parseCreateInput,admissionState} from './actions.ts';
@@ -7,6 +8,8 @@ import {JobManager} from './jobs.ts';
 import {ProducerResults,producerState} from './producer-results.ts';
 import {canonical,digest,type ExecutionSnapshot} from '../../../packages/hosted-routing/src/result.ts';
 import type {FactoryStorage} from '../../../packages/storage/src/index.ts';
+import {SpendLedger} from '../../../packages/storage/src/spend.ts';
+import {SpendGateway,type SpendPrice} from './spend-gateway.ts';
 import type {WorkOrder,Run} from '../../../packages/contracts/src/index.ts';
 
 export interface ExecutionIdentity {
@@ -33,9 +36,16 @@ export class FactoryDispatchControl {
  private readonly storage:FactoryStorage;
  private readonly jobs:JobManager;
  private readonly producer:ProducerResults;
+ private readonly spend:SpendLedger;
  private readonly localFixture:boolean;
- constructor(storage:FactoryStorage,jobs:JobManager,producer:ProducerResults,localFixture=false){this.localFixture=localFixture;this.storage=storage;this.jobs=jobs;this.producer=producer;}
- executionAvailability(){return {mode:this.localFixture?'LOCAL_FIXTURE':'DISABLED',spendEnforced:this.localFixture,reason:this.localFixture?'Backend-injected zero-cost fixture':'Paid per-attempt spend enforcement is unqualified'};}
+ private readonly spendFixture?:{upstreamOrigin:string;upstreamApiKey:string;price:SpendPrice};
+ constructor(storage:FactoryStorage,jobs:JobManager,producer:ProducerResults,spend:SpendLedger,localFixture=false,
+  spendFixture?:{upstreamOrigin:string;upstreamApiKey:string;price:SpendPrice}){
+  this.localFixture=localFixture;this.storage=storage;this.jobs=jobs;this.producer=producer;this.spend=spend;this.spendFixture=spendFixture;
+ }
+ executionAvailability(){return {mode:this.localFixture?'LOCAL_FIXTURE':this.spendFixture?'LOCAL_SPEND_FIXTURE':'DISABLED',
+  spendEnforced:this.localFixture||!!this.spendFixture,reason:this.localFixture?'Backend-injected zero-cost fixture':
+   this.spendFixture?'Loopback synthetic provider fixture; live paid execution remains disabled':'Paid Codex gateway routing is not live-qualified'};}
  private authorize(client:FactoryClient,action:string){if(!client.actions.includes(action))throw new ActionError('Factory control action is not granted','forbidden',403);}
  private record(client:FactoryClient,requestId:string){
   const intake=this.storage.getIntake('gateb:'+client.id,requestId);
@@ -52,7 +62,7 @@ export class FactoryDispatchControl {
   if(!input||Object.keys(input).sort().join(',')!=='deadline,input,maxSpendUsd,repository,requestId,workGeneration,workId'||
    !uuid.test(input.requestId)||!uuid.test(input.workId)||!Number.isSafeInteger(input.workGeneration)||input.workGeneration<1||
    typeof input.repository!=='string'||!/^[-\w.]+\/[-\w.]+$/.test(input.repository)||
-   !Number.isFinite(input.maxSpendUsd)||input.maxSpendUsd<=0||input.maxSpendUsd>20||
+   !Number.isFinite(input.maxSpendUsd)||input.maxSpendUsd<0.000001||input.maxSpendUsd>20||
    !(Date.parse(input.deadline)>Date.now()&&Date.parse(input.deadline)<=Date.now()+3600000))
    throw new ActionError('Bounded exact preparation required','invalid_input');
   const work=parseCreateInput(input.input);
@@ -70,6 +80,11 @@ export class FactoryDispatchControl {
    this.storage.appendEvent({workOrderId:order.id,runId:null,type:'factory.prepare_requested',payload:request});
    return order;
   });
+  // A replay cannot increase or reset the Work ceiling. A partially prepared
+  // order without this budget remains unable to cross any paid boundary.
+  this.spend.createBudget({workId:input.workId,workGeneration:input.workGeneration,requestId:input.requestId,
+    workOrderId:created?.id??this.record(client,input.requestId).order.id},
+    Math.floor(input.maxSpendUsd*1_000_000),input.deadline);
   if(created){try{await this.jobs.prepareRun(created);}catch(e){this.storage.appendEvent({workOrderId:created.id,runId:null,type:'factory.prepare_failed',payload:{reason:e instanceof Error?e.message:String(e)}});throw e;}}
   return this.read(client,input.requestId);
  }
@@ -91,16 +106,29 @@ export class FactoryDispatchControl {
   // A terminal tombstone/claim is checked before touching JobManager, so replay
   // readback remains available even when another unrelated Run is active.
   if(data.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return this.read(client,identity.requestId);
-  if(!this.localFixture)throw new ActionError('Paid execution disabled: enforceable per-attempt spend ceiling is not qualified','spend_unqualified',503);
+  if(!this.localFixture&&!this.spendFixture)throw new ActionError('Paid execution disabled: actual paid boundary is not qualified','spend_unqualified',503);
   const admittedWork={...data.order,...data.request.input as object} as WorkOrder;
-  this.jobs.executePrepared(admittedWork,data.run,()=>this.storage.transaction(()=>{
+  let gateway:SpendGateway|undefined, gatewayBinding:{baseUrl:string;childToken:string;close:()=>Promise<void>}|undefined;
+  if(this.spendFixture){
+   const childToken=randomBytes(32).toString('hex');
+   gateway=new SpendGateway({ledger:this.spend,binding:{workId:identity.workId,workGeneration:identity.workGeneration,
+    dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,
+    factoryVersion:identity.factoryVersion,runId:identity.remoteRunId},
+    price:this.spendFixture.price,upstreamOrigin:this.spendFixture.upstreamOrigin,
+    upstreamApiKey:this.spendFixture.upstreamApiKey,childToken});
+   gatewayBinding={baseUrl:await gateway.listen(),childToken,close:()=>gateway!.close()};
+  }
+  try{
+  const started=this.jobs.executePrepared(admittedWork,data.run,()=>this.storage.transaction(()=>{
    const current=this.bind(client,identity);
    if(current.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return false;
    if(Date.parse(identity.deadline)<=Date.now()||this.storage.getPolicy().dispatchPaused)throw new ActionError('Dispatch expired or paused','dispatch_denied',409);
    if(!current.events.some(e=>e.type==='factory.writer_bound'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.writer_bound',payload:{...identity}});
    this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.dispatch_claimed',payload:{identity,supervisorPid:process.pid}});
    return true;
-  }));
+  }),gatewayBinding);
+  if(!started)await gateway?.close();
+  }catch(error){await gateway?.close();throw error;}
   return this.read(client,identity.requestId);
  }
  async stop(client:FactoryClient,identity:ExecutionIdentity){
@@ -111,6 +139,7 @@ export class FactoryDispatchControl {
    if(!data.events.some(e=>e.type==='factory.stop_requested'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.stop_requested',payload:{...identity}});
    return data;
   });
+  this.spend.cancel(identity.workId);
   if(this.jobs.activeRun(data.run.id))await this.jobs.cancelRun(data.order);
   return this.read(client,identity.requestId);
  }
@@ -153,7 +182,7 @@ export class FactoryDispatchControl {
   }
   return {requestId,workOrderId:data.order.id,runId:run?.id??null,snapshot,identity:binding??null,state,quiescent,
    evidenceRef:quiescent?'factory-event:'+data.order.id+':terminal':null,
-   spend:this.localFixture?{status:'KNOWN',ceilingUsd:0,reason:'Backend-injected local fixture; no paid provider'}:{status:'UNKNOWN',ceilingUsd:data.request.maxSpendUsd,reason:'Paid dispatch disabled: Codex CLI has no enforceable per-attempt dollar ceiling'},
+   spend:this.localFixture?{status:'KNOWN',ceilingUsd:0,reason:'Backend-injected local fixture; no paid provider'}:{...this.spend.read(data.request.workId),reason:'Paid dispatch disabled pending qualified Codex gateway routing'},
    blocker:quiescent?null:state==='UNKNOWN'?'Exact process/verifier reconciliation required':null};
  }
 }

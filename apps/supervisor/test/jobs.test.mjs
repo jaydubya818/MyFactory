@@ -76,6 +76,20 @@ async function harness(t, dependencies) {
   return { dataDir, storage, events, jobs };
 }
 
+test('default host Codex cannot start a paid operation without a Work spend gateway', async t => {
+  const work = await harness(t, {
+    resolveCommit: async () => INPUT_COMMIT,
+    createTaskWorktree: async () => join(tmpdir(), 'fake-worktree'),
+    preflightCodex: async () => { throw new Error('Paid preflight must not run'); },
+  });
+  const order = work.storage.createWorkOrder(orderInput({ kind: 'feature', reproductionCommand: null,
+    expectedFailureText: null }));
+  const started = await work.jobs.startRun(order);
+  await waitForRun(work.storage, started.id, 'failed');
+  assert.equal(work.storage.getWorkOrder(order.id).state, 'awaiting_environment');
+  assert(work.events.some(event => event.type === 'run.spend_unqualified'));
+});
+
 test("wrong baseline failure text blocks Codex before implementation", async (t) => {
   let codexCalls = 0;
   const work = await harness(t, {

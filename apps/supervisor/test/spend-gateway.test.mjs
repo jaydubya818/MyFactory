@@ -1,0 +1,130 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { openStorage } from '../../../packages/storage/src/index.ts';
+import { SpendLedger } from '../../../packages/storage/src/spend.ts';
+import { SpendGateway, validatePrice } from '../src/spend-gateway.ts';
+
+async function fixture(t, reply, ceiling = 2000) {
+  const dir = mkdtempSync(join(tmpdir(), 'factory-gateway-'));
+  const path = join(dir, 'factory.sqlite'), storage = openStorage(path);
+  const order = storage.createWorkOrder({ title: 'Gateway fixture', description: 'Synthetic provider', kind: 'feature',
+    repositoryPath: dir, baseRef: 'a'.repeat(40), acceptanceCriteria: ['Safe'], reproductionCommand: null,
+    expectedFailureText: null, checkCommands: [], allowedPaths: ['test.txt'], workerProfile: 'mac' });
+  const run = storage.createRun({ workOrderId: order.id, workerProfile: 'mac', inputCommit: 'a'.repeat(40), workspacePath: dir });
+  const ledger = new SpendLedger(path);
+  const binding = { workId: 'work-a', workGeneration: 1, dispatchIdentity: 'dispatch-a', requestId: 'request-a',
+    workOrderId: order.id, factoryVersion: 'factory-a', runId: run.id };
+  ledger.createBudget(binding, ceiling, new Date(Date.now() + 60_000).toISOString());
+  let calls = 0;
+  const upstream = createServer(async (req, res) => { calls++; await reply(req, res); });
+  await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
+  const price = { revision: 'local-v1', model: 'fixture-model', validUntil: new Date(Date.now() + 60_000).toISOString(),
+    contextLimitTokens: 1000, outputLimitTokens: 100, inputMicrousdPerMillion: 1_000_000,
+    outputMicrousdPerMillion: 2_000_000 };
+  const gateway = new SpendGateway({ ledger, binding, price, upstreamOrigin: `http://127.0.0.1:${upstream.address().port}`,
+    upstreamApiKey: 'provider-secret', childToken: 'a'.repeat(64) });
+  const base = await gateway.listen();
+  const call = (body = { model: 'fixture-model', input: 'hello' }, token = 'a'.repeat(64)) =>
+    fetch(base + '/responses', { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify(body) });
+  t.after(async () => { await gateway.close(); await new Promise(resolve => upstream.close(resolve)); ledger.close(); storage.close(); rmSync(dir, { recursive: true, force: true }); });
+  return { ledger, binding, price, call, get calls() { return calls; } };
+}
+
+function complete(req, res) {
+  assert.equal(req.headers.authorization, 'Bearer provider-secret');
+  const payload = [];
+  req.on('data', part => payload.push(part));
+  req.on('end', () => {
+    assert.equal(JSON.parse(Buffer.concat(payload).toString()).max_output_tokens, 100);
+    res.writeHead(200, { 'content-type': 'application/json', 'x-request-id': 'provider-1' });
+    res.end(JSON.stringify({ id: 'response-1', status: 'completed', usage: { input_tokens: 10, output_tokens: 10 } }));
+  });
+}
+
+test('request is reserved before provider and settles only authoritative usage', async t => {
+  const f = await fixture(t, complete);
+  const denied = await f.call({ model: 'other', input: 'hello' });
+  assert.equal(denied.status, 400);
+  assert.equal(f.calls, 0);
+  const response = await f.call();
+  assert.equal(response.status, 200);
+  const spend = f.ledger.read(f.binding.workId);
+  assert.equal(spend.operations.length, 1);
+  assert.equal(spend.operations[0].reservedMicrousd, 1200);
+  assert.equal(spend.operations[0].actualMicrousd, 30);
+  assert.equal(spend.operations[0].providerRequestId, 'provider-1');
+  assert.equal(spend.status, 'KNOWN');
+});
+
+test('unknown provider usage retains reservation and denies over-ceiling retry', async t => {
+  const f = await fixture(t, (_req, res) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"id":"response-1","status":"completed"}'); }, 1500);
+  assert.equal((await f.call()).status, 503);
+  assert.equal(f.ledger.read(f.binding.workId).retainedMicrousd, 1200);
+  assert.equal(f.ledger.read(f.binding.workId).status, 'UNKNOWN');
+  assert.equal((await f.call()).status, 503);
+  assert.equal(f.calls, 1);
+  assert.equal(f.ledger.read(f.binding.workId).retainedMicrousd, 1200);
+});
+
+test('cancelled Work and expired pricing deny before provider', async t => {
+  const f = await fixture(t, complete);
+  f.ledger.cancel(f.binding.workId);
+  assert.equal((await f.call()).status, 503);
+  assert.equal(f.calls, 0);
+  assert.equal(f.ledger.read(f.binding.workId).operations.length, 0);
+});
+
+test('two simultaneous requests cannot reserve more than one Work ceiling', async t => {
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  let started;
+  const seen = new Promise(resolve => { started = resolve; });
+  const f = await fixture(t, async (_req, res) => {
+    started();
+    await held;
+    res.writeHead(200, { 'content-type': 'application/json', 'x-request-id': 'provider-concurrent' });
+    res.end(JSON.stringify({ status: 'completed', usage: { input_tokens: 10, output_tokens: 10 } }));
+  }, 1500);
+  const first = f.call();
+  await seen;
+  const second = await f.call();
+  assert.equal(second.status, 503);
+  assert.equal(f.calls, 1);
+  assert.equal(f.ledger.read(f.binding.workId).retainedMicrousd, 1200);
+  release();
+  assert.equal((await first).status, 200);
+});
+
+test('streaming completion carries authoritative usage; missing completion stays UNKNOWN', async t => {
+  const f = await fixture(t, (_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/event-stream', 'x-request-id': 'provider-stream' });
+    res.end('event: response.completed\ndata: {"type":"response.completed","response":{"status":"completed","usage":{"input_tokens":10,"output_tokens":10}}}\n\n');
+  });
+  const response = await f.call({ model: 'fixture-model', input: 'hello', stream: true });
+  assert.equal(response.status, 200);
+  assert.equal(f.ledger.read(f.binding.workId).operations[0].providerRequestId, 'provider-stream');
+  assert.equal(f.ledger.read(f.binding.workId).status, 'KNOWN');
+});
+
+test('missing, stale, or fractional pricing fails closed', () => {
+  const valid = { revision: 'v1', model: 'fixture-model', validUntil: new Date(Date.now() + 60_000).toISOString(),
+    contextLimitTokens: 1000, outputLimitTokens: 100, inputMicrousdPerMillion: 1_250_000,
+    outputMicrousdPerMillion: 2_500_000 };
+  assert.doesNotThrow(() => validatePrice(valid));
+  assert.throws(() => validatePrice({ ...valid, validUntil: '2000-01-01T00:00:00Z' }), /pricing/);
+  assert.throws(() => validatePrice({ ...valid, outputMicrousdPerMillion: 0 }), /pricing/);
+  assert.throws(() => validatePrice({ ...valid, inputMicrousdPerMillion: 1.25 }), /pricing/);
+});
+
+test('separately charged hosted tools are denied before reservation', async t => {
+  const f = await fixture(t, complete);
+  const response = await f.call({ model: 'fixture-model', input: 'look up facts', tools: [{ type: 'web_search' }] });
+  assert.equal(response.status, 400);
+  assert.equal(f.calls, 0);
+  assert.equal(f.ledger.read(f.binding.workId).operations.length, 0);
+});

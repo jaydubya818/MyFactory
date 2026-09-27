@@ -4,11 +4,12 @@ import {randomUUID,generateKeyPairSync,createHash} from 'node:crypto';
 import {mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
+import {createServer} from 'node:http';
 import {tmpdir} from 'node:os';
 import {createSupervisor} from '../src/server.ts';
 import {verifyResult} from '../../../packages/hosted-routing/src/result.ts';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function fixture(t,worker,localFactoryFixture=true){
+async function fixture(t,worker,localFactoryFixture=true,localSpendFixture){
  const dir=mkdtempSync(join(tmpdir(),'factory-control-')),repo=join(dir,'repo'),dataDir=join(dir,'data');mkdirSync(repo);mkdirSync(dataDir);
  const git=(...a)=>execFileSync('git',['-C',repo,...a],{encoding:'utf8'}).trim();git('init','-q');git('config','user.name','Factory fixture');git('config','user.email','fixture@example.invalid');writeFileSync(join(repo,'quantity.mjs'),'console.log(0);\n');git('add','.');git('commit','-qm','base');
  const pair=generateKeyPairSync('ed25519'),token='a'.repeat(64),key={factoryId:'factory-fixture',keyId:'fixture',publicKey:pair.publicKey.export({type:'spki',format:'pem'}).toString(),activeFrom:'2020-01-01T00:00:00Z',notAfter:'2099-01-01T00:00:00Z'};
@@ -16,14 +17,14 @@ async function fixture(t,worker,localFactoryFixture=true){
  writeFileSync(join(dataDir,'connections.json'),JSON.stringify({clients:[{id:'myeve',name:'Local fixture',tokenSha256:createHash('sha256').update(token).digest('hex'),repositoryPaths:[repo],actions:['factory.prepare','factory.dispatch','factory.observe','factory.stop']}]}));
  let calls=0;
  const jobDependencies={preflightCodex:async()=>({binaryAvailable:true,authenticated:true,version:'synthetic-codex-1',workerProfile:'mac',error:null}),runCodex:async input=>{calls++;if(worker)return worker(input);writeFileSync(join(input.workspacePath,'quantity.mjs'),'console.log(2);\n');return {success:true,status:'completed',threadId:'fixture',eventsPath:'fixture',usage:null};},verifyCandidate:async input=>{mkdirSync(input.artifactDir,{recursive:true});return {checks:input.commands.map((command,i)=>{const logPath=join(input.artifactDir,i+'.log');writeFileSync(logPath,'fixture check\n');const at=new Date().toISOString();return {candidateCommit:input.candidateSha,candidateTree:git('rev-parse',input.candidateSha+'^{tree}'),command,status:'passed',exitCode:0,startedAt:at,finishedAt:at,logPath,reason:null};}),reason:null};}};
- let supervisor=createSupervisor({dataDir,resultSigning,jobDependencies,localFactoryFixture});
+ let supervisor=createSupervisor({dataDir,resultSigning,jobDependencies,localFactoryFixture,localSpendFixture});
  async function listen(){await new Promise(r=>supervisor.server.listen(0,'127.0.0.1',r));return 'http://127.0.0.1:'+supervisor.server.address().port;}
  let origin=await listen();
  const request=async(path,body,auth=token)=>{const res=await fetch(origin+'/api/connect/v1/'+path,{method:body?'POST':'GET',headers:{authorization:'Bearer '+auth,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});return {status:res.status,body:await res.json()};};
  const input={requestId:randomUUID(),workId:randomUUID(),workGeneration:2,repository:'fixture/golden',deadline:new Date(Date.now()+600000).toISOString(),maxSpendUsd:1,input:{title:'Bounded fixture',description:'Change only quantity',kind:'feature',repositoryPath:repo,baseRef:git('rev-parse','HEAD'),acceptanceCriteria:['Print two'],reproductionCommand:null,expectedFailureText:null,checkCommands:['node quantity.mjs'],allowedPaths:['quantity.mjs'],workerProfile:'mac'}};
  function identity(prepared){const s=prepared.snapshot;return {runId:randomUUID(),writerGeneration:2,dispatchIdentity:randomUUID(),workId:input.workId,workGeneration:input.workGeneration,factoryId:s.factoryId,factoryVersion:s.factoryVersion,requestId:s.requestId,workOrderId:s.workOrderId,remoteRunId:s.runId,repository:input.repository,baseSha:s.inputCommit,allowedPaths:s.configuration.allowedPaths,deadline:input.deadline};}
  t.after(async()=>{await supervisor.close();rmSync(dir,{recursive:true,force:true});});
- return {request,input,identity,key,get calls(){return calls;},get supervisor(){return supervisor;},async restart(){await supervisor.close();supervisor=createSupervisor({dataDir,resultSigning,jobDependencies,localFactoryFixture});origin=await listen();}};
+ return {request,input,identity,key,get calls(){return calls;},get supervisor(){return supervisor;},async restart(){await supervisor.close();supervisor=createSupervisor({dataDir,resultSigning,jobDependencies,localFactoryFixture,localSpendFixture});origin=await listen();}};
 }
 async function terminal(f){for(let i=0;i<300;i++){const r=await f.request('dispatches/'+f.input.requestId);assert.equal(r.status,200);if(r.body.quiescent)return r.body;await sleep(10);}throw Error('No terminal proof');}
 test('prepare binds actual attempt before any execution; response-loss/restart replay never redispatches',async t=>{
@@ -65,4 +66,36 @@ test('producer deadline aborts execution without a MyEve polling loop',async t=>
  const f=await fixture(t,async input=>{await new Promise(resolve=>{if(input.signal.aborted)resolve();else input.signal.addEventListener('abort',resolve,{once:true});});return {success:false,status:'cancelled',eventsPath:'fixture',usage:null};});
  f.input.deadline=new Date(Date.now()+600).toISOString();const p=await f.request('dispatches',f.input),id=f.identity(p.body);
  await f.request('dispatches/'+f.input.requestId+'/dispatch',id);const ended=await terminal(f);assert.equal(ended.state,'CANCELLED');assert.equal(f.calls,1);
+});
+
+test('connected START routes each synthetic model call through exact Work spend gateway',async t=>{
+ let providerCalls=0;
+ const provider=createServer(async(req,res)=>{
+  providerCalls++;
+  assert.equal(req.headers.authorization,'Bearer fixture-provider-key');
+  res.writeHead(200,{'content-type':'application/json','x-request-id':'provider-connected'});
+  res.end(JSON.stringify({id:'response-connected',status:'completed',usage:{input_tokens:10,output_tokens:10}}));
+ });
+ await new Promise(resolve=>provider.listen(0,'127.0.0.1',resolve));
+ t.after(()=>new Promise(resolve=>provider.close(resolve)));
+ const price={revision:'fixture-v1',model:'gpt-5.5',validUntil:new Date(Date.now()+60000).toISOString(),
+  contextLimitTokens:1000,outputLimitTokens:100,inputMicrousdPerMillion:1_000_000,outputMicrousdPerMillion:2_000_000};
+ const f=await fixture(t,async input=>{
+  assert(input.gateway);
+  const response=await fetch(input.gateway.baseUrl+'/responses',{method:'POST',
+   headers:{authorization:'Bearer '+input.gateway.childToken,'content-type':'application/json'},
+   body:JSON.stringify({model:'gpt-5.5',input:'synthetic coding step'})});
+  assert.equal(response.status,200);
+  writeFileSync(join(input.workspacePath,'quantity.mjs'),'console.log(2);\n');
+  return {success:true,status:'completed',threadId:'fixture',eventsPath:'fixture',usage:null};
+ },false,{upstreamOrigin:'http://127.0.0.1:'+provider.address().port,upstreamApiKey:'fixture-provider-key',price});
+ const prepared=await f.request('dispatches',f.input),id=f.identity(prepared.body);
+ assert.equal(prepared.body.spend.ceilingMicrousd,1_000_000);
+ await f.request('dispatches/'+f.input.requestId+'/dispatch',id);
+ const done=await terminal(f);
+ assert.equal(done.state,'COMPLETED');
+ assert.equal(done.spend.status,'KNOWN');
+ assert.equal(done.spend.settledMicrousd,30);
+ assert.equal(done.spend.operations.length,1);
+ assert.equal(providerCalls,1);
 });

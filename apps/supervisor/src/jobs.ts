@@ -18,6 +18,7 @@ interface ActiveJob {
   model: string;
   preflight: Awaited<ReturnType<typeof preflightCodex>> | null;
   prepareOnly?: boolean;
+  gateway?: { baseUrl: string; childToken: string; close: () => Promise<void> };
 }
 
 export interface JobDependencies {
@@ -207,11 +208,11 @@ export class JobManager {
   }
 
   /** Called only after the connection service atomically claims this exact attempt. */
-  executePrepared(workOrder:WorkOrder,run:Run,claim:()=>boolean):boolean {
+  executePrepared(workOrder:WorkOrder,run:Run,claim:()=>boolean,gateway?:ActiveJob['gateway']):boolean {
     if(this.#active) throw new ActionError('Another run is active','concurrency_limit',409);
     if(!this.producer?.snapshot(run)) throw new ActionError('Prepared execution snapshot missing','binding_missing',409);
     const active:ActiveJob={workOrderId:workOrder.id,runId:run.id,controller:new AbortController(),reason:null,done:null,
-      model:this.producer.snapshot(run)!.configuration.model,preflight:null};
+      model:this.producer.snapshot(run)!.configuration.model,preflight:null,gateway};
     if(!claim()) return false;
     this.#active=active;
     const bound=this.storage.listEvents(workOrder.id).find(e=>e.type==='factory.writer_bound');
@@ -220,10 +221,13 @@ export class JobManager {
     timer.unref();
     active.done=this.#execute(structuredClone(workOrder),run,active).catch(error=>{
       this.#event(workOrder.id,run.id,'run.recovery_hold',{reason:message(error),previousState:'unknown'});
-    }).finally(()=>{
-      clearTimeout(timer);
-      this.#event(workOrder.id,run.id,'factory.execution_settled',{runId:run.id});
-      if(this.#active===active)this.#active=null;
+    }).finally(async()=>{
+      try { await gateway?.close(); }
+      finally {
+        clearTimeout(timer);
+        this.#event(workOrder.id,run.id,'factory.execution_settled',{runId:run.id});
+        if(this.#active===active)this.#active=null;
+      }
     });
     return true;
   }
@@ -357,6 +361,12 @@ export class JobManager {
         }
       }
 
+      if (!active.gateway && this.dependencies.runCodex === runCodex) {
+        run = this.#transition(run, "failed", "awaiting_environment", "run.spend_unqualified", {
+          reason: "Paid Codex execution requires an exact Work spend gateway; paid execution is disabled",
+        }, { failure: "Paid execution is disabled until Work spend qualification" });
+        return;
+      }
       const preflight = await this.dependencies.preflightCodex();
       if (snapshot && preflight.version !== snapshot.configuration.executorVersion) {
         throw new Error("Executor version changed after attempt admission");
@@ -390,6 +400,7 @@ export class JobManager {
         timeoutMs: snapshot?.configuration.timeoutMs ?? 30 * 60 * 1000,
         artifactsDir: artifactDir,
         signal,
+        ...(active.gateway ? { gateway: { baseUrl: active.gateway.baseUrl, childToken: active.gateway.childToken } } : {}),
         onProcessStart: (processIdentity) => {
           this.#event(workOrder.id, run.id, "agent.process_started", processIdentity);
         },

@@ -25,6 +25,8 @@ export interface CodexRunOptions {
   onProcessStart?: (process: { pid: number; startedAt: string; workspacePath: string }) => void | Promise<void>;
   onEvent?: (event: CodexEvent) => void | Promise<void>;
   signal?: AbortSignal;
+  /** Connected paid runs must use a locally metered Responses gateway. */
+  gateway?: { baseUrl: string; childToken: string };
 }
 
 export type CodexRunStatus = "completed" | "failed" | "cancelled" | "timed_out";
@@ -160,8 +162,22 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
 
   let child: ChildProcess;
   try {
+    const gateway = options.gateway;
+    if (gateway && (!/^http:\/\/127\.0\.0\.1:\d+\/v1$/.test(gateway.baseUrl) ||
+      !/^[a-f0-9]{64}$/.test(gateway.childToken))) throw new TypeError('Invalid local spend gateway');
+    const gatewayArgs = gateway ? [
+      '--ignore-user-config',
+      '-c', 'model_provider="factory_spend"',
+      '-c', 'model_providers.factory_spend.name="Factory Spend Gateway"',
+      '-c', `model_providers.factory_spend.base_url=${JSON.stringify(gateway.baseUrl)}`,
+      '-c', 'model_providers.factory_spend.env_key="FACTORY_GATEWAY_TOKEN"',
+      '-c', 'model_providers.factory_spend.wire_api="responses"',
+      '-c', 'model_providers.factory_spend.supports_websockets=false',
+      '-c', 'web_search="disabled"',
+    ] : [];
     child = spawn(executablePath, [
       "exec", "-m", options.model,
+      ...gatewayArgs,
       "-C", workspacePath,
       "--sandbox", "workspace-write",
       "--json", "-o", finalMessagePath,
@@ -171,6 +187,11 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
+      ...(gateway ? { env: {
+        PATH: process.env.PATH ?? '', HOME: runDir, TMPDIR: process.env.TMPDIR ?? '/tmp',
+        LANG: process.env.LANG ?? 'en_US.UTF-8', CI: '1', CODEX_HOME: runDir,
+        FACTORY_GATEWAY_TOKEN: gateway.childToken,
+      } } : {}),
     });
   } catch (error) {
     await Promise.all([eventsFile.close(), stderrFile.close()]);

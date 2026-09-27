@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import type { FactoryEvent, WorkOrderDetail } from "../../../packages/contracts/src/index.ts";
 import { listAppTemplates, LocalAppPreviewManager } from "../../../packages/app-builder/src/index.ts";
 import { openStorage } from "../../../packages/storage/src/index.ts";
+import { SpendLedger } from "../../../packages/storage/src/spend.ts";
 import { ActionError, actionRegistry, performAction, type ActionContext } from "./actions.ts";
 import { publishDraftPullRequest } from "./github.ts";
 import { JobManager, type JobDependencies } from "./jobs.ts";
@@ -16,6 +17,7 @@ import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } f
 import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
 import { FactoryDispatchControl } from "./dispatch-control.ts";
+import type { SpendPrice } from "./spend-gateway.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
@@ -146,6 +148,8 @@ export interface SupervisorOptions {
   jobDependencies?: Partial<JobDependencies>;
   /** Backend-only fixture authorization; never read from HTTP or environment. */
   localFactoryFixture?: boolean;
+  /** Synthetic loopback provider only. Never sourced from public input or environment. */
+  localSpendFixture?: { upstreamOrigin: string; upstreamApiKey: string; price: SpendPrice };
   linear?: LinearOptions;
 }
 
@@ -168,6 +172,8 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const webDist = resolve(options.webDist ?? defaultWebDist);
   const token = sessionToken(dataDir);
   const storage = openStorage(resolve(dataDir, "factory.sqlite"));
+  const spend = new SpendLedger(resolve(dataDir, "factory.sqlite"));
+  spend.recoverUnknown();
   const connectionsPath = resolve(dataDir, "connections.json");
   const subscribers = new Map<string, Set<ServerResponse>>();
 
@@ -192,7 +198,13 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const signing = options.resultSigning ?? producerOptions(dataDir);
   const producer = signing ? new ProducerResults(storage, dataDir, signing) : undefined;
   const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer);
-  const dispatchControl=producer?new FactoryDispatchControl(storage,jobs,producer,options.localFactoryFixture === true && !!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate):null;
+  const fixtureDependencies=!!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate;
+  if(options.localFactoryFixture&&options.localSpendFixture)throw new Error('Fixture modes are mutually exclusive');
+  if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
+  if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
+    throw new Error('Local spend fixture must target loopback only');
+  const dispatchControl=producer?new FactoryDispatchControl(storage,jobs,producer,spend,
+    options.localFactoryFixture === true && fixtureDependencies,options.localSpendFixture):null;
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
     const link = storage.getLinearLink(order.id);
@@ -519,6 +531,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
         server.close((error) => error ? reject(error) : resolveClose());
       });
       storage.close();
+      spend.close();
     },
   };
 }
