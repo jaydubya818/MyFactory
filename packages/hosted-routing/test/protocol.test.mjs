@@ -1,8 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash, generateKeyPairSync } from "node:crypto";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { requestDescription, requestId, readRequest, receiptDescription, readReceipt, resultDescription,
-  readResult, submitHostedRequest, getHostedRequest, parseInput } from "../src/index.mjs";
+  readResult, inspectResult, submitHostedRequest, getHostedRequest, parseInput } from "../src/index.mjs";
+import { loadHostedSigningKeyring, rotateHostedSigningKey, revokeHostedSigningKey } from "../src/keyring.mjs";
 const keys = generateKeyPairSync("ed25519");
 const config = { clientId: "myeve", repository: "owner/myeve", token: "a".repeat(64), teamId: "team-1", labelId: "label-1", receiptPublicKey: keys.publicKey };
 const client = { id: "myeve", tokenSha256: createHash("sha256").update(config.token).digest("hex") };
@@ -96,4 +100,46 @@ test("authenticated Work binding and exact signed candidate artifacts survive re
   assert.throws(()=>readResult(description.replace(encoded,encoded.slice(0,-1)+(encoded.at(-1)==="A"?"B":"A")),keys.publicKey,value.id));
   assert.throws(()=>readResult(resultDescription(value.description,Buffer.from(JSON.stringify({ ...result,
     manifest:{...manifest,artifacts:[{...patch,bytes:Buffer.from("altered").toString("base64url")},log]}})).toString("base64url"),keys.privateKey),keys.publicKey,value.id));
+
+  const dataDir=mkdtempSync(join(tmpdir(),"factory-keys-"));
+  try {
+    const first=loadHostedSigningKeyring(dataDir);
+    const keyed=resultDescription(value.description,encoded,first);
+    const historicalReceipt=receiptDescription(value.description,{version:1,issueId:value.id,
+      workOrderId:manifest.workOrderId,state:"queued"},first);
+    const inspected=inspectResult(keyed,first,value.id);
+    assert.equal(inspected.trust.keyId,first.activeKeyId);
+    assert.equal(inspected.trust.keyVersion,"ed25519-v1");
+    assert.equal(inspected.trust.cryptographicallyValid,true);
+    assert.match(inspected.envelopeDigest,/^[a-f0-9]{64}$/);
+    assert.deepEqual(inspected.result,result);
+    const rotated=rotateHostedSigningKey(dataDir);
+    assert.equal(rotated.keys.find(key=>key.id===first.activeKeyId).status,"rotated");
+    assert.equal(rotated.keys.find(key=>key.id===first.activeKeyId).privateKeyPem,undefined);
+    assert.equal(inspectResult(keyed,rotated,value.id).trust.trustStatus,"rotated");
+    assert.equal(readReceipt(historicalReceipt,rotated,value.id).workOrderId,manifest.workOrderId);
+    const newer=resultDescription(value.description,encoded,rotated);
+    assert.equal(inspectResult(newer,rotated,value.id).trust.keyId,rotated.activeKeyId);
+    assert.throws(()=>inspectResult(newer,first,value.id),/Unknown or invalid/);
+    const tampered=keyed.replace(first.activeKeyId,"ed25519-"+"0".repeat(32));
+    assert.throws(()=>inspectResult(tampered,rotated,value.id),/Unknown or invalid/);
+    const wrongVersion={...rotated,keys:rotated.keys.map(key=>key.id===rotated.activeKeyId
+      ? {...key,version:"ed25519-v2"} : key)};
+    assert.throws(()=>inspectResult(newer,wrongVersion,value.id),/Unknown or invalid/);
+    const revoked=revokeHostedSigningKey(dataDir,first.activeKeyId);
+    const historical=inspectResult(keyed,revoked,value.id);
+    assert.equal(historical.trust.cryptographicallyValid,true);
+    assert.equal(historical.trust.trustStatus,"revoked");
+    assert.throws(()=>readResult(keyed,revoked,value.id),/Revoked/);
+    assert.throws(()=>revokeHostedSigningKey(dataDir,revoked.activeKeyId),/Rotate/);
+  } finally { rmSync(dataDir,{recursive:true,force:true}); }
+
+  const {bytes: _removedBytes, ...patchReference}=patch;
+  const referenced={...manifest,artifacts:[
+    {...patchReference,reference:{version:1,transport:"linear-comments-v1",expiresAt:new Date(Date.now()+3600000).toISOString()}},log]};
+  const referencedResult={...result,manifest:referenced,manifestDigest:createHash("sha256").update(JSON.stringify(referenced)).digest("hex")};
+  const referencedDescription=resultDescription(value.description,Buffer.from(JSON.stringify(referencedResult)).toString("base64url"),keys.privateKey);
+  assert.deepEqual(readResult(referencedDescription,keys.publicKey,value.id),referencedResult);
+  assert.throws(()=>readResult(resultDescription(value.description,Buffer.from(JSON.stringify({...referencedResult,
+    manifest:{...referenced,artifacts:[{...referenced.artifacts[0],byteLength:128001},log]}})).toString("base64url"),keys.privateKey),keys.publicKey,value.id));
 });
