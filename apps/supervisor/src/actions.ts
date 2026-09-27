@@ -306,7 +306,7 @@ function stringArray(value: unknown, field: string): string[] {
   return value.map((item: string) => item.trim()).filter(Boolean);
 }
 
-function parseCreateInput(value: unknown): CreateWorkOrderInput {
+export function parseCreateInput(value: unknown): CreateWorkOrderInput {
   const input = asObject(value);
   const kind = stringValue(input.kind, "kind", true) as WorkKind;
   const workerProfile = stringValue(input.workerProfile, "workerProfile", true) as WorkerProfile;

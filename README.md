@@ -51,3 +51,9 @@ npm run smoke:docker
 ```
 
 The [Phase 0 baseline](docs/phase-0-baseline.md) and [integrated smoke evidence](docs/evidence/integration-smoke/README.md) show the fixture, reproduction, candidate, and independent check. The [architecture](docs/architecture.md) and [backlog](docs/backlog.md) separate this first delivery path from scheduled intake, merge, deployment, and release promotion. Reviewed Builder.io Factory instructions are pinned under [skills/vendor/builderio](skills/vendor/builderio/README.md).
+
+## MyEve Factory dispatch qualification
+
+The Q37 consumer uses authenticated two-stage preparation and dispatch on the existing connection API. See [dispatch lifecycle and local qualification](docs/factory-dispatch.md). The producer captures the real WorkOrder, attempt and FactoryVersion before execution; replay never creates a second consequential dispatch. Stop remains nonterminal until resource reconciliation proves quiescence.
+
+**Live MyFactory: NOT_RUN / NOT READY.** Paid dispatch through this endpoint is disabled because the current Codex CLI has no enforceable per-attempt dollar ceiling. Only a backend-injected, zero-cost local fixture is enabled for qualification. Legacy WorkOrder endpoints cannot start these managed attempts. No publication, deployment, credential substitution or main merge is included.

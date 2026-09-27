@@ -15,6 +15,7 @@ import { JobManager, type JobDependencies } from "./jobs.ts";
 import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
 import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
+import { FactoryDispatchControl } from "./dispatch-control.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
@@ -143,6 +144,8 @@ export interface SupervisorOptions {
   confirmHumanPresence?: NonNullable<ActionContext["confirmHumanPresence"]>;
   publishDraft?: NonNullable<ActionContext["publishDraft"]>;
   jobDependencies?: Partial<JobDependencies>;
+  /** Backend-only fixture authorization; never read from HTTP or environment. */
+  localFactoryFixture?: boolean;
   linear?: LinearOptions;
 }
 
@@ -189,6 +192,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const signing = options.resultSigning ?? producerOptions(dataDir);
   const producer = signing ? new ProducerResults(storage, dataDir, signing) : undefined;
   const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer);
+  const dispatchControl=producer?new FactoryDispatchControl(storage,jobs,producer,options.localFactoryFixture === true && !!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate):null;
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
     const link = storage.getLinearLink(order.id);
@@ -260,6 +264,19 @@ export function createSupervisor(options: SupervisorOptions = {}) {
 
       if (pathname.startsWith("/api/connect/v1/")) {
         const client = authenticateClient(request, readClients(connectionsPath));
+        const controlRoute=/^\/api\/connect\/v1\/dispatches(?:\/([a-f0-9-]{36})(?:\/(dispatch|stop))?)?$/.exec(pathname);
+        if(controlRoute){
+          if(!dispatchControl)return json(response,503,{error:'Producer result signing is required'});
+          const id=controlRoute[1],action=controlRoute[2];
+          if(request.method==='POST'&&!id)return json(response,200,await dispatchControl.prepare(client,await requestBody(request) as never));
+          if(request.method==='GET'&&id&&!action)return json(response,200,await dispatchControl.read(client,id));
+          if(request.method==='POST'&&id&&action){
+            const identity=await requestBody(request) as import('./dispatch-control.ts').ExecutionIdentity;
+            if(identity?.requestId!==id)throw new ActionError('Request path binding mismatch','invalid_input');
+            return json(response,200,await (action==='dispatch'?dispatchControl.dispatch(client,identity):dispatchControl.stop(client,identity)));
+          }
+          return json(response,405,{error:'Method not allowed'});
+        }
         const resultRoute = /^\/api\/connect\/v1\/work-orders\/([0-9a-f-]{36})\/runs\/([0-9a-f-]{36})\/result$/.exec(pathname);
         if (request.method === "GET" && resultRoute) {
           const order = storage.getWorkOrder(resultRoute[1]);
@@ -271,7 +288,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
           return json(response, 200, producer.read(run));
         }
         if (request.method === "GET" && pathname === "/api/connect/v1/actions") {
-          return json(response, 200, { client: client.id, actions: client.actions.map((name) => actionRegistry[name as keyof typeof actionRegistry]) });
+          return json(response, 200, { client: client.id, actions: client.actions.map((name) => actionRegistry[name as keyof typeof actionRegistry]).filter(Boolean), controls:client.actions.filter(name=>name.startsWith("factory.")), execution:dispatchControl?.executionAvailability()??{mode:"DISABLED",spendEnforced:false} });
         }
         if (request.method === "GET" && pathname === "/api/connect/v1/work-orders") {
           return json(response, 200, { workOrders: storage.listWorkOrders().filter((order) => canAccessRepository(client, order.repositoryPath)) });

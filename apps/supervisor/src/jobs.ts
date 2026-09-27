@@ -17,6 +17,7 @@ interface ActiveJob {
   done: Promise<void> | null;
   model: string;
   preflight: Awaited<ReturnType<typeof preflightCodex>> | null;
+  prepareOnly?: boolean;
 }
 
 export interface JobDependencies {
@@ -113,6 +114,9 @@ export class JobManager {
     for (const order of this.storage.listWorkOrders()) {
       for (const run of this.storage.listRuns(order.id)) {
         if (!["planning", "implementing", "verifying"].includes(run.state)) continue;
+        const managedEvents=this.storage.listEvents(order.id);
+        if (managedEvents.some(e=>e.runId===run.id && e.type==='run.prepared') &&
+            !managedEvents.some(e=>e.runId===run.id && e.type==='factory.dispatch_claimed')) continue;
         const processEvent = this.storage.listEvents(order.id)
           .filter((event) => event.runId === run.id && event.type === "agent.process_started")
           .at(-1);
@@ -166,6 +170,14 @@ export class JobManager {
   }
 
   async startRun(workOrder: WorkOrder): Promise<Run> {
+    if(this.storage.listEvents(workOrder.id).some(e=>e.type==='factory.prepare_requested'))
+      throw new ActionError('Managed Factory Work requires its exact bound dispatch', 'managed_dispatch_required',409);
+    return this.initialize(workOrder,false);
+  }
+
+  async prepareRun(workOrder: WorkOrder): Promise<Run> { return this.initialize(workOrder,true); }
+
+  private async initialize(workOrder: WorkOrder,prepareOnly:boolean): Promise<Run> {
     if (this.#active) throw new ActionError("Another run is already active", "concurrency_limit", 409);
     workOrder = structuredClone(workOrder);
     this.#clearRecoveryHold(workOrder);
@@ -177,19 +189,46 @@ export class JobManager {
       done: null,
       model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
       preflight: null,
+      prepareOnly,
     };
     this.#active = active;
     const started = this.#initializeRun(workOrder, active);
     active.done = started.then((run) => {
       active.runId = run.id;
-      return this.#execute(workOrder, run, active);
+      return prepareOnly ? undefined : this.#execute(workOrder, run, active);
     }).catch(() => {
       // The caller receives initialization errors through `started`.
     }).finally(() => {
       if (this.#active === active) this.#active = null;
     });
-    return started;
+    const run=await started;
+    if(prepareOnly) await active.done;
+    return run;
   }
+
+  /** Called only after the connection service atomically claims this exact attempt. */
+  executePrepared(workOrder:WorkOrder,run:Run,claim:()=>boolean):boolean {
+    if(this.#active) throw new ActionError('Another run is active','concurrency_limit',409);
+    if(!this.producer?.snapshot(run)) throw new ActionError('Prepared execution snapshot missing','binding_missing',409);
+    const active:ActiveJob={workOrderId:workOrder.id,runId:run.id,controller:new AbortController(),reason:null,done:null,
+      model:this.producer.snapshot(run)!.configuration.model,preflight:null};
+    if(!claim()) return false;
+    this.#active=active;
+    const bound=this.storage.listEvents(workOrder.id).find(e=>e.type==='factory.writer_bound');
+    const remaining=Date.parse(String(bound?.payload.deadline))-Date.now();
+    const timer=setTimeout(()=>{active.reason='user_cancel';active.controller.abort();},Math.max(0,remaining));
+    timer.unref();
+    active.done=this.#execute(structuredClone(workOrder),run,active).catch(error=>{
+      this.#event(workOrder.id,run.id,'run.recovery_hold',{reason:message(error),previousState:'unknown'});
+    }).finally(()=>{
+      clearTimeout(timer);
+      this.#event(workOrder.id,run.id,'factory.execution_settled',{runId:run.id});
+      if(this.#active===active)this.#active=null;
+    });
+    return true;
+  }
+
+  activeRun(runId:string):boolean {return this.#active?.runId===runId;}
 
   async #initializeRun(workOrder: WorkOrder, active: ActiveJob): Promise<Run> {
     let workspacePath: string | null = null;
@@ -232,7 +271,7 @@ export class JobManager {
         const event = this.storage.appendEvent({
           workOrderId: workOrder.id,
           runId: run.id,
-          type: "run.started",
+          type: active.prepareOnly ? "run.prepared" : "run.started",
           payload: {
             inputCommit,
             workerProfile: workOrder.workerProfile,
@@ -276,6 +315,7 @@ export class JobManager {
         });
         const reproduction = await this.dependencies.verifyCandidate({
           repositoryPath: run.workspacePath,
+        resourceKey:run.id,
           candidateSha: run.inputCommit,
           commands: [workOrder.reproductionCommand],
           artifactDir: join(artifactDir, "reproduction"),
@@ -402,6 +442,7 @@ export class JobManager {
         : workOrder.checkCommands);
       const verification = await this.dependencies.verifyCandidate({
         repositoryPath: run.workspacePath,
+        resourceKey:run.id,
         candidateSha: candidate.commit,
         commands: verificationCommands,
         artifactDir: join(artifactDir, "verification"),

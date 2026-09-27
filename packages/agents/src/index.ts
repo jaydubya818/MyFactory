@@ -318,7 +318,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
   } finally {
     clearTimeout(timeoutTimer);
     // The CLI may exit before one of its descendants. Reap the remaining group.
-    if (termination) signalProcessGroup(child, "SIGKILL");
+    signalProcessGroup(child, "SIGKILL");
     if (hardKillTimer) clearTimeout(hardKillTimer);
     options.signal?.removeEventListener("abort", abortHandler);
     await Promise.all([eventsFile.close(), stderrFile.close()]);
