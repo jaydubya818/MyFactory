@@ -1,6 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { getToken } from "@vercel/connect";
-import { getVercelOidcToken } from "@vercel/oidc";
 import type { FactoryEvent, LinearLink, WorkOrder, ConnectionStatus } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 
@@ -43,6 +41,9 @@ export async function linearAuthorization(options: LinearOptions): Promise<strin
   if (options.apiKey) return options.apiKey;
   try {
     if (options.authorization) return await options.authorization();
+    const [{ getToken }, { getVercelOidcToken }] = await Promise.all([
+      import("@vercel/connect"), import("@vercel/oidc"),
+    ]);
     const identity = await getVercelOidcToken({ project: options.vercelProjectId,
       team: options.vercelTeamId, expirationBufferMs: 60_000 });
     const token = await getToken(options.connector!, { subject: { type: "app" }, scopes: ["read", "write"] },
