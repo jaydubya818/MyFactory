@@ -1,0 +1,78 @@
+{
+  "repository": "myfactory",
+  "source": "7591e521db55681e018e5e4aca3a286611059ce2",
+  "branch": "main",
+  "origin": "https://github.com/jaydubya818/MyFactory.git",
+  "freshRemoteClone": true,
+  "cases": [
+    {
+      "name": "install",
+      "command": [
+        "npm",
+        "ci",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "exitCode": 0,
+      "seconds": 0.72
+    },
+    {
+      "name": "test",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "exitCode": 0,
+      "seconds": 16.77
+    },
+    {
+      "name": "types",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exitCode": 0,
+      "seconds": 1.72
+    },
+    {
+      "name": "producer-types",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:producer"
+      ],
+      "exitCode": 0,
+      "seconds": 1.01
+    },
+    {
+      "name": "governance",
+      "command": [
+        "npm",
+        "run",
+        "check:producer-governance"
+      ],
+      "exitCode": 0,
+      "seconds": 0.68
+    },
+    {
+      "name": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exitCode": 0,
+      "seconds": 2.63
+    },
+    {
+      "name": "migrations",
+      "command": [
+        "node",
+        "docs/consolidation/qualification/migration-probe.mjs"
+      ],
+      "exitCode": 0,
+      "seconds": 0.17
+    }
+  ]
+}

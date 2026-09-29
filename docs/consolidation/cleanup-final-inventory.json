@@ -1,0 +1,223 @@
+{
+  "root": "/private/tmp/canonical-consolidation-myfactory",
+  "main": "7591e521db55681e018e5e4aca3a286611059ce2",
+  "worktrees": [
+    {
+      "worktree": "/Users/jaywest/Documents/ChatGPT/MyFactory",
+      "HEAD": "454a49064d52a6f3cf7a92a418cd70dda035bf1c",
+      "branch": "refs/heads/codex/q37-gate-c",
+      "exists": true,
+      "dirtyPaths": 1,
+      "dirty": true,
+      "uniqueCommits": 6,
+      "disposition": "KEEP_DIRTY_OR_INACCESSIBLE"
+    },
+    {
+      "worktree": "/private/tmp/canonical-consolidation-myfactory",
+      "HEAD": "7591e521db55681e018e5e4aca3a286611059ce2",
+      "branch": "refs/heads/codex/canonical-consolidation",
+      "exists": true,
+      "dirtyPaths": 0,
+      "dirty": false,
+      "uniqueCommits": 0,
+      "disposition": "REMOVE_TASK_OWNED_AFTER_FINAL_COMMIT"
+    },
+    {
+      "worktree": "/private/tmp/myfactory-workorder-e2e-data/workspaces/15d992ec-0582-4244-ba72-d3e852dbdca7",
+      "HEAD": "37c71fdbe30661adfd9371dd0096b8da74e138b1",
+      "detached": "",
+      "prunable": "gitdir file points to non-existent location",
+      "exists": false,
+      "dirty": "MISSING_REGISTRATION",
+      "uniqueCommits": 1,
+      "disposition": "PRUNE_STALE_REGISTRATION_ONLY"
+    },
+    {
+      "worktree": "/private/tmp/myfactory-workorder-e2e-data/workspaces/3f678992-6a69-46c7-b568-3a12914e7e05",
+      "HEAD": "eb67370161bd110dd48355e87c8511430ce0d064",
+      "detached": "",
+      "prunable": "gitdir file points to non-existent location",
+      "exists": false,
+      "dirty": "MISSING_REGISTRATION",
+      "uniqueCommits": 1,
+      "disposition": "PRUNE_STALE_REGISTRATION_ONLY"
+    },
+    {
+      "worktree": "/Users/jaywest/.codex/worktrees/digital-worker-factory/MyFactory",
+      "HEAD": "d9564beef41590c3700069ec340d926db23b7ba7",
+      "branch": "refs/heads/codex/digital-worker-factory",
+      "exists": true,
+      "dirtyPaths": 0,
+      "dirty": false,
+      "uniqueCommits": 0,
+      "disposition": "KEEP_MANAGED_OTHER_CHAT"
+    },
+    {
+      "worktree": "/Users/jaywest/.codex/worktrees/private-alpha-myfactory/MyFactory",
+      "HEAD": "925530a6ba8764df6a7b8637192fe32edcbaff97",
+      "branch": "refs/heads/codex/private-alpha-myfactory",
+      "exists": true,
+      "dirtyPaths": 0,
+      "dirty": false,
+      "uniqueCommits": 0,
+      "disposition": "KEEP_MANAGED_OTHER_CHAT"
+    },
+    {
+      "worktree": "/Users/jaywest/.codex/worktrees/q37-producer-attestation/MyFactory",
+      "HEAD": "fcd8afd6fbaa2b9045b9e9700608d546edf011a9",
+      "branch": "refs/heads/codex/q37-producer-attestation",
+      "exists": true,
+      "dirtyPaths": 0,
+      "dirty": false,
+      "uniqueCommits": 0,
+      "disposition": "KEEP_MANAGED_OTHER_CHAT"
+    }
+  ],
+  "refs": [
+    {
+      "ref": "refs/heads/codex/canonical-consolidation",
+      "name": "codex/canonical-consolidation",
+      "sha": "7591e521db55681e018e5e4aca3a286611059ce2",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "CANONICAL_INPUT",
+      "reason": "Task-owned integration checkpoint; not yet final qualified canonical source."
+    },
+    {
+      "ref": "refs/heads/codex/digital-worker-factory",
+      "name": "codex/digital-worker-factory",
+      "sha": "d9564beef41590c3700069ec340d926db23b7ba7",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "ALREADY_CONTAINED",
+      "reason": "Exact ancestry containment in consolidation candidate; cleanup still gated."
+    },
+    {
+      "ref": "refs/heads/codex/local-factory",
+      "name": "codex/local-factory",
+      "sha": "543906dc20fefed2def97e43953095ea0b7c60bc",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "UNIQUE_WORK_TO_INTEGRATE",
+      "reason": "Preview cache preparation and timeout fix from 1015367 cherry-picked as cf3c086; final qualification and canonical publication pending."
+    },
+    {
+      "ref": "refs/heads/codex/private-alpha-myfactory",
+      "name": "codex/private-alpha-myfactory",
+      "sha": "925530a6ba8764df6a7b8637192fe32edcbaff97",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "CANONICAL_INPUT",
+      "reason": "925530a reconstructed producer integrated directly. Keep producer source while final Beta consumes it and canonical post-merge qualification is pending."
+    },
+    {
+      "ref": "refs/heads/codex/q37-gate-c",
+      "name": "codex/q37-gate-c",
+      "sha": "454a49064d52a6f3cf7a92a418cd70dda035bf1c",
+      "uniqueCommits": 6,
+      "disposition": "KEEP",
+      "priorClassification": "SUPERSEDED",
+      "reason": "Historical hosted-return prototype reports PARTIAL protocol/schema reconciliation. Canonical producer uses immutable attestation/result protocol from fcd8afd and V2 successor; preserve evidence."
+    },
+    {
+      "ref": "refs/heads/codex/q37-producer-attestation",
+      "name": "codex/q37-producer-attestation",
+      "sha": "fcd8afd6fbaa2b9045b9e9700608d546edf011a9",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "ALREADY_CONTAINED",
+      "reason": "Exact ancestry containment in consolidation candidate; cleanup still gated."
+    },
+    {
+      "ref": "refs/remotes/origin/HEAD",
+      "name": "HEAD",
+      "sha": "7591e521db55681e018e5e4aca3a286611059ce2",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "CANONICAL_INPUT",
+      "reason": "Actual origin default branch is main; preserve canonical checkout, including local divergence."
+    },
+    {
+      "ref": "refs/remotes/origin/codex/canonical-consolidation",
+      "name": "codex/canonical-consolidation",
+      "sha": "7591e521db55681e018e5e4aca3a286611059ce2",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "CANONICAL_INPUT",
+      "reason": "Task-owned integration checkpoint; not yet final qualified canonical source."
+    },
+    {
+      "ref": "refs/remotes/origin/codex/connected-execution-control",
+      "name": "codex/connected-execution-control",
+      "sha": "c1c9cd49b5b974dc343cacecf1bd1411b01885e7",
+      "uniqueCommits": 3,
+      "disposition": "KEEP",
+      "priorClassification": "SUPERSEDED",
+      "reason": "Earlier ConnectedExecutionControl/tables replaced by exact prepared FactoryDispatchControl and retained Work event state in d9564be/925530a. Do not combine competing dispatch stores."
+    },
+    {
+      "ref": "refs/remotes/origin/codex/digital-worker-factory",
+      "name": "codex/digital-worker-factory",
+      "sha": "d9564beef41590c3700069ec340d926db23b7ba7",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "ALREADY_CONTAINED",
+      "reason": "Exact ancestry containment in consolidation candidate; cleanup still gated."
+    },
+    {
+      "ref": "refs/remotes/origin/codex/hard-work-spend",
+      "name": "codex/hard-work-spend",
+      "sha": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
+      "uniqueCommits": 0,
+      "disposition": "DELETE_PROVEN_OBSOLETE",
+      "priorClassification": "ALREADY_CONTAINED",
+      "reason": "Exact main ancestry; inventory identified obsolete; no existing worktree uses branch."
+    },
+    {
+      "ref": "refs/remotes/origin/codex/local-factory",
+      "name": "codex/local-factory",
+      "sha": "101536750b195ddebde9cae694894b0659a0abf4",
+      "uniqueCommits": 1,
+      "disposition": "KEEP",
+      "priorClassification": "UNIQUE_WORK_TO_INTEGRATE",
+      "reason": "Preview cache preparation and timeout fix from 1015367 cherry-picked as cf3c086; final qualification and canonical publication pending."
+    },
+    {
+      "ref": "refs/remotes/origin/codex/private-alpha-myfactory",
+      "name": "codex/private-alpha-myfactory",
+      "sha": "925530a6ba8764df6a7b8637192fe32edcbaff97",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "CANONICAL_INPUT",
+      "reason": "925530a reconstructed producer integrated directly. Keep producer source while final Beta consumes it and canonical post-merge qualification is pending."
+    },
+    {
+      "ref": "refs/remotes/origin/codex/q37-gate-c",
+      "name": "codex/q37-gate-c",
+      "sha": "454a49064d52a6f3cf7a92a418cd70dda035bf1c",
+      "uniqueCommits": 6,
+      "disposition": "KEEP",
+      "priorClassification": "SUPERSEDED",
+      "reason": "Historical hosted-return prototype reports PARTIAL protocol/schema reconciliation. Canonical producer uses immutable attestation/result protocol from fcd8afd and V2 successor; preserve evidence."
+    },
+    {
+      "ref": "refs/remotes/origin/codex/q37-producer-attestation",
+      "name": "codex/q37-producer-attestation",
+      "sha": "fcd8afd6fbaa2b9045b9e9700608d546edf011a9",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "ALREADY_CONTAINED",
+      "reason": "Exact ancestry containment in consolidation candidate; cleanup still gated."
+    },
+    {
+      "ref": "refs/remotes/origin/main",
+      "name": "main",
+      "sha": "7591e521db55681e018e5e4aca3a286611059ce2",
+      "uniqueCommits": 0,
+      "disposition": "KEEP",
+      "priorClassification": "CANONICAL_INPUT",
+      "reason": "Actual origin default branch is main; preserve canonical checkout, including local divergence."
+    }
+  ],
+  "at": "2026-09-29T20:10:28.289733+00:00"
+}

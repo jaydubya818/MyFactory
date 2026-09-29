@@ -1,7 +1,7 @@
 # Current qualification evidence
 
-Reviewed source: `d2e19e286bc7462a36d2bf0009e37de3255831c1`. [Independent review](INDEPENDENT-REVIEW.md): PASS. Workspace tests 134 PASS / 1 opt-in skip; general/producer types, governance UNKNOWN=0 and build PASS. Populated SQLite v6/v7-to-v8 upgrades and replay PASS. Installed CLI controlled producer qualification passes; real provider NOT_RUN.
+[Canonical receipt](CANONICAL-RECEIPT.json): PASS at `7591e521db55681e018e5e4aca3a286611059ce2`. [Fresh-clone command report](qualification/canonical-main/report.json) proves independent lockfile install, tests, types/governance, migration and build from remote main. MyEve additionally records canonical-postmerge-controlled-checks.json, extra-report.json, browser/business-browser.json and the complete canonical-postmerge Golden evidence under qualification/canonical-main/.
 
-The `qualification/` directory preserves timestamped attempts. For MyEve, `review-successor-*` resolves the intermediate scope/stage2 failures; `canonical-premerge-*` is the full post-review suite. The final CANONICAL-RECEIPT.json points to exact post-merge remote source and fresh-clone evidence. Older logs do not become current merely because they are retained.
+[Independent review](INDEPENDENT-REVIEW.md): PASS. Relay protected PR29 and hosted quality passed before merge. Final audit descendants contain documentation/evidence only. Earlier qualification attempts remain historical, including resolved negative/failing attempts. Fixture PASS is never relabeled live PASS.
 
-Component UX evidence includes Product Expansion 32 browser checks / 136 accessibility scans and canonical API/UI checks; shared scope adds real signed A/B browser checks. Fixture PASS is never relabeled live PASS. Production deployment and real provider execution remain NOT_RUN.
+[Cleanup receipt](CLEANUP-RECEIPT.json), exact remote/worktree manifests and branch inventory preserve what was removed or retained. Remote deletion is pending final approval. Release tags identify the final canonical audit tips.

@@ -1,0 +1,34 @@
+{
+  "recordedAt": "2026-09-29T20:17:00.299187+00:00",
+  "status": "PASS_CANONICAL_SOURCE",
+  "canonicalBranch": "main",
+  "qualifiedCanonicalSHA": "7591e521db55681e018e5e4aca3a286611059ce2",
+  "allQualifiedCanonicalSources": {
+    "myeve": "1dbe3d31ba3b7cd0b3d3a6bfa30b45119cc78489",
+    "relay": "0feb834594c9b25596653894333306d4770345a3",
+    "myfactory": "7591e521db55681e018e5e4aca3a286611059ce2"
+  },
+  "freshRemoteClone": true,
+  "lockfileInstall": "PASS",
+  "tests": "PASS",
+  "typesGovernanceBuild": "PASS",
+  "migrations": "PASS",
+  "independentReview": "PASS",
+  "twoOwnerScopes": "PASS",
+  "controlledWholeProductGolden": "PASS_WITH_PARTIAL_RESULT",
+  "observedSafetyCounters": 0,
+  "realProviderCalls": 0,
+  "manualProductionDeployment": "NOT_RUN",
+  "repositoryAutomation": "Existing MyEve and Relay Vercel Preview checks ran automatically; MyEve deployment API identifies Preview, production_environment=false. Live acceptance is not established.",
+  "cleanup": {
+    "canonicalMain": "7591e521db55681e018e5e4aca3a286611059ce2",
+    "localBranchesDeleted": [],
+    "remoteBranchesDeleted": [],
+    "staleRegistrationsPruned": 2,
+    "recoveryRefsCreated": [],
+    "recoveryBundle": "/Users/jaywest/Myeve/output/canonical-main-qualification-20260929/myfactory-pre-cleanup.bundle"
+  },
+  "remoteDeletion": "WAITING_EXACT_MANIFEST_APPROVAL",
+  "primaryCheckouts": "Dirty original primary checkouts preserved unchanged. Use the fresh canonical clones; local primary main refs were not rewritten.",
+  "scope": "Later documentation/evidence-only commits preserve this exact qualified runtime. Resolve the release tag and final external cross-repository manifest for the final audit tip."
+}

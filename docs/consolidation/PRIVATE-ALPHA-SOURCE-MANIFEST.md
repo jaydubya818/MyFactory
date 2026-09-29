@@ -1,19 +1,17 @@
 # Private-alpha source manifest
 
-Independent review **PASS**. These exact reviewed source pins are the accepted baseline; later documentation/evidence descendants are identified by remote `main` and the final canonical receipt. Canonical fresh-clone validation remains a separate gate until its receipt is recorded.
+**Canonical source baseline READY; independent review and fresh-clone qualification PASS.**
 
-| Repository | Reviewed implementation and evidence candidate | Migration head |
+| Repository | Exact qualified remote main source | Migration head |
 |---|---|---|
-| MyEve | `2f70ab3c6eb9e31b3a16525a57b2e701144c3c93` | 0071; 67 files (0058–0061 reserved), immutable legacy ledger bridge |
-| Relay | `aaa10405afb89a41624b081a40c0282b70697e8b` | 0028; 29 Drizzle entries |
-| MyFactory | `d2e19e286bc7462a36d2bf0009e37de3255831c1` | SQLite v8 |
+| myeve | `1dbe3d31ba3b7cd0b3d3a6bfa30b45119cc78489` | 0071 (67 files) |
+| relay | `0feb834594c9b25596653894333306d4770345a3` | 0028 (29 entries) |
+| myfactory | `7591e521db55681e018e5e4aca3a286611059ce2` | SQLite v8 |
 
-Accepted inputs: Beta `52b3891a2685307cbb50bba97680070700df4cc0`, Q37 `cf83e3bec6f02ca812b2e08e04c188eaa271bede` through Beta, selectively integrated Product Expansion code `9caacf60c6affae48f3cdaadfd3ecd7ca50dd0c2`. Late Product handoff `52141ba7d73bdc07f4ceff001b9dfccc5cae40c9` changes documentation/evidence only; its apps/eve tree is byte-identical to that accepted code pin.
+Clone these exact commits for the reproducible qualified baseline. Final audit descendants change documentation/evidence only and are identified by the private-alpha milestone tags and the final cross-repository handoff. No feature worktree is required. CANONICAL-RECEIPT.json and qualification/canonical-main/ contain exact source/command/environment receipts.
 
-MyFactory lost `efe9e856f8fffbdb785497444a08d39e54d8f78d` is historical evidence only. Durable `925530a6ba8764df6a7b8637192fe32edcbaff97` is a reconstruction, not byte-equivalent recovery. Its reviewed successor above is the canonical producer. Runtime must use an explicit clean checkout of canonical MyFactory, never a feature worktree or lost source.
+Accepted inputs and late documentation-only handoff are recorded in SOURCE-UPDATES.md and the integration crosswalk. MyFactory925530a reconstruction is durable; lost efe9e856 remains historical evidence only and is never a build dependency.
 
-Two-owner scope is implemented and qualified: owner-private defaults; explicit business grants; bounded Work context; no automatic promotion or credential sharing. Our business is the shared-context interface. Legacy deployment services remain primary-owner-only; optional Rooms, business specialists and business-owned connections are deferred.
+Private owner context, explicit business resources, bounded Work context and credential isolation are qualified. The controlled Golden Journey passes with truthful PARTIAL Result/Proof where external publication/acceptance is absent. Live provider and production acceptance gates remain unrun. Existing repository hooks may create Preview deployments automatically; no manual production deployment was initiated.
 
-Controlled whole-product tests PASS while Result/Proof classification remains **PARTIAL**: local verification is not hosted CI, publication, deployment or owner acceptance. Real-provider calls and production deployment are NOT_RUN and require their separate launch authorization.
-
-See CANONICAL-STATUS.md, INDEPENDENT-REVIEW.md, SHARED-SCOPE-IMPLEMENTATION.md (MyEve), migration reconciliation and qualification evidence. Final exact remote main SHAs, fresh-clone results and cleanup receipts are recorded in CANONICAL-RECEIPT.json after execution.
+Cleanup: obsolete local branches and stale registrations removed; remote deletion awaits exact manifest approval. Dirty original primary checkouts and other-chat managed/unique/inaccessible worktrees remain intact. Weekly read-only hygiene is scheduled for Monday09:00 America/Los_Angeles.
