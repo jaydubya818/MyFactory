@@ -18,6 +18,7 @@ import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
 import { FactoryDispatchControl } from "./dispatch-control.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
+import { PRIVATE_ALPHA_MODEL, type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
@@ -138,6 +139,8 @@ function artifactText(dataDir: string, candidate: unknown): string | null {
 }
 
 export interface SupervisorOptions {
+  /** Explicit trusted-host activation; never accepted from an HTTP request. */
+  realProvider?: RealProviderConfig;
   resultSigning?: ProducerOptions;
   dataDir?: string;
   webDist?: string;
@@ -168,7 +171,17 @@ async function confirmHumanPresence(request: Parameters<NonNullable<ActionContex
 }
 
 export function createSupervisor(options: SupervisorOptions = {}) {
+  if(options.realProvider){
+    validateRealProvider(options.realProvider);
+    if(options.localFactoryFixture||options.localSpendFixture||options.jobDependencies||options.startRun||options.cancelRun||options.publishDraft||options.confirmHumanPresence)
+      throw new Error('Real private-alpha execution cannot use fixture dependencies or overridden authority');
+    if(process.env.FACTORY_CODEX_MODEL&&process.env.FACTORY_CODEX_MODEL!==PRIVATE_ALPHA_MODEL)
+      throw new Error('Factory model differs from the pinned private-alpha provider');
+  }
   const dataDir = resolve(options.dataDir ?? process.env.FACTORY_DATA_DIR ?? defaultDataDir);
+  const signing = options.resultSigning ?? producerOptions(dataDir);
+  if(options.realProvider&&!signing)throw new Error('Private-alpha result signing must be provisioned before activation');
+  const realProvider=options.realProvider?loadRealProvider(options.realProvider):undefined;
   const webDist = resolve(options.webDist ?? defaultWebDist);
   const token = sessionToken(dataDir);
   const storage = openStorage(resolve(dataDir, "factory.sqlite"));
@@ -195,16 +208,15 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     }
     if (listeners.size === 0) subscribers.delete(event.workOrderId);
   };
-  const signing = options.resultSigning ?? producerOptions(dataDir);
   const producer = signing ? new ProducerResults(storage, dataDir, signing) : undefined;
-  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer);
+  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer,realProvider?.price.model);
   const fixtureDependencies=!!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate;
   if(options.localFactoryFixture&&options.localSpendFixture)throw new Error('Fixture modes are mutually exclusive');
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
   if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
     throw new Error('Local spend fixture must target loopback only');
   const dispatchControl=producer?new FactoryDispatchControl(storage,jobs,producer,spend,
-    options.localFactoryFixture === true && fixtureDependencies,options.localSpendFixture):null;
+    options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture,!!realProvider):null;
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
     const link = storage.getLinearLink(order.id);

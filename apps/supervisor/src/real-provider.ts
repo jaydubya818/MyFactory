@@ -13,6 +13,17 @@ export interface RealProviderConfig {
  price:SpendPrice;
 }
 
+export function validateRealProvider(config:RealProviderConfig):void {
+ if(!config||Object.keys(config).sort().join(',')!=='endpoint,mode,model,price,secretRef'||
+  config.mode!=='OPENAI_RESPONSES_PRIVATE_ALPHA'||config.endpoint!==PRIVATE_ALPHA_ENDPOINT||
+  config.model!==PRIVATE_ALPHA_MODEL||config.secretRef!==PRIVATE_ALPHA_SECRET_REF||
+  !config.price||config.price.model!==PRIVATE_ALPHA_MODEL)
+  throw new Error('Private-alpha provider configuration is unqualified');
+ validatePrice(config.price);
+ if(config.price.contextLimitTokens>400000||config.price.outputLimitTokens>8192)
+  throw new Error('Private-alpha provider limits exceed the reviewed envelope');
+}
+
 function keychainSecret():string {
  try {
   const secret=execFileSync('/usr/bin/security',[
@@ -26,11 +37,7 @@ function keychainSecret():string {
 /** Explicit loader only. The supervisor does not activate paid mode by default. */
 export function loadRealProvider(config:RealProviderConfig, readSecret:()=>string=keychainSecret):
  {upstreamOrigin:string;upstreamApiKey:string;price:SpendPrice} {
- if(!config||config.mode!=='OPENAI_RESPONSES_PRIVATE_ALPHA'||
-  config.endpoint!==PRIVATE_ALPHA_ENDPOINT||config.model!==PRIVATE_ALPHA_MODEL||
-  config.secretRef!==PRIVATE_ALPHA_SECRET_REF||!config.price||config.price.model!==PRIVATE_ALPHA_MODEL)
-  throw new Error('Private-alpha provider configuration is unqualified');
- validatePrice(config.price);
+ validateRealProvider(config);
  let secret:string;
  try{secret=readSecret();}catch{throw new Error('Private-alpha Keychain credential unavailable');}
  if(typeof secret!=='string'||!/^sk-[A-Za-z0-9_-]{20,}$/.test(secret))

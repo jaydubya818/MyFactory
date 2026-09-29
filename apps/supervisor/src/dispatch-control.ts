@@ -41,14 +41,16 @@ export class FactoryDispatchControl {
  private readonly producer:ProducerResults;
  private readonly spend:SpendLedger;
  private readonly localFixture:boolean;
+ private readonly live:boolean;
  private readonly spendFixture?:{upstreamOrigin:string;upstreamApiKey:string;price:SpendPrice};
  constructor(storage:FactoryStorage,jobs:JobManager,producer:ProducerResults,spend:SpendLedger,localFixture=false,
-  spendFixture?:{upstreamOrigin:string;upstreamApiKey:string;price:SpendPrice}){
+  spendFixture?:{upstreamOrigin:string;upstreamApiKey:string;price:SpendPrice},live=false){
   this.localFixture=localFixture;this.storage=storage;this.jobs=jobs;this.producer=producer;this.spend=spend;this.spendFixture=spendFixture;
+  this.live=live;
  }
- executionAvailability(){return {mode:this.localFixture?'LOCAL_FIXTURE':this.spendFixture?'LOCAL_SPEND_FIXTURE':'DISABLED',
+ executionAvailability(){return {mode:this.live?'LIVE':this.localFixture?'LOCAL_FIXTURE':this.spendFixture?'LOCAL_SPEND_FIXTURE':'DISABLED',
   spendEnforced:this.localFixture||!!this.spendFixture,reason:this.localFixture?'Backend-injected zero-cost fixture':
-   this.spendFixture?'Loopback synthetic provider fixture; live paid execution remains disabled':'Paid Codex gateway routing is not live-qualified'};}
+   this.live?'Explicit private-alpha provider; every call requires bounded Work admission':this.spendFixture?'Loopback synthetic provider fixture; live paid execution remains disabled':'Paid Codex gateway routing is not live-qualified'};}
  private authorize(client:FactoryClient,action:string){if(!client.actions.includes(action))throw new ActionError('Factory control action is not granted','forbidden',403);}
  private record(client:FactoryClient,requestId:string){
   const intake=this.storage.getIntake('gateb:'+client.id,requestId);
@@ -70,6 +72,10 @@ export class FactoryDispatchControl {
    !(Date.parse(input.deadline)>Date.now()&&Date.parse(input.deadline)<=Date.now()+3600000))
    throw new ActionError('Bounded exact preparation required','invalid_input');
   let plan:SpendPlan|undefined;
+  if(this.live&&(!input.spendContract||input.maxSpendUsd>1.35||Date.parse(input.deadline)>Date.now()+600000||
+    input.spendContract.maxPaidOperations>4||input.spendContract.plannedProductiveOperations>3||
+    input.spendContract.plannedCompletionOperations!==1))
+   throw new ActionError('Private-alpha Work requires at most $1.35, 600 seconds, three productive operations and one protected completion','alpha_limits',409);
   if(input.spendContract){
    const c=input.spendContract;
    if(!this.spendFixture||Object.keys(c).sort().join(',')!=='completionReserveMicrousd,maxPaidOperations,plannedCompletionOperations,plannedProductiveOperations,pricingRevision,version'||
@@ -215,7 +221,7 @@ export class FactoryDispatchControl {
    evidenceRef:quiescent?'factory-event:'+data.order.id+':terminal':null,
    spend:this.localFixture?{status:'KNOWN',ceilingUsd:0,reason:'Backend-injected local fixture; no paid provider'}:
     {...this.spend.read(data.request.workId),reason:this.spendFixture?
-     'Loopback synthetic provider only; live paid execution disabled':'Live paid execution disabled'},
+     this.live?'Real provider through the bounded Work ledger':'Loopback synthetic provider only; live paid execution disabled':'Live paid execution disabled'},
    blocker:quiescent?null:state==='UNKNOWN'?'Exact process/verifier reconciliation required':null};
  }
 }

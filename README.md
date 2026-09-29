@@ -1,5 +1,7 @@
 # Local Software Factory
 
+[Private-alpha activation candidate](docs/private-alpha/README.md): explicit real-provider startup is prepared; live qualification remains NOT_RUN.
+
 <!-- CANONICAL-CONSOLIDATION-STATUS -->
 **Private-alpha canonical `main`: independent review and fresh-clone qualification PASS.** The [current status](docs/consolidation/CANONICAL-STATUS.md), [source manifest](docs/consolidation/PRIVATE-ALPHA-SOURCE-MANIFEST.md), and final canonical receipt identify exact source and qualification. MyEve supports explicit private, shared-business and Work-scoped context for two partners. Controlled verification is qualified; live providers and deployment remain separate gates. [Development/migration policy](docs/consolidation/DEVELOPMENT-POLICY.md).
 <!-- /CANONICAL-CONSOLIDATION-STATUS -->

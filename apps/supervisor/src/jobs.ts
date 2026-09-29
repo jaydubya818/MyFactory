@@ -64,6 +64,7 @@ export class JobManager {
   private readonly notify: (event: FactoryEvent) => void;
   private readonly dependencies: JobDependencies;
   private readonly producer: ProducerResults | undefined;
+  private readonly pinnedModel: string | undefined;
 
   constructor(
     storage: FactoryStorage,
@@ -71,12 +72,14 @@ export class JobManager {
     notify: (event: FactoryEvent) => void,
     dependencies: Partial<JobDependencies> = {},
     producer?: ProducerResults,
+    pinnedModel?: string,
   ) {
     this.storage = storage;
     this.dataDir = dataDir;
     this.notify = notify;
     this.dependencies = { ...defaultDependencies, ...dependencies };
     this.producer = producer;
+    this.pinnedModel = pinnedModel;
     this.#recoverInterrupted();
   }
 
@@ -194,7 +197,7 @@ export class JobManager {
       controller: new AbortController(),
       reason: null,
       done: null,
-      model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
+      model: this.pinnedModel ?? process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
       preflight: null,
       prepareOnly,
     };

@@ -1,0 +1,15 @@
+{
+  "mode": "OPENAI_RESPONSES_PRIVATE_ALPHA",
+  "endpoint": "https://api.openai.com/v1/responses",
+  "model": "gpt-5.4-mini-2026-03-17",
+  "secretRef": "keychain://com.myeve.myfactory.q37/openai-provider",
+  "price": {
+    "revision": "openai-standard-20260929",
+    "model": "gpt-5.4-mini-2026-03-17",
+    "validUntil": "2026-09-30T23:59:59Z",
+    "contextLimitTokens": 400000,
+    "outputLimitTokens": 8192,
+    "inputMicrousdPerMillion": 750000,
+    "outputMicrousdPerMillion": 4500000
+  }
+}
