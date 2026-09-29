@@ -1,13 +1,7 @@
-# Current qualification index
+# Current qualification evidence
 
-Implementation checkpoint `6e164ca2f3c58a7bf2d0c905c0908dfea0ceadf9`; current status is [CANONICAL-STATUS.md](CANONICAL-STATUS.md).
+Reviewed source: `d2e19e286bc7462a36d2bf0009e37de3255831c1`. [Independent review](INDEPENDENT-REVIEW.md): PASS. Workspace tests 134 PASS / 1 opt-in skip; general/producer types, governance UNKNOWN=0 and build PASS. Populated SQLite v6/v7-to-v8 upgrades and replay PASS. Installed CLI controlled producer qualification passes; real provider NOT_RUN.
 
-- Workspace tests: **134 PASS / 1 opt-in skip**; installed CLI test separately PASS against scripted loopback provider.
-- General/producer typechecks, executor governance (UNKNOWN=0), build and spend/resource V2 negative probes PASS.
-- Fresh/v6→v8/v7→v8 populated upgrades and replay PASS with unchanged historical SQL and existing Work retained.
-- Independent fresh remote-candidate clone repeats tests, producer typecheck, governance and build PASS.
-- MyEve's final combined candidate consumes this exact clean source in the SQLite crosswalk, 16 connected CLI checks and the controlled whole-product journey. Real provider NOT_RUN.
+The `qualification/` directory preserves timestamped attempts. For MyEve, `review-successor-*` resolves the intermediate scope/stage2 failures; `canonical-premerge-*` is the full post-review suite. The final CANONICAL-RECEIPT.json points to exact post-merge remote source and fresh-clone evidence. Older logs do not become current merely because they are retained.
 
-MyEve final-* logs and controlled-check summary supersede the initial failing environment/setup attempts. Initial logs remain historical; no passed component evidence is relabeled as final-system acceptance. Reports identify fixtures, exact producer pins and explicit unrun gates. Historical source dossiers retain their original bytes.
-
-Independent final review PENDING. Post-merge canonical evidence NOT_RUN.
+Component UX evidence includes Product Expansion 32 browser checks / 136 accessibility scans and canonical API/UI checks; shared scope adds real signed A/B browser checks. Fixture PASS is never relabeled live PASS. Production deployment and real provider execution remain NOT_RUN.
