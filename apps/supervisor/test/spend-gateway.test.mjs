@@ -8,7 +8,7 @@ import { openStorage } from '../../../packages/storage/src/index.ts';
 import { SpendLedger } from '../../../packages/storage/src/spend.ts';
 import { SpendGateway, validatePrice } from '../src/spend-gateway.ts';
 
-async function fixture(t, reply, ceiling = 2000) {
+async function fixture(t, reply, ceiling = 4000) {
   const dir = mkdtempSync(join(tmpdir(), 'factory-gateway-'));
   const path = join(dir, 'factory.sqlite'), storage = openStorage(path);
   const order = storage.createWorkOrder({ title: 'Gateway fixture', description: 'Synthetic provider', kind: 'feature',
@@ -18,15 +18,18 @@ async function fixture(t, reply, ceiling = 2000) {
   const ledger = new SpendLedger(path);
   const binding = { workId: 'work-a', workGeneration: 1, dispatchIdentity: 'dispatch-a', requestId: 'request-a',
     workOrderId: order.id, factoryVersion: 'factory-a', runId: run.id };
-  ledger.createBudget(binding, ceiling, new Date(Date.now() + 60_000).toISOString());
   let calls = 0;
   const upstream = createServer(async (req, res) => { calls++; await reply(req, res); });
   await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
   const price = { revision: 'local-v1', model: 'fixture-model', validUntil: new Date(Date.now() + 60_000).toISOString(),
     contextLimitTokens: 1000, outputLimitTokens: 100, inputMicrousdPerMillion: 1_000_000,
     outputMicrousdPerMillion: 2_000_000 };
+  ledger.createBudget(binding, ceiling, new Date(Date.now() + 60_000).toISOString(),
+    {version:'WORK_LEDGER_V2',pricingRevision:price.revision,model:price.model,validUntil:price.validUntil,perOperationReserveMicrousd:1200,
+      plannedProductiveOperations:2,plannedCompletionOperations:1,maxPaidOperations:3,completionReserveMicrousd:1200});
+  ledger.bindAuthority(binding);
   const gateway = new SpendGateway({ ledger, binding, price, upstreamOrigin: `http://127.0.0.1:${upstream.address().port}`,
-    upstreamApiKey: 'provider-secret', childToken: 'a'.repeat(64) });
+    upstreamApiKey: 'provider-secret', childToken: 'a'.repeat(64),phase:'productive' });
   const base = await gateway.listen();
   const call = (body = { model: 'fixture-model', input: 'hello' }, token = 'a'.repeat(64)) =>
     fetch(base + '/responses', { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -61,8 +64,8 @@ test('request is reserved before provider and settles only authoritative usage',
   assert.equal(spend.status, 'KNOWN');
 });
 
-test('unknown provider usage retains reservation and denies over-ceiling retry', async t => {
-  const f = await fixture(t, (_req, res) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"id":"response-1","status":"completed"}'); }, 1500);
+test('UNKNOWN denies a second paid call despite remaining Work headroom', async t => {
+  const f = await fixture(t, (_req, res) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"id":"response-1","status":"completed"}'); });
   assert.equal((await f.call()).status, 503);
   assert.equal(f.ledger.read(f.binding.workId).retainedMicrousd, 1200);
   assert.equal(f.ledger.read(f.binding.workId).status, 'UNKNOWN');
@@ -79,23 +82,26 @@ test('cancelled Work and expired pricing deny before provider', async t => {
   assert.equal(f.ledger.read(f.binding.workId).operations.length, 0);
 });
 
-test('two simultaneous requests cannot reserve more than one Work ceiling', async t => {
+test('concurrent requests cannot exceed the productive operation slot limit', async t => {
   let release;
   const held = new Promise(resolve => { release = resolve; });
   let started;
   const seen = new Promise(resolve => { started = resolve; });
+  let invocation=0;
   const f = await fixture(t, async (_req, res) => {
-    started();
-    await held;
-    res.writeHead(200, { 'content-type': 'application/json', 'x-request-id': 'provider-concurrent' });
+    const n=++invocation;
+    if(n===1){started();await held;}
+    res.writeHead(200, { 'content-type': 'application/json', 'x-request-id': 'provider-concurrent-'+n });
     res.end(JSON.stringify({ status: 'completed', usage: { input_tokens: 10, output_tokens: 10 } }));
-  }, 1500);
+  }, 3600);
   const first = f.call();
   await seen;
   const second = await f.call();
-  assert.equal(second.status, 503);
-  assert.equal(f.calls, 1);
+  assert.equal(second.status, 200);
+  assert.equal(f.calls, 2);
   assert.equal(f.ledger.read(f.binding.workId).retainedMicrousd, 1200);
+  assert.equal((await f.call()).status,503);
+  assert.equal(f.calls,2);
   release();
   assert.equal((await first).status, 200);
 });
@@ -119,6 +125,27 @@ test('missing, stale, or fractional pricing fails closed', () => {
   assert.throws(() => validatePrice({ ...valid, validUntil: '2000-01-01T00:00:00Z' }), /pricing/);
   assert.throws(() => validatePrice({ ...valid, outputMicrousdPerMillion: 0 }), /pricing/);
   assert.throws(() => validatePrice({ ...valid, inputMicrousdPerMillion: 1.25 }), /pricing/);
+});
+
+test('client tool search is metered as part of its model request and hosted search is denied', async t => {
+  let responseNumber=0;
+  const f = await fixture(t, (_req,res)=>{responseNumber++;res.writeHead(200,{'content-type':'application/json','x-request-id':'client-search-'+responseNumber});res.end(JSON.stringify({id:'search-'+responseNumber,status:'completed',usage:{input_tokens:10,output_tokens:10}}));});
+  const clientSearch={type:'tool_search',execution:'client',description:'Discover local tools',parameters:{type:'object'}};
+  for (const tool of [{type:'tool_search'}, {type:'tool_search',execution:'server'},
+    {...clientSearch,extra:'unqualified'}, {type:'web_search'}]) {
+    assert.equal((await f.call({model:'fixture-model',input:'search',tools:[tool]})).status,400);
+  }
+  assert.equal(f.calls,0);
+  assert.equal((await f.call({model:'fixture-model',input:'search',tools:[clientSearch]})).status,200);
+  assert.equal(f.calls,1);
+  assert.equal(f.ledger.read(f.binding.workId).paidOperationsUsed,1);
+  const localOutput={type:'tool_search_output',execution:'client',call_id:'local-1',status:'completed',
+    tools:[{type:'function',name:'lookup',parameters:{type:'object'}}]};
+  assert.equal((await f.call({model:'fixture-model',input:[localOutput],tools:[clientSearch]})).status,200);
+  assert.equal(f.calls,2);
+  assert.equal(f.ledger.read(f.binding.workId).paidOperationsUsed,2);
+  assert.equal((await f.call({model:'fixture-model',input:[localOutput],tools:[clientSearch]})).status,503);
+  assert.equal(f.calls,2);
 });
 
 test('separately charged hosted tools are denied before reservation', async t => {

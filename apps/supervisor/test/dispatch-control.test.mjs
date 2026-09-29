@@ -70,10 +70,11 @@ test('producer deadline aborts execution without a MyEve polling loop',async t=>
 
 test('connected START routes each synthetic model call through exact Work spend gateway',async t=>{
  let providerCalls=0;
+ const gatewayTokens=[];
  const provider=createServer(async(req,res)=>{
   providerCalls++;
   assert.equal(req.headers.authorization,'Bearer fixture-provider-key');
-  res.writeHead(200,{'content-type':'application/json','x-request-id':'provider-connected'});
+  res.writeHead(200,{'content-type':'application/json','x-request-id':'provider-connected-'+providerCalls});
   res.end(JSON.stringify({id:'response-connected',status:'completed',usage:{input_tokens:10,output_tokens:10}}));
  });
  await new Promise(resolve=>provider.listen(0,'127.0.0.1',resolve));
@@ -82,20 +83,26 @@ test('connected START routes each synthetic model call through exact Work spend 
   contextLimitTokens:1000,outputLimitTokens:100,inputMicrousdPerMillion:1_000_000,outputMicrousdPerMillion:2_000_000};
  const f=await fixture(t,async input=>{
   assert(input.gateway);
+  gatewayTokens.push(input.gateway.childToken);
   const response=await fetch(input.gateway.baseUrl+'/responses',{method:'POST',
    headers:{authorization:'Bearer '+input.gateway.childToken,'content-type':'application/json'},
    body:JSON.stringify({model:'gpt-5.5',input:'synthetic coding step'})});
   assert.equal(response.status,200);
-  writeFileSync(join(input.workspacePath,'quantity.mjs'),'console.log(2);\n');
+  if(input.sandbox==='read-only')assert.equal(gatewayTokens.length,2);
+  else writeFileSync(join(input.workspacePath,'quantity.mjs'),'console.log(2);\n');
   return {success:true,status:'completed',threadId:'fixture',eventsPath:'fixture',usage:null};
  },false,{upstreamOrigin:'http://127.0.0.1:'+provider.address().port,upstreamApiKey:'fixture-provider-key',price});
+ f.input.spendContract={version:'WORK_LEDGER_V2',pricingRevision:price.revision,
+  plannedProductiveOperations:2,plannedCompletionOperations:1,maxPaidOperations:3,completionReserveMicrousd:1200};
  const prepared=await f.request('dispatches',f.input),id=f.identity(prepared.body);
  assert.equal(prepared.body.spend.ceilingMicrousd,1_000_000);
  await f.request('dispatches/'+f.input.requestId+'/dispatch',id);
  const done=await terminal(f);
  assert.equal(done.state,'COMPLETED');
  assert.equal(done.spend.status,'KNOWN');
- assert.equal(done.spend.settledMicrousd,30);
- assert.equal(done.spend.operations.length,1);
- assert.equal(providerCalls,1);
+ assert.equal(done.spend.settledMicrousd,60);
+ assert.equal(done.spend.operations.length,2);
+ assert.equal(done.spend.phase,'completion');
+ assert.equal(providerCalls,2);
+ assert.notEqual(gatewayTokens[0],gatewayTokens[1]);
 });

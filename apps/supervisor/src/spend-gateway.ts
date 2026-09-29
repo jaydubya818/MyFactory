@@ -1,7 +1,7 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { SpendLedger, type SpendBinding } from '../../../packages/storage/src/spend.ts';
+import { SpendLedger, type SpendBinding, type SpendPhase } from '../../../packages/storage/src/spend.ts';
 
 /** Revisioned, operator-approved rate card. Rates are integer micro-USD per million tokens. */
 export interface SpendPrice {
@@ -21,6 +21,7 @@ export interface SpendGatewayOptions {
   upstreamOrigin: string;
   upstreamApiKey: string;
   childToken: string;
+  phase: SpendPhase;
   timeoutMs?: number;
 }
 
@@ -84,13 +85,20 @@ function unpricedContent(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(unpricedContent);
   if (!value || typeof value !== 'object') return false;
   const record = value as Record<string, unknown>;
+  if (record.type === 'tool_search') {
+    return record.execution !== 'client' || !record.parameters || typeof record.parameters !== 'object' ||
+      Array.isArray(record.parameters) ||
+      Object.keys(record).some(key => !['type', 'execution', 'description', 'parameters'].includes(key));
+  }
+  if (['tool_search_call', 'tool_search_output'].includes(String(record.type)) && record.execution !== 'client') return true;
   if (['input_image', 'input_audio', 'input_file', 'image_url', 'audio_url', 'file_id',
     'web_search', 'file_search', 'computer_use', 'code_interpreter', 'image_generation', 'mcp']
     .includes(String(record.type ?? ''))) return true;
   if (['image_url', 'audio_url', 'file_id', 'input_audio'].some(key => key in record)) return true;
-  if ('tools' in record && Array.isArray(record.tools) &&
+  if ('tools' in record && (!Array.isArray(record.tools) ||
     record.tools.some(tool => !tool || typeof tool !== 'object' ||
-      !['function', 'custom', 'tool_search'].includes(String((tool as Record<string, unknown>).type)))) return true;
+      !['function', 'custom', 'tool_search'].includes(String((tool as Record<string, unknown>).type)) ||
+      unpricedContent(tool)))) return true;
   return Object.values(record).some(unpricedContent);
 }
 
@@ -142,10 +150,10 @@ export class SpendGateway {
       const outputCap = payload.max_output_tokens as number;
       // Full context reservation is deliberately more conservative than estimating tokens from bytes.
       const reserveMicrousd = Math.ceil(price.contextLimitTokens * price.inputMicrousdPerMillion / 1_000_000) +
-        Math.ceil(outputCap * price.outputMicrousdPerMillion / 1_000_000);
+        Math.ceil(price.outputLimitTokens * price.outputMicrousdPerMillion / 1_000_000);
       operationId = randomUUID();
       ledger.reserve({ ...binding, operationId, model: price.model, pricingRevision: price.revision,
-        reservedMicrousd: reserveMicrousd });
+        reservedMicrousd: reserveMicrousd, phase: this.#options.phase });
       ledger.markDispatched(operationId);
       const upstream = await fetch(new URL('/v1/responses', this.#options.upstreamOrigin), {
         method: 'POST', headers: { authorization: `Bearer ${this.#options.upstreamApiKey}`,

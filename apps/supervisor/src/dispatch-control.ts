@@ -8,8 +8,8 @@ import {JobManager} from './jobs.ts';
 import {ProducerResults,producerState} from './producer-results.ts';
 import {canonical,digest,type ExecutionSnapshot} from '../../../packages/hosted-routing/src/result.ts';
 import type {FactoryStorage} from '../../../packages/storage/src/index.ts';
-import {SpendLedger} from '../../../packages/storage/src/spend.ts';
-import {SpendGateway,type SpendPrice} from './spend-gateway.ts';
+import {SpendLedger,type SpendPlan} from '../../../packages/storage/src/spend.ts';
+import {SpendGateway,type SpendPrice,validatePrice} from './spend-gateway.ts';
 import type {WorkOrder,Run} from '../../../packages/contracts/src/index.ts';
 
 export interface ExecutionIdentity {
@@ -20,7 +20,10 @@ export interface ExecutionIdentity {
 export interface PrepareRequest {
  requestId:string;workId:string;workGeneration:number;repository:string;deadline:string;maxSpendUsd:number;
  input:unknown;
+ spendContract?:{version:'WORK_LEDGER_V2';pricingRevision:string;plannedProductiveOperations:number;
+  plannedCompletionOperations:number;maxPaidOperations:number;completionReserveMicrousd:number};
 }
+const spendBinding=(identity:ExecutionIdentity)=>({workId:identity.workId,workGeneration:identity.workGeneration,dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,factoryVersion:identity.factoryVersion,runId:identity.remoteRunId});
 const exec=promisify(execFile),uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 function absent(pid:unknown):boolean {
  if(typeof pid!=='number'||!Number.isSafeInteger(pid)||pid<=0)return false;
@@ -59,12 +62,25 @@ export class FactoryDispatchControl {
  }
  async prepare(client:FactoryClient,input:PrepareRequest){
   this.authorize(client,'factory.prepare');
-  if(!input||Object.keys(input).sort().join(',')!=='deadline,input,maxSpendUsd,repository,requestId,workGeneration,workId'||
+  if(!input||!['deadline,input,maxSpendUsd,repository,requestId,workGeneration,workId',
+    'deadline,input,maxSpendUsd,repository,requestId,spendContract,workGeneration,workId'].includes(Object.keys(input).sort().join(','))||
    !uuid.test(input.requestId)||!uuid.test(input.workId)||!Number.isSafeInteger(input.workGeneration)||input.workGeneration<1||
    typeof input.repository!=='string'||!/^[-\w.]+\/[-\w.]+$/.test(input.repository)||
    !Number.isFinite(input.maxSpendUsd)||input.maxSpendUsd<0.000001||input.maxSpendUsd>20||
    !(Date.parse(input.deadline)>Date.now()&&Date.parse(input.deadline)<=Date.now()+3600000))
    throw new ActionError('Bounded exact preparation required','invalid_input');
+  let plan:SpendPlan|undefined;
+  if(input.spendContract){
+   const c=input.spendContract;
+   if(!this.spendFixture||Object.keys(c).sort().join(',')!=='completionReserveMicrousd,maxPaidOperations,plannedCompletionOperations,plannedProductiveOperations,pricingRevision,version'||
+      c.version!=='WORK_LEDGER_V2'||c.pricingRevision!==this.spendFixture.price.revision)
+    throw new ActionError('Qualified V2 pricing and exact plan required','spend_unqualified',409);
+   validatePrice(this.spendFixture.price);
+   const p=this.spendFixture.price;
+   const perOperationReserveMicrousd=Math.ceil(p.contextLimitTokens*p.inputMicrousdPerMillion/1_000_000)+
+    Math.ceil(p.outputLimitTokens*p.outputMicrousdPerMillion/1_000_000);
+   plan={...c,model:p.model,validUntil:p.validUntil,perOperationReserveMicrousd};
+  }
   const work=parseCreateInput(input.input);
   if(!canAccessRepository(client,work.repositoryPath)||admissionState(work)!=='queued'||work.workerProfile!=='mac'||
     !/^[a-f0-9]{40}$/.test(work.baseRef)||work.allowedPaths.length>100||work.checkCommands.length>20||
@@ -84,7 +100,7 @@ export class FactoryDispatchControl {
   // order without this budget remains unable to cross any paid boundary.
   this.spend.createBudget({workId:input.workId,workGeneration:input.workGeneration,requestId:input.requestId,
     workOrderId:created?.id??this.record(client,input.requestId).order.id},
-    Math.floor(input.maxSpendUsd*1_000_000),input.deadline);
+    Math.floor(input.maxSpendUsd*1_000_000),input.deadline,plan);
   if(created){try{await this.jobs.prepareRun(created);}catch(e){this.storage.appendEvent({workOrderId:created.id,runId:null,type:'factory.prepare_failed',payload:{reason:e instanceof Error?e.message:String(e)}});throw e;}}
   return this.read(client,input.requestId);
  }
@@ -108,15 +124,28 @@ export class FactoryDispatchControl {
   if(data.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return this.read(client,identity.requestId);
   if(!this.localFixture&&!this.spendFixture)throw new ActionError('Paid execution disabled: actual paid boundary is not qualified','spend_unqualified',503);
   const admittedWork={...data.order,...data.request.input as object} as WorkOrder;
-  let gateway:SpendGateway|undefined, gatewayBinding:{baseUrl:string;childToken:string;close:()=>Promise<void>}|undefined;
+  let gateway:SpendGateway|undefined, gatewayBinding:{baseUrl:string;childToken:string;close:()=>Promise<void>;
+   beginCompletion:()=>Promise<{baseUrl:string;childToken:string}>;assertCompleted:()=>void;fenceAuthority:()=>void}|undefined;
   if(this.spendFixture){
-   const childToken=randomBytes(32).toString('hex');
-   gateway=new SpendGateway({ledger:this.spend,binding:{workId:identity.workId,workGeneration:identity.workGeneration,
+   if(!data.request.spendContract)throw new ActionError('V2 paid plan required before dispatch','spend_unqualified',409);
+   const binding={workId:identity.workId,workGeneration:identity.workGeneration,
     dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,
-    factoryVersion:identity.factoryVersion,runId:identity.remoteRunId},
+    factoryVersion:identity.factoryVersion,runId:identity.remoteRunId};
+   this.spend.bindAuthority(binding);
+   const childToken=randomBytes(32).toString('hex');
+   gateway=new SpendGateway({ledger:this.spend,binding,phase:'productive',
     price:this.spendFixture.price,upstreamOrigin:this.spendFixture.upstreamOrigin,
     upstreamApiKey:this.spendFixture.upstreamApiKey,childToken});
-   gatewayBinding={baseUrl:await gateway.listen(),childToken,close:()=>gateway!.close()};
+   let current=gateway;
+   gatewayBinding={baseUrl:await gateway.listen(),childToken,close:()=>current.close(),
+    beginCompletion:async()=>{
+     await current.close();
+     this.spend.beginCompletion(binding);
+     const completionToken=randomBytes(32).toString('hex');
+     current=new SpendGateway({ledger:this.spend,binding,phase:'completion',price:this.spendFixture!.price,
+      upstreamOrigin:this.spendFixture!.upstreamOrigin,upstreamApiKey:this.spendFixture!.upstreamApiKey,childToken:completionToken});
+     return {baseUrl:await current.listen(),childToken:completionToken};
+    },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};
   }
   try{
   const started=this.jobs.executePrepared(admittedWork,data.run,()=>this.storage.transaction(()=>{
@@ -127,8 +156,8 @@ export class FactoryDispatchControl {
    this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.dispatch_claimed',payload:{identity,supervisorPid:process.pid}});
    return true;
   }),gatewayBinding);
-  if(!started)await gateway?.close();
-  }catch(error){await gateway?.close();throw error;}
+  if(!started)await gatewayBinding?.close();
+  }catch(error){await gatewayBinding?.close();throw error;}
   return this.read(client,identity.requestId);
  }
  async stop(client:FactoryClient,identity:ExecutionIdentity){
@@ -139,7 +168,7 @@ export class FactoryDispatchControl {
    if(!data.events.some(e=>e.type==='factory.stop_requested'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.stop_requested',payload:{...identity}});
    return data;
   });
-  this.spend.cancel(identity.workId);
+  this.spend.cancelBound(spendBinding(identity));
   if(this.jobs.activeRun(data.run.id))await this.jobs.cancelRun(data.order);
   return this.read(client,identity.requestId);
  }
@@ -151,12 +180,12 @@ export class FactoryDispatchControl {
   const stopped=events.some(e=>e.type==='factory.stop_requested');
   const terminal=events.find(e=>e.type==='factory.terminal');
   let state='PREPARING',quiescent=false;
-  if(terminal){state=String(terminal.payload.state);quiescent=true;}
+  if(terminal){state=String(terminal.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));}
   else if(run&&snapshot){
    state=claim?this.jobs.activeRun(run.id)?stopped?'STOPPING':'RUNNING':'UNKNOWN':stopped?'STOPPING':'PREPARED';
    const settled=events.some(e=>e.runId===run.id&&e.type==='factory.execution_settled');
    const ownerGone=!claim||claim.payload.supervisorPid===process.pid||processAbsent(claim.payload.supervisorPid);
-   const processEvents=events.filter(e=>e.runId===run.id&&e.type==='agent.process_started');
+   const processEvents=events.filter(e=>e.runId===run.id&&['agent.process_started','agent.completion_process_started'].includes(e.type));
    const processesGone=processEvents.every(e=>absent(e.payload.pid));
    const verifierStarted=events.some(e=>e.runId===run.id&&['run.candidate_committed','run.reproduction_started'].includes(e.type));
    let verifierGone=!verifierStarted;
@@ -167,6 +196,8 @@ export class FactoryDispatchControl {
    if(binding&&!this.jobs.activeRun(run.id)&&ownerGone&&processesGone&&verifierGone&&
      ((!claim&&stopped)||(settled&&terminalRun)||(recoverable&&processEvents.length>0))){
     const proposed=!claim?'NOT_DISPATCHED':terminalRun?producerState(this.storage,run):'CANCELLED';
+    // A terminal claim cannot precede the durable paid-authority fence.
+    this.spend.fenceAuthority(spendBinding(binding));
     this.storage.transaction(()=>{
      const current=this.record(client,requestId);
      if(current.events.some(e=>e.type==='factory.terminal'))return;
@@ -177,12 +208,14 @@ export class FactoryDispatchControl {
      this.storage.appendEvent({workOrderId:data.order.id,runId:run.id,type:'factory.terminal',payload:{state:proposed,identity:binding,resourceProof:{processGroups:processEvents.map(e=>e.payload.pid),verifierGone,settled,ownerGone},at:new Date().toISOString()}});
     });
     const saved=this.record(client,requestId).events.find(e=>e.type==='factory.terminal');
-    if(saved){state=String(saved.payload.state);quiescent=true;}
+    if(saved){state=String(saved.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));}
    }
   }
   return {requestId,workOrderId:data.order.id,runId:run?.id??null,snapshot,identity:binding??null,state,quiescent,
    evidenceRef:quiescent?'factory-event:'+data.order.id+':terminal':null,
-   spend:this.localFixture?{status:'KNOWN',ceilingUsd:0,reason:'Backend-injected local fixture; no paid provider'}:{...this.spend.read(data.request.workId),reason:'Paid dispatch disabled pending qualified Codex gateway routing'},
+   spend:this.localFixture?{status:'KNOWN',ceilingUsd:0,reason:'Backend-injected local fixture; no paid provider'}:
+    {...this.spend.read(data.request.workId),reason:this.spendFixture?
+     'Loopback synthetic provider only; live paid execution disabled':'Live paid execution disabled'},
    blocker:quiescent?null:state==='UNKNOWN'?'Exact process/verifier reconciliation required':null};
  }
 }

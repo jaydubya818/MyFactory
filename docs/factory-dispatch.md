@@ -14,7 +14,9 @@ Local tests use real HTTP authentication, SQLite, task Git worktrees, candidate 
 
 `createSupervisor({localFactoryFixture:true, jobDependencies:{runCodex,verifyCandidate,...}})` is an explicit backend-only test injection. HTTP cannot enable it. Default execution availability is DISABLED; a valid token, fabricated qualification, or valid binding cannot bypass that default. The CLI currently offers no qualified dollar-ceiling enforcement, so a live authorization envelope is not ready.
 
-## Work spend boundary
+## Work spend boundary (historical V1)
+
+This section describes the accepted V1 candidate at `8f5e377`. V1 budgets remain readable but cannot authorize paid calls after the V2 upgrade below.
 
 Schema version 7 adds one immutable USD micro-dollar ceiling per MyEve Work and a durable operation ledger. A new Work generation may bind a new exact request and deadline without resetting the ceiling. An old generation cannot reserve or start a paid operation after that handoff. Cancellation prevents new reservations and starts. All attempts and providers for the Work share one SQLite `BEGIN IMMEDIATE` reservation calculation across supervisor processes.
 
@@ -25,3 +27,17 @@ The paid boundary is each Responses request, not `codex exec` launch. For a pinn
 The only executable metered mode is a backend-injected **loopback synthetic provider fixture**. The default production mode is DISABLED, and the default host Codex path now fails before any paid call. A local test drove the installed CLI into the gateway using a fake provider that returned 503; the reservation remained UNKNOWN. That proves routing and fail-closed recovery, while real provider completion, current commercial pricing, and a production credential boundary remain unqualified. No paid call was made. See [evidence](evidence/myfactory-spend/REPORT.md) and the [exact consumer handoff](my-eve-spend-handoff.md).
 
 Run `npm test`, `npm run typecheck:producer`, `npm run check:producer-governance`, and `npm run build`. The control tests include preparation/restart, exact duplicate dispatch, malformed identities, foreign version, authentication, pre-dispatch cancellation, STOPPING until settlement, default paid denial and deadline cancellation. MyEve evidence is in `docs/verification/2026-09-27-myfactory-beta/` of the paired consumer candidate.
+
+## V2 spend and completion contract
+
+This new reconstruction begins at durable producer `8f5e377`. Lost producer commit `efe9e856` is not recoverable and supplies no qualification credit. SQLite migration 8 adds immutable pricing/plan columns, bounded paid-operation slots, current writer identity and productive/completion phase to the existing Work ledger. It preserves migration 7 and V1 budgets; a V1 budget cannot authorize a paid model call.
+
+PREPARE accepts an exact `spendContract` with revision, planned productive and completion operation counts, `maxPaidOperations` equal to their sum, and a protected completion reserve. The producer derives a conservative full-context/full-output reservation from its pinned price card and rejects a plan that cannot fund all operations before first execution. The card expiry and pricing revision are durable. A generation or attempt cannot reset the Work ceiling or slots.
+
+At the loopback Responses boundary, `BEGIN IMMEDIATE` serializes exact writer/generation/request/FactoryVersion binding, cancellation, deadline, price expiry, UNKNOWN exposure, phase, operation limit, Work ceiling and protected completion allowance. The gateway repeats decisive checks immediately before provider dispatch. Missing or uncertain usage retains the whole reservation as UNKNOWN and blocks every new paid call for that Work. Restart turns unresolved reserved/dispatched rows into UNKNOWN. Exact replay cannot redispatch.
+
+After productive coding, the host closes that gateway, switches the durable ledger to completion, issues a new child token, and launches a read-only completion run. Candidate custody requires a settled completion operation and complete accounting. Resource reconciliation includes both worker processes. The host fences paid authority before terminal readback. Factory results remain partial unless their separate review and publication gates actually pass.
+
+The installed CLI's `tool_search` with `execution:"client"` is allowed as local discovery metadata within a metered model request. Hosted, unspecified, and unknown tool definitions remain denied. Client discovery itself uses no paid slot; the next model request does.
+
+The [private-alpha provider loader](../apps/supervisor/src/real-provider.ts) pins the OpenAI Responses endpoint, exact model and Keychain reference, and fails closed on missing/expired configuration. It is not wired into default supervisor startup; paid execution stays disabled. Current pricing must be independently approved before any live use. Qualification and limitations are recorded in the [fresh dossier](evidence/myfactory-private-alpha-reconstruction/REPORT.md).

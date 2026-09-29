@@ -387,6 +387,21 @@ const migrations = [
   CREATE INDEX work_spend_operations_work_idx ON work_spend_operations(work_id, created_at);
   CREATE UNIQUE INDEX work_spend_provider_request_idx ON work_spend_operations(provider_request_id)
     WHERE provider_request_id IS NOT NULL;`,
+  `ALTER TABLE work_spend_budgets ADD COLUMN contract_version TEXT NOT NULL DEFAULT 'WORK_LEDGER_V1';
+  ALTER TABLE work_spend_budgets ADD COLUMN pricing_revision TEXT;
+  ALTER TABLE work_spend_budgets ADD COLUMN model TEXT;
+  ALTER TABLE work_spend_budgets ADD COLUMN pricing_valid_until TEXT;
+  ALTER TABLE work_spend_budgets ADD COLUMN per_operation_reserve_microusd INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE work_spend_budgets ADD COLUMN planned_productive_operations INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE work_spend_budgets ADD COLUMN planned_completion_operations INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE work_spend_budgets ADD COLUMN max_paid_operations INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE work_spend_budgets ADD COLUMN completion_reserve_microusd INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE work_spend_budgets ADD COLUMN authority_dispatch_identity TEXT;
+  ALTER TABLE work_spend_budgets ADD COLUMN authority_factory_version TEXT;
+  ALTER TABLE work_spend_budgets ADD COLUMN authority_run_id TEXT;
+  ALTER TABLE work_spend_budgets ADD COLUMN authority_state TEXT NOT NULL DEFAULT 'prepared';
+  ALTER TABLE work_spend_budgets ADD COLUMN phase TEXT NOT NULL DEFAULT 'productive';
+  ALTER TABLE work_spend_operations ADD COLUMN phase TEXT NOT NULL DEFAULT 'productive';`,
 ];
 
 function parseJson<T>(value: string): T {

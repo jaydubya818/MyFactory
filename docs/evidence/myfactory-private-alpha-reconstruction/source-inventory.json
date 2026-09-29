@@ -1,0 +1,40 @@
+{
+  "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
+  "sources": {
+    "apps/supervisor/src/dispatch-control.ts": {
+      "sha256": "bd14c750949c92367aafbc212b0a021df7857315350990ca3ce653c9421f39e0",
+      "classification": "AUTHENTICATED_DISPATCH",
+      "authorityBoundary": "Exact Work and writer binding before gateway execution"
+    },
+    "apps/supervisor/src/jobs.ts": {
+      "sha256": "b70d51c876bed9cb773654b7414b59b07873bf8199d2a0176b89b81b8283a668",
+      "classification": "HOST_EXECUTION",
+      "authorityBoundary": "Productive and protected completion lifecycle"
+    },
+    "apps/supervisor/src/spend-gateway.ts": {
+      "sha256": "1095502713ac1b5cce1ca5e5357cc5a30caff22459ecdf6408e52e341960e424",
+      "classification": "PAID_CALL_BOUNDARY",
+      "authorityBoundary": "Reserve and settle every model call; deny unpriced hosted tools"
+    },
+    "apps/supervisor/src/real-provider.ts": {
+      "sha256": "ce0d8cc0a7094cd32a37866409c55bc7dd8f90773420cf753c0f18abcaf93946",
+      "classification": "CREDENTIAL_LOADER",
+      "authorityBoundary": "Exact private-alpha endpoint, model and Keychain reference"
+    },
+    "packages/agents/src/index.ts": {
+      "sha256": "da047c081fe5bba8a3550fad4fedf117a2de3e6baf3a3f6b2cc46c7b7c5349d8",
+      "classification": "CODEX_CLI_ADAPTER",
+      "authorityBoundary": "Routes installed CLI through gateway and read-only completion sandbox"
+    },
+    "packages/storage/src/index.ts": {
+      "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
+      "classification": "SCHEMA_MIGRATION",
+      "authorityBoundary": "Additive migration 8"
+    },
+    "packages/storage/src/spend.ts": {
+      "sha256": "f308cbff200795626c834d8c83b35f97595cc9ab4cbabdf49e0a16d35b9314bb",
+      "classification": "WORK_SPEND_LEDGER",
+      "authorityBoundary": "Atomic Work ceiling, UNKNOWN, phase and slot authority"
+    }
+  }
+}

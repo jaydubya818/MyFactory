@@ -18,7 +18,9 @@ interface ActiveJob {
   model: string;
   preflight: Awaited<ReturnType<typeof preflightCodex>> | null;
   prepareOnly?: boolean;
-  gateway?: { baseUrl: string; childToken: string; close: () => Promise<void> };
+  gateway?: { baseUrl: string; childToken: string; close: () => Promise<void>;
+    beginCompletion?: () => Promise<{baseUrl:string;childToken:string}>;
+    assertCompleted?: () => void; fenceAuthority?: () => void };
 }
 
 export interface JobDependencies {
@@ -118,12 +120,13 @@ export class JobManager {
         const managedEvents=this.storage.listEvents(order.id);
         if (managedEvents.some(e=>e.runId===run.id && e.type==='run.prepared') &&
             !managedEvents.some(e=>e.runId===run.id && e.type==='factory.dispatch_claimed')) continue;
-        const processEvent = this.storage.listEvents(order.id)
-          .filter((event) => event.runId === run.id && event.type === "agent.process_started")
-          .at(-1);
-        const pid = processEvent?.payload.pid;
-        const workerGone = run.state === "implementing" && typeof pid === "number" &&
-          processGroupAbsent(pid);
+        const processEvents = this.storage.listEvents(order.id)
+          .filter((event) => event.runId === run.id &&
+            ["agent.process_started", "agent.completion_process_started"].includes(event.type));
+        const pids = processEvents.map(event => event.payload.pid).filter((pid): pid is number => typeof pid === 'number');
+        const pid = pids.at(-1);
+        const workerGone = run.state === "implementing" && pids.length === processEvents.length &&
+          pids.length > 0 && pids.every(processGroupAbsent);
         this.#transition(
           run,
           "interrupted",
@@ -134,6 +137,7 @@ export class JobManager {
               ? "Supervisor restarted; the previous host worker process group is absent"
               : "Supervisor restarted; the previous worker or verifier may still be running",
             pid: typeof pid === "number" ? pid : null,
+            processPids: pids,
             previousState: run.state,
           },
           { failure: "Supervisor restart interrupted the attempt" },
@@ -148,8 +152,10 @@ export class JobManager {
       .at(-1);
     if (lastRecoveryEvent?.type !== "run.recovery_hold") return;
     const pid = lastRecoveryEvent.payload.pid;
+    const processPids = Array.isArray(lastRecoveryEvent.payload.processPids)
+      ? lastRecoveryEvent.payload.processPids : [pid];
     if (lastRecoveryEvent.payload.previousState !== "implementing" ||
-        typeof pid !== "number" || !processGroupAbsent(pid)) {
+        processPids.length === 0 || !processPids.every(value => typeof value === 'number' && processGroupAbsent(value))) {
       throw new ActionError(
         "The previous worker or verifier may still be running. Retry is held until its process group is confirmed absent.",
         "recovery_hold",
@@ -224,6 +230,9 @@ export class JobManager {
     }).finally(async()=>{
       try { await gateway?.close(); }
       finally {
+        try { gateway?.fenceAuthority?.(); }
+        catch (error) { this.#event(workOrder.id,run.id,'run.recovery_hold',
+          {reason:'Spend authority fence failed: '+message(error),previousState:'unknown'}); }
         clearTimeout(timer);
         this.#event(workOrder.id,run.id,'factory.execution_settled',{runId:run.id});
         if(this.#active===active)this.#active=null;
@@ -432,6 +441,25 @@ export class JobManager {
           reason: codex.error ?? "Codex did not complete successfully",
         }, { failure: codex.error ?? "Coding agent failed" });
         return;
+      }
+
+      if (active.gateway?.beginCompletion) {
+        const completion = await active.gateway.beginCompletion();
+        this.#event(workOrder.id, run.id, 'run.completion_started', {phase:'completion'});
+        const completed = await this.dependencies.runCodex({
+          workspacePath: run.workspacePath,
+          prompt: 'Read the candidate without changing files. Summarize the completed work and remaining risks.',
+          model: snapshot?.configuration.model ?? active.model,
+          timeoutMs: snapshot?.configuration.timeoutMs ?? 30 * 60 * 1000,
+          artifactsDir: artifactDir,
+          sandbox: 'read-only',
+          signal,
+          gateway: completion,
+          onProcessStart: (processIdentity) => { this.#event(workOrder.id, run.id, 'agent.completion_process_started', processIdentity); },
+        });
+        this.#event(workOrder.id, run.id, 'run.completion_result', {status:completed.status,eventsPath:completed.eventsPath});
+        if (!completed.success || signal.aborted) throw new Error('Mandatory paid completion failed');
+        active.gateway.assertCompleted?.();
       }
 
       const candidate = await this.dependencies.commitCandidate(

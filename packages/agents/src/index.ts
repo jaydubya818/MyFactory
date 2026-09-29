@@ -22,6 +22,7 @@ export interface CodexRunOptions {
   model: string;
   timeoutMs: number;
   artifactsDir: string;
+  sandbox?: "workspace-write" | "read-only";
   onProcessStart?: (process: { pid: number; startedAt: string; workspacePath: string }) => void | Promise<void>;
   onEvent?: (event: CodexEvent) => void | Promise<void>;
   signal?: AbortSignal;
@@ -89,6 +90,9 @@ function validateRunOptions(options: CodexRunOptions): void {
   }
   if (!Number.isInteger(options.timeoutMs) || options.timeoutMs < 1 || options.timeoutMs > MAX_TIMEOUT_MS) {
     throw new TypeError("timeoutMs must be an integer from 1 to 1800000");
+  }
+  if (options.sandbox !== undefined && !["workspace-write", "read-only"].includes(options.sandbox)) {
+    throw new TypeError("Unsupported Codex sandbox");
   }
   if (options.onEvent !== undefined && typeof options.onEvent !== "function") {
     throw new TypeError("onEvent must be a function");
@@ -179,7 +183,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
       "exec", "-m", options.model,
       ...gatewayArgs,
       "-C", workspacePath,
-      "--sandbox", "workspace-write",
+      "--sandbox", options.sandbox ?? "workspace-write",
       "--json", "-o", finalMessagePath,
       options.prompt,
     ], {

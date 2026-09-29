@@ -23,15 +23,19 @@ test('installed Codex CLI reaches only the metered loopback Responses boundary',
   const ledger = new SpendLedger(path);
   const binding = { workId: 'cli-fixture', workGeneration: 1, dispatchIdentity: 'dispatch-cli', requestId: 'request-cli',
     workOrderId: order.id, factoryVersion: 'version-cli', runId: run.id };
-  ledger.createBudget(binding, 1_000_000, new Date(Date.now() + 60_000).toISOString());
+  const price = { revision: 'cli-v1', model: 'gpt-5.5', validUntil: new Date(Date.now() + 60_000).toISOString(),
+    contextLimitTokens: 100_000, outputLimitTokens: 4_000,
+    inputMicrousdPerMillion: 1_000_000, outputMicrousdPerMillion: 2_000_000 };
+  ledger.createBudget(binding, 1_000_000, new Date(Date.now() + 60_000).toISOString(),
+    {version:'WORK_LEDGER_V2',pricingRevision:price.revision,model:price.model,validUntil:price.validUntil,
+      perOperationReserveMicrousd:108_000,plannedProductiveOperations:2,plannedCompletionOperations:1,
+      maxPaidOperations:3,completionReserveMicrousd:108_000});
+  ledger.bindAuthority(binding);
   let upstreamCalls = 0;
   const upstream = createServer((_req, res) => { upstreamCalls++; res.writeHead(503, { 'content-type': 'application/json' });
     res.end('{"error":{"message":"synthetic provider denied","type":"server_error"}}'); });
   await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
-  const gateway = new SpendGateway({ ledger, binding,
-    price: { revision: 'cli-v1', model: 'gpt-5.5', validUntil: new Date(Date.now() + 60_000).toISOString(),
-      contextLimitTokens: 100_000, outputLimitTokens: 4_000,
-      inputMicrousdPerMillion: 1_000_000, outputMicrousdPerMillion: 2_000_000 },
+  const gateway = new SpendGateway({ ledger, binding, price, phase:'productive',
     upstreamOrigin: `http://127.0.0.1:${upstream.address().port}`,
     upstreamApiKey: 'synthetic-only', childToken: 'a'.repeat(64), timeoutMs: 5000 });
   const baseUrl = await gateway.listen();
