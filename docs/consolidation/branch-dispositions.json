@@ -1,0 +1,221 @@
+[
+  {
+    "ref": "refs/heads/codex/canonical-consolidation",
+    "sha": "cf3c086be31f2423d289b192c0172b39bbfbb0bd",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t6",
+    "unique": [
+      "cf3c086be31f2423d289b192c0172b39bbfbb0bd Prepare offline preview cache for first beta Mac setup (#1)",
+      "c96ec09957f8843530eaa75c63a536d3e94ff0cb Integrate durable reconstructed private-alpha producer",
+      "925530a6ba8764df6a7b8637192fe32edcbaff97 Reconstruct qualified V2 Work spend producer and private-alpha loader",
+      "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f Add durable per-Work spend ledger and metered Codex gateway",
+      "d9564beef41590c3700069ec340d926db23b7ba7 Qualify exact prepared Factory attempts and fenced local dispatch",
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "CANONICAL_INPUT",
+    "cleanup": "KEEP_ACTIVE",
+    "reason": "Task-owned integration checkpoint; not yet final qualified canonical source."
+  },
+  {
+    "ref": "refs/heads/codex/digital-worker-factory",
+    "sha": "d9564beef41590c3700069ec340d926db23b7ba7",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t2",
+    "unique": [
+      "d9564beef41590c3700069ec340d926db23b7ba7 Qualify exact prepared Factory attempts and fenced local dispatch",
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "ALREADY_CONTAINED",
+    "cleanup": "DELETE_LOCAL_AND_REMOTE",
+    "reason": "Exact ancestry containment in consolidation candidate; cleanup still gated."
+  },
+  {
+    "ref": "refs/heads/codex/local-factory",
+    "sha": "543906dc20fefed2def97e43953095ea0b7c60bc",
+    "base": "543906dc20fefed2def97e43953095ea0b7c60bc",
+    "counts": "3\t0",
+    "unique": [],
+    "classification": "UNIQUE_WORK_TO_INTEGRATE",
+    "cleanup": "KEEP_ARCHIVE",
+    "reason": "Preview cache preparation and timeout fix from 1015367 cherry-picked as cf3c086; final qualification and canonical publication pending."
+  },
+  {
+    "ref": "refs/heads/codex/private-alpha-myfactory",
+    "sha": "925530a6ba8764df6a7b8637192fe32edcbaff97",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t4",
+    "unique": [
+      "925530a6ba8764df6a7b8637192fe32edcbaff97 Reconstruct qualified V2 Work spend producer and private-alpha loader",
+      "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f Add durable per-Work spend ledger and metered Codex gateway",
+      "d9564beef41590c3700069ec340d926db23b7ba7 Qualify exact prepared Factory attempts and fenced local dispatch",
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "CANONICAL_INPUT",
+    "cleanup": "KEEP_ACTIVE",
+    "reason": "925530a reconstructed producer integrated directly. Keep producer source while final Beta consumes it and canonical post-merge qualification is pending."
+  },
+  {
+    "ref": "refs/heads/codex/q37-gate-c",
+    "sha": "454a49064d52a6f3cf7a92a418cd70dda035bf1c",
+    "base": "543906dc20fefed2def97e43953095ea0b7c60bc",
+    "counts": "3\t6",
+    "unique": [
+      "454a49064d52a6f3cf7a92a418cd70dda035bf1c Mark Gate C partial pending qualified producer protocol reconciliation",
+      "028caaaa742661554a01bf3a7ad6fb93fa9ab84f Qualify full offline hosted attempt and document Gate C",
+      "19c5e42b2dee481ca0f3e3ce7a5034c6f1ac23bc Add versioned Factory result signing and bounded artifact transport",
+      "13d9fc8c9c0144e59db8448067a8ce5b87db7a89 Document Gate C build qualification and schema stop",
+      "75edab55f4ddba45a5d3ebcd0b55246e1ce0fffe Lazy load connector SDK and complete local regression suite",
+      "b9b1cc48395ba282f975ca23a5d975e9411a4046 Add bounded authenticated Factory result return and version attestation"
+    ],
+    "classification": "SUPERSEDED",
+    "cleanup": "KEEP_ARCHIVE",
+    "reason": "Historical hosted-return prototype reports PARTIAL protocol/schema reconciliation. Canonical producer uses immutable attestation/result protocol from fcd8afd and V2 successor; preserve evidence."
+  },
+  {
+    "ref": "refs/heads/codex/q37-producer-attestation",
+    "sha": "fcd8afd6fbaa2b9045b9e9700608d546edf011a9",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t1",
+    "unique": [
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "ALREADY_CONTAINED",
+    "cleanup": "DELETE_LOCAL_AND_REMOTE",
+    "reason": "Exact ancestry containment in consolidation candidate; cleanup still gated."
+  },
+  {
+    "ref": "refs/remotes/origin/HEAD",
+    "sha": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t0",
+    "unique": [],
+    "classification": "CANONICAL_INPUT",
+    "cleanup": "KEEP_ACTIVE",
+    "reason": "Actual origin default branch is main; preserve canonical checkout, including local divergence."
+  },
+  {
+    "ref": "refs/remotes/origin/codex/canonical-consolidation",
+    "sha": "cf3c086be31f2423d289b192c0172b39bbfbb0bd",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t6",
+    "unique": [
+      "cf3c086be31f2423d289b192c0172b39bbfbb0bd Prepare offline preview cache for first beta Mac setup (#1)",
+      "c96ec09957f8843530eaa75c63a536d3e94ff0cb Integrate durable reconstructed private-alpha producer",
+      "925530a6ba8764df6a7b8637192fe32edcbaff97 Reconstruct qualified V2 Work spend producer and private-alpha loader",
+      "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f Add durable per-Work spend ledger and metered Codex gateway",
+      "d9564beef41590c3700069ec340d926db23b7ba7 Qualify exact prepared Factory attempts and fenced local dispatch",
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "CANONICAL_INPUT",
+    "cleanup": "KEEP_ACTIVE",
+    "reason": "Task-owned integration checkpoint; not yet final qualified canonical source."
+  },
+  {
+    "ref": "refs/remotes/origin/codex/connected-execution-control",
+    "sha": "c1c9cd49b5b974dc343cacecf1bd1411b01885e7",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t4",
+    "unique": [
+      "c1c9cd49b5b974dc343cacecf1bd1411b01885e7 Document exact MyEve connected execution handoff",
+      "56521fd1f0965e198a0f1000c16916d7c9075466 Record connected execution qualification evidence",
+      "211ed456cbac6d9cd411b17e48beb9784af0dd78 Add fenced connected execution control",
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "SUPERSEDED",
+    "cleanup": "KEEP_ARCHIVE",
+    "reason": "Earlier ConnectedExecutionControl/tables replaced by exact prepared FactoryDispatchControl and retained Work event state in d9564be/925530a. Do not combine competing dispatch stores."
+  },
+  {
+    "ref": "refs/remotes/origin/codex/digital-worker-factory",
+    "sha": "d9564beef41590c3700069ec340d926db23b7ba7",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t2",
+    "unique": [
+      "d9564beef41590c3700069ec340d926db23b7ba7 Qualify exact prepared Factory attempts and fenced local dispatch",
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "ALREADY_CONTAINED",
+    "cleanup": "DELETE_LOCAL_AND_REMOTE",
+    "reason": "Exact ancestry containment in consolidation candidate; cleanup still gated."
+  },
+  {
+    "ref": "refs/remotes/origin/codex/hard-work-spend",
+    "sha": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t3",
+    "unique": [
+      "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f Add durable per-Work spend ledger and metered Codex gateway",
+      "d9564beef41590c3700069ec340d926db23b7ba7 Qualify exact prepared Factory attempts and fenced local dispatch",
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "ALREADY_CONTAINED",
+    "cleanup": "DELETE_LOCAL_AND_REMOTE",
+    "reason": "Exact ancestry containment in consolidation candidate; cleanup still gated."
+  },
+  {
+    "ref": "refs/remotes/origin/codex/local-factory",
+    "sha": "101536750b195ddebde9cae694894b0659a0abf4",
+    "base": "543906dc20fefed2def97e43953095ea0b7c60bc",
+    "counts": "3\t1",
+    "unique": [
+      "101536750b195ddebde9cae694894b0659a0abf4 Prepare offline preview cache for first beta Mac setup (#1)"
+    ],
+    "classification": "UNIQUE_WORK_TO_INTEGRATE",
+    "cleanup": "KEEP_ARCHIVE",
+    "reason": "Preview cache preparation and timeout fix from 1015367 cherry-picked as cf3c086; final qualification and canonical publication pending."
+  },
+  {
+    "ref": "refs/remotes/origin/codex/private-alpha-myfactory",
+    "sha": "925530a6ba8764df6a7b8637192fe32edcbaff97",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t4",
+    "unique": [
+      "925530a6ba8764df6a7b8637192fe32edcbaff97 Reconstruct qualified V2 Work spend producer and private-alpha loader",
+      "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f Add durable per-Work spend ledger and metered Codex gateway",
+      "d9564beef41590c3700069ec340d926db23b7ba7 Qualify exact prepared Factory attempts and fenced local dispatch",
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "CANONICAL_INPUT",
+    "cleanup": "KEEP_ACTIVE",
+    "reason": "925530a reconstructed producer integrated directly. Keep producer source while final Beta consumes it and canonical post-merge qualification is pending."
+  },
+  {
+    "ref": "refs/remotes/origin/codex/q37-gate-c",
+    "sha": "454a49064d52a6f3cf7a92a418cd70dda035bf1c",
+    "base": "543906dc20fefed2def97e43953095ea0b7c60bc",
+    "counts": "3\t6",
+    "unique": [
+      "454a49064d52a6f3cf7a92a418cd70dda035bf1c Mark Gate C partial pending qualified producer protocol reconciliation",
+      "028caaaa742661554a01bf3a7ad6fb93fa9ab84f Qualify full offline hosted attempt and document Gate C",
+      "19c5e42b2dee481ca0f3e3ce7a5034c6f1ac23bc Add versioned Factory result signing and bounded artifact transport",
+      "13d9fc8c9c0144e59db8448067a8ce5b87db7a89 Document Gate C build qualification and schema stop",
+      "75edab55f4ddba45a5d3ebcd0b55246e1ce0fffe Lazy load connector SDK and complete local regression suite",
+      "b9b1cc48395ba282f975ca23a5d975e9411a4046 Add bounded authenticated Factory result return and version attestation"
+    ],
+    "classification": "SUPERSEDED",
+    "cleanup": "KEEP_ARCHIVE",
+    "reason": "Historical hosted-return prototype reports PARTIAL protocol/schema reconciliation. Canonical producer uses immutable attestation/result protocol from fcd8afd and V2 successor; preserve evidence."
+  },
+  {
+    "ref": "refs/remotes/origin/codex/q37-producer-attestation",
+    "sha": "fcd8afd6fbaa2b9045b9e9700608d546edf011a9",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t1",
+    "unique": [
+      "fcd8afd6fbaa2b9045b9e9700608d546edf011a9 feat: attest immutable producer execution results"
+    ],
+    "classification": "ALREADY_CONTAINED",
+    "cleanup": "DELETE_LOCAL_AND_REMOTE",
+    "reason": "Exact ancestry containment in consolidation candidate; cleanup still gated."
+  },
+  {
+    "ref": "refs/remotes/origin/main",
+    "sha": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "base": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+    "counts": "0\t0",
+    "unique": [],
+    "classification": "CANONICAL_INPUT",
+    "cleanup": "KEEP_ACTIVE",
+    "reason": "Actual origin default branch is main; preserve canonical checkout, including local divergence."
+  }
+]

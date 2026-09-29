@@ -1,0 +1,339 @@
+[
+  {
+    "sha": "028caaaa742661554a01bf3a7ad6fb93fa9ab84f",
+    "subject": "Qualify full offline hosted attempt and document Gate C",
+    "files": [
+      "README.md",
+      "apps/supervisor/test/hosted-golden.test.mjs",
+      "apps/supervisor/test/hosted-result.test.mjs",
+      "docs/hosted-routing.md",
+      "packages/hosted-routing/test/protocol.test.mjs"
+    ],
+    "categories": [
+      "tests",
+      "documentation/evidence"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "101536750b195ddebde9cae694894b0659a0abf4",
+    "subject": "Prepare offline preview cache for first beta Mac setup (#1)",
+    "files": [
+      "README.md",
+      "package.json",
+      "packages/agents/test/agents.test.mjs"
+    ],
+    "categories": [
+      "tests",
+      "documentation/evidence"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "13d9fc8c9c0144e59db8448067a8ce5b87db7a89",
+    "subject": "Document Gate C build qualification and schema stop",
+    "files": [
+      "README.md",
+      "docs/hosted-routing.md"
+    ],
+    "categories": [
+      "documentation/evidence"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "19c5e42b2dee481ca0f3e3ce7a5034c6f1ac23bc",
+    "subject": "Add versioned Factory result signing and bounded artifact transport",
+    "files": [
+      "apps/supervisor/src/hosted-intake.ts",
+      "apps/supervisor/src/hosted-result.ts",
+      "apps/supervisor/src/server.ts",
+      "packages/client/src/index.ts",
+      "packages/hosted-routing/src/index.d.mts",
+      "packages/hosted-routing/src/index.mjs",
+      "packages/hosted-routing/src/keyring.d.mts",
+      "packages/hosted-routing/src/keyring.mjs"
+    ],
+    "categories": [
+      "implementation/bug-fix"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "211ed456cbac6d9cd411b17e48beb9784af0dd78",
+    "subject": "Add fenced connected execution control",
+    "files": [
+      "README.md",
+      "apps/supervisor/src/actions.ts",
+      "apps/supervisor/src/connected-execution.ts",
+      "apps/supervisor/src/connections.ts",
+      "apps/supervisor/src/jobs.ts",
+      "apps/supervisor/src/producer-results.ts",
+      "apps/supervisor/src/server.ts",
+      "apps/supervisor/test/connected-execution-http.test.mjs",
+      "apps/supervisor/test/connected-execution.test.mjs",
+      "docs/connected-execution-protocol.md",
+      "docs/connections.md",
+      "docs/evidence/connected-execution/source-inventory.json",
+      "docs/producer-result-protocol.md",
+      "packages/client/src/index.ts",
+      "packages/storage/src/index.ts",
+      "packages/storage/test/storage.test.mjs",
+      "scripts/check-producer-governance.mjs"
+    ],
+    "categories": [
+      "migration/schema",
+      "tests",
+      "documentation/evidence",
+      "implementation/bug-fix"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "454a49064d52a6f3cf7a92a418cd70dda035bf1c",
+    "subject": "Mark Gate C partial pending qualified producer protocol reconciliation",
+    "files": [
+      "README.md",
+      "docs/hosted-routing.md"
+    ],
+    "categories": [
+      "documentation/evidence"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "56521fd1f0965e198a0f1000c16916d7c9075466",
+    "subject": "Record connected execution qualification evidence",
+    "files": [
+      "docs/evidence/connected-execution/REPORT.md",
+      "docs/evidence/connected-execution/build.log",
+      "docs/evidence/connected-execution/governance.log",
+      "docs/evidence/connected-execution/npm-test.log",
+      "docs/evidence/connected-execution/typecheck-producer.log",
+      "docs/evidence/connected-execution/typecheck.log"
+    ],
+    "categories": [
+      "tests",
+      "documentation/evidence"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "75edab55f4ddba45a5d3ebcd0b55246e1ce0fffe",
+    "subject": "Lazy load connector SDK and complete local regression suite",
+    "files": [
+      "README.md",
+      "apps/supervisor/src/linear.ts"
+    ],
+    "categories": [
+      "documentation/evidence",
+      "implementation/bug-fix"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
+    "subject": "Add durable per-Work spend ledger and metered Codex gateway",
+    "files": [
+      "README.md",
+      "apps/supervisor/src/dispatch-control.ts",
+      "apps/supervisor/src/jobs.ts",
+      "apps/supervisor/src/server.ts",
+      "apps/supervisor/src/spend-gateway.ts",
+      "apps/supervisor/test/dispatch-control.test.mjs",
+      "apps/supervisor/test/jobs.test.mjs",
+      "apps/supervisor/test/spend-codex-cli.test.mjs",
+      "apps/supervisor/test/spend-gateway.test.mjs",
+      "docs/evidence/myfactory-spend/REPORT.md",
+      "docs/evidence/myfactory-spend/source-inventory.json",
+      "docs/factory-dispatch.md",
+      "docs/my-eve-spend-handoff.md",
+      "packages/agents/src/index.ts",
+      "packages/agents/test/agents.test.mjs",
+      "packages/agents/test/fixtures/fake-codex.mjs",
+      "packages/storage/package.json",
+      "packages/storage/src/index.ts",
+      "packages/storage/src/spend.ts",
+      "packages/storage/test/spend.test.mjs",
+      "packages/storage/test/storage.test.mjs",
+      "scripts/check-producer-governance.mjs"
+    ],
+    "categories": [
+      "migration/schema",
+      "tests",
+      "documentation/evidence",
+      "implementation/bug-fix"
+    ],
+    "disposition": "ANCESTRY_CONTAINED"
+  },
+  {
+    "sha": "925530a6ba8764df6a7b8637192fe32edcbaff97",
+    "subject": "Reconstruct qualified V2 Work spend producer and private-alpha loader",
+    "files": [
+      "README.md",
+      "apps/supervisor/src/dispatch-control.ts",
+      "apps/supervisor/src/jobs.ts",
+      "apps/supervisor/src/real-provider.ts",
+      "apps/supervisor/src/spend-gateway.ts",
+      "apps/supervisor/test/dispatch-control.test.mjs",
+      "apps/supervisor/test/real-provider.test.mjs",
+      "apps/supervisor/test/spend-codex-cli.test.mjs",
+      "apps/supervisor/test/spend-gateway.test.mjs",
+      "apps/supervisor/test/spend-review-regressions.test.mjs",
+      "docs/evidence/myfactory-private-alpha-reconstruction/REPORT.md",
+      "docs/evidence/myfactory-private-alpha-reconstruction/build.log",
+      "docs/evidence/myfactory-private-alpha-reconstruction/full-regression.log",
+      "docs/evidence/myfactory-private-alpha-reconstruction/governance.log",
+      "docs/evidence/myfactory-private-alpha-reconstruction/installed-cli.log",
+      "docs/evidence/myfactory-private-alpha-reconstruction/negative-probes.json",
+      "docs/evidence/myfactory-private-alpha-reconstruction/source-inventory.json",
+      "docs/evidence/myfactory-private-alpha-reconstruction/typecheck.log",
+      "docs/evidence/myfactory-spend-v2/probe.mjs",
+      "docs/factory-dispatch.md",
+      "docs/my-eve-spend-v2-handoff.md",
+      "packages/agents/src/index.ts",
+      "packages/storage/src/index.ts",
+      "packages/storage/src/spend.ts",
+      "packages/storage/test/spend-process-matrix.test.mjs",
+      "packages/storage/test/spend-process-worker.mjs",
+      "packages/storage/test/spend-race-worker.mjs",
+      "packages/storage/test/spend.test.mjs",
+      "packages/storage/test/storage.test.mjs",
+      "scripts/check-producer-governance.mjs"
+    ],
+    "categories": [
+      "migration/schema",
+      "tests",
+      "documentation/evidence",
+      "implementation/bug-fix"
+    ],
+    "disposition": "ANCESTRY_CONTAINED"
+  },
+  {
+    "sha": "b9b1cc48395ba282f975ca23a5d975e9411a4046",
+    "subject": "Add bounded authenticated Factory result return and version attestation",
+    "files": [
+      "README.md",
+      "apps/supervisor/src/actions.ts",
+      "apps/supervisor/src/factory-version.ts",
+      "apps/supervisor/src/hosted-intake.ts",
+      "apps/supervisor/src/hosted-result.ts",
+      "apps/supervisor/src/jobs.ts",
+      "apps/supervisor/src/server.ts",
+      "apps/supervisor/test/hosted-result.test.mjs",
+      "docs/hosted-routing.md",
+      "packages/client/src/index.ts",
+      "packages/hosted-routing/src/index.d.mts",
+      "packages/hosted-routing/src/index.mjs",
+      "packages/hosted-routing/test/protocol.test.mjs",
+      "packages/storage/src/index.ts",
+      "packages/storage/test/storage.test.mjs"
+    ],
+    "categories": [
+      "migration/schema",
+      "tests",
+      "documentation/evidence",
+      "implementation/bug-fix"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "c1c9cd49b5b974dc343cacecf1bd1411b01885e7",
+    "subject": "Document exact MyEve connected execution handoff",
+    "files": [
+      "docs/evidence/connected-execution/MYEVE-HANDOFF.md",
+      "docs/evidence/connected-execution/REPORT.md"
+    ],
+    "categories": [
+      "documentation/evidence"
+    ],
+    "disposition": "RETAINED_FOR_SEMANTIC_RECONCILIATION"
+  },
+  {
+    "sha": "c96ec09957f8843530eaa75c63a536d3e94ff0cb",
+    "subject": "Integrate durable reconstructed private-alpha producer",
+    "files": [],
+    "categories": [
+      "merge/metadata"
+    ],
+    "disposition": "ANCESTRY_CONTAINED"
+  },
+  {
+    "sha": "cf3c086be31f2423d289b192c0172b39bbfbb0bd",
+    "subject": "Prepare offline preview cache for first beta Mac setup (#1)",
+    "files": [
+      "README.md",
+      "package.json",
+      "packages/agents/test/agents.test.mjs"
+    ],
+    "categories": [
+      "tests",
+      "documentation/evidence"
+    ],
+    "disposition": "ANCESTRY_CONTAINED"
+  },
+  {
+    "sha": "d9564beef41590c3700069ec340d926db23b7ba7",
+    "subject": "Qualify exact prepared Factory attempts and fenced local dispatch",
+    "files": [
+      "README.md",
+      "apps/supervisor/src/actions.ts",
+      "apps/supervisor/src/connections.ts",
+      "apps/supervisor/src/dispatch-control.ts",
+      "apps/supervisor/src/jobs.ts",
+      "apps/supervisor/src/server.ts",
+      "apps/supervisor/test/dispatch-control.test.mjs",
+      "docs/evidence/myeve-factory-control/REPORT.md",
+      "docs/evidence/myeve-factory-control/build.log",
+      "docs/evidence/myeve-factory-control/governance.log",
+      "docs/evidence/myeve-factory-control/sources.json",
+      "docs/evidence/myeve-factory-control/tests.log",
+      "docs/evidence/myeve-factory-control/typecheck.log",
+      "docs/evidence/q37-producer-attestation/source-inventory.json",
+      "docs/factory-dispatch.md",
+      "packages/agents/src/index.ts",
+      "packages/verification/src/index.ts"
+    ],
+    "categories": [
+      "tests",
+      "documentation/evidence",
+      "implementation/bug-fix"
+    ],
+    "disposition": "ANCESTRY_CONTAINED"
+  },
+  {
+    "sha": "fcd8afd6fbaa2b9045b9e9700608d546edf011a9",
+    "subject": "feat: attest immutable producer execution results",
+    "files": [
+      "README.md",
+      "apps/supervisor/src/actions.ts",
+      "apps/supervisor/src/git.ts",
+      "apps/supervisor/src/jobs.ts",
+      "apps/supervisor/src/producer-results.ts",
+      "apps/supervisor/src/server.ts",
+      "apps/supervisor/test/producer-results.test.mjs",
+      "docs/evidence/q37-producer-attestation/REPORT.md",
+      "docs/evidence/q37-producer-attestation/golden-verification.json",
+      "docs/evidence/q37-producer-attestation/golden.json",
+      "docs/evidence/q37-producer-attestation/governance.log",
+      "docs/evidence/q37-producer-attestation/manifest.json",
+      "docs/evidence/q37-producer-attestation/source-inventory.json",
+      "docs/evidence/q37-producer-attestation/tests.log",
+      "docs/evidence/q37-producer-attestation/typecheck.log",
+      "docs/producer-result-protocol.md",
+      "package.json",
+      "packages/client/src/index.ts",
+      "packages/hosted-routing/src/index.d.mts",
+      "packages/hosted-routing/src/index.mjs",
+      "packages/hosted-routing/src/result.ts",
+      "scripts/check-producer-governance.mjs",
+      "tsconfig.producer.json"
+    ],
+    "categories": [
+      "tests",
+      "documentation/evidence",
+      "implementation/bug-fix"
+    ],
+    "disposition": "ANCESTRY_CONTAINED"
+  }
+]

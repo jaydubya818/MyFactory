@@ -1,0 +1,3 @@
+
+> sellerfi-local-factory@0.1.0 typecheck:producer
+> tsc --noEmit -p tsconfig.producer.json

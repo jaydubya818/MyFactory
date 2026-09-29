@@ -1,5 +1,9 @@
 # Local Software Factory
 
+<!-- CANONICAL-CONSOLIDATION-STATUS -->
+**Repository consolidation is in progress.** The private-alpha source baseline is not final. See the [current canonical status](docs/consolidation/CANONICAL-STATUS.md), [source manifest](docs/consolidation/PRIVATE-ALPHA-SOURCE-MANIFEST.md), and [source/migration policy](docs/consolidation/DEVELOPMENT-POLICY.md). Historical qualification below remains scoped to its original source and environment.
+<!-- /CANONICAL-CONSOLIDATION-STATUS -->
+
 A supervised local workflow for turning a selected WorkOrder into a reviewable candidate commit. WorkOrders, attempts, checks, events, policies, publication decisions, signals, and releases are stored in SQLite. The web work desk and standalone Agent-Native console read those records through the same loopback supervisor.
 
 This is an implementation in progress. The local path and Feedback Hub preview run; a real target repository and issue are still needed to qualify the first end-to-end GitHub draft PR.
