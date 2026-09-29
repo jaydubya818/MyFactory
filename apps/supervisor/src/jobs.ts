@@ -7,6 +7,7 @@ import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 import { verifyCandidate } from "../../../packages/verification/src/index.ts";
 import { ActionError } from "./actions.ts";
 import { commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
+import { ProducerResults } from "./producer-results.ts";
 
 interface ActiveJob {
   workOrderId: string;
@@ -14,6 +15,12 @@ interface ActiveJob {
   controller: AbortController;
   reason: "user_cancel" | "service_shutdown" | null;
   done: Promise<void> | null;
+  model: string;
+  preflight: Awaited<ReturnType<typeof preflightCodex>> | null;
+  prepareOnly?: boolean;
+  gateway?: { baseUrl: string; childToken: string; close: () => Promise<void>;
+    beginCompletion?: () => Promise<{baseUrl:string;childToken:string}>;
+    assertCompleted?: () => void; fenceAuthority?: () => void };
 }
 
 export interface JobDependencies {
@@ -56,17 +63,20 @@ export class JobManager {
   private readonly dataDir: string;
   private readonly notify: (event: FactoryEvent) => void;
   private readonly dependencies: JobDependencies;
+  private readonly producer: ProducerResults | undefined;
 
   constructor(
     storage: FactoryStorage,
     dataDir: string,
     notify: (event: FactoryEvent) => void,
     dependencies: Partial<JobDependencies> = {},
+    producer?: ProducerResults,
   ) {
     this.storage = storage;
     this.dataDir = dataDir;
     this.notify = notify;
     this.dependencies = { ...defaultDependencies, ...dependencies };
+    this.producer = producer;
     this.#recoverInterrupted();
   }
 
@@ -107,12 +117,16 @@ export class JobManager {
     for (const order of this.storage.listWorkOrders()) {
       for (const run of this.storage.listRuns(order.id)) {
         if (!["planning", "implementing", "verifying"].includes(run.state)) continue;
-        const processEvent = this.storage.listEvents(order.id)
-          .filter((event) => event.runId === run.id && event.type === "agent.process_started")
-          .at(-1);
-        const pid = processEvent?.payload.pid;
-        const workerGone = run.state === "implementing" && typeof pid === "number" &&
-          processGroupAbsent(pid);
+        const managedEvents=this.storage.listEvents(order.id);
+        if (managedEvents.some(e=>e.runId===run.id && e.type==='run.prepared') &&
+            !managedEvents.some(e=>e.runId===run.id && e.type==='factory.dispatch_claimed')) continue;
+        const processEvents = this.storage.listEvents(order.id)
+          .filter((event) => event.runId === run.id &&
+            ["agent.process_started", "agent.completion_process_started"].includes(event.type));
+        const pids = processEvents.map(event => event.payload.pid).filter((pid): pid is number => typeof pid === 'number');
+        const pid = pids.at(-1);
+        const workerGone = run.state === "implementing" && pids.length === processEvents.length &&
+          pids.length > 0 && pids.every(processGroupAbsent);
         this.#transition(
           run,
           "interrupted",
@@ -123,6 +137,7 @@ export class JobManager {
               ? "Supervisor restarted; the previous host worker process group is absent"
               : "Supervisor restarted; the previous worker or verifier may still be running",
             pid: typeof pid === "number" ? pid : null,
+            processPids: pids,
             previousState: run.state,
           },
           { failure: "Supervisor restart interrupted the attempt" },
@@ -137,8 +152,10 @@ export class JobManager {
       .at(-1);
     if (lastRecoveryEvent?.type !== "run.recovery_hold") return;
     const pid = lastRecoveryEvent.payload.pid;
+    const processPids = Array.isArray(lastRecoveryEvent.payload.processPids)
+      ? lastRecoveryEvent.payload.processPids : [pid];
     if (lastRecoveryEvent.payload.previousState !== "implementing" ||
-        typeof pid !== "number" || !processGroupAbsent(pid)) {
+        processPids.length === 0 || !processPids.every(value => typeof value === 'number' && processGroupAbsent(value))) {
       throw new ActionError(
         "The previous worker or verifier may still be running. Retry is held until its process group is confirmed absent.",
         "recovery_hold",
@@ -160,7 +177,16 @@ export class JobManager {
   }
 
   async startRun(workOrder: WorkOrder): Promise<Run> {
+    if(this.storage.listEvents(workOrder.id).some(e=>e.type==='factory.prepare_requested'))
+      throw new ActionError('Managed Factory Work requires its exact bound dispatch', 'managed_dispatch_required',409);
+    return this.initialize(workOrder,false);
+  }
+
+  async prepareRun(workOrder: WorkOrder): Promise<Run> { return this.initialize(workOrder,true); }
+
+  private async initialize(workOrder: WorkOrder,prepareOnly:boolean): Promise<Run> {
     if (this.#active) throw new ActionError("Another run is already active", "concurrency_limit", 409);
+    workOrder = structuredClone(workOrder);
     this.#clearRecoveryHold(workOrder);
     const active: ActiveJob = {
       workOrderId: workOrder.id,
@@ -168,19 +194,54 @@ export class JobManager {
       controller: new AbortController(),
       reason: null,
       done: null,
+      model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
+      preflight: null,
+      prepareOnly,
     };
     this.#active = active;
     const started = this.#initializeRun(workOrder, active);
     active.done = started.then((run) => {
       active.runId = run.id;
-      return this.#execute(workOrder, run, active);
+      return prepareOnly ? undefined : this.#execute(workOrder, run, active);
     }).catch(() => {
       // The caller receives initialization errors through `started`.
     }).finally(() => {
       if (this.#active === active) this.#active = null;
     });
-    return started;
+    const run=await started;
+    if(prepareOnly) await active.done;
+    return run;
   }
+
+  /** Called only after the connection service atomically claims this exact attempt. */
+  executePrepared(workOrder:WorkOrder,run:Run,claim:()=>boolean,gateway?:ActiveJob['gateway']):boolean {
+    if(this.#active) throw new ActionError('Another run is active','concurrency_limit',409);
+    if(!this.producer?.snapshot(run)) throw new ActionError('Prepared execution snapshot missing','binding_missing',409);
+    const active:ActiveJob={workOrderId:workOrder.id,runId:run.id,controller:new AbortController(),reason:null,done:null,
+      model:this.producer.snapshot(run)!.configuration.model,preflight:null,gateway};
+    if(!claim()) return false;
+    this.#active=active;
+    const bound=this.storage.listEvents(workOrder.id).find(e=>e.type==='factory.writer_bound');
+    const remaining=Date.parse(String(bound?.payload.deadline))-Date.now();
+    const timer=setTimeout(()=>{active.reason='user_cancel';active.controller.abort();},Math.max(0,remaining));
+    timer.unref();
+    active.done=this.#execute(structuredClone(workOrder),run,active).catch(error=>{
+      this.#event(workOrder.id,run.id,'run.recovery_hold',{reason:message(error),previousState:'unknown'});
+    }).finally(async()=>{
+      try { await gateway?.close(); }
+      finally {
+        try { gateway?.fenceAuthority?.(); }
+        catch (error) { this.#event(workOrder.id,run.id,'run.recovery_hold',
+          {reason:'Spend authority fence failed: '+message(error),previousState:'unknown'}); }
+        clearTimeout(timer);
+        this.#event(workOrder.id,run.id,'factory.execution_settled',{runId:run.id});
+        if(this.#active===active)this.#active=null;
+      }
+    });
+    return true;
+  }
+
+  activeRun(runId:string):boolean {return this.#active?.runId===runId;}
 
   async #initializeRun(workOrder: WorkOrder, active: ActiveJob): Promise<Run> {
     let workspacePath: string | null = null;
@@ -192,6 +253,12 @@ export class JobManager {
           "awaiting_environment",
           503,
         );
+      }
+      if (this.producer) {
+        active.preflight = await this.dependencies.preflightCodex();
+        if (!active.preflight.binaryAvailable || !active.preflight.authenticated || !active.preflight.version) {
+          throw new ActionError("Executor version is unavailable for attestation", "awaiting_environment", 503);
+        }
       }
       const inputCommit = await this.dependencies.resolveCommit(workOrder.repositoryPath, workOrder.baseRef);
       if (active.controller.signal.aborted) throw new ActionError("Start was cancelled", "cancelled", 409);
@@ -212,15 +279,16 @@ export class JobManager {
           inputCommit,
           workspacePath: createdPath,
         });
+        this.producer?.capture(workOrder, run, active.model, active.preflight!.version!);
         this.storage.saveWorkOrder({ ...workOrder, state: "planning" });
         const event = this.storage.appendEvent({
           workOrderId: workOrder.id,
           runId: run.id,
-          type: "run.started",
+          type: active.prepareOnly ? "run.prepared" : "run.started",
           payload: {
             inputCommit,
             workerProfile: workOrder.workerProfile,
-            model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
+            model: active.model,
             skillReferenceCommit: "fd8f20a879b507cf09feba08663a1edf7a949353",
           },
         });
@@ -248,6 +316,7 @@ export class JobManager {
 
   async #execute(workOrder: WorkOrder, initialRun: Run, active: ActiveJob): Promise<void> {
     let run = initialRun;
+    const snapshot = this.producer?.snapshot(run);
     const artifactDir = join(this.dataDir, "artifacts", run.id);
     const signal = active.controller.signal;
     try {
@@ -259,10 +328,12 @@ export class JobManager {
         });
         const reproduction = await this.dependencies.verifyCandidate({
           repositoryPath: run.workspacePath,
+        resourceKey:run.id,
           candidateSha: run.inputCommit,
           commands: [workOrder.reproductionCommand],
           artifactDir: join(artifactDir, "reproduction"),
           signal,
+          ...(snapshot ? { image: snapshot.configuration.verificationImage } : {}),
         });
         const result = reproduction.checks[0];
         const observedFailureText = result?.logPath && result.status === "failed"
@@ -284,8 +355,9 @@ export class JobManager {
           return;
         }
         if (result?.status !== "failed") {
-          run = this.#transition(run, "failed", "awaiting_environment", "run.reproduction_unavailable", {
+          run = this.#transition(run, this.producer ? "interrupted" : "failed", "awaiting_environment", this.producer ? "run.recovery_hold" : "run.reproduction_unavailable", {
             reason: result?.reason ?? reproduction.reason ?? "Reproduction could not run",
+            ...(this.producer ? { previousState: "verifying", pid: null } : {}),
           }, { failure: "Reproduction environment unavailable" });
           return;
         }
@@ -298,7 +370,16 @@ export class JobManager {
         }
       }
 
+      if (!active.gateway && this.dependencies.runCodex === runCodex) {
+        run = this.#transition(run, "failed", "awaiting_environment", "run.spend_unqualified", {
+          reason: "Paid Codex execution requires an exact Work spend gateway; paid execution is disabled",
+        }, { failure: "Paid execution is disabled until Work spend qualification" });
+        return;
+      }
       const preflight = await this.dependencies.preflightCodex();
+      if (snapshot && preflight.version !== snapshot.configuration.executorVersion) {
+        throw new Error("Executor version changed after attempt admission");
+      }
       if (!preflight.binaryAvailable || !preflight.authenticated) {
         run = this.#transition(run, "failed", "awaiting_environment", "run.agent_unavailable", {
           reason: preflight.error ?? "Codex CLI is unavailable or unauthenticated",
@@ -324,10 +405,11 @@ export class JobManager {
       const codex = await this.dependencies.runCodex({
         workspacePath: run.workspacePath,
         prompt,
-        model: process.env.FACTORY_CODEX_MODEL ?? "gpt-5.5",
-        timeoutMs: 30 * 60 * 1000,
+        model: snapshot?.configuration.model ?? active.model,
+        timeoutMs: snapshot?.configuration.timeoutMs ?? 30 * 60 * 1000,
         artifactsDir: artifactDir,
         signal,
+        ...(active.gateway ? { gateway: { baseUrl: active.gateway.baseUrl, childToken: active.gateway.childToken } } : {}),
         onProcessStart: (processIdentity) => {
           this.#event(workOrder.id, run.id, "agent.process_started", processIdentity);
         },
@@ -347,10 +429,37 @@ export class JobManager {
       });
       if (signal.aborted) throw new Error("Run interrupted during agent execution");
       if (!codex.success) {
+        if (codex.status === "timed_out") {
+          const processEvent = this.storage.listEvents(workOrder.id).filter(event => event.runId === run.id && event.type === "agent.process_started").at(-1);
+          run = this.#transition(run, "interrupted", "awaiting_environment", "run.recovery_hold", {
+            reason: "Worker timed out; reconcile this attempt before retrying",
+            previousState: "implementing", pid: processEvent?.payload.pid ?? null,
+          }, { failure: codex.error ?? "Worker outcome unresolved" });
+          return;
+        }
         run = this.#transition(run, "failed", "failed", "run.agent_failed", {
           reason: codex.error ?? "Codex did not complete successfully",
         }, { failure: codex.error ?? "Coding agent failed" });
         return;
+      }
+
+      if (active.gateway?.beginCompletion) {
+        const completion = await active.gateway.beginCompletion();
+        this.#event(workOrder.id, run.id, 'run.completion_started', {phase:'completion'});
+        const completed = await this.dependencies.runCodex({
+          workspacePath: run.workspacePath,
+          prompt: 'Read the candidate without changing files. Summarize the completed work and remaining risks.',
+          model: snapshot?.configuration.model ?? active.model,
+          timeoutMs: snapshot?.configuration.timeoutMs ?? 30 * 60 * 1000,
+          artifactsDir: artifactDir,
+          sandbox: 'read-only',
+          signal,
+          gateway: completion,
+          onProcessStart: (processIdentity) => { this.#event(workOrder.id, run.id, 'agent.completion_process_started', processIdentity); },
+        });
+        this.#event(workOrder.id, run.id, 'run.completion_result', {status:completed.status,eventsPath:completed.eventsPath});
+        if (!completed.success || signal.aborted) throw new Error('Mandatory paid completion failed');
+        active.gateway.assertCompleted?.();
       }
 
       const candidate = await this.dependencies.commitCandidate(
@@ -367,15 +476,17 @@ export class JobManager {
         diffPath: candidate.diffPath,
         diffSha256,
       }, { candidateCommit: candidate.commit });
-      const verificationCommands = workOrder.kind === "defect" && workOrder.reproductionCommand
+      const verificationCommands = snapshot?.configuration.commands ?? (workOrder.kind === "defect" && workOrder.reproductionCommand
         ? [...new Set([workOrder.reproductionCommand, ...workOrder.checkCommands])]
-        : workOrder.checkCommands;
+        : workOrder.checkCommands);
       const verification = await this.dependencies.verifyCandidate({
         repositoryPath: run.workspacePath,
+        resourceKey:run.id,
         candidateSha: candidate.commit,
         commands: verificationCommands,
         artifactDir: join(artifactDir, "verification"),
         signal,
+        ...(snapshot ? { image: snapshot.configuration.verificationImage } : {}),
       });
       for (const check of verification.checks) {
         const logSha256 = createHash("sha256").update(await readFile(check.logPath)).digest("hex");
@@ -400,8 +511,9 @@ export class JobManager {
       if (verification.checks.length === 0 || verification.checks.some((check) => check.status !== "passed")) {
         const unavailable = verification.checks.length === 0 ||
           verification.checks.some((check) => check.status === "unavailable");
-        run = this.#transition(run, "failed", unavailable ? "awaiting_environment" : "failed", "run.verification_failed", {
+        run = this.#transition(run, unavailable && this.producer ? "interrupted" : "failed", unavailable ? "awaiting_environment" : "failed", unavailable && this.producer ? "run.recovery_hold" : "run.verification_failed", {
           candidateCommit: candidate.commit,
+          ...(unavailable && this.producer ? { previousState: "verifying", pid: null, reason: "Verifier outcome unresolved; reconcile before retrying" } : {}),
         }, { failure: unavailable ? "A required check was unavailable" : "One or more required checks failed" });
         return;
       }
@@ -417,6 +529,12 @@ export class JobManager {
       this.#transition(run, runState, orderState, `run.${runState}`, {
         reason: message(error),
       }, { failure: message(error) });
+    } finally {
+      const current = this.storage.getRun(initialRun.id);
+      if (this.producer && current && ["ready_for_review", "failed", "cancelled"].includes(current.state)) {
+        try { this.producer.finalize(current); }
+        catch (error) { this.#event(current.workOrderId, current.id, "run.result_unavailable", { reason: message(error) }); }
+      }
     }
   }
 

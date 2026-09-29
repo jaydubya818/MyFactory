@@ -6,6 +6,12 @@ This is an implementation in progress. The local path and Feedback Hub preview r
 
 The work desk now includes **Connections** and optional Linear issue creation. Approved sibling app backends can create WorkOrders, read evidence records, and add notes through scoped shared actions. These integrations are inactive until configured. See [app connections and Linear setup](docs/connections.md) for host settings, client registration, retry behavior, and current limits.
 
+## Producer result attestation
+
+The opt-in [result protocol](docs/producer-result-protocol.md) captures an immutable, content-derived FactoryVersion when an attempt is admitted. Terminal results bind the saved request/WorkOrder/attempt, actual Git candidate objects and patch, check evidence, and returned artifact bytes in one signed manifest. It reuses the existing Ed25519 receipt primitive with a versioned result domain and retained key identities. Exact-attempt readback supports replay and restart without redispatch; unknown or stopping attempts produce no terminal receipt.
+
+This is **local synthetic producer qualification**, documented in the [Q37 evidence dossier](docs/evidence/q37-producer-attestation/REPORT.md). Receipts grant no consumer writer, publication, approval, budget or Ready authority. **MyEve Gate C consumer integration and Gate B writer handoff are not implemented here; live Q37 Factory execution is NOT_RUN.** No production keys are created or changed automatically.
+
 ## Run the work desk
 
 Requires Node 24. Coding attempts use a logged-in Codex CLI on the Mac host and Docker Desktop with the cached `node:22-bookworm` image for offline verification.
@@ -27,7 +33,7 @@ Open **App builder**, choose the versioned Feedback Hub starter, and enter a pro
 ## Run and review a coding WorkOrder
 
 1. Create a WorkOrder with a local Git repository path, base branch, acceptance criteria, permitted file paths, and check commands. A defect also needs a reproduction command and the expected substring in the failing baseline log.
-2. Start a bounded Mac coding attempt. The supervisor makes a task worktree, checks the baseline failure in offline Docker, runs Codex, validates the changed paths and modes, then commits the candidate with an isolated Git index. It verifies the exact candidate commit in offline Docker. One attempt runs at a time; each WorkOrder is limited to two attempts.
+2. Start a bounded Mac coding attempt when an approved spend gateway is available. The supervisor makes a task worktree, checks the baseline failure in offline Docker, runs Codex, validates the changed paths and modes, then commits the candidate with an isolated Git index. It verifies the exact candidate commit in offline Docker. One attempt runs at a time; each WorkOrder is limited to two attempts. Default host Codex execution currently stops before the model call because paid execution is disabled.
 3. Review the candidate diff, check logs and digests, and policy revision. A publication request is a local proposal. The device owner must confirm approval of the exact request. A changed candidate, diff, check log, policy, or expired approval blocks a new draft PR.
 4. After approval, the host-side GitHub adapter checks the destination branch and existing PR, pushes the exact candidate only to an absent stable WorkOrder branch, and creates a draft PR. It records the external outcome. If the response is uncertain, retries are read-only reconciliation; the factory does not repeat an unconfirmed push or PR creation.
 
@@ -45,3 +51,9 @@ npm run smoke:docker
 ```
 
 The [Phase 0 baseline](docs/phase-0-baseline.md) and [integrated smoke evidence](docs/evidence/integration-smoke/README.md) show the fixture, reproduction, candidate, and independent check. The [architecture](docs/architecture.md) and [backlog](docs/backlog.md) separate this first delivery path from scheduled intake, merge, deployment, and release promotion. Reviewed Builder.io Factory instructions are pinned under [skills/vendor/builderio](skills/vendor/builderio/README.md).
+
+## MyEve Factory dispatch qualification
+
+The Q37 consumer uses authenticated two-stage preparation and dispatch on the existing connection API. See [dispatch lifecycle and local qualification](docs/factory-dispatch.md). The producer captures the real WorkOrder, attempt and FactoryVersion before execution; replay never creates a second consequential dispatch. Stop remains nonterminal until resource reconciliation proves quiescence.
+
+**Live MyFactory: NOT_RUN / NOT READY.** The private-alpha reconstruction branch starts from durable producer `8f5e377` after the accepted V2 commit was lost. Its new V2 ledger adds a Work-wide UNKNOWN hard stop, protected completion reserve, maximum paid operations, exact writer fencing, and authenticated spend readback. The installed Codex CLI and a fake provider have been exercised locally. A pinned OpenAI/Keychain loader has only synthetic fixture coverage; the running supervisor still has paid execution disabled. See the [fresh reconstruction dossier](docs/evidence/myfactory-private-alpha-reconstruction/REPORT.md), [V2 protocol](docs/factory-dispatch.md#v2-spend-and-completion-contract), and [MyEve handoff](docs/my-eve-spend-v2-handoff.md). No real provider call, deployment, publication, or main merge is included.

@@ -1,4 +1,5 @@
 import type { CreateWorkOrderInput, FactoryEvent, LinearLink, PublicationRequest, WorkOrder, WorkOrderDetail } from "../../contracts/src/index.ts";
+import type { SignedResult } from "../../hosted-routing/src/result.ts";
 
 /** Backend client for approved apps on the same host. Never put the token in browser code. */
 export class FactoryClient {
@@ -38,6 +39,14 @@ export class FactoryClient {
 
   getWorkOrder(id: string): Promise<WorkOrderDetail> {
     return this.#request(`work-orders/${encodeURIComponent(id)}`);
+  }
+
+  /** Read one exact producer attempt. This never starts or retries execution. */
+  getRunResult(workOrderId: string, runId: string): Promise<{
+    state: "COMPLETED" | "FAILED" | "CANCELLED" | "RUNNING" | "STOPPING" | "UNKNOWN";
+    result: SignedResult | null;
+  }> {
+    return this.#request(`work-orders/${encodeURIComponent(workOrderId)}/runs/${encodeURIComponent(runId)}/result`);
   }
 
   createWorkOrder(input: CreateWorkOrderInput & { idempotencyKey: string }): Promise<WorkOrder> {

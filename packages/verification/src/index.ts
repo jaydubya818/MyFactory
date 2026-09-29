@@ -30,6 +30,7 @@ export interface VerificationLimits {
 }
 
 export interface VerificationInput {
+  resourceKey?: string;
   repositoryPath: string;
   candidateSha: string;
   commands: string[];
@@ -460,6 +461,7 @@ export async function verifyCandidate(input: VerificationInput): Promise<Verific
       const name = `factory-verify-${randomUUID()}`;
       const args = [
         "run", "--rm", "--pull=never", "--name", name,
+        ...(input.resourceKey ? ["--label", `factory.run=${input.resourceKey}`] : []),
         "--network=none", "--read-only", "--cap-drop=ALL",
         "--security-opt=no-new-privileges", "--user=65534:65534",
         `--pids-limit=${limits.pids}`, `--cpus=${limits.cpus}`,

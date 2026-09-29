@@ -9,12 +9,16 @@ import { promisify } from "node:util";
 import type { FactoryEvent, WorkOrderDetail } from "../../../packages/contracts/src/index.ts";
 import { listAppTemplates, LocalAppPreviewManager } from "../../../packages/app-builder/src/index.ts";
 import { openStorage } from "../../../packages/storage/src/index.ts";
+import { SpendLedger } from "../../../packages/storage/src/spend.ts";
 import { ActionError, actionRegistry, performAction, type ActionContext } from "./actions.ts";
 import { publishDraftPullRequest } from "./github.ts";
 import { JobManager, type JobDependencies } from "./jobs.ts";
 import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
 import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
+import { FactoryDispatchControl } from "./dispatch-control.ts";
+import type { SpendPrice } from "./spend-gateway.ts";
+import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
 const confirmApprovalScript = fileURLToPath(new URL("../native/confirm-approval.swift", import.meta.url));
@@ -134,6 +138,7 @@ function artifactText(dataDir: string, candidate: unknown): string | null {
 }
 
 export interface SupervisorOptions {
+  resultSigning?: ProducerOptions;
   dataDir?: string;
   webDist?: string;
   startRun?: ActionContext["startRun"];
@@ -141,6 +146,10 @@ export interface SupervisorOptions {
   confirmHumanPresence?: NonNullable<ActionContext["confirmHumanPresence"]>;
   publishDraft?: NonNullable<ActionContext["publishDraft"]>;
   jobDependencies?: Partial<JobDependencies>;
+  /** Backend-only fixture authorization; never read from HTTP or environment. */
+  localFactoryFixture?: boolean;
+  /** Synthetic loopback provider only. Never sourced from public input or environment. */
+  localSpendFixture?: { upstreamOrigin: string; upstreamApiKey: string; price: SpendPrice };
   linear?: LinearOptions;
 }
 
@@ -163,6 +172,8 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const webDist = resolve(options.webDist ?? defaultWebDist);
   const token = sessionToken(dataDir);
   const storage = openStorage(resolve(dataDir, "factory.sqlite"));
+  const spend = new SpendLedger(resolve(dataDir, "factory.sqlite"));
+  spend.recoverUnknown();
   const connectionsPath = resolve(dataDir, "connections.json");
   const subscribers = new Map<string, Set<ServerResponse>>();
 
@@ -184,7 +195,16 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     }
     if (listeners.size === 0) subscribers.delete(event.workOrderId);
   };
-  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies);
+  const signing = options.resultSigning ?? producerOptions(dataDir);
+  const producer = signing ? new ProducerResults(storage, dataDir, signing) : undefined;
+  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer);
+  const fixtureDependencies=!!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate;
+  if(options.localFactoryFixture&&options.localSpendFixture)throw new Error('Fixture modes are mutually exclusive');
+  if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
+  if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
+    throw new Error('Local spend fixture must target loopback only');
+  const dispatchControl=producer?new FactoryDispatchControl(storage,jobs,producer,spend,
+    options.localFactoryFixture === true && fixtureDependencies,options.localSpendFixture):null;
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
     const link = storage.getLinearLink(order.id);
@@ -256,8 +276,31 @@ export function createSupervisor(options: SupervisorOptions = {}) {
 
       if (pathname.startsWith("/api/connect/v1/")) {
         const client = authenticateClient(request, readClients(connectionsPath));
+        const controlRoute=/^\/api\/connect\/v1\/dispatches(?:\/([a-f0-9-]{36})(?:\/(dispatch|stop))?)?$/.exec(pathname);
+        if(controlRoute){
+          if(!dispatchControl)return json(response,503,{error:'Producer result signing is required'});
+          const id=controlRoute[1],action=controlRoute[2];
+          if(request.method==='POST'&&!id)return json(response,200,await dispatchControl.prepare(client,await requestBody(request) as never));
+          if(request.method==='GET'&&id&&!action)return json(response,200,await dispatchControl.read(client,id));
+          if(request.method==='POST'&&id&&action){
+            const identity=await requestBody(request) as import('./dispatch-control.ts').ExecutionIdentity;
+            if(identity?.requestId!==id)throw new ActionError('Request path binding mismatch','invalid_input');
+            return json(response,200,await (action==='dispatch'?dispatchControl.dispatch(client,identity):dispatchControl.stop(client,identity)));
+          }
+          return json(response,405,{error:'Method not allowed'});
+        }
+        const resultRoute = /^\/api\/connect\/v1\/work-orders\/([0-9a-f-]{36})\/runs\/([0-9a-f-]{36})\/result$/.exec(pathname);
+        if (request.method === "GET" && resultRoute) {
+          const order = storage.getWorkOrder(resultRoute[1]);
+          const run = storage.getRun(resultRoute[2]);
+          if (!order || !run || run.workOrderId !== order.id || !canAccessRepository(client, order.repositoryPath)) {
+            return json(response, 404, { error: "Attempt not found" });
+          }
+          if (!producer) return json(response, 503, { error: "Producer result attestation is not configured" });
+          return json(response, 200, producer.read(run));
+        }
         if (request.method === "GET" && pathname === "/api/connect/v1/actions") {
-          return json(response, 200, { client: client.id, actions: client.actions.map((name) => actionRegistry[name as keyof typeof actionRegistry]) });
+          return json(response, 200, { client: client.id, actions: client.actions.map((name) => actionRegistry[name as keyof typeof actionRegistry]).filter(Boolean), controls:client.actions.filter(name=>name.startsWith("factory.")), execution:dispatchControl?.executionAvailability()??{mode:"DISABLED",spendEnforced:false} });
         }
         if (request.method === "GET" && pathname === "/api/connect/v1/work-orders") {
           return json(response, 200, { workOrders: storage.listWorkOrders().filter((order) => canAccessRepository(client, order.repositoryPath)) });
@@ -488,6 +531,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
         server.close((error) => error ? reject(error) : resolveClose());
       });
       storage.close();
+      spend.close();
     },
   };
 }

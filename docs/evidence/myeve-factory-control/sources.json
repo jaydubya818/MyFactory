@@ -1,0 +1,9 @@
+{
+  "apps/supervisor/src/actions.ts": "ec315c66d57c83ca4b52a9270c8c64c0b603ee1f98536d67f193f773139d5ec9",
+  "apps/supervisor/src/connections.ts": "697b635c22034a763bfeb3f7bfab1ab8401a5bc0be53dbfd135a9e873198dc1a",
+  "apps/supervisor/src/jobs.ts": "6178799738c5c3c6b8370d734c3d393017bc14b69de4f19bbf1c6f0d4cacf9b7",
+  "apps/supervisor/src/server.ts": "8672a241faf782bb282dcbf7b297005afe944e114a382fd6683ae0091dda2dde",
+  "apps/supervisor/src/dispatch-control.ts": "0a286bc916ce995523f05e311a87800322ce78dbc68ce2d6ed202eb1d8cdde2a",
+  "packages/agents/src/index.ts": "bf064c039dabc592b540cf3e989765c3212c638839228b67976c7a7cc20d93aa",
+  "packages/verification/src/index.ts": "ba0bf8ab14e4c4a6085a6866ba5ea80c3a2e12ba7cfea36e0e7630ceb6b5b597"
+}

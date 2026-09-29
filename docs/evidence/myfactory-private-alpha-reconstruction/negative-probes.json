@@ -1,0 +1,22 @@
+{
+  "qualification": "PASS_LOCAL_SYNTHETIC",
+  "paidProviderCalls": 0,
+  "postUnknownCalls": 0,
+  "completionStarvation": 0,
+  "callsBeyondLimit": 0,
+  "completionReserveTheft": 0,
+  "unknown": {
+    "postUnknownCalls": 0,
+    "unknownExposureMicrousd": 1200
+  },
+  "completion": {
+    "completionStarvation": 0,
+    "completionReserveTheft": 0,
+    "providerCalls": 3
+  },
+  "operationLimit": {
+    "callsBeyondLimit": 0,
+    "paidOperationsUsed": 3,
+    "maxPaidOperations": 3
+  }
+}

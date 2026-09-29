@@ -1,0 +1,42 @@
+{
+  "scope": "Additive MyFactory producer spend sources and changed runtime sources. Historical Q37 inventory is unchanged.",
+  "newSources": {
+    "apps/supervisor/src/spend-gateway.ts": {
+      "classification": "METERED_PROVIDER_BOUNDARY",
+      "authorityBoundary": "Loopback Responses proxy reserves before every upstream request, settles authoritative provider usage, and retains uncertain exposure. Real upstream activation remains disabled.",
+      "sha256": "fcc43e333200428070538f80dc9e66f08426cc2718fa62b5c29b68c5805a3839"
+    },
+    "packages/storage/src/spend.ts": {
+      "classification": "DURABLE_WORK_SPEND_LEDGER",
+      "authorityBoundary": "SQLite BEGIN IMMEDIATE reservation and settlement for one Work ceiling across generations, retries, processes, and cancellation.",
+      "sha256": "96079be4042cdd7f85bcf9753b09e49a1ddfc2c3b9c66534e7ab3b3bc60d58e9"
+    }
+  },
+  "changedSources": {
+    "apps/supervisor/src/dispatch-control.ts": {
+      "classification": "AUTHENTICATED_FACTORY_DISPATCH",
+      "authorityBoundary": "Exact connected preparation binds immutable Work ceiling; only local synthetic spend fixture can run through the metered gateway. Live paid dispatch remains disabled.",
+      "sha256": "ca8fb7e933372651fa175bfcd9e59d4c19c66e61ab9df19339de2aa035b5f890"
+    },
+    "apps/supervisor/src/jobs.ts": {
+      "classification": "EXECUTION_FENCE",
+      "authorityBoundary": "Default host Codex execution is denied without gateway; bound connected attempt passes gateway into worker and closes it after execution.",
+      "sha256": "4c1c6b1101e0f09c2f8ec7f3ad2c874ec66569d4c82326a8ac8845eed9dde33c"
+    },
+    "apps/supervisor/src/server.ts": {
+      "classification": "PRODUCER_HOST",
+      "authorityBoundary": "Opens and recovers spend ledger, exposes only backend-only loopback fixture configuration, and closes ledger on shutdown.",
+      "sha256": "c9fe9bc9512ec3dbb4cf7b01d2cc4d5b7fc6bb29d2c532a5016fdf64d8490a5f"
+    },
+    "packages/agents/src/index.ts": {
+      "classification": "CODEX_GATEWAY_LAUNCHER",
+      "authorityBoundary": "Gateway runs pin a custom loopback Responses provider and strip inherited provider credentials from the Codex child environment.",
+      "sha256": "140e0bfffd3b1ffaaa03c9a17a77054fc50a8d5c04e07e7ff0367e2de485857c"
+    },
+    "packages/storage/src/index.ts": {
+      "classification": "SPEND_SCHEMA_MIGRATION",
+      "authorityBoundary": "Additive version 7 SQLite tables for immutable Work budgets and exact paid operations; versions 1-6 remain byte-identical.",
+      "sha256": "105e4282d935ee9ef9ecad9f372f41b8b24758594de58d598eac8e5277cac3b9"
+    }
+  }
+}

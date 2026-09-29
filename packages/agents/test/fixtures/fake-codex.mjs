@@ -25,6 +25,18 @@ if (valueAfter("-m") !== "test-model" || !valueAfter("-C") ||
   process.exit(65);
 }
 
+if (prompt === 'gateway-config') {
+  const configs = args.flatMap((arg, index) => arg === '-c' ? [args[index + 1]] : []);
+  if (!args.includes('--ignore-user-config') ||
+      !configs.includes('model_provider="factory_spend"') ||
+      !configs.includes('model_providers.factory_spend.supports_websockets=false') ||
+      !configs.includes('web_search="disabled"') ||
+      !configs.some(item => item.startsWith('model_providers.factory_spend.base_url="http://127.0.0.1:8123/v1"')) ||
+      process.env.FACTORY_GATEWAY_TOKEN !== 'a'.repeat(64) ||
+      process.env.OPENAI_API_KEY || process.env.CODEX_API_KEY ||
+      process.env.HOME !== process.env.CODEX_HOME) process.exit(66);
+}
+
 console.log(JSON.stringify({ type: "thread.started", thread_id: "fixture-thread" }));
 console.log(JSON.stringify({ type: "turn.started" }));
 

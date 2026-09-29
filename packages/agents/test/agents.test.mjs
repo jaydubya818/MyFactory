@@ -61,6 +61,15 @@ test("run keeps prompt literal and returns only event-backed completion", async 
   assert.ok(!result.eventsPath.startsWith(work.workspacePath));
 });
 
+test('gateway run isolates child auth and pins the Responses provider to loopback', async t => {
+  const work = await fixture(t);
+  const result = await work.adapter.runCodex(options(work, 'gateway-config', {
+    gateway: { baseUrl: 'http://127.0.0.1:8123/v1', childToken: 'a'.repeat(64) },
+  }));
+  assert.equal(result.success, true);
+  assert.equal(result.exitCode, 0);
+});
+
 test("process start callback is awaited before event processing", async (t) => {
   const work = await fixture(t);
   const order = [];

@@ -306,7 +306,7 @@ function stringArray(value: unknown, field: string): string[] {
   return value.map((item: string) => item.trim()).filter(Boolean);
 }
 
-function parseCreateInput(value: unknown): CreateWorkOrderInput {
+export function parseCreateInput(value: unknown): CreateWorkOrderInput {
   const input = asObject(value);
   const kind = stringValue(input.kind, "kind", true) as WorkKind;
   const workerProfile = stringValue(input.workerProfile, "workerProfile", true) as WorkerProfile;
@@ -715,7 +715,8 @@ export async function performAction(
         workOrderId: workOrder.id,
         runId: null,
         type: "workorder.created",
-        payload: { actor: actor.id, actorKind: actor.kind, state, syncToLinear },
+        payload: { actor: actor.id, actorKind: actor.kind, state, syncToLinear,
+          requestId: `local-request:${createHash("sha256").update(JSON.stringify([intakeActor, key ?? workOrder.id])).digest("hex")}` },
       });
       return { workOrder, event };
     });

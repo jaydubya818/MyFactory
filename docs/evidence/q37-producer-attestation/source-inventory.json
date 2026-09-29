@@ -1,0 +1,21 @@
+{
+  "baseline": "8c5de7794ffa377420ef5dcdbda44aa9fa2328b8",
+  "scope": "Only new Q37 producer runtime sources. No existing inventory found or reclassified.",
+  "sources": {
+    "apps/supervisor/src/producer-results.ts": {
+      "classification": "INTERNAL_PRODUCER_ATTESTATION",
+      "authorityBoundary": "Captures actual host admission and freezes signed result bytes; no dispatch, publication or consumer authority grant.",
+      "sha256": "0df13646e7d9cf9359ee572ce8aa25367b067c949de9e26ab885bb5465c725e9"
+    },
+    "packages/hosted-routing/src/result.ts": {
+      "classification": "PURE_RESULT_PROTOCOL",
+      "authorityBoundary": "Strict canonical signature and received-byte verification; key validity is separate from consumer authorization.",
+      "sha256": "020fc236ae87570293c9fae4cd69a9451aa3634534bf316a4c0e3c3acb3785ca"
+    },
+    "apps/supervisor/src/dispatch-control.ts": {
+      "classification": "AUTHENTICATED_FACTORY_DISPATCH",
+      "authorityBoundary": "Exact connection-scoped prepare/bind/dispatch/stop backed by existing SQLite intake and immutable events. Live paid dispatch is disabled; only backend-injected local fixtures execute. Terminal proof requires durable fencing and resource absence.",
+      "sha256": "0a286bc916ce995523f05e311a87800322ce78dbc68ce2d6ed202eb1d8cdde2a"
+    }
+  }
+}
