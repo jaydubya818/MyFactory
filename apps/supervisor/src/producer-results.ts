@@ -92,7 +92,7 @@ export class ProducerResults {
     if (key.revokedAt || key.retiredAt || !(Date.parse(key.activeFrom) <= now && now <= Date.parse(key.notAfter))) {
       throw new Error('Current producer signing key is unavailable for admission');
     }
-    if (!executorVersion || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(model)) throw new Error('Execution configuration unavailable');
+    if (!executorVersion || model.length>120 || !/^[A-Za-z0-9][A-Za-z0-9._:-]*(?:\/[A-Za-z0-9][A-Za-z0-9._:-]*)?$/.test(model)) throw new Error('Execution configuration unavailable');
     const events=this.storage.listEvents(work.id);
     const intake=events.filter(e => e.type === 'hosted.intake_received');
     if (intake.length > 1) throw new Error('Ambiguous initiating request');

@@ -1,15 +1,21 @@
 {
-  "mode": "OPENAI_RESPONSES_PRIVATE_ALPHA",
-  "endpoint": "https://api.openai.com/v1/responses",
-  "model": "gpt-5.4-mini-2026-03-17",
-  "secretRef": "keychain://com.myeve.myfactory.q37/openai-provider",
+  "mode": "VERCEL_OIDC_GATEWAY_PRIVATE_ALPHA",
+  "endpoint": "https://ai-gateway.vercel.sh/v1/responses",
+  "model": "openai/gpt-5.4-mini",
   "price": {
-    "revision": "openai-standard-20260929",
-    "model": "gpt-5.4-mini-2026-03-17",
-    "validUntil": "2026-09-30T23:59:59Z",
+    "revision": "gateway-openai-20260930",
+    "model": "openai/gpt-5.4-mini",
+    "validUntil": "2026-10-02T23:59:59Z",
     "contextLimitTokens": 400000,
     "outputLimitTokens": 8192,
     "inputMicrousdPerMillion": 750000,
     "outputMicrousdPerMillion": 4500000
+  },
+  "identity": {
+    "projectId": "prj_L6faw25wnFGUZtrLKBIccg8gIDLR",
+    "teamId": "team_p8z8exJRTGfOPk1GC9vUOpv3",
+    "issuer": "https://oidc.vercel.com/jaydubya818",
+    "audience": "https://vercel.com/jaydubya818",
+    "environment": "development"
   }
 }

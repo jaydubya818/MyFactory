@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { SpendLedger, type SpendBinding, type SpendPhase } from '../../../packages/storage/src/spend.ts';
+import {providerAuthorization,type ProviderConnection} from './provider-connection.ts';
 
 /** Revisioned, operator-approved rate card. Rates are integer micro-USD per million tokens. */
 export interface SpendPrice {
@@ -14,12 +15,11 @@ export interface SpendPrice {
   outputMicrousdPerMillion: number;
 }
 
-export interface SpendGatewayOptions {
+export interface SpendGatewayOptions extends ProviderConnection {
   ledger: SpendLedger;
   binding: SpendBinding;
   price: SpendPrice;
   upstreamOrigin: string;
-  upstreamApiKey: string;
   childToken: string;
   phase: SpendPhase;
   timeoutMs?: number;
@@ -28,7 +28,7 @@ export interface SpendGatewayOptions {
 function positive(value: number): boolean { return Number.isSafeInteger(value) && value > 0; }
 export function validatePrice(price: SpendPrice): void {
   if (!price || !/^[a-zA-Z0-9._-]{1,64}$/.test(price.revision) ||
-    !/^[a-zA-Z0-9._-]{1,80}$/.test(price.model) ||
+    typeof price.model!=='string'||!/^[a-zA-Z0-9._-]+(?:\/[a-zA-Z0-9._-]+)?$/.test(price.model) ||price.model.length>120||
     !Number.isFinite(Date.parse(price.validUntil)) || Date.parse(price.validUntil) <= Date.now() ||
     !positive(price.contextLimitTokens) || !positive(price.outputLimitTokens) ||
     !positive(price.inputMicrousdPerMillion) || !positive(price.outputMicrousdPerMillion) ||
@@ -111,7 +111,7 @@ export class SpendGateway {
     if (!/^https:\/\//.test(options.upstreamOrigin) && !/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.upstreamOrigin)) {
       throw new Error('Upstream must be HTTPS or a loopback fixture');
     }
-    if (!options.upstreamApiKey || !options.childToken) throw new Error('Separate upstream and child credentials required');
+    if ((!options.upstreamApiKey&&!options.authorize) || !options.childToken) throw new Error('Separate upstream and child credentials required');
     this.#options = options;
     this.#server = createServer((request, response) => { void this.#handle(request, response); });
   }
@@ -140,6 +140,8 @@ export class SpendGateway {
         return denied(response, 400, 'Server-side context is unqualified');
       }
       if (payload.service_tier != null && payload.service_tier !== 'default') return denied(response, 400, 'Unpriced service tier');
+      if(['providerOptions','provider_options','models','routing','byok'].some(key=>key in payload))
+        return denied(response,400,'Client provider routing is unqualified');
       if (unpricedContent(payload)) return denied(response, 400, 'Unpriced content or hosted tool');
       if (payload.stream !== undefined && typeof payload.stream !== 'boolean') return denied(response, 400, 'Invalid stream mode');
       const requestedOutput = payload.max_output_tokens;
@@ -151,13 +153,17 @@ export class SpendGateway {
       // Full context reservation is deliberately more conservative than estimating tokens from bytes.
       const reserveMicrousd = Math.ceil(price.contextLimitTokens * price.inputMicrousdPerMillion / 1_000_000) +
         Math.ceil(price.outputLimitTokens * price.outputMicrousdPerMillion / 1_000_000);
+      const outgoing=this.#options.prepareRequest?this.#options.prepareRequest(payload):payload;
+      const credential=await providerAuthorization(this.#options);
+      // Identity refresh may take time. Recheck price and ledger admission afterward.
+      validatePrice(price);
       operationId = randomUUID();
       ledger.reserve({ ...binding, operationId, model: price.model, pricingRevision: price.revision,
         reservedMicrousd: reserveMicrousd, phase: this.#options.phase });
       ledger.markDispatched(operationId);
       const upstream = await fetch(new URL('/v1/responses', this.#options.upstreamOrigin), {
-        method: 'POST', headers: { authorization: `Bearer ${this.#options.upstreamApiKey}`,
-          'content-type': 'application/json' }, body: JSON.stringify(payload),
+        method: 'POST', headers: { authorization: `Bearer ${credential}`,
+          'content-type': 'application/json' }, body: JSON.stringify(outgoing),redirect:'error',
         signal: AbortSignal.timeout(this.#options.timeoutMs ?? 120_000),
       });
       const chunks: Uint8Array[] = [];
@@ -169,10 +175,12 @@ export class SpendGateway {
         chunks.push(chunk);
       }
       const result = Buffer.concat(chunks);
+      if(result.includes(Buffer.from(credential)))throw new Error('Provider credential echo denied');
       const completed = completedResponse(result, payload.stream === true);
       const usage = authoritativeUsage(completed);
       const providerRequestId = upstream.headers.get('x-request-id') ??
         (typeof completed?.id === 'string' ? completed.id : null);
+      if(providerRequestId?.includes(credential))throw new Error('Provider credential echo denied');
       if (!upstream.ok || completed?.status !== 'completed' || !usage || !providerRequestId || usage.input_tokens > price.contextLimitTokens ||
         usage.output_tokens > outputCap) throw new Error('Provider outcome or usage unqualified');
       const actual = Math.ceil(usage.input_tokens * price.inputMicrousdPerMillion / 1_000_000) +
@@ -185,7 +193,8 @@ export class SpendGateway {
       if (operationId) {
         try { ledger.markUnknown(operationId); } catch { /* Durable reservation remains retained. */ }
       }
-      denied(response, 503, error instanceof Error ? error.message : 'Provider outcome unknown');
+      // Provider/SDK exceptions may contain authorization material. Never echo them.
+      denied(response, 503, 'Provider operation unavailable or outcome unknown');
     }
   }
 }

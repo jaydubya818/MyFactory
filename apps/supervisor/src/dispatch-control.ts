@@ -10,6 +10,7 @@ import {canonical,digest,type ExecutionSnapshot} from '../../../packages/hosted-
 import type {FactoryStorage} from '../../../packages/storage/src/index.ts';
 import {SpendLedger,type SpendPlan} from '../../../packages/storage/src/spend.ts';
 import {SpendGateway,type SpendPrice,validatePrice} from './spend-gateway.ts';
+import type {ProviderConnection} from './provider-connection.ts';
 import type {WorkOrder,Run} from '../../../packages/contracts/src/index.ts';
 
 export interface ExecutionIdentity {
@@ -42,9 +43,9 @@ export class FactoryDispatchControl {
  private readonly spend:SpendLedger;
  private readonly localFixture:boolean;
  private readonly live:boolean;
- private readonly spendFixture?:{upstreamOrigin:string;upstreamApiKey:string;price:SpendPrice};
+ private readonly spendFixture?:ProviderConnection;
  constructor(storage:FactoryStorage,jobs:JobManager,producer:ProducerResults,spend:SpendLedger,localFixture=false,
-  spendFixture?:{upstreamOrigin:string;upstreamApiKey:string;price:SpendPrice},live=false){
+  spendFixture?:ProviderConnection,live=false){
   this.localFixture=localFixture;this.storage=storage;this.jobs=jobs;this.producer=producer;this.spend=spend;this.spendFixture=spendFixture;
   this.live=live;
  }
@@ -140,16 +141,14 @@ export class FactoryDispatchControl {
    this.spend.bindAuthority(binding);
    const childToken=randomBytes(32).toString('hex');
    gateway=new SpendGateway({ledger:this.spend,binding,phase:'productive',
-    price:this.spendFixture.price,upstreamOrigin:this.spendFixture.upstreamOrigin,
-    upstreamApiKey:this.spendFixture.upstreamApiKey,childToken});
+    ...this.spendFixture,childToken});
    let current=gateway;
    gatewayBinding={baseUrl:await gateway.listen(),childToken,close:()=>current.close(),
     beginCompletion:async()=>{
      await current.close();
      this.spend.beginCompletion(binding);
      const completionToken=randomBytes(32).toString('hex');
-     current=new SpendGateway({ledger:this.spend,binding,phase:'completion',price:this.spendFixture!.price,
-      upstreamOrigin:this.spendFixture!.upstreamOrigin,upstreamApiKey:this.spendFixture!.upstreamApiKey,childToken:completionToken});
+     current=new SpendGateway({ledger:this.spend,binding,phase:'completion',...this.spendFixture!,childToken:completionToken});
      return {baseUrl:await current.listen(),childToken:completionToken};
     },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};
   }

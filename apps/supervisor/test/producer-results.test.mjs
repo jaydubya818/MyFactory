@@ -55,6 +55,18 @@ async function fixture(t,{worker,verifier,notify=()=>{},signing=signer()}={}) {
 function expectation(f,s){return {keys:f.signing.keys,factoryId:s.factoryId,requestId:s.requestId,workOrderId:s.workOrderId,runId:s.runId,factoryVersion:s.factoryVersion};}
 async function golden(t,options){const f=await fixture(t,options), run=await f.jobs.startRun(f.order);const snapshot=f.producer.snapshot(run);await finished(f.storage,run.id);await f.jobs.close();const read=f.producer.read(run);assert.ok(read.result);return {...f,run,snapshot,result:read.result,expected:expectation(f,snapshot)};}
 
+test('Gateway model identity survives signed candidate provenance without normalization',async t=>{
+  const previous=process.env.FACTORY_CODEX_MODEL;
+  process.env.FACTORY_CODEX_MODEL='openai/gpt-5.4-mini';
+  t.after(()=>{if(previous===undefined)delete process.env.FACTORY_CODEX_MODEL;else process.env.FACTORY_CODEX_MODEL=previous;});
+  const f=await golden(t);
+  const {manifest}=verifyResult(f.result,f.expected);
+  assert.equal(manifest.execution.configuration.model,'openai/gpt-5.4-mini');
+  assert.deepEqual(f.observed,['openai/gpt-5.4-mini']);
+  assert.equal(manifest.status,'COMPLETED');
+  assert.ok(manifest.candidate.commit);
+});
+
 test('golden producer admission captures actual F1 and returns independently verifiable C1/E1/E2 bytes',async t=>{
   const previous=process.env.FACTORY_CODEX_MODEL;process.env.FACTORY_CODEX_MODEL='synthetic-model-f1';
   t.after(()=>{if(previous===undefined)delete process.env.FACTORY_CODEX_MODEL;else process.env.FACTORY_CODEX_MODEL=previous;});

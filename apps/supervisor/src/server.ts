@@ -18,7 +18,7 @@ import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
 import { FactoryDispatchControl } from "./dispatch-control.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
-import { PRIVATE_ALPHA_MODEL, type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
+import { type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
@@ -175,7 +175,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     validateRealProvider(options.realProvider);
     if(options.localFactoryFixture||options.localSpendFixture||options.jobDependencies||options.startRun||options.cancelRun||options.publishDraft||options.confirmHumanPresence)
       throw new Error('Real private-alpha execution cannot use fixture dependencies or overridden authority');
-    if(process.env.FACTORY_CODEX_MODEL&&process.env.FACTORY_CODEX_MODEL!==PRIVATE_ALPHA_MODEL)
+    if(process.env.FACTORY_CODEX_MODEL&&process.env.FACTORY_CODEX_MODEL!==options.realProvider.model)
       throw new Error('Factory model differs from the pinned private-alpha provider');
   }
   const dataDir = resolve(options.dataDir ?? process.env.FACTORY_DATA_DIR ?? defaultDataDir);

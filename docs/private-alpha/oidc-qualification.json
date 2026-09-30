@@ -1,0 +1,86 @@
+{
+  "observedAt": "2026-09-30T17:32:42.666183+00:00",
+  "scope": "OIDC implementation and non-generating provider availability; substantive Golden Journey NOT_RUN",
+  "baseline": "33fd5c97fdafbf740c92261b52b0d9b76a46ecd6",
+  "branch": "codex/private-alpha-release",
+  "factoryTests": {
+    "tests": 152,
+    "pass": 151,
+    "fail": 0,
+    "skipped": 1
+  },
+  "myeveTests": {
+    "passed": 1912,
+    "skipped": 61
+  },
+  "connected": {
+    "checks": 19,
+    "results": [
+      "0057 complete failure rollback",
+      "0056\u21920057 and idempotent rerun",
+      "LIVE spend-unqualified or unusable Factory transport does not block DIRECT/HUMAN; PRODUCE is denied before transport or preparation",
+      "Backend Work-bound intent routes investigation/planning/qualified bounded operations DIRECT and unsupported/judgment/unclassified HUMAN before Factory preparation; replay grants no writer",
+      "Actual producer admission denies pending pricing/completion/accounting while PLAN, INVESTIGATE and HUMAN remain available",
+      "Actual HTTP/SQLite/Git signed candidate \u2192 PostgreSQL custody \u2192 real Docker verification PASS; restarted driver replay cannot dispatch twice",
+      "Connected Q37 local Relay \u2192 Factory \u2192 verifier \u2192 trusted publisher/CI/review \u2192 scoped advisory learning contract",
+      "Actual HTTP/SQLite/Git signed candidate \u2192 PostgreSQL custody \u2192 real Docker verification FAIL; restarted driver replay cannot dispatch twice",
+      "Connected Factory failure \u2192 normal new native Run \u2192 failed repair stays FAILED \u2192 bounded repair PASS; immutable Factory history survives",
+      "Private-alpha queue: duplicate intent deduplicates; exclusive worker; canonical dispatch/custody/protected verification; restart never redispatches",
+      "Separate restarted MyEve worker autonomously reconciles response loss, admits receipt, takes custody, verifies and retains PARTIAL",
+      "RESPONSE_LOST: durable UNKNOWN \u2192 restarted readback \u2192 exact terminal fence, never resend dispatch",
+      "BEFORE_HTTP: durable UNKNOWN \u2192 restarted readback \u2192 exact terminal fence, never resend dispatch",
+      "Connected RUNNING \u2192 STOPPING retains writer until actual executor settles \u2192 terminal tombstone rejects delayed START",
+      "Real signed CANCELLED and FAILED receipts survive terminal fencing and reconstructed-driver replay without candidate, verifier or writer authority",
+      "Unavailable preparation retains request and grants no writer",
+      "Real gateway UNKNOWN exposure survives terminal writer fencing and reconstructed consumer replay; Current Truth retains exposure and denies another paid operation",
+      "Alpha UNKNOWN retains common-ledger exposure and prevents another Sofie call or Factory start",
+      "Selected-Work Sofie common ledger \u2192 canonical Factory \u2192 signed custody \u2192 Docker verifier \u2192 bounded Sofie explanation; combined ceiling and original deadline preserved"
+    ],
+    "counters": {
+      "concurrentWriters": 0,
+      "duplicateDispatches": 0,
+      "falseReady": 0,
+      "unauthenticatedAdmissions": 0
+    },
+    "provider": "synthetic",
+    "protectedVerifier": "real isolated Docker",
+    "sourceDigest": "6d900e5e2da8f36f18f600886790dd431d1d5dd89b85b549e73c8400ecba145d"
+  },
+  "checks": {
+    "producerTypecheck": "PASS",
+    "producerGovernance": "PASS_UNKNOWN_0",
+    "factoryTypecheck": "PASS",
+    "factoryBuild": "PASS",
+    "myeveTypecheck": "PASS",
+    "myeveGovernance": "PASS_UNKNOWN_0",
+    "myeveBuild": "PASS",
+    "diffCheck": "PASS"
+  },
+  "provider": {
+    "authentication": "PROJECT_SCOPED_VERCEL_OIDC",
+    "sdk": "@vercel/oidc@3.8.4",
+    "identityScope": {
+      "projectId": "prj_L6faw25wnFGUZtrLKBIccg8gIDLR",
+      "teamId": "team_p8z8exJRTGfOPk1GC9vUOpv3",
+      "issuer": "https://oidc.vercel.com/jaydubya818",
+      "audience": "https://vercel.com/jaydubya818",
+      "environment": "development"
+    },
+    "model": "openai/gpt-5.4-mini",
+    "route": "https://ai-gateway.vercel.sh/v1/responses -> openai only",
+    "availability": "PASS_AUTHENTICATED_ELIGIBLE_HTTP_AVAILABLE",
+    "pricing": "PASS_OPENAI_ENDPOINT_0.75_INPUT_4.50_OUTPUT_USD_PER_MILLION",
+    "modelOperations": 0,
+    "keychain": "UNUSED_NO_CHANGES",
+    "staticProviderKeysCopied": 0,
+    "tokenDisclosure": 0,
+    "additionalKeychainPermissionChanges": 0,
+    "plaintextSecretCopies": 0
+  },
+  "limitations": [
+    "Authenticated availability and endpoint metadata do not execute generation or a real client tool-search round trip.",
+    "Gateway exact identifier is pinned; the dated upstream snapshot is absent from its catalog.",
+    "Refresh depends on the existing SDK/CLI login; identity failure closes admission.",
+    "Fixture Results are not live Results; first substantive Work and external publication remain separately gated."
+  ]
+}

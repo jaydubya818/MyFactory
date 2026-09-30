@@ -62,6 +62,9 @@ test("run keeps prompt literal and returns only event-backed completion", async 
 });
 
 test('gateway run isolates child auth and pins the Responses provider to loopback', async t => {
+  const prior=process.env.VERCEL_OIDC_TOKEN;
+  process.env.VERCEL_OIDC_TOKEN='synthetic-host-only-oidc';
+  t.after(()=>{if(prior===undefined)delete process.env.VERCEL_OIDC_TOKEN;else process.env.VERCEL_OIDC_TOKEN=prior;});
   const work = await fixture(t);
   const result = await work.adapter.runCodex(options(work, 'gateway-config', {
     gateway: { baseUrl: 'http://127.0.0.1:8123/v1', childToken: 'a'.repeat(64) },

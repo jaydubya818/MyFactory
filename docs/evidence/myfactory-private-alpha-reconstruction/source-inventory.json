@@ -2,9 +2,9 @@
   "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
   "sources": {
     "apps/supervisor/src/dispatch-control.ts": {
-      "sha256": "c8ba4ce72e3f8c3c01e54bcc06c36e0deb9bc68c32af5ae3bbaa8bc3b88e3c96",
+      "sha256": "f399c6afe28964a2be5bd96229bc54122bfe867a8d8f6132114a1efbd408413c",
       "classification": "AUTHENTICATED_DISPATCH",
-      "authorityBoundary": "Exact Work and writer binding before gateway execution"
+      "authorityBoundary": "Same exact Work/writer/FactoryVersion binding for productive and completion provider adapters"
     },
     "apps/supervisor/src/jobs.ts": {
       "sha256": "f1cb8130fac5da2fc1d81aa505e89102bef66a1c5a1d0ea8a71ec50d7879eb47",
@@ -12,14 +12,14 @@
       "authorityBoundary": "Productive and protected completion lifecycle"
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "1095502713ac1b5cce1ca5e5357cc5a30caff22459ecdf6408e52e341960e424",
+      "sha256": "2731fe6d283c01b307b8722ed1fa032631db1e9003c07fffebc6c6b8a55ea803",
       "classification": "PAID_CALL_BOUNDARY",
-      "authorityBoundary": "Reserve and settle every model call; deny unpriced hosted tools"
+      "authorityBoundary": "Authenticate then reserve each call; UNKNOWN/cancellation/completion fences; reject routing overrides, redirects and credential echo"
     },
     "apps/supervisor/src/real-provider.ts": {
-      "sha256": "50978661f56e91012945dce920d8b206d73d0128957d6e576e7aca433a7da7a9",
+      "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
       "classification": "CREDENTIAL_LOADER",
-      "authorityBoundary": "Exact private-alpha endpoint, model and Keychain reference"
+      "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
       "sha256": "da047c081fe5bba8a3550fad4fedf117a2de3e6baf3a3f6b2cc46c7b7c5349d8",
@@ -37,14 +37,34 @@
       "authorityBoundary": "Atomic Work ceiling, UNKNOWN, phase and slot authority"
     },
     "apps/supervisor/src/server.ts": {
+      "sha256": "863bb5ac4b2c7e2b4896c78b169c2ef668717b3eeacff545f649bf440c3104fa",
       "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Explicit real-provider configuration excludes synthetic dependencies and authority overrides; signing and pinned model required before credential loading",
-      "sha256": "9e507f53181cbdc9df926f8dfea573a04c1dd1ad41cb93497c620edbf0139657"
+      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model"
     },
     "apps/supervisor/src/private-alpha.ts": {
+      "sha256": "446fbf9e0cf86c04055b6cf53b360755f15b2bc3ee080d074c00b1415e707eb0",
       "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Separate opt-in entrypoint; check mode performs no credential read or model call; loopback only",
-      "sha256": "98f11487c2dbb74fe75c4f3e913616bea4956137bbbdb6b509f6633c7983d412"
+      "authorityBoundary": "Validate provider identity before listening; check mode reads no credentials; loopback only"
+    },
+    "apps/supervisor/src/oidc-provider.ts": {
+      "sha256": "e4cd3de12a87e4d18c8be10ec0089ea746b25de2914d34fc9f3a88f11893ecec",
+      "classification": "CREDENTIAL_LOADER",
+      "authorityBoundary": "Project-scoped signed OIDC via existing Vercel SDK; exact Gateway/OpenAI route; no token persistence or static-key fallback"
+    },
+    "apps/supervisor/src/provider-connection.ts": {
+      "sha256": "760ea214277931bfc217d3904b3738a37bbca81d20274b9bc16163528796ee77",
+      "classification": "CREDENTIAL_LOADER",
+      "authorityBoundary": "Host-only provider authentication interface; sanitized errors; credentials remain in memory"
+    },
+    "apps/supervisor/src/producer-results.ts": {
+      "classification": "SIGNED_PROVENANCE",
+      "authorityBoundary": "Accept one provider/model identifier without rewriting the model included in immutable signed execution configuration",
+      "sha256": "0504e7a1051ef67d1fb243a33df0ed53ab606bfb1fc8dcbd0a9138104a95ca7c"
+    },
+    "apps/supervisor/src/oidc-preflight.ts": {
+      "classification": "PROVIDER_PREFLIGHT",
+      "authorityBoundary": "Authenticated GET-only exact-model eligibility, OpenAI endpoint and price validation; no generation, Work authority, secrets or raw provider bodies in evidence",
+      "sha256": "ba37daf8153a6478de5035c7ebb49ba8b55f1b3ffe0df496755d2cb94f8e5ea4"
     }
   }
 }
