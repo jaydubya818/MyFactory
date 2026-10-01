@@ -19,7 +19,7 @@ if (args[0] !== "exec") process.exit(64);
 const valueAfter = (flag) => args[args.indexOf(flag) + 1];
 const finalMessagePath = valueAfter("-o");
 const prompt = args.at(-1);
-if (valueAfter("-m") !== "test-model" || !valueAfter("-C") ||
+if (valueAfter("-m") !== (prompt === "namespaced-model" ? "openai/gpt-5.4-mini" : "test-model") || !valueAfter("-C") ||
     valueAfter("--sandbox") !== "workspace-write" || !args.includes("--json") ||
     !finalMessagePath || !prompt) {
   process.exit(65);

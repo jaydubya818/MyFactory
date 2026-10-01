@@ -1,3 +1,4 @@
+import { isModelReference } from '../../contracts/src/model-reference.ts';
 import assert from "node:assert/strict";
 import { chmod, copyFile, mkdtemp, mkdir, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -165,4 +166,40 @@ test("artifacts may not be written inside the task workspace", async (t) => {
     work.adapter.runCodex(options(work, "ordinary", { artifactsDir: work.workspacePath })),
     /outside the task workspace/,
   );
+});
+
+
+test("Attempt 3: exact provider-qualified model reaches the executor as one literal argument", async t => {
+  const work = await fixture(t);
+  let started = false;
+  const result = await work.adapter.runCodex(options(work, "namespaced-model", {
+    model: "openai/gpt-5.4-mini",
+    onProcessStart: () => { started = true; },
+  }));
+  assert.equal(started, true);
+  assert.equal(result.success, true);
+  assert.equal(await readFile(result.finalMessagePath, "utf8"), "Final message for namespaced-model");
+});
+
+
+test("unsafe or ambiguous model references never launch an executor", async t => {
+  const work = await fixture(t);
+  for (const model of ["", "openai/", "/gpt-5.4-mini", "openai//gpt", "a/b/c",
+    "../gpt", "openai/../gpt", "openai/gpt..mini", "https://gateway/model", "file:model",
+    "openai\\gpt", "openai/gpt;id", "$(id)", "gpt`id`", "gpt|cat", "gpt&&id",
+    " gpt", "gpt ", "openai/gpt\n", "gpt\r", "gpt\t", "gpt\0", "gpt\u2028", "gpt😀", "a".repeat(121)]) {
+    await assert.rejects(work.adapter.runCodex(options(work, "ordinary", {
+      model, onProcessStart: () => assert.fail("Unsafe model reached process start"),
+    })), /canonical model reference/, JSON.stringify(model));
+  }
+});
+
+
+test("canonical model references preserve qualified and legacy identity with bounded length", () => {
+  for (const model of ["openai/gpt-5.4-mini", "gpt-5.4-mini", "provider/model_v1.2", "a".repeat(120)]) {
+    assert.equal(isModelReference(model), true);
+  }
+  for (const model of [null, undefined, 1, {}, [], "a/" + "b".repeat(119), "a:b", "a/b:c"]) {
+    assert.equal(isModelReference(model), false);
+  }
 });

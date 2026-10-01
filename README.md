@@ -1,5 +1,7 @@
 # Local Software Factory
 
+[Namespaced model-contract repair](docs/private-alpha/model-reference-2026-10-01/README.md): Attempt 3 is preserved as failed; exact production model reaches the controlled installed-executor boundary without generation. A new live attempt requires separate authorization.
+
 [Private-alpha OIDC provider](docs/private-alpha/README.md): project-scoped Gateway authentication, exact-model eligibility preflight and bounded execution are implemented. The substantive first Work remains owner-gated.
 
 <!-- CANONICAL-CONSOLIDATION-STATUS -->

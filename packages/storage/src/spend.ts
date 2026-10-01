@@ -1,3 +1,4 @@
+import { isModelReference } from '../../contracts/src/model-reference.ts';
 import { DatabaseSync } from 'node:sqlite';
 
 export type SpendPhase = 'productive' | 'completion';
@@ -98,7 +99,8 @@ export class SpendLedger {
     if (!Number.isFinite(Date.parse(deadline)) || Date.parse(deadline) <= Date.now()) throw new Error('Spend deadline must be in the future');
     if (plan) {
       if (plan.version !== 'WORK_LEDGER_V2') throw new Error('Unsupported spend contract');
-      nonempty(plan.pricingRevision, 'pricingRevision'); nonempty(plan.model, 'model');
+      nonempty(plan.pricingRevision, 'pricingRevision');
+      if (!isModelReference(plan.model)) throw new Error('Invalid canonical model reference');
       if (!Number.isFinite(Date.parse(plan.validUntil)) || Date.parse(plan.validUntil) <= Date.now()) throw new Error('Qualified pricing has expired');
       for (const name of ['perOperationReserveMicrousd', 'plannedProductiveOperations',
         'plannedCompletionOperations', 'maxPaidOperations', 'completionReserveMicrousd'] as const) positive(plan[name], name);

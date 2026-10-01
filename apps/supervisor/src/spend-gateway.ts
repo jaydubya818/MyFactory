@@ -1,3 +1,4 @@
+import { isModelReference } from '../../../packages/contracts/src/model-reference.ts';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -28,7 +29,7 @@ export interface SpendGatewayOptions extends ProviderConnection {
 function positive(value: number): boolean { return Number.isSafeInteger(value) && value > 0; }
 export function validatePrice(price: SpendPrice): void {
   if (!price || !/^[a-zA-Z0-9._-]{1,64}$/.test(price.revision) ||
-    typeof price.model!=='string'||!/^[a-zA-Z0-9._-]+(?:\/[a-zA-Z0-9._-]+)?$/.test(price.model) ||price.model.length>120||
+    !isModelReference(price.model)||
     !Number.isFinite(Date.parse(price.validUntil)) || Date.parse(price.validUntil) <= Date.now() ||
     !positive(price.contextLimitTokens) || !positive(price.outputLimitTokens) ||
     !positive(price.inputMicrousdPerMillion) || !positive(price.outputMicrousdPerMillion) ||

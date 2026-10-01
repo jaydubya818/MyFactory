@@ -1,0 +1,83 @@
+{
+  "observedAt": "2026-10-01T04:43:49.379063+00:00",
+  "workId": "7e4b305b-72e5-40f7-95e1-150456b84c66",
+  "status": "FAILED_HISTORICAL_STOPPED_NO_RETRY",
+  "rootCause": "The Factory Codex adapter model validator excludes slash and rejects the pinned Gateway identifier openai/gpt-5.4-mini before spawning the executor.",
+  "failure": "model must be a simple model identifier",
+  "failureLocation": "MyFactory/packages/agents/src/index.ts:88",
+  "callingLocation": "MyFactory/apps/supervisor/src/jobs.ts:411",
+  "qualificationGap": "Connected Factory executor fixtures used unnamespaced models; the namespaced model was covered in Sofie and OIDC eligibility, not the exact installed Factory adapter invocation.",
+  "realSofie": "PASS",
+  "unroutedToProposal": "PASS",
+  "proposalNormalization": "PASS_NATIVE_CANONICAL_TOOL_CALL",
+  "routeAdmission": "PASS",
+  "factoryPrepareStart": "PASS",
+  "realMyFactoryExecution": "FAIL_BEFORE_CODING_PROCESS",
+  "modelOperations": {
+    "actual": 1,
+    "max": 5,
+    "sofie": 1,
+    "factory": 0,
+    "finalSofie": 0
+  },
+  "resource": {
+    "actualMicrousd": 975,
+    "actualUsd": 0.000975,
+    "maxUsd": 1.35,
+    "reservedMicrousd": 0,
+    "unknownMicrousd": 0,
+    "factoryCompletionReserveIntactMicrousd": 336864,
+    "factoryPaidAuthority": "fenced"
+  },
+  "candidateProduced": false,
+  "candidateCustody": "FAIL_NOT_REACHED",
+  "protectedVerification": "FAIL_NOT_RUN",
+  "canonicalResult": "FAIL_NOT_CREATED",
+  "proofOfWork": "PARTIAL_FAILURE_EVIDENCE_ONLY",
+  "finalSofieExplanation": "FAIL_NOT_RUN_STOP_CONDITION",
+  "goldenJourney": "FAIL",
+  "counts": {
+    "unknownEvents": 0,
+    "dispatches": 1,
+    "duplicateDispatches": 0,
+    "writerBindings": 1,
+    "concurrentWriterViolations": 0,
+    "modelAuthorityGrants": 0,
+    "staleMutations": 0,
+    "falseReady": 0,
+    "externalPublicationEffects": 0,
+    "candidateAttempts": 1,
+    "executorProcessStarts": 0
+  },
+  "finalState": {
+    "workLifecycle": "active",
+    "workControl": "agent",
+    "version": 2,
+    "generation": 2,
+    "routeRun": "FAILED",
+    "factoryRun": "failed",
+    "factoryWriter": "TERMINAL",
+    "factoryQuiescent": true,
+    "factoryConsumer": "EXITED",
+    "controller": "STOPPED_BEFORE_RETRY",
+    "durableConversation": "running/waiting after the completed turn; no new message or operation requested"
+  },
+  "workspace": {
+    "head": "db5d95cf3d1dadf04a118f38bd5b388a5a226c31",
+    "clean": true,
+    "candidateCommit": null,
+    "quantityFileExists": false
+  },
+  "remainingGates": [
+    "Secure namespaced-model adapter repair and exact-production-path zero-model regression",
+    "Full real Factory production, candidate custody, protected verification, canonical Result, Proof and final Sofie explanation",
+    "Any later live attempt requires a fresh explicit authorization; this stopped attempt is not reused"
+  ],
+  "actionsThisInvestigation": {
+    "databaseWrites": 0,
+    "modelOperations": 0,
+    "sourceChanges": 0,
+    "retries": 0,
+    "publication": 0
+  }
+}

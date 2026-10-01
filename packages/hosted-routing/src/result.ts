@@ -1,3 +1,4 @@
+import { isModelReference } from '../../contracts/src/model-reference.ts';
 import { createHash, type KeyObject } from 'node:crypto';
 import { signProtocolPayload, verifyProtocolPayload } from './index.mjs';
 
@@ -82,6 +83,7 @@ export function validateManifest(value: unknown): asserts value is ResultManifes
   const c = e.configuration;
   exact(c, ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture','commands','allowedPaths','timeoutMs']);
   for (const key of ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture']) text(c[key]);
+  requireValue(isModelReference(c.model), 'Invalid canonical model reference');
   for (const key of ['commands','allowedPaths']) {
     const list = c[key]; requireValue(Array.isArray(list) && list.length > 0 && list.length <= 100, 'Invalid configuration list'); list.forEach(text);
   }

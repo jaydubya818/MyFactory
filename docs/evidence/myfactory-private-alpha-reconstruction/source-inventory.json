@@ -12,9 +12,9 @@
       "authorityBoundary": "Productive and protected completion lifecycle"
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "2731fe6d283c01b307b8722ed1fa032631db1e9003c07fffebc6c6b8a55ea803",
+      "sha256": "efa7ba6a7ed4339bb8ddc6b1e1ed8fb2b6234824111a30235b71e973e3a90e70",
       "classification": "PAID_CALL_BOUNDARY",
-      "authorityBoundary": "Authenticate then reserve each call; UNKNOWN/cancellation/completion fences; reject routing overrides, redirects and credential echo"
+      "authorityBoundary": "Authenticate then reserve each call; UNKNOWN/cancellation/completion fences; reject routing overrides, redirects and credential echo Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory."
     },
     "apps/supervisor/src/real-provider.ts": {
       "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
@@ -22,9 +22,9 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "da047c081fe5bba8a3550fad4fedf117a2de3e6baf3a3f6b2cc46c7b7c5349d8",
+      "sha256": "b831232d2674c9b3453e62188d8cdc30855f1f5ee308814deba616d3f63f660a",
       "classification": "CODEX_CLI_ADAPTER",
-      "authorityBoundary": "Routes installed CLI through gateway and read-only completion sandbox"
+      "authorityBoundary": "Routes installed CLI through gateway and read-only completion sandbox Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory."
     },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
@@ -32,9 +32,9 @@
       "authorityBoundary": "Additive migration 8"
     },
     "packages/storage/src/spend.ts": {
-      "sha256": "f308cbff200795626c834d8c83b35f97595cc9ab4cbabdf49e0a16d35b9314bb",
+      "sha256": "8068cb1dd9b22b6178c744d0093b0edd1a1681bded602739b1bed026ceeb796e",
       "classification": "WORK_SPEND_LEDGER",
-      "authorityBoundary": "Atomic Work ceiling, UNKNOWN, phase and slot authority"
+      "authorityBoundary": "Atomic Work ceiling, UNKNOWN, phase and slot authority Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory."
     },
     "apps/supervisor/src/server.ts": {
       "sha256": "863bb5ac4b2c7e2b4896c78b169c2ef668717b3eeacff545f649bf440c3104fa",
@@ -58,13 +58,23 @@
     },
     "apps/supervisor/src/producer-results.ts": {
       "classification": "SIGNED_PROVENANCE",
-      "authorityBoundary": "Accept one provider/model identifier without rewriting the model included in immutable signed execution configuration",
-      "sha256": "0504e7a1051ef67d1fb243a33df0ed53ab606bfb1fc8dcbd0a9138104a95ca7c"
+      "authorityBoundary": "Accept one provider/model identifier without rewriting the model included in immutable signed execution configuration Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory.",
+      "sha256": "81106181a49fb6b0a873a6855d6281f42e8d1a6981db9dbf59822335bfa7223c"
     },
     "apps/supervisor/src/oidc-preflight.ts": {
       "classification": "PROVIDER_PREFLIGHT",
       "authorityBoundary": "Authenticated GET-only exact-model eligibility, OpenAI endpoint and price validation; no generation, Work authority, secrets or raw provider bodies in evidence",
       "sha256": "ba37daf8153a6478de5035c7ebb49ba8b55f1b3ffe0df496755d2cb94f8e5ea4"
+    },
+    "packages/contracts/src/model-reference.ts": {
+      "classification": "NOT_APPLICABLE",
+      "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority.",
+      "sha256": "63a2e204fe61af29debca551bba01bfb043bec54b0098eb11811782616c93cfb"
+    },
+    "packages/hosted-routing/src/result.ts": {
+      "classification": "NOT_APPLICABLE",
+      "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory.",
+      "sha256": "21971070d3d52fe8febbbb3ecdac3510a92501bb9c18f7677c1deb0f2ac70ed5"
     }
   }
 }

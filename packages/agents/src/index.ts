@@ -1,3 +1,4 @@
+import { isModelReference } from '../../contracts/src/model-reference.ts';
 import { spawn, type ChildProcess } from "node:child_process";
 import { lstat, mkdtemp, open, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
@@ -85,8 +86,8 @@ function validateRunOptions(options: CodexRunOptions): void {
       Buffer.byteLength(options.prompt, "utf8") > MAX_PROMPT_BYTES || options.prompt.includes("\0")) {
     throw new TypeError("prompt must be non-empty, at most 128 KiB, and contain no NUL bytes");
   }
-  if (typeof options.model !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(options.model)) {
-    throw new TypeError("model must be a simple model identifier");
+  if (!isModelReference(options.model)) {
+    throw new TypeError("model must be a canonical model reference");
   }
   if (!Number.isInteger(options.timeoutMs) || options.timeoutMs < 1 || options.timeoutMs > MAX_TIMEOUT_MS) {
     throw new TypeError("timeoutMs must be an integer from 1 to 1800000");
