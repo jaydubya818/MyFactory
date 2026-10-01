@@ -27,6 +27,8 @@ export interface SpendGatewayOptions extends ProviderConnection {
   assertImplementationProgress?: () => Promise<void>;
   /** Trusted host signal only. Closes the productive CLI; does not admit completion. */
   onProductiveBoundary?: () => void;
+  /** Absolute settled operation boundary for a host-owned implementation checkpoint. */
+  productiveCheckpointAfter?: number;
   onDecision?: (evidence: {code:string;stage:string;status:number;upstreamStatus:number|null;operationId:string|null;elapsedMs:number;retryable:false}) => void;
 }
 
@@ -169,11 +171,11 @@ export class SpendGateway {
       stage='admission';
       if(this.#options.phase==='productive'&&this.#options.onProductiveBoundary){
         const spend=ledger.read(binding.workId);
-        if(this.#productiveClosed || (spend && spend.operations.filter(op=>op.phase==='productive').length>=spend.plannedProductiveOperations)){
+        if(this.#productiveClosed || (spend && spend.operations.filter(op=>op.phase==='productive').length>=(this.#options.productiveCheckpointAfter??spend.plannedProductiveOperations))){
           ledger.assertCompletionEligible(binding);
           if(!this.#productiveClosed){
             this.#productiveClosed=true;
-            record('PRODUCTIVE_PHASE_CLOSED',409);
+            record(this.#options.productiveCheckpointAfter===1?'PRODUCTIVE_CHECKPOINT':'PRODUCTIVE_PHASE_CLOSED',409);
             this.#options.onProductiveBoundary();
           }
           return denied(response,409,'Productive process must yield to trusted host checks','PRODUCTIVE_PHASE_CLOSED');

@@ -117,10 +117,6 @@ for(const scenario of ['no changes','outside scope','failed checks','completion 
    const completion=input.sandbox==='read-only';if(completion)completions++;
    const r=await fetch(input.gateway.baseUrl+'/responses',{method:'POST',headers:{authorization:'Bearer '+input.gateway.childToken,'content-type':'application/json'},body:JSON.stringify({model:input.model,input:'synthetic'})});assert.equal(r.status,200);
    if(!completion&&scenario!=='no changes')writeFileSync(join(input.workspacePath,scenario==='outside scope'?'outside.txt':'quantity.mjs'),scenario==='failed checks'?'throw Error("incomplete");\n':'console.log(2);\n');
-   if(!completion&&scenario==='failed checks'){
-    const request=()=>fetch(input.gateway.baseUrl+'/responses',{method:'POST',headers:{authorization:'Bearer '+input.gateway.childToken,'content-type':'application/json'},body:JSON.stringify({model:input.model,input:'synthetic'})});
-    assert.equal((await request()).status,200);assert.equal((await request()).status,409);assert(input.productiveEndSignal.aborted);
-   }
    if(completion&&scenario==='completion mutation')writeFileSync(join(input.workspacePath,'quantity.mjs'),'console.log(3);\n');
    return {success:!(completion&&scenario==='completion failure'),status:completion&&scenario==='completion failure'?'failed':'completed',eventsPath:'fixture',usage:null};
   },false,{upstreamOrigin:'http://127.0.0.1:'+provider.address().port,upstreamApiKey:'synthetic-only',price});

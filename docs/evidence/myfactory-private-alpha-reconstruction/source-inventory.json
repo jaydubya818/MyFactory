@@ -2,19 +2,19 @@
   "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
   "sources": {
     "apps/supervisor/src/dispatch-control.ts": {
-      "sha256": "1868472da37c6ee933ab88a0606330f2e0f1020a4b5769a79d6b401f0db06c3e",
+      "sha256": "41dd1819dfab90797964749032bf0aeb1c64959e7b623f8bf8ee85f4e89d63cf",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback."
+      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/jobs.ts": {
-      "sha256": "d63660f40068fd1cb21ea4092adf55efde2ea1fd0681a0e6994ce54c9c21bba8",
+      "sha256": "5509f3f03b4842b6af747a2f12c6578c47d0dda63ba8e288e690b7e974735399",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent."
+      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "b78618ff6a5dc896d1539f8b51bc9cfb1759550c51eed8778cd5c10e6dcc623a",
+      "sha256": "50dd036ba5d2e1a079b4b9fb1c75238ab2b4c2ded2a9c64e4262b2babcaddb92",
       "classification": "PAID_BOUNDARY",
-      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks."
+      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/real-provider.ts": {
       "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
@@ -83,8 +83,8 @@
     },
     "apps/supervisor/src/execution-context.ts": {
       "classification": "BOUNDED_LOCAL_CONTEXT",
-      "authorityBoundary": "Deterministic approved-source context and filesystem progress; no model, credential or authority grants.",
-      "sha256": "29c45eca875ee3bf8fc2ff72871357f61e68c38ae05a8007a88c00b96428d0ea"
+      "authorityBoundary": "Deterministic approved-source context and filesystem progress; no model, credential or authority grants. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority.",
+      "sha256": "2a3fed4dd9195828cad6301063def3cb78eda7ede3132ab4f7104d4055ae35c1"
     },
     "packages/verification/src/index.ts": {
       "sha256": "70345fb107dafe795150ac9b70617ccdb92525177a3abd69c830ee02ea8df5b0",

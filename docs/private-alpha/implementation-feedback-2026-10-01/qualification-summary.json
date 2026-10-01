@@ -1,0 +1,39 @@
+{
+  "baseline": {
+    "reproductions": 2,
+    "tests": 11,
+    "pass": 1,
+    "fail": 10,
+    "error": "ERR_INVALID_ARG_TYPE: fs/promises.readFile numeric descriptor"
+  },
+  "preRepairRegression": "FAIL_AS_EXPECTED",
+  "installedHarnessCases": {
+    "correctFirst": "PASS",
+    "repairableCapturedFirst": "PASS",
+    "stillBadAfterSecond": "PASS",
+    "outsideScope": "PASS"
+  },
+  "connectedChecks": 25,
+  "operationClasses": [
+    "sofie",
+    "productive",
+    "productive",
+    "completion",
+    "sofie-explanation"
+  ],
+  "sourceDigest": "bc6d78be3d20412bf4abb754bd78b587991dfa06dd66c2189da6726f7cd9a38f",
+  "factoryTests": 170,
+  "myeveRootTests": 144,
+  "myeveAppTests": 1979,
+  "myeveSkipped": 94,
+  "additionalRealModelOperations": 0,
+  "holdoutLeakage": 0,
+  "attemptRegressions": {
+    "1": "PASS",
+    "2": "PASS",
+    "3": "PASS",
+    "4": "PASS",
+    "5": "PASS",
+    "6": "PASS"
+  }
+}

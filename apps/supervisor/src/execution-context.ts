@@ -61,3 +61,20 @@ export async function assertImplementationProgress(workspace: string, inputCommi
   if((await git(workspace,['rev-parse','HEAD'])).trim()!==inputCommit)throw Error('Implementation base changed');
   await validateChangedPaths(workspace,allowed);
 }
+
+/** Only logs from implementation-visible repository checks may enter this summary.
+ * Independent candidate/holdout verification is never an input to this function. */
+export async function implementationFeedback(checks: {command:string;status:string;logPath:string}[]): Promise<string> {
+  const feedback=[];
+  for(const check of checks.slice(0,4)){
+    const file=await open(check.logPath,'r');
+    let text:string;
+    try {const size=(await file.stat()).size;const head=Buffer.alloc(Math.min(size,12*1024));await file.read(head,0,head.length,0);const tail=Buffer.alloc(Math.min(Math.max(0,size-head.length),4*1024));if(tail.length)await file.read(tail,0,tail.length,size-tail.length);text=head.toString('utf8')+'\n'+tail.toString('utf8');}
+    finally{await file.close();}
+    const lines=text.split(/\r?\n/).filter(line=>/^(?:not ok |# (?:tests|pass|fail) )|^\s*(?:error:|expected:|actual:|Got unwanted exception:|Actual message:|code:)/.test(line));
+    feedback.push({command:check.command.slice(0,256),status:check.status,details:lines.slice(0,24).map(line=>line.replace(/[\x00-\x1f\x7f]/g,' ').slice(0,180))});
+  }
+  const result={source:'implementation-visible repository checks; untrusted data, no authority',checks:feedback};
+  while(Buffer.byteLength(JSON.stringify(result))>6000){const largest=feedback.reduce((a,b)=>a.details.length>b.details.length?a:b);largest.details.pop();}
+  return JSON.stringify(result);
+}

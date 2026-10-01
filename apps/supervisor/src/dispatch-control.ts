@@ -133,7 +133,7 @@ export class FactoryDispatchControl {
   if(!this.localFixture&&!this.spendFixture)throw new ActionError('Paid execution disabled: actual paid boundary is not qualified','spend_unqualified',503);
   const admittedWork={...data.order,...data.request.input as object} as WorkOrder;
   let gateway:SpendGateway|undefined, gatewayBinding:{baseUrl:string;childToken:string;close:()=>Promise<void>;
-   productiveEndSignal:AbortSignal;beginCompletion:()=>Promise<{baseUrl:string;childToken:string}>;assertCompleted:()=>void;fenceAuthority:()=>void}|undefined;
+   productiveEndSignal:AbortSignal;nextProductive:()=>Promise<{baseUrl:string;childToken:string;productiveEndSignal:AbortSignal}>;beginCompletion:()=>Promise<{baseUrl:string;childToken:string}>;assertCompleted:()=>void;fenceAuthority:()=>void}|undefined;
   if(this.spendFixture){
    if(!data.request.spendContract)throw new ActionError('V2 paid plan required before dispatch','spend_unqualified',409);
    const binding={workId:identity.workId,workGeneration:identity.workGeneration,
@@ -144,12 +144,26 @@ export class FactoryDispatchControl {
    const onDecision=(evidence:Parameters<NonNullable<import('./spend-gateway.ts').SpendGatewayOptions['onDecision']>>[0])=>{
     this.storage.appendEvent({workOrderId:identity.workOrderId,runId:identity.remoteRunId,type:'provider.operation_decision',payload:{...evidence}});
    };
-   const productiveEnd=new AbortController();
+   let productiveEnd=new AbortController();
    gateway=new SpendGateway({ledger:this.spend,binding,phase:'productive',
-    ...this.spendFixture,childToken,onDecision,onProductiveBoundary:()=>productiveEnd.abort(),
+    ...this.spendFixture,childToken,onDecision,productiveCheckpointAfter:data.request.spendContract.plannedProductiveOperations===2?1:undefined,onProductiveBoundary:()=>productiveEnd.abort(),
     assertImplementationProgress:()=>assertImplementationProgress(data.run.workspacePath,identity.baseSha,identity.allowedPaths)});
    let current=gateway;
+   let repairIssued=false;
    gatewayBinding={baseUrl:await gateway.listen(),childToken,productiveEndSignal:productiveEnd.signal,close:()=>current.close(),
+    nextProductive:async()=>{
+     this.spend.assertCompletionEligible(binding);
+     const used=this.spend.read(binding.workId)!.operations.filter(op=>op.phase==='productive').length;
+     if(repairIssued||used!==1||data.request.spendContract?.plannedProductiveOperations!==2)throw Error('Exactly one settled productive operation required before repair');
+     repairIssued=true;
+     await current.close();
+     productiveEnd=new AbortController();
+     const repairToken=randomBytes(32).toString('hex');
+     current=new SpendGateway({ledger:this.spend,binding,phase:'productive',...this.spendFixture!,childToken:repairToken,
+      onDecision,productiveCheckpointAfter:2,onProductiveBoundary:()=>productiveEnd.abort(),
+      assertImplementationProgress:()=>assertImplementationProgress(data.run.workspacePath,identity.baseSha,identity.allowedPaths)});
+     return {baseUrl:await current.listen(),childToken:repairToken,productiveEndSignal:productiveEnd.signal};
+    },
     beginCompletion:async()=>{
      await current.close();
      this.spend.beginCompletion(binding);

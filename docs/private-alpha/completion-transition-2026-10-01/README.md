@@ -29,3 +29,5 @@ Factory full suite: 169 passed, one gated installed-CLI case separately passed. 
 Attempts 1–5 database rows match preserved snapshots. Attempt 5 Factory rows and 40 evidence files match, and its original quantity.mjs remains unchanged and uncommitted. Its envelope is not reusable.
 
 No retry, fallback, operation increase, spend increase, new candidate attempt or publication capability was added. Real-provider variation remains unqualified until a separately authorized fresh Work. A productive boundary is eligibility for host inspection, not proof of correctness or model authority. Completion/check failure stops honestly. Source identity is recorded in connected-final.json; deployment and the fresh paused Work are recorded separately after integration.
+
+Subsequent Attempt 6 implementation-quality failure and checkpoint repair: [implementation feedback qualification](../implementation-feedback-2026-10-01/README.md). Historical Attempt 5 evidence above is unchanged.

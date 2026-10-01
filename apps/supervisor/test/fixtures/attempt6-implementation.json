@@ -1,0 +1,15 @@
+{
+  "base": "db5d95cf3d1dadf04a118f38bd5b388a5a226c31",
+  "files": {
+    "README.md": "# myeve-golden-work-qual\n\nDisposable, private sandbox for MyEve Golden Work qualification.\n\n- Approved for throwaway qualification branches and draft pull requests.\n- Contains no customer code, secrets, or production configuration.\n- CI: `.github/workflows/quantity-ci.yml` (check name `quantity-ci`) runs `npm test` on every pull request.\n\n## Task\n\nSee the open issue: implement `quantity.mjs` at the repository root.\n\n```\necho 2   | node quantity.mjs   # {\"quantity\":2}\necho 0   | node quantity.mjs   # {\"error\":\"invalid_quantity\"}\necho -3  | node quantity.mjs   # {\"error\":\"invalid_quantity\"}\necho 1.5 | node quantity.mjs   # {\"error\":\"invalid_quantity\"}\n```\n",
+    "package.json": "{\n  \"name\": \"myeve-golden-work-qual\",\n  \"version\": \"0.0.0\",\n  \"private\": true,\n  \"description\": \"Disposable MyEve Golden Work qualification sandbox.\",\n  \"type\": \"module\",\n  \"engines\": { \"node\": \">=20\" },\n  \"scripts\": {\n    \"test\": \"node --test test/quantity.test.mjs\"\n  }\n}\n",
+    "test/quantity.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { spawnSync } from 'node:child_process';\nimport { existsSync } from 'node:fs';\nimport { fileURLToPath } from 'node:url';\n\nconst script = fileURLToPath(new URL('../quantity.mjs', import.meta.url));\n\nfunction run(input) {\n  const r = spawnSync(process.execPath, [script], { input, encoding: 'utf8', timeout: 5000 });\n  assert.equal(r.error, undefined, `failed to run quantity.mjs: ${r.error}`);\n  const out = r.stdout.trim();\n  let parsed;\n  assert.doesNotThrow(() => { parsed = JSON.parse(out); }, `stdout is not JSON: ${JSON.stringify(out)}`);\n  return parsed;\n}\n\ntest('quantity.mjs exists', () => {\n  assert.ok(existsSync(script), 'quantity.mjs must exist at the repository root');\n});\n\nconst valid = [['2', 2], ['1', 1], ['42\\n', 42], ['  7  \\n', 7]];\nfor (const [input, expected] of valid) {\n  test(`positive integer ${JSON.stringify(input)} -> {\"quantity\":${expected}}`, () => {\n    assert.deepEqual(run(input), { quantity: expected });\n  });\n}\n\nconst invalid = ['0', '-1', '-5\\n', '1.5', '0.25', '2.7\\n'];\nfor (const input of invalid) {\n  test(`invalid ${JSON.stringify(input)} -> {\"error\":\"invalid_quantity\"}`, () => {\n    assert.deepEqual(run(input), { error: 'invalid_quantity' });\n  });\n}\n"
+  },
+  "capturedImplementation": "import { readFile } from 'node:fs/promises';\n\nconst input = (await readFile(0, 'utf8')).trim();\nconst quantity = Number(input);\nconst isValid = Number.isInteger(quantity) && quantity > 0;\n\nprocess.stdout.write(\n  JSON.stringify(isValid ? { quantity } : { error: 'invalid_quantity' }),\n);\n",
+  "observedTests": {
+    "total": 11,
+    "passed": 1,
+    "failed": 10
+  },
+  "realModelOperations": 0
+}
