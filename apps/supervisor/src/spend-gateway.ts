@@ -24,6 +24,8 @@ export interface SpendGatewayOptions extends ProviderConnection {
   childToken: string;
   phase: SpendPhase;
   timeoutMs?: number;
+  assertImplementationProgress?: () => Promise<void>;
+  onDecision?: (evidence: {code:string;stage:string;status:number;upstreamStatus:number|null;operationId:string|null;elapsedMs:number;retryable:false}) => void;
 }
 
 function positive(value: number): boolean { return Number.isSafeInteger(value) && value > 0; }
@@ -39,9 +41,9 @@ export function validatePrice(price: SpendPrice): void {
   }
 }
 
-function denied(response: import('node:http').ServerResponse, status: number, detail: string): void {
+function denied(response: import('node:http').ServerResponse, status: number, detail: string, code = 'REQUEST_DENIED'): void {
   response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-  response.end(JSON.stringify({ error: { message: detail, type: 'factory_spend_denied' } }));
+  response.end(JSON.stringify({ error: { message: detail, type: 'factory_spend_denied', code, retryable: false } }));
 }
 
 async function bodyOf(request: IncomingMessage): Promise<Buffer> {
@@ -107,6 +109,7 @@ function unpricedContent(value: unknown): boolean {
 export class SpendGateway {
   readonly #server: Server;
   readonly #options: SpendGatewayOptions;
+  #requestActive = false;
   constructor(options: SpendGatewayOptions) {
     validatePrice(options.price);
     if (!/^https:\/\//.test(options.upstreamOrigin) && !/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.upstreamOrigin)) {
@@ -130,7 +133,13 @@ export class SpendGateway {
     if (submitted.length !== expected.length || !timingSafeEqual(Buffer.from(submitted), Buffer.from(expected))) {
       return denied(response, 401, 'Gateway child credential required');
     }
+    if(this.#requestActive && this.#options.assertImplementationProgress) return denied(response,409,'Concurrent executor request denied','CONCURRENT_REQUEST_DENIED');
+    this.#requestActive=true;
     let operationId: string | null = null;
+    let stage = 'request';
+    let upstreamStatus: number | null = null;
+    const started=Date.now();
+    const record=(code:string,status:number)=>this.#options.onDecision?.({code,stage,status,upstreamStatus,operationId,elapsedMs:Date.now()-started,retryable:false});
     try {
       validatePrice(price);
       const bytes = await bodyOf(request);
@@ -154,19 +163,30 @@ export class SpendGateway {
       // Full context reservation is deliberately more conservative than estimating tokens from bytes.
       const reserveMicrousd = Math.ceil(price.contextLimitTokens * price.inputMicrousdPerMillion / 1_000_000) +
         Math.ceil(price.outputLimitTokens * price.outputMicrousdPerMillion / 1_000_000);
+      stage='capacity';
+      if(this.#options.phase==='productive'&&this.#options.assertImplementationProgress){
+        const spend=ledger.read(binding.workId);
+        if(!spend)throw Error('Work budget missing');
+        const used=spend.operations.filter(op=>op.phase==='productive').length;
+        if(used===spend.plannedProductiveOperations-1)await this.#options.assertImplementationProgress();
+      }
+      stage='identity';
       const outgoing=this.#options.prepareRequest?this.#options.prepareRequest(payload):payload;
       const credential=await providerAuthorization(this.#options);
       // Identity refresh may take time. Recheck price and ledger admission afterward.
       validatePrice(price);
+      stage='admission';
       operationId = randomUUID();
       ledger.reserve({ ...binding, operationId, model: price.model, pricingRevision: price.revision,
         reservedMicrousd: reserveMicrousd, phase: this.#options.phase });
       ledger.markDispatched(operationId);
+      stage='upstream';
       const upstream = await fetch(new URL('/v1/responses', this.#options.upstreamOrigin), {
         method: 'POST', headers: { authorization: `Bearer ${credential}`,
           'content-type': 'application/json' }, body: JSON.stringify(outgoing),redirect:'error',
         signal: AbortSignal.timeout(this.#options.timeoutMs ?? 120_000),
       });
+      upstreamStatus=upstream.status;
       const chunks: Uint8Array[] = [];
       let total = 0;
       if (!upstream.body) throw new Error('Provider response body missing');
@@ -187,6 +207,7 @@ export class SpendGateway {
       const actual = Math.ceil(usage.input_tokens * price.inputMicrousdPerMillion / 1_000_000) +
         Math.ceil(usage.output_tokens * price.outputMicrousdPerMillion / 1_000_000);
       ledger.settle(operationId, actual, providerRequestId, usage);
+      record('SETTLED',upstream.status);
       response.writeHead(upstream.status, { 'content-type': upstream.headers.get('content-type') ?? 'application/json',
         'cache-control': 'no-store', 'x-request-id': providerRequestId });
       response.end(result);
@@ -194,8 +215,12 @@ export class SpendGateway {
       if (operationId) {
         try { ledger.markUnknown(operationId); } catch { /* Durable reservation remains retained. */ }
       }
-      // Provider/SDK exceptions may contain authorization material. Never echo them.
-      denied(response, 503, 'Provider operation unavailable or outcome unknown');
-    }
+      // Fixed codes only: never persist raw exceptions, provider bodies or headers.
+      const code=stage==='admission'?'LOCAL_ADMISSION_DENIED':stage==='capacity'?'IMPLEMENTATION_CAPACITY_PROTECTED':
+        stage==='identity'?'PROVIDER_IDENTITY_UNAVAILABLE':stage==='upstream'?'PROVIDER_OUTCOME_UNKNOWN':'INVALID_REQUEST';
+      const status=stage==='admission'||stage==='capacity'?409:stage==='request'?400:503;
+      record(code,status);
+      denied(response,status,code,code);
+    } finally { this.#requestActive=false; }
   }
 }

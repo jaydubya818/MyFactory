@@ -76,7 +76,7 @@ function parseStatusPaths(raw: string): string[] {
   return [...new Set(paths)];
 }
 
-async function validateChangedPaths(workspacePath: string, scopes: string[]): Promise<string[]> {
+export async function validateChangedPaths(workspacePath: string, scopes: string[]): Promise<string[]> {
   const paths = parseStatusPaths(await git(workspacePath, [
     "status", "--porcelain=v1", "-z", "--untracked-files=all",
   ]));

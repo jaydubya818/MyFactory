@@ -2,19 +2,19 @@
   "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
   "sources": {
     "apps/supervisor/src/dispatch-control.ts": {
-      "sha256": "f399c6afe28964a2be5bd96229bc54122bfe867a8d8f6132114a1efbd408413c",
+      "sha256": "13652026cdff52a307813fd9aa253ff7a79816c1d98826afed7d8395fdd9cba4",
       "classification": "AUTHENTICATED_DISPATCH",
       "authorityBoundary": "Same exact Work/writer/FactoryVersion binding for productive and completion provider adapters"
     },
     "apps/supervisor/src/jobs.ts": {
-      "sha256": "f1cb8130fac5da2fc1d81aa505e89102bef66a1c5a1d0ea8a71ec50d7879eb47",
+      "sha256": "8080bb7b9aa12ece4b2210f599a75a2adf4561f3299d00cc15d2fbd47eec0215",
       "classification": "HOST_EXECUTION",
       "authorityBoundary": "Productive and protected completion lifecycle"
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "efa7ba6a7ed4339bb8ddc6b1e1ed8fb2b6234824111a30235b71e973e3a90e70",
+      "sha256": "83717318f296b21f686c55201f9dd6e8d25f49b4c8a1b65354c78a57e5bfa386",
       "classification": "PAID_CALL_BOUNDARY",
-      "authorityBoundary": "Authenticate then reserve each call; UNKNOWN/cancellation/completion fences; reject routing overrides, redirects and credential echo Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory."
+      "authorityBoundary": "Exact ledger binding and pre-call admission; implementation progress before last productive slot; fixed secret-free denial diagnostics; upstream UNKNOWN retained; no retries/fallback or reserve expansion."
     },
     "apps/supervisor/src/real-provider.ts": {
       "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
@@ -22,9 +22,9 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "b831232d2674c9b3453e62188d8cdc30855f1f5ee308814deba616d3f63f660a",
+      "sha256": "0e945be17ec698055fe45d1f6568440a375abcb76dc95faa2643a9b384a60832",
       "classification": "CODEX_CLI_ADAPTER",
-      "authorityBoundary": "Routes installed CLI through gateway and read-only completion sandbox Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory."
+      "authorityBoundary": "Qualified CLI model identity and metered loopback; no ambient credentials; HTTP and SSE retries explicitly zero; local tools remain client executed."
     },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
@@ -75,6 +75,16 @@
       "classification": "NOT_APPLICABLE",
       "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory.",
       "sha256": "21971070d3d52fe8febbbb3ecdac3510a92501bb9c18f7677c1deb0f2ac70ed5"
+    },
+    "apps/supervisor/src/git.ts": {
+      "classification": "BOUNDED_LOCAL_CONTEXT",
+      "authorityBoundary": "Deterministic approved-source context and filesystem progress; no model, credential or authority grants.",
+      "sha256": "4b7bc29cdb6b63c129e6c372fd2fa9bed47fc4328b18a86dfce9c593e1fdbcec"
+    },
+    "apps/supervisor/src/execution-context.ts": {
+      "classification": "BOUNDED_LOCAL_CONTEXT",
+      "authorityBoundary": "Deterministic approved-source context and filesystem progress; no model, credential or authority grants.",
+      "sha256": "29c45eca875ee3bf8fc2ff72871357f61e68c38ae05a8007a88c00b96428d0ea"
     }
   }
 }

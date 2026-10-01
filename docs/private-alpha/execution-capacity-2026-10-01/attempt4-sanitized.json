@@ -1,0 +1,71 @@
+{
+  "scope": "CAPTURED_ATTEMPT4_SANITIZED_NO_CREDENTIALS",
+  "operations": [
+    {
+      "sequence": 1,
+      "phase": "productive",
+      "model": "openai/gpt-5.4-mini",
+      "requestClass": "Responses POST via local spend gateway; client-executed shell tools",
+      "purpose": "Locate repository and relevant files",
+      "localTools": [
+        "pwd + ls -la",
+        "rg --files for target/package/tests/README"
+      ],
+      "usage": {
+        "input_tokens": 6658,
+        "output_tokens": 351
+      },
+      "reservationMicrousd": 336864,
+      "settlementMicrousd": 6574,
+      "state": "settled",
+      "startedAt": "2026-10-01T06:05:21.680Z",
+      "settledAt": "2026-10-01T06:05:24.522Z",
+      "productiveSlotsRemaining": 1,
+      "completionSlotsRemaining": 1
+    },
+    {
+      "sequence": 2,
+      "phase": "productive",
+      "model": "openai/gpt-5.4-mini",
+      "requestClass": "Responses POST via local spend gateway; client-executed shell tools",
+      "purpose": "Read package metadata, README and tests",
+      "localTools": [
+        "read package.json",
+        "read README.md",
+        "read test/quantity.test.mjs"
+      ],
+      "usage": {
+        "input_tokens": 7357,
+        "output_tokens": 416
+      },
+      "reservationMicrousd": 336864,
+      "settlementMicrousd": 7390,
+      "state": "settled",
+      "startedAt": "2026-10-01T06:05:24.944Z",
+      "settledAt": "2026-10-01T06:05:28.250Z",
+      "productiveSlotsRemaining": 0,
+      "completionSlotsRemaining": 1
+    }
+  ],
+  "local503": {
+    "body": "Provider operation unavailable or outcome unknown",
+    "status": 503,
+    "firstObservedAfter": "2026-10-01T06:05:28.250Z",
+    "terminalAt": "2026-10-01T06:05:55.720Z",
+    "headersAvailable": false,
+    "rawProviderRequestsAndResponsesRetained": false,
+    "sdkReconnects": 5,
+    "additionalReservations": 0,
+    "additionalUpstreamModelDispatches": 0,
+    "origin": "LOCAL_FACTORY_SPEND_GATEWAY",
+    "originalCaughtException": "NOT_RETAINED",
+    "productiveLimit": "2/2 used before denial"
+  },
+  "workspaceChanged": false,
+  "candidateProduced": false,
+  "unknownOperations": 0,
+  "totalModelOperations": 3,
+  "totalCostMicrousd": 14937,
+  "databaseSnapshotSha256": "2bc83ebfcb8ed6fab1836f8d550ec5e3045b9d62f721fa5c2796f8cc1375707e",
+  "factorySnapshotSha256": "9037ba070b8dc7224c9602cfac02b0ab211590d0a7222a91daadc83214415265"
+}

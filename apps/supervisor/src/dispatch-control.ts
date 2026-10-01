@@ -1,3 +1,4 @@
+import {assertImplementationProgress} from './execution-context.ts';
 import {execFile} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {promisify} from 'node:util';
@@ -140,15 +141,19 @@ export class FactoryDispatchControl {
     factoryVersion:identity.factoryVersion,runId:identity.remoteRunId};
    this.spend.bindAuthority(binding);
    const childToken=randomBytes(32).toString('hex');
+   const onDecision=(evidence:Parameters<NonNullable<import('./spend-gateway.ts').SpendGatewayOptions['onDecision']>>[0])=>{
+    this.storage.appendEvent({workOrderId:identity.workOrderId,runId:identity.remoteRunId,type:'provider.operation_decision',payload:{...evidence}});
+   };
    gateway=new SpendGateway({ledger:this.spend,binding,phase:'productive',
-    ...this.spendFixture,childToken});
+    ...this.spendFixture,childToken,onDecision,
+    assertImplementationProgress:()=>assertImplementationProgress(data.run.workspacePath,identity.baseSha,identity.allowedPaths)});
    let current=gateway;
    gatewayBinding={baseUrl:await gateway.listen(),childToken,close:()=>current.close(),
     beginCompletion:async()=>{
      await current.close();
      this.spend.beginCompletion(binding);
      const completionToken=randomBytes(32).toString('hex');
-     current=new SpendGateway({ledger:this.spend,binding,phase:'completion',...this.spendFixture!,childToken:completionToken});
+     current=new SpendGateway({ledger:this.spend,binding,phase:'completion',...this.spendFixture!,childToken:completionToken,onDecision});
      return {baseUrl:await current.listen(),childToken:completionToken};
     },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};
   }

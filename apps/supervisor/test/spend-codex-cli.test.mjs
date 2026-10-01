@@ -43,6 +43,7 @@ test('installed Codex CLI reaches only the metered loopback Responses boundary',
   const result = await runCodex({ workspacePath, artifactsDir, prompt: 'Say hello; do not use tools.',
     model: 'gpt-5.5', timeoutMs: 12_000, gateway: { baseUrl, childToken: 'a'.repeat(64) } });
   assert.equal(result.success, false);
-  assert(upstreamCalls > 0, `Codex never reached the local provider: ${result.error ?? result.status}; stderr=${readFileSync(result.stderrPath, 'utf8').slice(0, 2000)}; events=${readFileSync(result.eventsPath, 'utf8').slice(0, 2000)}; spend=${JSON.stringify(ledger.read(binding.workId))}`);
+  assert(upstreamCalls === 1, `Codex never reached the local provider: ${result.error ?? result.status}; stderr=${readFileSync(result.stderrPath, 'utf8').slice(0, 2000)}; events=${readFileSync(result.eventsPath, 'utf8').slice(0, 2000)}; spend=${JSON.stringify(ledger.read(binding.workId))}`);
   assert.equal(ledger.read(binding.workId).status, 'UNKNOWN');
+  assert(!readFileSync(result.eventsPath,'utf8').includes('Reconnecting...'));
 });

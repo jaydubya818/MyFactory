@@ -178,6 +178,8 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
       '-c', 'model_providers.factory_spend.env_key="FACTORY_GATEWAY_TOKEN"',
       '-c', 'model_providers.factory_spend.wire_api="responses"',
       '-c', 'model_providers.factory_spend.supports_websockets=false',
+      '-c', 'model_providers.factory_spend.request_max_retries=0',
+      '-c', 'model_providers.factory_spend.stream_max_retries=0',
       '-c', 'web_search="disabled"',
     ] : [];
     child = spawn(executablePath, [

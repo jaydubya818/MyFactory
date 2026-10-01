@@ -103,9 +103,9 @@ test('OIDC requests remain admitted, limited and completion-reserved; local tool
  assert.equal((await f.call({tools:[search]})).status,200);
  assert.equal(f.ledger.read(f.binding.workId).paidOperationsUsed,1);
  assert.equal((await f.call({input:[{type:'tool_search_output',execution:'client',call_id:'search',status:'completed',tools:[]}],tools:[search]})).status,200);
- assert.equal((await f.call()).status,503);assert.equal(f.calls,2);
+ assert.equal((await f.call()).status,409);assert.equal(f.calls,2);
  await f.completion();assert.equal((await f.call()).status,200);
- assert.equal((await f.call()).status,503);assert.equal(f.calls,3);
+ assert.equal((await f.call()).status,409);assert.equal(f.calls,3);
  f.ledger.assertCompleted(f.binding);
 });
 test('gateway denial, transport loss, missing usage and credential echoes retain UNKNOWN without retries or disclosure',async t=>{
@@ -114,12 +114,12 @@ test('gateway denial, transport loss, missing usage and credential echoes retain
   assert(!(await response.text()).includes(token));assert.equal(f.calls,1);
   assert.equal(f.ledger.read(f.binding.workId).status,'UNKNOWN');
   assert.equal(f.ledger.read(f.binding.workId).retainedMicrousd,1200);
-  assert.equal((await f.call()).status,503);assert.equal(f.calls,1);
-  await f.restart();assert.equal((await f.call()).status,503);assert.equal(f.calls,1);
+  assert.equal((await f.call()).status,409);assert.equal(f.calls,1);
+  await f.restart();assert.equal((await f.call()).status,409);assert.equal(f.calls,1);
  });
 });
 test('cancellation denies OIDC model dispatch without a paid operation',async t=>{
  const f=await fixture(t);f.ledger.cancel(f.binding.workId);
- assert.equal((await f.call()).status,503);assert.equal(f.calls,0);
+ assert.equal((await f.call()).status,409);assert.equal(f.calls,0);
  assert.equal(f.ledger.read(f.binding.workId).paidOperationsUsed,0);
 });
