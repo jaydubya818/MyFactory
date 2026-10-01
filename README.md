@@ -1,6 +1,6 @@
 # Local Software Factory
 
-[Namespaced model-contract repair](docs/private-alpha/model-reference-2026-10-01/README.md): Attempt 3 is preserved as failed; exact production model reaches the controlled installed-executor boundary without generation. A new live attempt requires separate authorization.
+[Latest execution-capacity repair](docs/private-alpha/execution-capacity-2026-10-01/README.md): Attempt 4 is preserved as failed. The complete five-operation installed-CLI journey passes offline, including custody, protected verification, Result/Proof and final synthetic Sofie explanation. The repaired runtime is deployed; a fresh paused fifth Work requires explicit authorization. Publication remains disabled.
 
 [Private-alpha OIDC provider](docs/private-alpha/README.md): project-scoped Gateway authentication, exact-model eligibility preflight and bounded execution are implemented. The substantive first Work remains owner-gated.
 
