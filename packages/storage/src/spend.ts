@@ -164,8 +164,7 @@ export class SpendLedger {
         .run(binding.dispatchIdentity, binding.factoryVersion, binding.runId, binding.workId);
     });
   }
-  beginCompletion(binding: SpendBinding): void {
-    this.#write(() => {
+  assertCompletionEligible(binding: SpendBinding): void {
       const b = this.#budget(binding.workId);
       this.#admitBinding(b, binding, 'productive');
       const operations = this.#operations(binding.workId);
@@ -173,6 +172,12 @@ export class SpendLedger {
         throw new Error('Productive paid operation missing before completion');
       if (operations.some(op => op.state !== 'settled'))
         throw new Error('Outstanding paid operation blocks completion transition');
+      if (operations.some(op => op.phase === 'completion'))
+        throw new Error('Completion already consumed');
+  }
+  beginCompletion(binding: SpendBinding): void {
+    this.#write(() => {
+      this.assertCompletionEligible(binding);
       this.#db.prepare("UPDATE work_spend_budgets SET phase = 'completion' WHERE work_id = ?").run(binding.workId);
     });
   }

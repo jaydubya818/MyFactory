@@ -365,6 +365,13 @@ function persistManifest(result: VerificationResult): void {
 }
 
 export async function verifyCandidate(input: VerificationInput): Promise<VerificationResult> {
+  return verifySource(input, false);
+}
+/** Pre-completion check of an immutable scoped tree; never a candidate receipt. */
+export async function verifyWorkspaceTree(input: Omit<VerificationInput,'candidateSha'> & {tree:string}): Promise<VerificationResult> {
+  return verifySource({...input,candidateSha:input.tree}, true);
+}
+async function verifySource(input: VerificationInput, treeOnly: boolean): Promise<VerificationResult> {
   if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(input.candidateSha)) {
     throw new TypeError("candidateSha must be a full Git commit SHA");
   }
@@ -412,7 +419,7 @@ export async function verifyCandidate(input: VerificationInput): Promise<Verific
   try {
     try {
       const repositoryPath = realpathSync(input.repositoryPath);
-      const resolved = (await runTool("git", ["-C", repositoryPath, "rev-parse", "--verify", `${result.candidateCommit}^{commit}`], 30_000, input.signal))
+      const resolved = (await runTool("git", ["-C", repositoryPath, "rev-parse", "--verify", `${result.candidateCommit}^{${treeOnly ? "tree" : "commit"}}`], 30_000, input.signal))
         .toString("utf8").trim();
       if (resolved !== result.candidateCommit) throw new Error("Candidate did not resolve to the requested commit");
       result.candidateTree = (await runTool("git", ["-C", repositoryPath, "rev-parse", `${resolved}^{tree}`], 30_000, input.signal))

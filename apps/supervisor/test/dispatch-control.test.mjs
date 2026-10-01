@@ -106,3 +106,30 @@ test('connected START routes each synthetic model call through exact Work spend 
  assert.equal(providerCalls,2);
  assert.notEqual(gatewayTokens[0],gatewayTokens[1]);
 });
+
+for(const scenario of ['no changes','outside scope','failed checks','completion failure','completion mutation']){
+ test('completion prerequisite/finalization fails closed: '+scenario,async t=>{
+  let n=0,completions=0;
+  const provider=createServer((req,res)=>{req.resume();res.writeHead(200,{'content-type':'application/json','x-request-id':'negative-'+(++n)});res.end(JSON.stringify({status:'completed',usage:{input_tokens:10,output_tokens:10}}));});
+  await new Promise(r=>provider.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>provider.close(r)));
+  const price={revision:'negative-v1',model:'gpt-5.5',validUntil:new Date(Date.now()+60000).toISOString(),contextLimitTokens:1000,outputLimitTokens:100,inputMicrousdPerMillion:1000000,outputMicrousdPerMillion:2000000};
+  const f=await fixture(t,async input=>{
+   const completion=input.sandbox==='read-only';if(completion)completions++;
+   const r=await fetch(input.gateway.baseUrl+'/responses',{method:'POST',headers:{authorization:'Bearer '+input.gateway.childToken,'content-type':'application/json'},body:JSON.stringify({model:input.model,input:'synthetic'})});assert.equal(r.status,200);
+   if(!completion&&scenario!=='no changes')writeFileSync(join(input.workspacePath,scenario==='outside scope'?'outside.txt':'quantity.mjs'),scenario==='failed checks'?'throw Error("incomplete");\n':'console.log(2);\n');
+   if(!completion&&scenario==='failed checks'){
+    const request=()=>fetch(input.gateway.baseUrl+'/responses',{method:'POST',headers:{authorization:'Bearer '+input.gateway.childToken,'content-type':'application/json'},body:JSON.stringify({model:input.model,input:'synthetic'})});
+    assert.equal((await request()).status,200);assert.equal((await request()).status,409);assert(input.productiveEndSignal.aborted);
+   }
+   if(completion&&scenario==='completion mutation')writeFileSync(join(input.workspacePath,'quantity.mjs'),'console.log(3);\n');
+   return {success:!(completion&&scenario==='completion failure'),status:completion&&scenario==='completion failure'?'failed':'completed',eventsPath:'fixture',usage:null};
+  },false,{upstreamOrigin:'http://127.0.0.1:'+provider.address().port,upstreamApiKey:'synthetic-only',price});
+  f.input.spendContract={version:'WORK_LEDGER_V2',pricingRevision:price.revision,plannedProductiveOperations:2,plannedCompletionOperations:1,maxPaidOperations:3,completionReserveMicrousd:1200};
+  const p=await f.request('dispatches',f.input);assert.equal(p.status,200);const id=f.identity(p.body);
+  await f.request('dispatches/'+f.input.requestId+'/dispatch',id);const done=await terminal(f);
+  assert.equal(done.state,'FAILED');assert.equal(f.supervisor.storage.getRun(id.remoteRunId).candidateCommit,null);
+  assert.equal(completions,scenario.startsWith('completion')?1:0);
+  assert.equal(done.spend.authorityState,'fenced');assert.equal(done.spend.status,'KNOWN');
+  await f.request('dispatches/'+f.input.requestId+'/dispatch',id);assert.equal(n,scenario.startsWith('completion')||scenario==='failed checks'?2:1);
+ });
+}

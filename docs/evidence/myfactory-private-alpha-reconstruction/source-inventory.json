@@ -2,19 +2,19 @@
   "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
   "sources": {
     "apps/supervisor/src/dispatch-control.ts": {
-      "sha256": "13652026cdff52a307813fd9aa253ff7a79816c1d98826afed7d8395fdd9cba4",
-      "classification": "AUTHENTICATED_DISPATCH",
-      "authorityBoundary": "Same exact Work/writer/FactoryVersion binding for productive and completion provider adapters"
+      "sha256": "1868472da37c6ee933ab88a0606330f2e0f1020a4b5769a79d6b401f0db06c3e",
+      "classification": "COMPLETION_ADMISSION",
+      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback."
     },
     "apps/supervisor/src/jobs.ts": {
-      "sha256": "8080bb7b9aa12ece4b2210f599a75a2adf4561f3299d00cc15d2fbd47eec0215",
-      "classification": "HOST_EXECUTION",
-      "authorityBoundary": "Productive and protected completion lifecycle"
+      "sha256": "d63660f40068fd1cb21ea4092adf55efde2ea1fd0681a0e6994ce54c9c21bba8",
+      "classification": "COMPLETION_ADMISSION",
+      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent."
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "83717318f296b21f686c55201f9dd6e8d25f49b4c8a1b65354c78a57e5bfa386",
-      "classification": "PAID_CALL_BOUNDARY",
-      "authorityBoundary": "Exact ledger binding and pre-call admission; implementation progress before last productive slot; fixed secret-free denial diagnostics; upstream UNKNOWN retained; no retries/fallback or reserve expansion."
+      "sha256": "b78618ff6a5dc896d1539f8b51bc9cfb1759550c51eed8778cd5c10e6dcc623a",
+      "classification": "PAID_BOUNDARY",
+      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks."
     },
     "apps/supervisor/src/real-provider.ts": {
       "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
@@ -22,9 +22,9 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "0e945be17ec698055fe45d1f6568440a375abcb76dc95faa2643a9b384a60832",
-      "classification": "CODEX_CLI_ADAPTER",
-      "authorityBoundary": "Qualified CLI model identity and metered loopback; no ambient credentials; HTTP and SSE retries explicitly zero; local tools remain client executed."
+      "sha256": "b891f1d66677fc8e40967bbfa16f0fcaa6faa7cb3aafe125dde2a87a909fd04d",
+      "classification": "EXECUTOR_LIFECYCLE",
+      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved."
     },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
@@ -32,9 +32,9 @@
       "authorityBoundary": "Additive migration 8"
     },
     "packages/storage/src/spend.ts": {
-      "sha256": "8068cb1dd9b22b6178c744d0093b0edd1a1681bded602739b1bed026ceeb796e",
-      "classification": "WORK_SPEND_LEDGER",
-      "authorityBoundary": "Atomic Work ceiling, UNKNOWN, phase and slot authority Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory."
+      "sha256": "19ea99ca3f78829e62b7f2f9f5bfda68cf1ea053a9aa17a38403754bbd67aafc",
+      "classification": "COMPLETION_ADMISSION",
+      "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars."
     },
     "apps/supervisor/src/server.ts": {
       "sha256": "863bb5ac4b2c7e2b4896c78b169c2ef668717b3eeacff545f649bf440c3104fa",
@@ -77,14 +77,19 @@
       "sha256": "21971070d3d52fe8febbbb3ecdac3510a92501bb9c18f7677c1deb0f2ac70ed5"
     },
     "apps/supervisor/src/git.ts": {
-      "classification": "BOUNDED_LOCAL_CONTEXT",
-      "authorityBoundary": "Deterministic approved-source context and filesystem progress; no model, credential or authority grants.",
-      "sha256": "4b7bc29cdb6b63c129e6c372fd2fa9bed47fc4328b18a86dfce9c593e1fdbcec"
+      "sha256": "5969e10d9dd82a0413c56d25d4e92bb2deca2b749d1654e5d00bd04c419639d0",
+      "classification": "CANDIDATE_FINALIZATION",
+      "authorityBoundary": "Temporary index creates scoped immutable tree without candidate commit or HEAD update. Final host commit requires the exact checked tree after completion; scope/modes/base validation preserved."
     },
     "apps/supervisor/src/execution-context.ts": {
       "classification": "BOUNDED_LOCAL_CONTEXT",
       "authorityBoundary": "Deterministic approved-source context and filesystem progress; no model, credential or authority grants.",
       "sha256": "29c45eca875ee3bf8fc2ff72871357f61e68c38ae05a8007a88c00b96428d0ea"
+    },
+    "packages/verification/src/index.ts": {
+      "sha256": "70345fb107dafe795150ac9b70617ccdb92525177a3abd69c830ee02ea8df5b0",
+      "classification": "PROTECTED_VERIFICATION",
+      "authorityBoundary": "Separate immutable-tree pre-completion checks reuse existing offline Docker restrictions; candidate verification still requires exact commit. Tree checks are not candidate custody or acceptance."
     }
   }
 }

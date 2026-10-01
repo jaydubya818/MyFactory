@@ -25,6 +25,8 @@ export interface SpendGatewayOptions extends ProviderConnection {
   phase: SpendPhase;
   timeoutMs?: number;
   assertImplementationProgress?: () => Promise<void>;
+  /** Trusted host signal only. Closes the productive CLI; does not admit completion. */
+  onProductiveBoundary?: () => void;
   onDecision?: (evidence: {code:string;stage:string;status:number;upstreamStatus:number|null;operationId:string|null;elapsedMs:number;retryable:false}) => void;
 }
 
@@ -110,6 +112,7 @@ export class SpendGateway {
   readonly #server: Server;
   readonly #options: SpendGatewayOptions;
   #requestActive = false;
+  #productiveClosed = false;
   constructor(options: SpendGatewayOptions) {
     validatePrice(options.price);
     if (!/^https:\/\//.test(options.upstreamOrigin) && !/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.upstreamOrigin)) {
@@ -133,7 +136,7 @@ export class SpendGateway {
     if (submitted.length !== expected.length || !timingSafeEqual(Buffer.from(submitted), Buffer.from(expected))) {
       return denied(response, 401, 'Gateway child credential required');
     }
-    if(this.#requestActive && this.#options.assertImplementationProgress) return denied(response,409,'Concurrent executor request denied','CONCURRENT_REQUEST_DENIED');
+    if(this.#requestActive && (this.#options.assertImplementationProgress||this.#options.onProductiveBoundary)) return denied(response,409,'Concurrent executor request denied','CONCURRENT_REQUEST_DENIED');
     this.#requestActive=true;
     let operationId: string | null = null;
     let stage = 'request';
@@ -163,6 +166,19 @@ export class SpendGateway {
       // Full context reservation is deliberately more conservative than estimating tokens from bytes.
       const reserveMicrousd = Math.ceil(price.contextLimitTokens * price.inputMicrousdPerMillion / 1_000_000) +
         Math.ceil(price.outputLimitTokens * price.outputMicrousdPerMillion / 1_000_000);
+      stage='admission';
+      if(this.#options.phase==='productive'&&this.#options.onProductiveBoundary){
+        const spend=ledger.read(binding.workId);
+        if(this.#productiveClosed || (spend && spend.operations.filter(op=>op.phase==='productive').length>=spend.plannedProductiveOperations)){
+          ledger.assertCompletionEligible(binding);
+          if(!this.#productiveClosed){
+            this.#productiveClosed=true;
+            record('PRODUCTIVE_PHASE_CLOSED',409);
+            this.#options.onProductiveBoundary();
+          }
+          return denied(response,409,'Productive process must yield to trusted host checks','PRODUCTIVE_PHASE_CLOSED');
+        }
+      }
       stage='capacity';
       if(this.#options.phase==='productive'&&this.#options.assertImplementationProgress){
         const spend=ledger.read(binding.workId);

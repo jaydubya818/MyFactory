@@ -27,11 +27,13 @@ export interface CodexRunOptions {
   onProcessStart?: (process: { pid: number; startedAt: string; workspacePath: string }) => void | Promise<void>;
   onEvent?: (event: CodexEvent) => void | Promise<void>;
   signal?: AbortSignal;
+  /** Host-owned metered boundary; never supplied by model output. */
+  productiveEndSignal?: AbortSignal;
   /** Connected paid runs must use a locally metered Responses gateway. */
   gateway?: { baseUrl: string; childToken: string };
 }
 
-export type CodexRunStatus = "completed" | "failed" | "cancelled" | "timed_out";
+export type CodexRunStatus = "completed" | "yielded" | "failed" | "cancelled" | "timed_out";
 
 export interface CodexRunResult {
   workerProfile: "mac";
@@ -205,7 +207,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
     throw error;
   }
 
-  let termination: "timeout" | "abort" | "invalid_output" | "process_start_failed" | null = null;
+  let termination: "timeout" | "abort" | "productive_end" | "invalid_output" | "process_start_failed" | null = null;
   let closed = false;
   let spawnError: string | null = null;
   const closedPromise = new Promise<{ code: number | null; signal: string | null }>((resolve) => {
@@ -228,6 +230,9 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
   const abortHandler = (): void => stop("abort");
   options.signal?.addEventListener("abort", abortHandler, { once: true });
   if (options.signal?.aborted) stop("abort");
+  const productiveEndHandler = (): void => stop("productive_end");
+  options.productiveEndSignal?.addEventListener("abort", productiveEndHandler, {once:true});
+  if(options.productiveEndSignal?.aborted) stop("productive_end");
 
   let processStartError: string | null = null;
   if (child.pid && options.onProcessStart) {
@@ -349,6 +354,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
     signalProcessGroup(child, "SIGKILL");
     if (hardKillTimer) clearTimeout(hardKillTimer);
     options.signal?.removeEventListener("abort", abortHandler);
+    options.productiveEndSignal?.removeEventListener("abort", productiveEndHandler);
     await Promise.all([eventsFile.close(), stderrFile.close()]);
   }
 
@@ -361,10 +367,12 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
   }
 
   const status: CodexRunStatus = processStartError ? "failed" :
+    options.signal?.aborted ? "cancelled" :
+    termination === "productive_end" && !outputError && !spawnError ? "yielded" :
     termination === "timeout" ? "timed_out" :
     termination === "abort" ? "cancelled" :
     exit.code === 0 && completionEventSeen && !turnFailed && !outputError && finalMessageAvailable ? "completed" : "failed";
-  const error = status === "completed" ? null :
+  const error = status === "completed" || status === "yielded" ? null :
     processStartError ?? spawnError ?? outputError ??
     (termination === "timeout" ? "Codex run timed out" :
       termination === "abort" ? "Codex run was cancelled" :

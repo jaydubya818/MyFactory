@@ -176,3 +176,16 @@ test('expired pinned pricing is denied at the ledger even after an earlier reser
   assert.throws(()=>f.ledger.markDispatched('pricing-held'),/pricing expired/);
   assert.throws(()=>f.reserve('pricing-new'),/pricing expired/);
 });
+
+test('Attempt 5 completion eligibility rejects UNKNOWN, stale generation, fenced writer and used completion',t=>{
+ const f=setup(t);f.reserve('first');f.settle('first',30);
+ assert.doesNotThrow(()=>f.ledger.assertCompletionEligible(f.binding));
+ assert.throws(()=>f.ledger.assertCompletionEligible({...f.binding,workGeneration:0}));
+ f.reserve('second');f.ledger.markDispatched('second');f.ledger.markUnknown('second');
+ assert.throws(()=>f.ledger.assertCompletionEligible(f.binding),/Outstanding/);
+ f.ledger.settle('second',30,'provider-second',{input_tokens:10,output_tokens:10});
+ f.ledger.beginCompletion(f.binding);assert.throws(()=>f.ledger.beginCompletion(f.binding));
+ f.reserve('completion','completion');f.settle('completion',30);
+ assert.throws(()=>f.reserve('again','completion'),/limit/);assert.throws(()=>f.reserve('productive-again'),/phase/);
+ f.ledger.fenceAuthority(f.binding);assert.throws(()=>f.ledger.assertCompletionEligible(f.binding));
+});

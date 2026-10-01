@@ -1,0 +1,17 @@
+{
+  "factoryTests": {
+    "passed": 169,
+    "skipped": 1,
+    "installedCliSkippedCaseSeparatelyPassed": true
+  },
+  "myeveRootTests": 144,
+  "myeveApplicationTests": {
+    "passed": 1979,
+    "environmentGatedSkipped": 94
+  },
+  "affectedTypechecks": "PASS",
+  "governance": "PASS",
+  "builds": "PASS",
+  "rootWorkspaceLimitation": "Existing builder manifest omits agent/instructions/connection-reporting.md; unrelated to producer or deployed MyEve application. Affected app typecheck and governance pass.",
+  "additionalRealModelOperations": 0
+}

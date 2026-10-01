@@ -5,9 +5,9 @@ import { join } from "node:path";
 import { preflightCodex, runCodex } from "../../../packages/agents/src/index.ts";
 import type { FactoryEvent, Run, RunState, WorkOrder, WorkOrderState } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
-import { verifyCandidate } from "../../../packages/verification/src/index.ts";
+import { verifyCandidate, verifyWorkspaceTree } from "../../../packages/verification/src/index.ts";
 import { ActionError } from "./actions.ts";
-import { commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
+import { snapshotCandidateTree, commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
 import { ProducerResults } from "./producer-results.ts";
 
 interface ActiveJob {
@@ -19,7 +19,7 @@ interface ActiveJob {
   model: string;
   preflight: Awaited<ReturnType<typeof preflightCodex>> | null;
   prepareOnly?: boolean;
-  gateway?: { baseUrl: string; childToken: string; close: () => Promise<void>;
+  gateway?: { baseUrl: string; childToken: string; productiveEndSignal?: AbortSignal; close: () => Promise<void>;
     beginCompletion?: () => Promise<{baseUrl:string;childToken:string}>;
     assertCompleted?: () => void; fenceAuthority?: () => void };
 }
@@ -28,6 +28,7 @@ export interface JobDependencies {
   preflightCodex: typeof preflightCodex;
   runCodex: typeof runCodex;
   verifyCandidate: typeof verifyCandidate;
+  verifyWorkspaceTree: typeof verifyWorkspaceTree;
   resolveCommit: typeof resolveCommit;
   createTaskWorktree: typeof createTaskWorktree;
   removeTaskWorktree: typeof removeTaskWorktree;
@@ -38,6 +39,7 @@ const defaultDependencies: JobDependencies = {
   preflightCodex,
   runCodex,
   verifyCandidate,
+  verifyWorkspaceTree,
   resolveCommit,
   createTaskWorktree,
   removeTaskWorktree,
@@ -420,6 +422,7 @@ export class JobManager {
         artifactsDir: artifactDir,
         signal,
         ...(active.gateway ? { gateway: { baseUrl: active.gateway.baseUrl, childToken: active.gateway.childToken } } : {}),
+        productiveEndSignal: active.gateway?.productiveEndSignal,
         onProcessStart: (processIdentity) => {
           this.#event(workOrder.id, run.id, "agent.process_started", processIdentity);
         },
@@ -438,7 +441,8 @@ export class JobManager {
         eventsPath: codex.eventsPath,
       });
       if (signal.aborted) throw new Error("Run interrupted during agent execution");
-      if (!codex.success) {
+      const productiveYield = codex.status === "yielded" && active.gateway?.productiveEndSignal?.aborted === true;
+      if (!codex.success && !productiveYield) {
         if (codex.status === "timed_out") {
           const processEvent = this.storage.listEvents(workOrder.id).filter(event => event.runId === run.id && event.type === "agent.process_started").at(-1);
           run = this.#transition(run, "interrupted", "awaiting_environment", "run.recovery_hold", {
@@ -453,7 +457,27 @@ export class JobManager {
         return;
       }
 
+      let checkedTree: string | undefined;
       if (active.gateway?.beginCompletion) {
+        // Model claims and tool stdout do not confer completion authority.
+        const processEvent=this.storage.listEvents(workOrder.id).filter(event=>event.runId===run.id&&event.type==='agent.process_started').at(-1);
+        if(this.dependencies.runCodex===runCodex || productiveYield){
+          const pid=processEvent?.payload.pid;
+          if(typeof pid!=='number')throw Error('Productive process identity missing');
+          for(let n=0;n<20&&!processGroupAbsent(pid);n++)await new Promise(resolve=>setTimeout(resolve,100));
+          if(!processGroupAbsent(pid))throw Error('Productive process is not quiescent');
+        }
+        checkedTree=(await snapshotCandidateTree(run.workspacePath,run.inputCommit,workOrder.allowedPaths,artifactDir)).tree;
+        const checks=await this.dependencies.verifyWorkspaceTree({repositoryPath:run.workspacePath,tree:checkedTree,
+          commands:snapshot?.configuration.commands??workOrder.checkCommands,artifactDir:join(artifactDir,'completion-eligibility'),
+          resourceKey:run.id,signal,...(snapshot?{image:snapshot.configuration.verificationImage}:{})});
+        if(checks.exportStatus!=='ready'||!checks.checks.length||checks.checks.some(c=>c.status!=='passed')||signal.aborted)
+          throw Error('Completion eligibility checks failed or unavailable');
+        if((await snapshotCandidateTree(run.workspacePath,run.inputCommit,workOrder.allowedPaths,artifactDir)).tree!==checkedTree)
+          throw Error('Workspace changed during completion eligibility');
+        this.#event(workOrder.id,run.id,'run.productive_closed',{tree:checkedTree,checks:checks.checks.length,
+          manifestPath:checks.manifestPath,reason:productiveYield?'operation_boundary':'executor_completed'});
+
         const completion = await active.gateway.beginCompletion();
         this.#event(workOrder.id, run.id, 'run.completion_started', {phase:'completion'});
         const completed = await this.dependencies.runCodex({
@@ -465,6 +489,10 @@ export class JobManager {
           sandbox: 'read-only',
           signal,
           gateway: completion,
+          onEvent: event => {
+            const item=event.item as {type?:string}|undefined;
+            if(item && item.type!=='agent_message' && item.type!=='reasoning')throw Error('Completion tools are not permitted');
+          },
           onProcessStart: (processIdentity) => { this.#event(workOrder.id, run.id, 'agent.completion_process_started', processIdentity); },
         });
         this.#event(workOrder.id, run.id, 'run.completion_result', {status:completed.status,eventsPath:completed.eventsPath});
@@ -477,6 +505,7 @@ export class JobManager {
         run.inputCommit,
         workOrder.allowedPaths,
         artifactDir,
+        checkedTree,
       );
       const diffSha256 = createHash("sha256").update(await readFile(candidate.diffPath)).digest("hex");
       run = this.#transition(run, "verifying", "verifying", "run.candidate_committed", {

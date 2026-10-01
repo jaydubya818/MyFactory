@@ -61,3 +61,17 @@ test("supervisor rejects an agent-created commit even if the worktree is clean",
     /Workspace HEAD changed/,
   );
 });
+
+test('completion tree pins only authorized changes; no commit until successful host finalization',async t=>{
+ const {snapshotCandidateTree}=await import('../src/git.ts');const {root,repo}=repository(t),base=await resolveCommit(repo,'main');
+ await assert.rejects(snapshotCandidateTree(repo,base,['src/**'],join(root,'artifacts')),/no source changes/);
+ writeFileSync(join(repo,'src/value.js'),'export const value = 2;\n');
+ const snapshot=await snapshotCandidateTree(repo,base,['src/**'],join(root,'artifacts'));
+ assert.equal(git(repo,'rev-parse','HEAD'),base);
+ writeFileSync(join(repo,'src/value.js'),'export const value = 3;\n');
+ await assert.rejects(commitCandidate(repo,base,['src/**'],join(root,'artifacts'),snapshot.tree),/changed after completion/);
+ assert.equal(git(repo,'rev-parse','HEAD'),base);
+ writeFileSync(join(repo,'src/value.js'),'export const value = 2;\n');
+ const candidate=await commitCandidate(repo,base,['src/**'],join(root,'artifacts'),snapshot.tree);
+ assert.equal(candidate.tree,snapshot.tree);assert.deepEqual(candidate.changedPaths,['src/value.js']);
+});

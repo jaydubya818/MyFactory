@@ -133,12 +133,12 @@ export interface CandidateCommit {
   diffPath: string;
 }
 
-export async function commitCandidate(
+export async function snapshotCandidateTree(
   workspacePath: string,
   inputCommit: string,
   allowedPaths: string[],
   artifactDir: string,
-): Promise<CandidateCommit> {
+): Promise<{tree:string;changedPaths:string[]}> {
   await mkdir(artifactDir, { recursive: true, mode: 0o700 });
   const baseCommit = (await git(workspacePath, ["rev-parse", "HEAD"])).trim();
   if (baseCommit !== inputCommit) {
@@ -162,24 +162,32 @@ export async function commitCandidate(
     validateStagedModes(await inIndex(["diff", "--cached", "--raw", "-z", baseCommit]));
     await inIndex(["diff", "--cached", "--check", baseCommit]);
     const tree = (await inIndex(["write-tree"])).trim();
-    const commit = (await gitWithEnv(workspacePath, [
-      "commit-tree", tree, "-p", baseCommit, "-m", "Factory candidate change",
-    ], {
-      GIT_AUTHOR_NAME: "Local Factory",
-      GIT_AUTHOR_EMAIL: "factory@localhost.invalid",
-      GIT_COMMITTER_NAME: "Local Factory",
-      GIT_COMMITTER_EMAIL: "factory@localhost.invalid",
-    })).trim();
-    await git(workspacePath, ["update-ref", "HEAD", commit, baseCommit]);
-    await git(workspacePath, ["read-tree", commit]);
-    const diffPath = join(artifactDir, "candidate.patch");
-    await writeFile(diffPath, await git(workspacePath, ["show", "--format=", "--binary", "--no-ext-diff", "--no-textconv", commit]), {
-      mode: 0o600,
-    });
-    return { commit, tree, changedPaths, diffPath };
+    return {tree,changedPaths};
   } finally {
     await unlink(indexPath).catch((error: NodeJS.ErrnoException) => {
       if (error.code !== "ENOENT") throw error;
     });
   }
+}
+
+/** Only the trusted host finalizes a candidate, after completion and exact-tree checks. */
+export async function commitCandidate(workspacePath:string,inputCommit:string,allowedPaths:string[],artifactDir:string,expectedTree?:string):Promise<CandidateCommit>{
+  const {tree,changedPaths}=await snapshotCandidateTree(workspacePath,inputCommit,allowedPaths,artifactDir);
+  if(expectedTree && tree!==expectedTree)throw Error('Candidate changed after completion eligibility');
+  const baseCommit=inputCommit;
+  const commit = (await gitWithEnv(workspacePath, [
+    "commit-tree", tree, "-p", baseCommit, "-m", "Factory candidate change",
+  ], {
+    GIT_AUTHOR_NAME: "Local Factory",
+    GIT_AUTHOR_EMAIL: "factory@localhost.invalid",
+    GIT_COMMITTER_NAME: "Local Factory",
+    GIT_COMMITTER_EMAIL: "factory@localhost.invalid",
+  })).trim();
+  await git(workspacePath, ["update-ref", "HEAD", commit, baseCommit]);
+  await git(workspacePath, ["read-tree", commit]);
+  const diffPath = join(artifactDir, "candidate.patch");
+  await writeFile(diffPath, await git(workspacePath, ["show", "--format=", "--binary", "--no-ext-diff", "--no-textconv", commit]), {
+    mode: 0o600,
+  });
+  return { commit, tree, changedPaths, diffPath };
 }

@@ -1,0 +1,15 @@
+{
+  "historicalAttempt5FactoryUnchanged": {
+    "work_orders": true,
+    "runs": true,
+    "factory_events": true,
+    "external_actions": true,
+    "work_spend_budgets": true,
+    "work_spend_operations": true
+  },
+  "historicalEvidenceFilesUnchanged": 40,
+  "historicalFactoryOperations": 4,
+  "originalImplementationUnchanged": true,
+  "originalCandidateCommitted": false,
+  "additionalRealModelOperations": 0
+}

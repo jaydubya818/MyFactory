@@ -192,3 +192,15 @@ test('real upstream 503 retains UNKNOWN exposure and repeated local requests nev
  assert.equal(events[0].code,'PROVIDER_OUTCOME_UNKNOWN');assert.equal(events[0].upstreamStatus,503);
  assert(!JSON.stringify(events).includes('provider-secret'));assert(!JSON.stringify(events).includes('do-not-record'));
 });
+
+test('Attempt 5: exhausted productive loop yields to host exactly once without spending completion',async t=>{
+ let boundaries=0,sequence=0;
+ const reply=(req,res)=>{req.resume();res.writeHead(200,{'content-type':'application/json','x-request-id':'attempt5-'+(++sequence)});res.end(JSON.stringify({status:'completed',usage:{input_tokens:10,output_tokens:10}}));};
+ const f=await fixture(t,reply,4000,{onProductiveBoundary:()=>{boundaries++;}});
+ assert.equal((await f.call()).status,200);assert.equal((await f.call()).status,200);
+ const response=await f.call();assert.equal(response.status,409);
+ assert.equal((await response.json()).error.code,'PRODUCTIVE_PHASE_CLOSED');
+ await f.call();assert.equal(boundaries,1);assert.equal(f.calls,2);
+ const budget=f.ledger.read(f.binding.workId);assert.equal(budget.phase,'productive');
+ assert.equal(budget.completionOperationsUsed,0);assert.equal(budget.completionReserveRemainingMicrousd,1200);
+});

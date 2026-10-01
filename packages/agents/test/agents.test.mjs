@@ -203,3 +203,20 @@ test("canonical model references preserve qualified and legacy identity with bou
     assert.equal(isModelReference(model), false);
   }
 });
+
+test('host productive boundary yields a quiescent process without claiming a completed model turn',async t=>{
+ const work=await fixture(t),boundary=new AbortController();let pid;
+ const result=await work.adapter.runCodex(options(work,'hang',{
+  productiveEndSignal:boundary.signal,onProcessStart: p=>{pid=p.pid;setTimeout(()=>boundary.abort(),100);}
+ }));
+ assert.equal(result.status,'yielded');assert.equal(result.success,false);assert.equal(result.completionEventSeen,false);
+ assert.throws(()=>process.kill(-pid,0),{code:'ESRCH'});
+});
+
+test('owner cancellation dominates a productive boundary signal',async t=>{
+ const work=await fixture(t),boundary=new AbortController(),owner=new AbortController();
+ const result=await work.adapter.runCodex(options(work,'hang',{
+  productiveEndSignal:boundary.signal,signal:owner.signal,onProcessStart:()=>{setTimeout(()=>{boundary.abort();owner.abort();},100);}
+ }));
+ assert.equal(result.status,'cancelled');assert.equal(result.success,false);
+});
