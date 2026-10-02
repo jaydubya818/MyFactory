@@ -4,8 +4,11 @@ export type EnvironmentType = typeof environmentTypes[number];
 /** Optional operator surfaces. Never add these to productive Work requirements. */
 export const sessionCapabilityNames = ['session.headless', 'session.tmux', 'session.cmux',
   'session.interactiveAttach', 'session.browser', 'session.notifications'] as const;
+/** Independently qualified execution capabilities, not agent roles or session surfaces.
+ * CLOUD_COMPUTER is a future CLOUD profile; it is not an EnvironmentType. */
+export const computerCapabilityNames = ['browser', 'desktop', 'screenshot', 'appInteraction'] as const;
 export const capabilityNames = ['filesystem', 'shell', 'git', 'repositoryExecution',
-  'backgroundExecution', 'candidateCustody', 'protectedVerification', 'screenshot', 'desktop',
+  'backgroundExecution', 'candidateCustody', 'protectedVerification', ...computerCapabilityNames,
   ...sessionCapabilityNames] as const;
 export type CapabilityName = typeof capabilityNames[number];
 export interface EnvironmentCapability {
@@ -14,6 +17,7 @@ export interface EnvironmentCapability {
   available: boolean;
 }
 export interface EnvironmentDescriptor {
+  // Where execution occurs. Harness selection and specialist identity live outside this descriptor.
   schemaVersion: 1;
   id: string;
   name: string;

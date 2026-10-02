@@ -27,6 +27,7 @@ The intended flow is MyEve → MyFactory → selected environment → harness �
 | Sofie / MyEve | PARTIAL — existing canonical behavior preserved; environment UI/consumption pending |
 | Relay | NOT_RUN — contracts unchanged; existing qualification not repeated |
 | Environment Fabric | PARTIAL — contracts/routing tests pass; durable registry and production admission pending |
+| Future CLOUD_COMPUTER | DEFERRED / NOT_QUALIFIED — optional CLOUD capabilities in contract only; no agent-role or harness binding |
 | Session surfaces | PARTIAL — optional contract/scope tests pass; HEADLESS production independence required; CMUX/TMUX adapters and Control Center actions DEFERRED |
 | Owner Computer | PARTIAL — metadata projection tests pass; real companion E2E not repeated |
 | Local Factory | PASS deterministic lifecycle regressions; environment registration not integrated |
@@ -38,6 +39,8 @@ The intended flow is MyEve → MyFactory → selected environment → harness �
 | Background Work | NOT_QUALIFIED for CLOUD; Mac-off/browser-off NOT_RUN |
 | Owner publication | Existing Attempt-8 implementation preserved; production publication NOT_RUN here |
 | Agent federation | NOT_RUN; Relay contracts unchanged; no Muse/GrokBots claims |
+
+[Harness-neutral environments](docs/architecture/harness-neutral-environments.md) keep resource location, harness execution and optional operator surfaces separate. Existing qualified runtime is preserved; future cloud computer capability support does not enable live computer access.
 
 See [qualification and limitations](docs/environment-fabric/qualification.md) and the [session-surface report](docs/environment-fabric/session-surfaces.md). Do not infer laptop independence or production availability from these unit tests.
 

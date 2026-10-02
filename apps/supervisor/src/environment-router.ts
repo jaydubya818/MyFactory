@@ -75,7 +75,9 @@ export function deriveRequirements(work: Omit<WorkRequirements, 'environmentType
   if ((resource.kind === 'repository' || resource.kind === 'local-qualification') && !work.repository) throw Error('REPOSITORY_REQUIRED');
   const software: CapabilityName[] = ['filesystem', 'shell', 'git', 'repositoryExecution', 'candidateCustody', 'protectedVerification'];
   const local = resource.kind === 'owner-file' || resource.kind === 'owner-desktop';
-  const requirements: WorkRequirements = { ...work,
+  // Explicit projection prevents incidental agent/harness/profile metadata from becoming routing semantics.
+  const requirements: WorkRequirements = { workId: work.workId, generation: work.generation,
+    ownerId: work.ownerId, businessId: work.businessId, repository: work.repository,
     environmentType: local ? 'OWNER_COMPUTER' : resource.kind === 'local-qualification' ? 'LOCAL_FACTORY' : 'CLOUD',
     environmentId: local ? resource.environmentId : null,
     capabilities: local ? resource.kind === 'owner-file' ? ['filesystem'] : ['desktop'] :

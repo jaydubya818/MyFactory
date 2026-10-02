@@ -92,9 +92,9 @@
       "authorityBoundary": "Separate immutable-tree pre-completion checks reuse existing offline Docker restrictions; candidate verification still requires exact commit. Tree checks are not candidate custody or acceptance."
     },
     "apps/supervisor/src/execution-provider.ts": {
-      "sha256": "a0ed654e7e3cb26746353834498b319b5bf95d0c56ab7a7da2a46492ab41a019",
+      "sha256": "60027acba1399b05ba2637dc7dab64e1be3ab68842167b7229d4cf43f9e4af3b",
       "classification": "execution-provider-contract",
-      "authorityBoundary": "Reuse existing lifecycle seam; canonical environment names keep local Factory separate from owner computer; no new execution authority"
+      "authorityBoundary": "Reuse existing lifecycle seam; canonical environment names keep local Factory separate from owner computer; no new execution authority Document the harness-neutral interface; concrete currently qualified local harness and all lifecycle behavior remain unchanged."
     },
     "apps/supervisor/src/local-execution-provider.ts": {
       "sha256": "c17cd911577d14c2d93cee57f139f3e0cf726111657260e36afc2d18341370f3",
@@ -132,14 +132,14 @@
       "authorityBoundary": "Fixed public source, immutable staging image, bounded nonpersistent single sandbox plan; no caller-supplied commands or credentials; not wired to allocation"
     },
     "packages/contracts/src/environment.ts": {
-      "sha256": "0e389462dfa083e66fb5578a8a55d645fd7a532cb9e7f1dd73468c48eb3edda4",
+      "sha256": "1844f841db35c591b227dec0a6486c91badbbed2fb2135d6895723f0e69bc8ae",
       "classification": "ENVIRONMENT_CONTRACT",
-      "authorityBoundary": "Strict execution-environment metadata and versioned optional session capabilities. Advertisement grants no authority; surface capabilities are not productive requirements. No provider, lifecycle or authorization wiring."
+      "authorityBoundary": "Strict execution-environment metadata and versioned optional session capabilities. Advertisement grants no authority; surface capabilities are not productive requirements. No provider, lifecycle or authorization wiring. Harness-neutral metadata; browser/appInteraction and existing desktop/screenshot are independently qualified optional capabilities, never a CLOUD_COMPUTER environment type or agent identity."
     },
     "apps/supervisor/src/environment-router.ts": {
-      "sha256": "9b4a9e1615d489b23434fe10b851e3b129f46915c9c07d633fbec53d9836e488",
+      "sha256": "ceda26ac688371aa3acf71d134f1ca0e62a02bf71e3f2f4411953b86be2f1c8c",
       "classification": "environment-routing",
-      "authorityBoundary": "Pure selection requires independent scoped Work authority and exact qualified identity; no effects or production registration; pinned readback is BOUND, never new admission"
+      "authorityBoundary": "Pure selection requires independent scoped Work authority and exact qualified identity; no effects or production registration; pinned readback is BOUND, never new admission Explicitly project canonical Work identity/resource fields so incidental agent or harness metadata cannot enter requirements. Existing resource policy, qualification, grants, no-fallback and binding behavior preserved."
     },
     "apps/supervisor/src/environment-adapters.ts": {
       "sha256": "34b70dbf50da599762a7aa6e58200dbf35bc5e8039f18e02908f06767e89752f",

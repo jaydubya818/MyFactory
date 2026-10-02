@@ -78,3 +78,7 @@ Reconcile cloud implementation through the active Cloud Execution owner. Its ima
 ## Optional operator surfaces
 
 ExecutionEnvironment → ExecutionProvider → existing harness → optional SessionSurfaceProvider. [Contract and architecture](../architecture/session-surfaces.md); [operator/security/qualification runbook](session-surfaces.md). No live adapter or Control Center action is enabled. HEADLESS requires neither cmux nor tmux. Attachment qualification cannot enable production cloud admission.
+
+## Future cloud computer qualification
+
+Follow the [harness-neutral capability boundary](../architecture/harness-neutral-environments.md). No browser/desktop runtime is provisioned by the new vocabulary. Keep the currently qualified harness and HEADLESS critical path. Later qualify each browser/desktop/screenshot/appInteraction capability independently with Work-scoped authority, tool/action restrictions, cross-owner isolation, revocation and teardown. Never route by specialist name, advertise all computer capabilities merely because an environment is CLOUD, or treat session.browser as browser execution authority.

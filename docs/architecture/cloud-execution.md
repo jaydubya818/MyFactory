@@ -205,3 +205,7 @@ Hidden Git checkpoints are DEFERRED. Durable command/event/effect handling has a
 ExecutionEnvironment → ExecutionProvider → HarnessProvider/existing harness → optional SessionSurfaceProvider. [Session architecture](session-surfaces.md) defines HEADLESS/TMUX/CMUX, exact identity/scope, capabilities and upstream review. Contract only; native adapters and Control Center actions are deferred. Session absence/failure cannot govern productive lifecycle, custody, verification or Result/Proof.
 
 The separate Cloud Execution owner at `faf93359a4c54daaf3e0b713a601366db02ba8d6` supersedes the historical image blocker and owns its hosted provider/controller. No protected checkout was edited or copied. Fabric does not gate or duplicate its existing harness → deterministic cloud execution → independent verifier → Mac-off Golden Journey sequence. That full journey remains unqualified in the reviewed checkpoint.
+
+## Harness neutrality and future cloud computer capabilities
+
+[Harness-neutral environment contract](harness-neutral-environments.md): environment determines where, harness determines how, and optional session surface determines operator observation/attachment. CLOUD_COMPUTER is a future qualified CLOUD capability profile, not a new environment type or agent identity. Browser/desktop/screenshot/appInteraction are independently optional. Specialist names never select an environment. Runtime computer access remains deferred behind the active cloud owner's HEADLESS/Mac-off milestone.

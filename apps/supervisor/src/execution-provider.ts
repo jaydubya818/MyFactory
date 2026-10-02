@@ -20,6 +20,9 @@ export type ExecutionGateway = Parameters<JobManager['executePrepared']>[3];
 /** First migration seam around the canonical prepared Run. Work admission,
  * writer binding, spending and terminal decisions remain in dispatch control.
  * Local Run paths are legacy references; cloud admission is not enabled here.
+ * This interface describes where resources execute, not which agent/harness runs.
+ * Concrete adapters preserve the currently qualified harness; alternate harness
+ * selection/qualification belongs behind the harness boundary, never in EnvironmentType.
  */
 export interface ExecutionProvider {
   readonly id: string;

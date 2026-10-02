@@ -80,3 +80,7 @@ Observation must run outside the authoritative execution transaction/worker life
 ## Qualification and delivery order
 
 The [qualification report](../environment-fabric/session-surfaces.md) distinguishes contract tests from unrun integration. The [runbook](../runbooks/session-surfaces.md) records the next operator workflow. First complete the cloud owner's HEADLESS Golden Journey without cmux/tmux installed. Then qualify local adapters, crashes/detach/reconnect and security; Cloud Execution may add optional cloud attachment afterward. No paid model call, cloud admission promotion or publication is authorized by this extension.
+
+## Harness neutrality and future cloud computer capabilities
+
+[Harness-neutral environment contract](harness-neutral-environments.md): environment determines where, harness determines how, and optional session surface determines operator observation/attachment. CLOUD_COMPUTER is a future qualified CLOUD capability profile, not a new environment type or agent identity. Browser/desktop/screenshot/appInteraction are independently optional. Specialist names never select an environment. Runtime computer access remains deferred behind the active cloud owner's HEADLESS/Mac-off milestone.
