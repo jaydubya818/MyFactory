@@ -19,7 +19,8 @@ export function databaseConfig(connectionString) {
   for (const key of ['sslmode', 'sslcert', 'sslkey', 'sslrootcert', 'uselibpqcompat']) url.searchParams.delete(key);
   return {
     connectionString: url.toString(), ssl: { rejectUnauthorized: true },
-    connectionTimeoutMillis: 5000, query_timeout: 5000, statement_timeout: 5000,
+    // Allow a bounded scale-to-zero database wake-up; SQL remains capped at 5s.
+    connectionTimeoutMillis: 15000, query_timeout: 5000, statement_timeout: 5000,
     max: 2, idleTimeoutMillis: 1000, allowExitOnIdle: true,
   };
 }

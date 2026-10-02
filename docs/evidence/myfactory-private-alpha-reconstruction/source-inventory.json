@@ -12,9 +12,9 @@
       "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "50dd036ba5d2e1a079b4b9fb1c75238ab2b4c2ded2a9c64e4262b2babcaddb92",
+      "sha256": "ce7f6a974dbf19cc32ab23c4fbdceda15f871e0718b2281437528219de1494bd",
       "classification": "PAID_BOUNDARY",
-      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "authorityBoundary": "Await synchronous or asynchronous durable reserve/dispatch/settlement; preserve upstream routing, scope/model bounds, no retries, UNKNOWN and protected completion behavior."
     },
     "apps/supervisor/src/real-provider.ts": {
       "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
@@ -32,9 +32,9 @@
       "authorityBoundary": "Additive migration 8"
     },
     "packages/storage/src/spend.ts": {
-      "sha256": "19ea99ca3f78829e62b7f2f9f5bfda68cf1ea053a9aa17a38403754bbd67aafc",
-      "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars."
+      "sha256": "4850fee81922f9a0b02822a309cf96da3476aae1f109a85bf0aaa35da7c50143",
+      "classification": "SHARED_SPEND_POLICY",
+      "authorityBoundary": "Retain SQLite transactions and all historical V2 semantics while using shared pure validation/accounting functions."
     },
     "apps/supervisor/src/server.ts": {
       "sha256": "8b06ce400c082bee45468da419390a28eda040fa48d825de285856706ffcebf6",
@@ -107,9 +107,9 @@
       "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
     },
     "apps/cloud-control/src/config.mjs": {
-      "sha256": "e8d75c8a18be38c083ab4b6ab6180260c5c9abdb66cd815c1cf497fe792a2472",
-      "classification": "cloud-staging-foundation",
-      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+      "sha256": "ee97f22cae6821e1b183b5919e3152d1b774b910e2ff2242e12488a9f898bfa8",
+      "classification": "STAGING_BOUNDARY",
+      "authorityBoundary": "Require exact dedicated staging preview identity and certificate-verified password-authenticated PostgreSQL. Bound database wake-up connection to 15 seconds and statements to 5 seconds."
     },
     "apps/cloud-control/src/readiness.mjs": {
       "sha256": "d99426407f5870c06dd016ad4c161951a8094ef5b1c7af80d7e5b6f5d9f4ff2e",
@@ -150,6 +150,16 @@
       "sha256": "08915d4fed39da4cd9b091368223b3f0928c4076418d3b5971df29aa1b99e91d",
       "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
       "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "packages/storage/src/spend-policy.ts": {
+      "sha256": "2d54bd0c68cbf073d831812b9b4f7a79117e46f4b4cdc77443eec8224eed72b8",
+      "classification": "SHARED_SPEND_POLICY",
+      "authorityBoundary": "Canonical V2 pricing, admission, binding, protected completion reserve and UNKNOWN/accounting policy shared by SQLite and PostgreSQL; no provider effects."
+    },
+    "apps/cloud-control/src/postgres-spend.mjs": {
+      "sha256": "90391e6f4571b6714d79900a6106af850ba92fd8b315018d4a030cfd36268762",
+      "classification": "POSTGRES_SPEND_LEDGER",
+      "authorityBoundary": "Authoritative PostgreSQL transactions serialize V2 reservations, dispatch, settlement and cancellation using shared canonical policy and database time. No worker or public endpoint authority."
     }
   }
 }

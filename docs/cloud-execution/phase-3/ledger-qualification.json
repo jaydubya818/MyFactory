@@ -1,0 +1,26 @@
+{
+  "status": "PARTIAL",
+  "deterministic": {
+    "pass": 199,
+    "fail": 0,
+    "skipped": 6
+  },
+  "connectedPostgres": {
+    "pass": 6,
+    "fail": 0,
+    "fixtureIsolation": "unique temporary schema, removed",
+    "modelCalls": 0
+  },
+  "migration": "002-canonical-execution-ledger",
+  "migrationApply": "PASS",
+  "migrationRerun": "PASS",
+  "cloudAdmission": "DISABLED",
+  "cloudHarness": "NOT_RUN",
+  "macOff": "NOT_RUN",
+  "runtime": {
+    "packages/storage/src/spend-policy.ts": "2d54bd0c68cbf073d831812b9b4f7a79117e46f4b4cdc77443eec8224eed72b8",
+    "packages/storage/src/spend.ts": "4850fee81922f9a0b02822a309cf96da3476aae1f109a85bf0aaa35da7c50143",
+    "apps/cloud-control/src/postgres-spend.mjs": "90391e6f4571b6714d79900a6106af850ba92fd8b315018d4a030cfd36268762",
+    "apps/supervisor/src/spend-gateway.ts": "ce7f6a974dbf19cc32ab23c4fbdceda15f871e0718b2281437528219de1494bd"
+  }
+}

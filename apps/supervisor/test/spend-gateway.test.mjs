@@ -28,8 +28,9 @@ async function fixture(t, reply, ceiling = 4000, options = {}) {
     {version:'WORK_LEDGER_V2',pricingRevision:price.revision,model:price.model,validUntil:price.validUntil,perOperationReserveMicrousd:1200,
       plannedProductiveOperations:2,plannedCompletionOperations:1,maxPaidOperations:3,completionReserveMicrousd:1200});
   ledger.bindAuthority(binding);
-  const gateway = new SpendGateway({ ledger, binding, price, upstreamOrigin: `http://127.0.0.1:${upstream.address().port}`,
-    upstreamApiKey: 'provider-secret', childToken: 'a'.repeat(64),phase:'productive',...options });
+  const {ledgerWrapper,...gatewayOptions}=options;
+  const gateway = new SpendGateway({ ledger:ledgerWrapper?ledgerWrapper(ledger):ledger, binding, price, upstreamOrigin: `http://127.0.0.1:${upstream.address().port}`,
+    upstreamApiKey: 'provider-secret', childToken: 'a'.repeat(64),phase:'productive',...gatewayOptions });
   const base = await gateway.listen();
   const call = (body = { model: 'fixture-model', input: 'hello' }, token = 'a'.repeat(64)) =>
     fetch(base + '/responses', { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -203,4 +204,28 @@ test('Attempt 5: exhausted productive loop yields to host exactly once without s
  await f.call();assert.equal(boundaries,1);assert.equal(f.calls,2);
  const budget=f.ledger.read(f.binding.workId);assert.equal(budget.phase,'productive');
  assert.equal(budget.completionOperationsUsed,0);assert.equal(budget.completionReserveRemainingMicrousd,1200);
+});
+
+
+test('asynchronous durable reservation and dispatch complete before the provider is contacted',async t=>{
+  let release,entered;
+  const held=new Promise(resolve=>{release=resolve;});
+  const seen=new Promise(resolve=>{entered=resolve;});
+  const f=await fixture(t,complete,4000,{ledgerWrapper:ledger=>Object.fromEntries(['read','reserve','markDispatched','settle','markUnknown','assertCompletionEligible'].map(name=>[name,async(...args)=>{
+    if(name==='markDispatched'){entered();await held;}
+    return ledger[name](...args);
+  }]))});
+  const pending=f.call();await seen;
+  assert.equal(f.calls,0);assert.equal(f.ledger.read(f.binding.workId).operations[0].state,'reserved');
+  release();assert.equal((await pending).status,200);assert.equal(f.calls,1);
+  assert.equal(f.ledger.read(f.binding.workId).operations[0].state,'settled');
+});
+
+test('asynchronous dispatch rejection cannot contact provider and retains UNKNOWN reservation',async t=>{
+  const f=await fixture(t,complete,4000,{ledgerWrapper:ledger=>Object.fromEntries(['read','reserve','markDispatched','settle','markUnknown','assertCompletionEligible'].map(name=>[name,async(...args)=>{
+    if(name==='markDispatched')throw Error('database unavailable after reserve');
+    return ledger[name](...args);
+  }]))});
+  assert.equal((await f.call()).status,409);assert.equal(f.calls,0);
+  assert.equal(f.ledger.read(f.binding.workId).status,'UNKNOWN');
 });

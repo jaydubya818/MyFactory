@@ -16,8 +16,13 @@ export interface SpendPrice {
   outputMicrousdPerMillion: number;
 }
 
+type GatewayLedgerMethods = Pick<SpendLedger, 'read' | 'reserve' | 'markDispatched' | 'settle' | 'markUnknown' | 'assertCompletionEligible'>;
+export type GatewayLedger = {
+  [K in keyof GatewayLedgerMethods]: (...args: Parameters<GatewayLedgerMethods[K]>) => ReturnType<GatewayLedgerMethods[K]> | Promise<ReturnType<GatewayLedgerMethods[K]>>;
+};
+
 export interface SpendGatewayOptions extends ProviderConnection {
-  ledger: SpendLedger;
+  ledger: GatewayLedger;
   binding: SpendBinding;
   price: SpendPrice;
   upstreamOrigin: string;
@@ -170,9 +175,9 @@ export class SpendGateway {
         Math.ceil(price.outputLimitTokens * price.outputMicrousdPerMillion / 1_000_000);
       stage='admission';
       if(this.#options.phase==='productive'&&this.#options.onProductiveBoundary){
-        const spend=ledger.read(binding.workId);
+        const spend=await ledger.read(binding.workId);
         if(this.#productiveClosed || (spend && spend.operations.filter(op=>op.phase==='productive').length>=(this.#options.productiveCheckpointAfter??spend.plannedProductiveOperations))){
-          ledger.assertCompletionEligible(binding);
+          await ledger.assertCompletionEligible(binding);
           if(!this.#productiveClosed){
             this.#productiveClosed=true;
             record(this.#options.productiveCheckpointAfter===1?'PRODUCTIVE_CHECKPOINT':'PRODUCTIVE_PHASE_CLOSED',409);
@@ -183,7 +188,7 @@ export class SpendGateway {
       }
       stage='capacity';
       if(this.#options.phase==='productive'&&this.#options.assertImplementationProgress){
-        const spend=ledger.read(binding.workId);
+        const spend=await ledger.read(binding.workId);
         if(!spend)throw Error('Work budget missing');
         const used=spend.operations.filter(op=>op.phase==='productive').length;
         if(used===spend.plannedProductiveOperations-1)await this.#options.assertImplementationProgress();
@@ -195,9 +200,9 @@ export class SpendGateway {
       validatePrice(price);
       stage='admission';
       operationId = randomUUID();
-      ledger.reserve({ ...binding, operationId, model: price.model, pricingRevision: price.revision,
+      await ledger.reserve({ ...binding, operationId, model: price.model, pricingRevision: price.revision,
         reservedMicrousd: reserveMicrousd, phase: this.#options.phase });
-      ledger.markDispatched(operationId);
+      await ledger.markDispatched(operationId);
       stage='upstream';
       const upstream = await fetch(new URL('/v1/responses', this.#options.upstreamOrigin), {
         method: 'POST', headers: { authorization: `Bearer ${credential}`,
@@ -224,14 +229,14 @@ export class SpendGateway {
         usage.output_tokens > outputCap) throw new Error('Provider outcome or usage unqualified');
       const actual = Math.ceil(usage.input_tokens * price.inputMicrousdPerMillion / 1_000_000) +
         Math.ceil(usage.output_tokens * price.outputMicrousdPerMillion / 1_000_000);
-      ledger.settle(operationId, actual, providerRequestId, usage);
+      await ledger.settle(operationId, actual, providerRequestId, usage);
       record('SETTLED',upstream.status);
       response.writeHead(upstream.status, { 'content-type': upstream.headers.get('content-type') ?? 'application/json',
         'cache-control': 'no-store', 'x-request-id': providerRequestId });
       response.end(result);
     } catch (error) {
       if (operationId) {
-        try { ledger.markUnknown(operationId); } catch { /* Durable reservation remains retained. */ }
+        try { await ledger.markUnknown(operationId); } catch { /* Durable reservation remains retained. */ }
       }
       // Fixed codes only: never persist raw exceptions, provider bodies or headers.
       const code=stage==='admission'?'LOCAL_ADMISSION_DENIED':stage==='capacity'?'IMPLEMENTATION_CAPACITY_PROTECTED':

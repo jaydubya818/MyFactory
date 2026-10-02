@@ -42,4 +42,6 @@ test('requires authenticated database URL and verified TLS regardless of URL fla
   assert.equal(config.ssl.rejectUnauthorized, true);
   assert.equal(new URL(config.connectionString).searchParams.has('sslmode'), false);
   assert.equal(config.max, 2);
+  assert.equal(config.connectionTimeoutMillis, 15000);
+  assert.equal(config.statement_timeout, 5000);
 });

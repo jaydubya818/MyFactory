@@ -74,3 +74,7 @@ Current preview: `https://myfactory-cloud-staging-jhhd74zgx-jaydubya818.vercel.a
 Never retry a failed/UNKNOWN attempt as fresh Work automatically. Read its retained stage/command error, confirm exact-resource cleanup, add a deterministic regression, repair and preserve the next numbered/UUID attempt. A lost allocation receipt holds the sole slot until delayed reconciliation. A successful artifact receipt is not a protected verifier verdict. Keep Work admission disabled.
 
 The direct PostgreSQL credential is used only in the Factory controller for session advisory locks. Producer receives no OIDC, database or Blob credential. Host OIDC authorizes private Blob writes and readback against the fixed staging store ID. Bound artifact reads to 256 KB; retain content-addressed private evidence after teardown. The initial lifetime ceiling is eight infrastructure allocations and must not be raised to hide repeated failures.
+
+### Canonical PostgreSQL ledger
+
+Migration 002 adds Factory WorkOrder/Run execution records and canonical V2 budgets/operations. The migration runner records SHA-256 checksums and rejects changed applied migrations. The environment marker remains boundary version 1; `factory.schema_migrations` tracks actual migration revisions. Never copy local/private-alpha data into these tables. PostgreSQL integration tests require explicit `FACTORY_POSTGRES_TEST=1`, use unique temporary schemas and remove fixtures. A skipped connected test is not PASS. `recoverUnknown()` is an explicit recovery operation, never a routine healthy-worker restart action.
