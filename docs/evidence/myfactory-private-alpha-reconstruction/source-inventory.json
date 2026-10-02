@@ -92,14 +92,14 @@
       "authorityBoundary": "Separate immutable-tree pre-completion checks reuse existing offline Docker restrictions; candidate verification still requires exact commit. Tree checks are not candidate custody or acceptance."
     },
     "apps/supervisor/src/execution-provider.ts": {
-      "sha256": "36b12e18aa008c8204cf23624cc07416b2eda50b26763d49d4a2afb87e72b2e8",
-      "classification": "EXECUTION_PROVIDER_CONTRACT",
-      "authorityBoundary": "Typed migration seam only. Resource evidence cannot grant writer, model, verification or publication authority. Legacy Run and host gateway references are explicitly local migration limitations."
+      "sha256": "a0ed654e7e3cb26746353834498b319b5bf95d0c56ab7a7da2a46492ab41a019",
+      "classification": "execution-provider-contract",
+      "authorityBoundary": "Reuse existing lifecycle seam; canonical environment names keep local Factory separate from owner computer; no new execution authority"
     },
     "apps/supervisor/src/local-execution-provider.ts": {
-      "sha256": "727738ba01b853feb93c220b7cd4529f7a8aade3e1e83fc9276cde30cfae3192",
-      "classification": "LOCAL_RESOURCE_RECONCILIATION",
-      "authorityBoundary": "Scope process and verifier observations to the exact persisted attempt. Unknown resources prevent quiescence; only dispatch control decides canonical terminal state after fencing. Keep candidate workspace required by existing publication; never claim it was destroyed."
+      "sha256": "c17cd911577d14c2d93cee57f139f3e0cf726111657260e36afc2d18341370f3",
+      "classification": "local-execution-provider",
+      "authorityBoundary": "Only internal environment discriminator changes to LOCAL_FACTORY; all prepare/start/cancel/custody behavior retained"
     },
     "apps/cloud-control/src/dependencies.mjs": {
       "sha256": "85e769d564f9cdcc3d9caf40a3f9fb492baf7d30ee48f577ddc83375a87568c6",
@@ -130,6 +130,21 @@
       "sha256": "df7a441e111d9c50dbeb30fbbd24ee50f777bebb85e585b2a897491da24a0dcf",
       "classification": "cloud-staging-infrastructure-plan",
       "authorityBoundary": "Fixed public source, immutable staging image, bounded nonpersistent single sandbox plan; no caller-supplied commands or credentials; not wired to allocation"
+    },
+    "packages/contracts/src/environment.ts": {
+      "sha256": "8c6065fbcaa55a30c394bd3d176c781f940037fb5aa61293531f1e6a3e79eba5",
+      "classification": "environment-contract",
+      "authorityBoundary": "Strict nonsecret versioned descriptor; capability availability grants no Work, Relay, verification or publication authority"
+    },
+    "apps/supervisor/src/environment-router.ts": {
+      "sha256": "9b4a9e1615d489b23434fe10b851e3b129f46915c9c07d633fbec53d9836e488",
+      "classification": "environment-routing",
+      "authorityBoundary": "Pure selection requires independent scoped Work authority and exact qualified identity; no effects or production registration; pinned readback is BOUND, never new admission"
+    },
+    "apps/supervisor/src/environment-adapters.ts": {
+      "sha256": "34b70dbf50da599762a7aa6e58200dbf35bc5e8039f18e02908f06767e89752f",
+      "classification": "environment-adapter-projection",
+      "authorityBoundary": "Safe projections of authenticated local readback; permissions are availability, not authority; no production wiring or qualification inferred"
     }
   }
 }

@@ -1,0 +1,867 @@
+
+> sellerfi-local-factory@0.1.0 test
+> npm run test --workspaces --if-present
+
+
+> @factory/cloud-control@0.1.0 test
+> node --test test/*.test.mjs
+
+✔ allocation refuses mutable images, wrong registry scope and unbounded time (0.839083ms)
+✔ allocation pins exact source and grants no worker credentials, ports, persistence or failover (0.669333ms)
+✔ rejects absent, short and incorrect operator tokens (20.213125ms)
+✔ no dependency access before authentication (0.8885ms)
+✔ denies production and another project even with valid token (0.676459ms)
+✔ healthy infrastructure cannot enable cloud Work admission (0.802584ms)
+✔ independent dependency failures are retained without raw credential errors (0.127ms)
+✔ requires authenticated database URL and verified TLS regardless of URL flags (0.393541ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 99.891208
+
+> @factory/supervisor@0.1.0 test
+> node --test test/*.test.mjs
+
+✔ agent note changes durable UI data but cannot grant publication approval (24.151834ms)
+✔ candidate, evidence, and policy changes invalidate an approved draft request (39.022875ms)
+✔ human approval requires a fresh device-owner confirmation (10.160708ms)
+✔ an exact approved candidate records one draft PR and repeated calls stay local (13.197792ms)
+✔ a changed candidate blocks draft publication before the adapter is called (11.183542ms)
+✔ an uncertain draft outcome only reconciles remote state on retry (18.707084ms)
+✔ app builder creates a durable WorkOrder linked to a versioned scaffold (26.4635ms)
+✖ connected app intake is scoped, idempotent across restart, and uses the shared audit records (16.198ms)
+✖ connections cannot escape repository/action scope, impersonate humans, or survive revocation (24.786542ms)
+✖ prepare binds actual attempt before any execution; response-loss/restart replay never redispatches (117.456708ms)
+✖ wrong token, replay mutation, incomplete binding and changed FactoryVersion cannot start work (97.913459ms)
+✖ stop before dispatch creates a durable terminal fence rejecting delayed execution after restart (97.211416ms)
+✖ running stop stays STOPPING until the actual adapter call settles (63.835667ms)
+✖ default paid dispatch denies even with valid binding and injected dependencies (50.701667ms)
+✖ producer deadline aborts execution without a MyEve polling loop (48.071ms)
+✖ connected START routes each synthetic model call through exact Work spend gateway (0.270792ms)
+✖ completion prerequisite/finalization fails closed: no changes (0.253125ms)
+✖ completion prerequisite/finalization fails closed: outside scope (0.24ms)
+✖ completion prerequisite/finalization fails closed: failed checks (0.866875ms)
+✖ completion prerequisite/finalization fails closed: completion failure (0.176666ms)
+✖ completion prerequisite/finalization fails closed: completion mutation (0.123292ms)
+✔ Owner Computer capabilities track permissions independently and omit local roots (6.755958ms)
+✔ offline, revoked, stale and absent heartbeat never advertise an online Mac (3.293334ms)
+✔ Local Factory health cannot qualify background or protected verification authority (1.935209ms)
+✔ descriptor rejects credential field (0.979375ms)
+✔ descriptor rejects unknown capability (0.142291ms)
+✔ descriptor rejects duplicate capability (0.078291ms)
+✔ descriptor rejects negative capacity (0.060875ms)
+✔ descriptor rejects fractional heartbeat (0.057917ms)
+✔ descriptor rejects NaN heartbeat (0.045875ms)
+✔ descriptor rejects reversed protocol (0.04475ms)
+✔ descriptor rejects missing version pin (0.045208ms)
+✔ descriptor rejects wrong schema (0.056334ms)
+✔ descriptor rejects unknown environment (0.086167ms)
+✔ descriptor rejects control characters (0.0605ms)
+✔ descriptor parsing is defensive and missing capabilities stay absent (0.683125ms)
+✔ routing matrix: repository with both online (9.769833ms)
+✔ routing matrix: repository with Mac offline (0.213666ms)
+✔ routing matrix: Mac file (0.163791ms)
+✔ routing matrix: offline Mac file (0.129292ms)
+✔ routing matrix: offline cloud never falls back (0.132917ms)
+✔ routing matrix: explicit local qualification (0.162292ms)
+✔ cloud fails closed: offline (0.216708ms)
+✔ cloud fails closed: stale heartbeat (0.144583ms)
+✔ cloud fails closed: future heartbeat (0.145084ms)
+✔ cloud fails closed: capacity exhausted (0.146958ms)
+✔ cloud fails closed: environment revoked (0.191459ms)
+✔ cloud fails closed: protocol mismatch (0.143459ms)
+✔ cloud fails closed: missing capability (0.138666ms)
+✔ cloud fails closed: wrong capability version (0.1675ms)
+✔ cloud fails closed: capability unavailable (0.181041ms)
+✔ cloud fails closed: advertisement without qualification (0.160125ms)
+✔ cloud fails closed: unqualified FactoryVersion (0.154458ms)
+✔ cloud fails closed: runtime drift (4.991708ms)
+✔ cloud fails closed: provider drift (0.198083ms)
+✔ cloud fails closed: qualification expired (0.153708ms)
+✔ cloud fails closed: qualification revoked (0.148125ms)
+✔ cloud fails closed: qualification not yet valid (0.152708ms)
+✔ cloud fails closed: qualification lacks required capability (0.151791ms)
+✔ cloud fails closed: conflicting qualification (0.173291ms)
+✔ cloud fails closed: environment wrong owner (0.145417ms)
+✔ cloud fails closed: environment wrong business (0.135875ms)
+✔ cloud fails closed: environment not authorized (0.140875ms)
+✔ authority mismatch denies owner (0.10825ms)
+✔ authority mismatch denies business (0.137792ms)
+✔ authority mismatch denies Work (0.097958ms)
+✔ authority mismatch denies generation (0.087458ms)
+✔ authority mismatch denies expiry (0.094917ms)
+✔ authority mismatch denies invalid expiry (0.080208ms)
+✔ authority mismatch denies repository (0.075416ms)
+✔ authority mismatch denies capability (0.070584ms)
+✔ Mac resource pins the device; permission loss never routes desktop elsewhere (0.336333ms)
+✔ selection is deterministic across ordering and duplicate identity is rejected (0.249833ms)
+✔ bound Work survives environment removal as readback, never new admission (0.322541ms)
+✔ safe read model omits scope/version internals and reflects stale/downgraded state (0.126083ms)
+✔ derivation requires real resource identity and evidence does not authorize execution (0.12675ms)
+✔ Attempt 4 inspection is deterministic zero-call context with missing target explicitly represented (342.003875ms)
+✔ untracked credentials are not context; symlinks, changed HEAD and oversized source fail closed (257.04225ms)
+✔ implementation feedback is bounded data from visible checks, never arbitrary logs (53.226959ms)
+✔ prepare does not start, and start retains the canonical atomic claim and gateway (13.80325ms)
+✔ a live productive or completion group prevents quiescence and artifact collection (10.875ms)
+✔ unavailable verifier stays unresolved; read never changes business state (33.870417ms)
+✔ malformed PID and foreign live supervisor never establish absence (27.41325ms)
+✔ cancel requests stop without claiming the running executor has terminated (13.522667ms)
+✔ cross-attempt inputs fail before resource operations (13.202208ms)
+✔ a prior attempt cannot contribute resources or settlement to the current attempt (16.648125ms)
+✔ local teardown honestly retains candidate workspace required by legacy publication (9.400667ms)
+✔ readiness failure cannot expose provider errors or start work (17.178542ms)
+✔ supervisor commits only a scoped source change and records exact identity (309.6355ms)
+✔ supervisor rejects out-of-scope and symlink changes (150.5645ms)
+✔ supervisor rejects an agent-created commit even if the worktree is clean (94.111625ms)
+✔ completion tree pins only authorized changes; no commit until successful host finalization (244.161875ms)
+✔ fresh publication pushes only the reviewed commit and creates one draft PR (2.689958ms)
+✔ existing exact draft PR reconciles without another remote mutation (0.219ms)
+✔ unknown prior outcome uses read-only reconciliation and holds a branch without a PR (0.280916ms)
+✔ read-only reconciliation works after the local workspace is gone or base moves (0.101125ms)
+✔ a moved base or occupied WorkOrder branch blocks all mutations (0.198ms)
+✔ a ready or closed PR cannot be mistaken for the approved draft (0.182042ms)
+✔ lost push or PR response is reconciled from exact remote state (0.303875ms)
+✔ an unconfirmed create remains uncertain and reconcileOnly never retries it (0.190041ms)
+✔ invalid or changed local candidates never contact GitHub (0.195041ms)
+✔ hosted request reaches shared actions, survives lost receipt/restart, and rejects revocation and forgery (32.817458ms)
+﹣ Attempt 6 deterministic checkpoint: correct-first (0.794833ms) # SKIP
+﹣ Attempt 6 deterministic checkpoint: repairable (0.056625ms) # SKIP
+﹣ Attempt 6 deterministic checkpoint: still-bad (0.04475ms) # SKIP
+﹣ Attempt 6 deterministic checkpoint: outside-scope (0.040291ms) # SKIP
+✔ default host Codex cannot start a paid operation without a Work spend gateway (46.311333ms)
+✔ wrong baseline failure text blocks Codex before implementation (31.180958ms)
+✔ post-fix reproduction failure blocks ready for review despite another passing check (29.232875ms)
+✔ cancel during worktree creation removes the workspace and frees the active slot (29.462417ms)
+✔ pausing dispatch while a start resolves its workspace prevents a new run (17.808667ms)
+✔ restart holds an untracked worker and preserves completed history (13.268417ms)
+✔ restart allows retry after the recorded host process group is absent (13.989125ms)
+✔ manual and automatic Linear creation save durable links without duplicate issues (75.233208ms)
+✔ lost remote response reconciles the saved UUID after restart and keeps local creation successful (12.123417ms)
+✔ GraphQL errors are not success, secrets are not recorded, and interrupted sync is recoverable (15.185958ms)
+✔ existing OAuth connection refreshes authorization and binds sync to the recovered workspace (9.199709ms)
+✔ OAuth failures never expose provider credentials in the action error (0.272291ms)
+✔ preflight uses authenticated read-only endpoints and returns only bounded safe metadata (17.623291ms)
+✔ denial, absent or unknown eligibility, wrong provider, missing tools and rate changes fail closed (1.255334ms)
+✔ OIDC pins configuration and never falls back to the Keychain reader (2.063041ms)
+✔ scoped SDK identity is acquired once, verified, refreshed before expiry, and reacquired on restart (1.246041ms)
+✔ wrong project, owner, audience, issuer, environment, expiry or signature fail closed without token disclosure (0.687833ms)
+✖ OIDC requests remain admitted, limited and completion-reserved; local tool search does not create extra operations (33.709458ms)
+▶ gateway denial, transport loss, missing usage and credential echoes retain UNKNOWN without retries or disclosure
+  ✖ denied (10.064917ms)
+  ✖ throw (8.178041ms)
+  ✖ unknown (14.526458ms)
+  ✖ echo (10.803541ms)
+✖ gateway denial, transport loss, missing usage and credential echoes retain UNKNOWN without retries or disclosure (44.16425ms)
+✖ cancellation denies OIDC model dispatch without a paid operation (16.138916ms)
+✔ real startup cannot borrow synthetic workers, fixtures, or authority overrides (1.274625ms)
+✔ real startup requires provisioned signing before attempting credential access (0.829583ms)
+✔ provider configuration rejects inline secrets and oversized model bounds (0.270875ms)
+✔ live preparation rejects expanded Work authority before touching persistence or provider (0.767542ms)
+✔ Gateway model identity survives signed candidate provenance without normalization (358.349167ms)
+✔ golden producer admission captures actual F1 and returns independently verifiable C1/E1/E2 bytes (318.229208ms)
+✔ immutable snapshot rejects wrong version and preserves the original (184.800125ms)
+✔ wrong request, WorkOrder, attempt, producer and expected version fail correlation (187.853166ms)
+✔ changed candidate, artifact, evidence and manifest bytes are rejected (189.290667ms)
+✔ duplicate delivery and conflicting operation are distinguishable (195.621875ms)
+✔ candidate or check-log mutation before freezing prevents signing (369.70175ms)
+✔ unknown timeout produces UNKNOWN with no fabricated terminal receipt (83.859875ms)
+✔ unresolved baseline and candidate verification remain UNKNOWN with retry held (261.8105ms)
+✔ cancellation is STOPPING until terminal and retains original version (90.317125ms)
+✔ legacy attempts cannot be relabeled with current Factory configuration (59.007834ms)
+✔ key rotation preserves historical verification but denies retired/revoked current admission (205.823458ms)
+✔ unexpected authority fields and unsupported protocol are rejected even by a valid signer (193.456875ms)
+✔ valid producer signing a different configuration cannot satisfy the expected F1 (208.436875ms)
+✖ scoped authenticated endpoint and client read only the exact attempt, including after restart (260.874667ms)
+✔ revoked current signing configuration denies capture before a worker starts (79.6845ms)
+✔ separate processes serialize immutable attempt records without duplicate or replacement (189.261792ms)
+✔ explicit pinned config loads only a synthetic injected secret (1.348042ms)
+✔ missing, inaccessible and malformed Keychain values fail closed without disclosure (0.325083ms)
+✔ endpoint, model, secret ref, expiry and mode cannot silently fall back (0.103416ms)
+✖ explicit real-provider config reaches only the synthetic metered boundary (38.150458ms)
+✖ shared create action persists its WorkOrder and event across a restart (24.599125ms)
+✖ state-changing actions require a local origin and session token (16.65225ms)
+✖ a shared loopback token cannot authorize a human-only action (13.4285ms)
+✔ restart holds an in-flight draft outcome for read-only reconciliation (17.471042ms)
+✖ agent endpoint creates scoped work and can pause but cannot resume dispatch (8.974333ms)
+✖ app builder endpoint creates a linked scaffold without claiming verification (9.793834ms)
+✖ explicit local preview serves generated UI and its action API, then stops truthfully (6.952834ms)
+✖ manual signals are deduplicated and releases stay empty until recorded (7.29675ms)
+﹣ installed Codex CLI reaches only the metered loopback Responses boundary (0.764041ms) # SKIP
+✖ request is reserved before provider and settles only authoritative usage (39.7885ms)
+✖ UNKNOWN denies a second paid call despite remaining Work headroom (14.068875ms)
+✖ cancelled Work and expired pricing deny before provider (8.1235ms)
+✖ concurrent requests cannot exceed the productive operation slot limit (10.039209ms)
+✖ streaming completion carries authoritative usage; missing completion stays UNKNOWN (9.93675ms)
+✔ missing, stale, or fractional pricing fails closed (0.469958ms)
+✖ client tool search is metered as part of its model request and hosted search is denied (12.348084ms)
+✖ separately charged hosted tools are denied before reservation (8.988ms)
+✖ Attempt 4: exhausted productive calls are a local terminal denial, not a provider 503 (11.523ms)
+✖ Attempt 4 reconnaissance cannot spend the final productive slot without actual implementation (12.721958ms)
+✖ real upstream 503 retains UNKNOWN exposure and repeated local requests never retry upstream (17.279542ms)
+✖ Attempt 5: exhausted productive loop yields to host exactly once without spending completion (8.05225ms)
+✔ historical terminal READ never fences a newer active Work generation (25.320042ms)
+✔ a live completion process blocks terminal resource reconciliation (26.73775ms)
+✔ restart holds a live completion process even when productive pid is absent (18.346417ms)
+ℹ tests 179
+ℹ suites 0
+ℹ pass 133
+ℹ fail 41
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+ℹ duration_ms 3825.067
+
+✖ failing tests:
+
+test at test/connections.test.mjs:42:1
+✖ connected app intake is scoped, idempotent across restart, and uses the shared audit records (16.198ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/connections.test.mjs:61:1
+✖ connections cannot escape repository/action scope, impersonate humans, or survive revocation (24.786542ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:30:1
+✖ prepare binds actual attempt before any execution; response-loss/restart replay never redispatches (117.456708ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:39:1
+✖ wrong token, replay mutation, incomplete binding and changed FactoryVersion cannot start work (97.913459ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:47:1
+✖ stop before dispatch creates a durable terminal fence rejecting delayed execution after restart (97.211416ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:52:1
+✖ running stop stays STOPPING until the actual adapter call settles (63.835667ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:60:1
+✖ default paid dispatch denies even with valid binding and injected dependencies (50.701667ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:65:1
+✖ producer deadline aborts execution without a MyEve polling loop (48.071ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:71:1
+✖ connected START routes each synthetic model call through exact Work spend gateway (0.270792ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:111:2
+✖ completion prerequisite/finalization fails closed: no changes (0.253125ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:111:2
+✖ completion prerequisite/finalization fails closed: outside scope (0.24ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:111:2
+✖ completion prerequisite/finalization fails closed: failed checks (0.866875ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:111:2
+✖ completion prerequisite/finalization fails closed: completion failure (0.176666ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/dispatch-control.test.mjs:111:2
+✖ completion prerequisite/finalization fails closed: completion mutation (0.123292ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/oidc-provider.test.mjs:97:1
+✖ OIDC requests remain admitted, limited and completion-reserved; local tool search does not create extra operations (33.709458ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/oidc-provider.test.mjs:112:68
+✖ denied (10.064917ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/oidc-provider.test.mjs:112:68
+✖ throw (8.178041ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/oidc-provider.test.mjs:112:68
+✖ unknown (14.526458ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/oidc-provider.test.mjs:112:68
+✖ echo (10.803541ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/oidc-provider.test.mjs:121:1
+✖ cancellation denies OIDC model dispatch without a paid operation (16.138916ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/producer-results.test.mjs:194:1
+✖ scoped authenticated endpoint and client read only the exact attempt, including after restart (260.874667ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/real-provider.test.mjs:35:1
+✖ explicit real-provider config reaches only the synthetic metered boundary (38.150458ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:46:1
+✖ shared create action persists its WorkOrder and event across a restart (24.599125ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:72:1
+✖ state-changing actions require a local origin and session token (16.65225ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:95:1
+✖ a shared loopback token cannot authorize a human-only action (13.4285ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:144:1
+✖ agent endpoint creates scoped work and can pause but cannot resume dispatch (8.974333ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:177:1
+✖ app builder endpoint creates a linked scaffold without claiming verification (9.793834ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:209:1
+✖ explicit local preview serves generated UI and its action API, then stops truthfully (6.952834ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/server.test.mjs:266:1
+✖ manual signals are deduplicated and releases stay empty until recorded (7.29675ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:52:1
+✖ request is reserved before provider and settles only authoritative usage (39.7885ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:67:1
+✖ UNKNOWN denies a second paid call despite remaining Work headroom (14.068875ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:77:1
+✖ cancelled Work and expired pricing deny before provider (8.1235ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:85:1
+✖ concurrent requests cannot exceed the productive operation slot limit (10.039209ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:109:1
+✖ streaming completion carries authoritative usage; missing completion stays UNKNOWN (9.93675ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:130:1
+✖ client tool search is metered as part of its model request and hosted search is denied (12.348084ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:151:1
+✖ separately charged hosted tools are denied before reservation (8.988ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:159:1
+✖ Attempt 4: exhausted productive calls are a local terminal denial, not a provider 503 (11.523ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:171:1
+✖ Attempt 4 reconnaissance cannot spend the final productive slot without actual implementation (12.721958ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:185:1
+✖ real upstream 503 retains UNKNOWN exposure and repeated local requests never retry upstream (17.279542ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at test/spend-gateway.test.mjs:196:1
+✖ Attempt 5: exhausted productive loop yields to host exactly once without spending completion (8.05225ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+      at listenInCluster (node:net:2066:12)
+      at node:net:2275:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /private/tmp/environment-fabric-myfactory/apps/supervisor
+npm error workspace @factory/supervisor@0.1.0
+npm error location /private/tmp/environment-fabric-myfactory/apps/supervisor
+npm error command failed
+npm error command sh -c node --test test/*.test.mjs
+
+
+> @factory/agents@0.1.0 test
+> node --test test/agents.test.mjs
+
+✔ preflight checks only version and login status (291.257917ms)
+✔ run keeps prompt literal and returns only event-backed completion (256.413375ms)
+✔ gateway run isolates child auth and pins the Responses provider to loopback (173.988916ms)
+✔ process start callback is awaited before event processing (166.538417ms)
+✔ process start persistence failure terminates the process group and returns failed (2.65675ms)
+✔ exit zero with persuasive final prose but no turn.completed is failure (164.07125ms)
+✔ turn.completed with nonzero exit is failure (160.07975ms)
+✔ malformed JSONL prevents success (167.103375ms)
+✔ timeout and abort stop the process group (3175.691416ms)
+✔ artifacts may not be written inside the task workspace (1.348417ms)
+✔ Attempt 3: exact provider-qualified model reaches the executor as one literal argument (207.210875ms)
+✔ unsafe or ambiguous model references never launch an executor (1.325334ms)
+✔ canonical model references preserve qualified and legacy identity with bounded length (0.098625ms)
+✔ host productive boundary yields a quiescent process without claiming a completed model turn (104.262542ms)
+✔ owner cancellation dominates a productive boundary signal (104.858209ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5101.770042
+
+> @factory/app-builder@0.1.0 test
+> node --test test/*.test.mjs
+
+✔ lists the bundled starter without creating an app (1.537ms)
+✔ instantiates a versioned feedback hub and hashes the final generated files (8.6705ms)
+✔ refuses overwrite, path traversal, and a symlinked task directory (8.27225ms)
+✔ preview refuses modified or extra scaffold files before install (26.617542ms)
+✔ preview checks the manifest digest before running commands (5.419708ms)
+✔ preview does not launch when its durable request event cannot be recorded (5.798583ms)
+✔ offline install has a clean environment and source is rechecked afterward (215.831625ms)
+✔ a server that exits at readiness never leaves a running preview (605.661084ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 974.596208
+
+> @factory/hosted-routing@0.1.0 test
+> node --test test/*.test.mjs
+
+✔ signed intake binds caller, repository, team, issue and expiry (2.649ms)
+✔ only the local host key can produce an accepted receipt (0.826916ms)
+✔ lost provider response is reconciled without a duplicate and changed requests conflict (0.422541ms)
+✔ remote intake cannot introduce arbitrary execution fields or escape paths (0.082583ms)
+✔ Linear blank-line serialization preserves signed requests and receipts (0.244375ms)
+✔ oversized envelopes fail before an external issue is created (0.155875ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 80.830625
+
+> @factory/storage@0.1.0 test
+> node --test test/*.test.mjs
+
+✔ synchronized processes cannot oversubscribe last productive dollars or slot (114.630167ms)
+✔ UNKNOWN and cancellation races deny subsequent provider dispatch (206.405708ms)
+✔ synchronized completion processes cannot exceed final reserve or slot (111.626042ms)
+✔ actual writer deaths preserve slots, dollars, UNKNOWN, completion and settlement (607.657875ms)
+✔ V2 rejects a plan that cannot fund all productive and completion calls (10.725083ms)
+✔ UNKNOWN is a hard Work-level stop across restart, attempt and model changes (8.654292ms)
+✔ productive calls cannot take completion reserve and host-only completion transition fences old phase (9.376458ms)
+✔ paid operation slots persist across process restart and exact replay cannot dispatch twice (7.074834ms)
+✔ reservation, UNKNOWN, cancellation and authority are checked again at paid dispatch (7.214958ms)
+✔ concurrent ledger connections share the last operation slot (7.409541ms)
+✔ legacy V1 Work budget has no paid admission (5.857625ms)
+✔ process loss retains slot and dollars before dispatch, after dispatch, and in completion (9.809375ms)
+✔ two completion operations cannot race past protected completion slots or dollars (7.369666ms)
+✔ wrong authority, old generation, wrong pricing and phase cannot start paid operation (7.1055ms)
+✔ expired pinned pricing is denied at the ledger even after an earlier reservation (6.574417ms)
+✔ Attempt 5 completion eligibility rejects UNKNOWN, stale generation, fenced writer and used completion (8.497208ms)
+✔ records survive close and reopen with contract shaped JSON and status (12.388125ms)
+✔ migrates an existing v1 WorkOrder and preserves the new failure oracle (8.082459ms)
+✔ events retain append order and nested payload after restart (7.137875ms)
+✔ separate connections serialize attempt allocation and reject bad foreign keys (53.484583ms)
+✔ a state change and audit event roll back together (5.202209ms)
+✔ signal ingestion is idempotent by source identity and preserves its WorkOrder link (6.941292ms)
+✔ release records retain artifact and prior known-good identity across restart (6.996792ms)
+✔ external actions are uniquely tied to an exact publication request and destination (6.839917ms)
+✔ v4 external actions migrate with null publication binding (4.008125ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1163.092916
+
+> @factory/verification@0.1.0 test
+> node --test test/verification.test.mjs
+
+▶ verifies the exact commit in a read-only, offline container and records honest outcomes
+  ✔ each check keeps its commit, tree, log, and isolated Docker arguments (401.5675ms)
+  ✔ git diff --check validates the candidate commit without requiring .git in the source export (147.133458ms)
+  ✔ archive attributes that omit committed content block verification (60.510125ms)
+  ✔ missing repositories produce unavailable evidence and image options are rejected (1.091875ms)
+  ✔ abort stops an active check and records remaining checks as unavailable (135.481917ms)
+✔ verifies the exact commit in a read-only, offline container and records honest outcomes (793.684792ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 919.066917

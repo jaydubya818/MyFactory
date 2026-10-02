@@ -16,6 +16,30 @@ This is an implementation in progress. The local path and Feedback Hub preview r
 
 The work desk now includes **Connections** and optional Linear issue creation. Approved sibling app backends can create WorkOrders, read evidence records, and add notes through scoped shared actions. These integrations are inactive until configured. See [app connections and Linear setup](docs/connections.md) for host settings, client registration, retry behavior, and current limits.
 
+## Execution Environments
+
+Environment Fabric is **PARTIAL**. The [T3 crosswalk](docs/environment-fabric/t3-crosswalk.md), typed descriptor, capability/authority-aware routing functions and local metadata adapters are implemented and deterministically tested. They are not wired into production Work routing yet. Cloud remains blocked before sandbox allocation by the existing [immutable-image prerequisite](docs/cloud-execution/phase-2/image-blocker.md).
+
+The intended flow is MyEve → MyFactory → selected environment → harness → candidate custody → independent verifier → Result/Proof → owner-controlled effect. Relay supplies independently authorized capabilities and communication. Cloud is intended for eligible background Work; Owner Computer for explicit local resources; Local Factory for deliberate development/qualification. A technical capability is not permission to execute. DeepAgent is a replaceable harness, not the environment fabric.
+
+| Capability | Status in this checkpoint |
+| --- | --- |
+| Sofie / MyEve | PARTIAL — existing canonical behavior preserved; environment UI/consumption pending |
+| Relay | NOT_RUN — contracts unchanged; existing qualification not repeated |
+| Environment Fabric | PARTIAL — contracts/routing tests pass; durable registry and production admission pending |
+| Owner Computer | PARTIAL — metadata projection tests pass; real companion E2E not repeated |
+| Local Factory | PASS deterministic lifecycle regressions; environment registration not integrated |
+| Cloud Factory | NOT_QUALIFIED — image prerequisite unresolved; cloud lifecycle NOT_RUN |
+| Existing Factory harness | PASS deterministic regression; live/model qualification NOT_RUN here |
+| DeepAgent | NOT_QUALIFIED |
+| Candidate custody | PASS existing deterministic local regressions; cloud NOT_RUN |
+| Independent verifier | PASS existing deterministic local regressions; cloud NOT_RUN |
+| Background Work | NOT_QUALIFIED for CLOUD; Mac-off/browser-off NOT_RUN |
+| Owner publication | Existing Attempt-8 implementation preserved; production publication NOT_RUN here |
+| Agent federation | NOT_RUN; Relay contracts unchanged; no Muse/GrokBots claims |
+
+See [qualification and limitations](docs/environment-fabric/qualification.md). Do not infer laptop independence or production availability from these unit tests.
+
 ## Producer result attestation
 
 The opt-in [result protocol](docs/producer-result-protocol.md) captures an immutable, content-derived FactoryVersion when an attempt is admitted. Terminal results bind the saved request/WorkOrder/attempt, actual Git candidate objects and patch, check evidence, and returned artifact bytes in one signed manifest. It reuses the existing Ed25519 receipt primitive with a versioned result domain and retained key identities. Exact-attempt readback supports replay and restart without redispatch; unknown or stopping attempts produce no terminal receipt.

@@ -1,4 +1,5 @@
 import type { Run, WorkOrder } from '../../../packages/contracts/src/index.ts';
+import type { EnvironmentType } from '../../../packages/contracts/src/environment.ts';
 import type { JobManager } from './jobs.ts';
 import type { ProducerResults } from './producer-results.ts';
 
@@ -22,7 +23,7 @@ export type ExecutionGateway = Parameters<JobManager['executePrepared']>[3];
  */
 export interface ExecutionProvider {
   readonly id: string;
-  readonly environment: 'LOCAL_COMPUTER' | 'CLOUD';
+  readonly environment: EnvironmentType;
   prepare(work: WorkOrder): Promise<Run>;
   start(work: WorkOrder, run: Run, claim: () => boolean, gateway?: ExecutionGateway): Promise<boolean>;
   cancel(work: WorkOrder, run: Run): Promise<void>;

@@ -34,7 +34,7 @@ test('prepare does not start, and start retains the canonical atomic claim and g
   assert.equal(await f.provider.start(f.work, f.run, () => { claims++; return false; }, gateway), false);
   assert.equal(claims, 1);
   assert.equal(f.calls[1][3], gateway);
-  assert.equal(f.provider.environment, 'LOCAL_COMPUTER');
+  assert.equal(f.provider.environment, 'LOCAL_FACTORY');
 });
 
 test('a live productive or completion group prevents quiescence and artifact collection', async t => {
