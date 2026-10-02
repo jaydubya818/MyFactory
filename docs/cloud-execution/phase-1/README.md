@@ -32,3 +32,7 @@ Logs: [baseline](baseline-tests.log), [deterministic](deterministic-tests.log), 
 The contract still carries legacy local `Run` paths and trusted host gateway callbacks. It is not the final remote wire protocol. PostgreSQL Factory state/ledger, cloud command identity, provider adapter, immutable worker image, cloud custody, independent verifier, MyEve HTTPS integration, Mac-off/browser-off P0 and live canary remain unimplemented/unqualified.
 
 A concrete [staging proposal](../staging-proposal.json) recommends a dedicated MyFactory Vercel project and separate staging PostgreSQL/private Blob scope. The alternative is explicitly isolated preview resources in the existing Sofie project. Resolve that scope before provisioning or migrating authority-bearing storage. No existing production owner database or unrelated project is assumed to be staging. Then continue the deterministic milestone from the architecture record.
+
+## Concurrent canonical integration
+
+MyEve main advanced during checkpoint publication to `2b22e387c053ba0631efc27c2e8f8a99fff1055e`. Its Attempt-8 record and owner-publication implementation are now preserved in the cloud MyEve branch unchanged. The initial inventory remains recorded for provenance; current source truth is the refreshed architecture table. Factory runtime/test bytes did not change during this reconciliation, so the retained Factory tests still apply. MyEve application qualification is inherited source evidence, not a new test run by this workstream.

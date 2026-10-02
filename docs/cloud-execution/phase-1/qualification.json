@@ -3,7 +3,7 @@
   "phase": "Local execution-provider seam",
   "phaseStatus": "PARTIAL",
   "canonical": {
-    "MyEve": "1bd482e1b6de1e4ca52f130b3c23724589c4859b",
+    "MyEve": "2b22e387c053ba0631efc27c2e8f8a99fff1055e",
     "Relay": "a61f0ef697b02cf22da72ff2904c584d7faa026a",
     "MyFactory": "c0b4c1155a6a98f91375163443938042e6a0be10"
   },
@@ -91,7 +91,8 @@
     "Phase 1 retains local Run paths, synchronous SQLite and gateway callbacks.",
     "Local candidate workspace retention is intentional; teardown does not claim destruction.",
     "MyEve, Relay, production resources and old worktrees unchanged.",
-    "Canonical Attempt-8 publisher evidence must be reconciled when available.",
+    "Canonical Attempt-8 publisher source was reconciled from MyEve 2b22e38; cloud hosting/identity remains unqualified.",
     "Staging service/data scope decision required before remote integration/provisioning."
-  ]
+  ],
+  "initialMyEveCanonical": "1bd482e1b6de1e4ca52f130b3c23724589c4859b"
 }

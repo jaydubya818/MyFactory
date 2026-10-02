@@ -9,13 +9,13 @@ Fetched GitHub `origin/main` before implementation:
 
 | Repository | Canonical SHA |
 | --- | --- |
-| MyEveBot | `1bd482e1b6de1e4ca52f130b3c23724589c4859b` |
+| MyEveBot | `2b22e387c053ba0631efc27c2e8f8a99fff1055e` (refreshed during checkpoint) |
 | Relay | `a61f0ef697b02cf22da72ff2904c584d7faa026a` |
 | MyFactory | `c0b4c1155a6a98f91375163443938042e6a0be10` |
 
 The user's cloud mission is the product requirement. Historical Q37 code is reference evidence only. The starting MyEve checkout was dirty and based on an older line; it is preserved. MyEve uses a new managed checkout from remote main. MyFactory uses an isolated clone from remote main. Relay has no implementation changes.
 
-The canonical MyEve `docs/private-alpha/output-contract-accounting-2026-10-01/README.md` records repairs through Attempt 7 and says Attempt 8 requires separate live authorization. The supplied mission describes a subsequently qualified Attempt 8 and a concurrent publication workstream. Do not turn that description into a verified source claim. Fetch and consume the exact publisher once it lands; do not implement a competing publisher or restart an old live Work.
+The initial MyEve inventory was `1bd482e1b6de1e4ca52f130b3c23724589c4859b`, whose report said Attempt 8 required authorization. During this work, main advanced to `2b22e387c053ba0631efc27c2e8f8a99fff1055e`: `docs/private-alpha/owner-publication-2026-10-02/README.md` now records Attempt 8's successful real local Golden Journey and the qualified owner-decision/exact-candidate publisher. The cloud MyEve branch merged that commit unchanged. Production candidate publication and owner acceptance remain separate gates. No historical Work was resumed, regenerated or published here.
 
 ## Current source inventory
 
@@ -31,6 +31,7 @@ The canonical MyEve `docs/private-alpha/output-contract-accounting-2026-10-01/RE
 | Existing cloud compute | MyEve `computer-template-vercel.ts`, `computer-resource-provider.ts`, package dependency `@vercel/sandbox` | Reuse SDK/provider experience, explicit nonpersistent sandboxes, named resource recovery and fail-closed cleanup. Computer's mutable default image is unsuitable as a qualified Factory image. |
 | Existing durable services | MyEve PostgreSQL Work/receipts and execution queue; private Vercel Blob Files | Reuse the service types, with Factory-owned state and separate staging scope; do not equate Files upload permission with custody authority. |
 | Relay | `lib/providers/{sandbox,docker-sandbox}.ts`, PostgreSQL capability/worker code | Existing sandbox implementation is Docker. Relay governs capabilities; it is not an existing managed Factory worker. No initial Relay change needed. |
+| Owner publication | MyEve `owner-publication.ts`, `candidate-publication.ts`, `candidate-publication-github.ts`, migration 0079 | Reuse this canonical publisher: exact signed custody, advisory lock, effect ledger and no retry of ambiguous writes. Its current host consumer reconstructs Git objects without a mutable Factory workspace; remote hosting/identity still needs qualification. |
 | DeepAgent | MyEve `docs/setup/deepagent-harness.md` | Historical adapter, ADAPT / NOT QUALIFIED; not installed/registered in canonical production. Do not resurrect a branch as the implementation baseline. |
 | Foreman | MyEve setup guide's separate Linear delegation flow | Retain as a separate compatibility workflow. This migration does not rename it to MyFactory or route through it. |
 
@@ -58,7 +59,7 @@ The deployment scope remains an owner decision: dedicated Factory staging projec
 
 This is a **migration seam**, not a finished portable wire protocol. The legacy `Run` still has local paths; the trusted gateway still has host callbacks; dispatch preparation still validates local repository access; execution version configuration is still the existing local tuple. The subsequent remote contract must replace those references with admitted repository, provider and artifact identities before cloud admission. Producer signing and protected verification remain separate from resource observations.
 
-Local teardown deliberately reports `destroyed: false` with a retention reason even when processes are quiescent. Existing publication still needs the candidate workspace. Deleting it just to claim cleanup PASS would break the current flow. Cloud teardown must instead prove durable custody, fence/revoke, stop/delete the exact provider resource, and independently read back its absence. No local workspace is deleted by this phase.
+The legacy Factory supervisor publication path still requires its task workspace; the newly landed MyEve exact-candidate publisher does not. Local teardown deliberately reports `destroyed: false` with a retention reason even when processes are quiescent. Existing publication still needs the candidate workspace. Deleting it just to claim cleanup PASS would break the current flow. Cloud teardown must instead prove durable custody, fence/revoke, stop/delete the exact provider resource, and independently read back its absence. No local workspace is deleted by this phase.
 
 ## Target lifecycle and authority
 
@@ -108,7 +109,7 @@ Treat repository files, install hooks and scripts as hostile sandbox code. Defau
 4. Run the existing harness through deterministic Responses fixtures and a metered broker. Qualify productive 1 → tests → optional productive 2 → tests → stopped executor → immutable checked tree → read-only completion → exact candidate.
 5. Move signed custody and the independently protected verifier to private storage and separate cloud compute. Remove MyEve's local source/Git and verifier dependencies. Preserve partial Result semantics for unestablished publication/acceptance.
 6. Drive real Sofie UI → admitted Work → cloud execution → Result/Proof through production boundaries with deterministic inference. Close the browser; start with companion, local Factory and verifier off. Test provider outage with no local fallback, restart, worker death and cancellation.
-7. Integrate the canonical publisher once its exact source/evidence lands; automate all four owner decisions, duplicate/racing approvals and delayed publication from durable custody.
+7. Host and qualify the canonical publisher from MyEve `2b22e38` in the cloud; automate all four owner decisions, duplicate/racing approvals and delayed publication from durable custody.
 8. Run desktop Chromium P0, 390px owner paths, keyboard/axe, critical WebKit, fault/security gates. Promote no tuple with gated/missing evidence. Then request an exact bounded live-model authorization; do not execute it in advance.
 9. Qualify DeepAgent separately and compare success, operations, repair, cost, latency, recovery, cancellation and evidence. Cloud launch does not wait for DeepAgent if Codex meets the launch requirements.
 
