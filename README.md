@@ -70,3 +70,5 @@ The Q37 consumer uses authenticated two-stage preparation and dispatch on the ex
 Private-alpha Attempt 5 completion repair and complete zero-model qualification: [evidence](docs/private-alpha/completion-transition-2026-10-01/README.md). Live retry remains unapproved.
 
 Safe-integer successor no-edit failure: [captured context, productive instruction repair and zero-model qualification](docs/private-alpha/no-edit-productive-2026-10-02/README.md). Fresh successor is paused; another live execution requires approval.
+
+[Bounded review → repair → reverify](docs/review-repair.md) preserves each reviewed candidate and creates a separately approved repair Work with fixed chain limits and fresh verification. Automatic repair, merge and deployment remain disabled.

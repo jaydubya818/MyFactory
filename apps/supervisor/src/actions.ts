@@ -1,3 +1,5 @@
+import { ReviewRepair, repairLink } from "./review-repair.ts";
+import type { RepairPolicy } from "../../../packages/contracts/src/review-repair.ts";
 import { isAbsolute, join, posix, relative, sep } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
@@ -23,7 +25,7 @@ export type ActionName =
   | "signal.record" | "run.start" | "run.cancel"
   | "linear.sync" | "linear.verify"
   | "dispatch.set_paused" | "publication.request" | "publication.approve"
-  | "publication.publish_draft";
+  | "publication.publish_draft" | "repair.propose" | "repair.approve";
 
 export class ActionError extends Error {
   readonly code: string;
@@ -47,6 +49,7 @@ export interface HumanPresenceRequest {
 
 export interface ActionContext {
   storage: FactoryStorage;
+  reviewRepair?: ReviewRepair;
   linear?: LinearIntegration;
   appBuildDirectory?: string;
   previewManager?: {
@@ -74,6 +77,20 @@ export interface ActionDefinition {
 }
 
 export const actionRegistry: Record<ActionName, ActionDefinition> = {
+  "repair.propose": {
+    name: "repair.propose", inputSchema: {type:"object",required:["workOrderId","reviewId","policy"]},
+    outputSchema: {type:"object",description:"Immutable bounded repair proposal; no execution authority"},
+    actorKinds:["human","agent"], preconditions:["Exact current independent-review failure and public findings"],
+    approval:"none", idempotency:"Exact candidate/review/policy digest", auditEvent:"repair.proposed",
+    reconciliation:"Read the proposal and immutable candidate provenance",
+  },
+  "repair.approve": {
+    name: "repair.approve", inputSchema: {type:"object",required:["workOrderId","proposalId","proposalHash"]},
+    outputSchema: {type:"object",description:"New repair Work awaiting separately bounded canonical dispatch"},
+    actorKinds:["human"], preconditions:["Exact proposal, unchanged objective and remaining chain capacity"],
+    approval:"scoped_human", idempotency:"One new Work per approved proposal", auditEvent:"repair.approved",
+    reconciliation:"Read parent candidate → review → repair Work; never rerun the parent",
+  },
   "workorder.create": {
     name: "workorder.create",
     inputSchema: {
@@ -384,6 +401,10 @@ function uuidValue(value: unknown, field: string): string {
 }
 
 function currentPublicationEvidence(storage: FactoryStorage, requestWorkOrderId: string) {
+  const lifecycle=new ReviewRepair(storage);
+  lifecycle.publicationEligible(requestWorkOrderId);
+  const review=lifecycle.review(requestWorkOrderId);
+  if(review?.status==="FAIL")throw new ActionError("Candidate has an unresolved independent-review failure","review_failed",409);
   const order = storage.getWorkOrder(requestWorkOrderId);
   if (!order) throw new ActionError("WorkOrder not found", "not_found", 404);
   const run = storage.listRuns(order.id).at(-1);
@@ -561,6 +582,19 @@ export async function performAction(
   if (!definition) throw new ActionError("Unknown action", "unknown_action", 404);
   if (!definition.actorKinds.includes(actor.kind)) {
     throw new ActionError("This actor cannot perform that action", "forbidden", 403);
+  }
+
+  if (action === "repair.propose" || action === "repair.approve") {
+    const input=asObject(rawInput),id=workOrderId(rawInput);
+    const lifecycle=context.reviewRepair??new ReviewRepair(context.storage);
+    if(action==="repair.propose")return lifecycle.propose(id,stringValue(input.reviewId,"reviewId",true),input.policy as RepairPolicy);
+    const proposalId=stringValue(input.proposalId,"proposalId",true),expectedHash=stringValue(input.proposalHash,"proposalHash",true);
+    const proposal=lifecycle.proposal(id,proposalId);
+    if(!proposal||proposal.hash!==expectedHash)throw new ActionError("Exact repair proposal required","repair_needs_you",409);
+    await requireHumanPresence(context,actor,"repair.approve",`Approve repair of ${proposal.parent.commit.slice(0,12)}: at most ${proposal.policy.maxRounds} rounds, ${proposal.policy.maxOperations} Factory operations, $${proposal.policy.maxBudgetMicrousd/1e6}. No publication.`);
+    const order=lifecycle.approve(id,proposalId,expectedHash,actor.id);
+    context.notify(context.storage.listEvents(id).filter(e=>e.type==="repair.approved").at(-1)!);
+    return order;
   }
 
   if (action === "dispatch.set_paused") {
@@ -898,6 +932,8 @@ export async function performAction(
   }
 
   if (action === "run.start") {
+    if(repairLink(context.storage,id)||new ReviewRepair(context.storage).review(id))
+      throw new ActionError("Reviewed candidates are immutable; repair uses one new bounded canonical dispatch","repair_needs_you",409);
     if (context.storage.getPolicy().dispatchPaused) {
       throw new ActionError("Dispatch is paused", "dispatch_paused", 409);
     }

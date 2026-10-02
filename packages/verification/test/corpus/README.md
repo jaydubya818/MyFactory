@@ -13,3 +13,5 @@ Required on future FactoryVersion, harness and model qualification changes:
 - MyEve owns the independent protected boundary classes and connected lifecycle regression (`FACTORY_NUMERIC_RANGE=1`). Those checks must also pass before a new live qualification.
 
 Synthetic tests do not establish GitHub CI, independent review or owner acceptance for any future candidate. Preserve those downstream gates.
+
+`quantity-review-repair.json` adds the permanent review-to-repair lifecycle case. It preserves the Attempt-8 A identity and historical PASS/PASS/CI-PASS/review-FAIL sequence. `apps/supervisor/test/review-repair.test.mjs` proves a separate owner-bounded Work and Candidate B with no verdict inheritance; the `linked-repair` installed-CLI checkpoint fixture runs the new Work through actual canonical prepare/dispatch, public checks, read-only completion, exact-tree commit, signing and separate offline verification before synthetic independent review. Neither fixture changes PR #2 or executes a live model.

@@ -1,3 +1,4 @@
+import { ReviewRepair } from "./review-repair.ts";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { execFile } from "node:child_process";
 import { createReadStream, existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
@@ -139,6 +140,8 @@ function artifactText(dataDir: string, candidate: unknown): string | null {
 }
 
 export interface SupervisorOptions {
+  /** Host-authenticated observer identities; never granted through HTTP. Empty by default. */
+  reviewObservers?: {reviewers:string[];verifiers:string[]};
   /** Explicit trusted-host activation; never accepted from an HTTP request. */
   realProvider?: RealProviderConfig;
   resultSigning?: ProducerOptions;
@@ -252,7 +255,9 @@ export function createSupervisor(options: SupervisorOptions = {}) {
       notify(event);
     },
   });
+  const reviewRepair = new ReviewRepair(storage,options.reviewObservers);
   const context: ActionContext = {
+    reviewRepair,
     storage,
     linear,
     appBuildDirectory: join(dataDir, "app-builds"),
@@ -272,7 +277,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     return { workOrder, runs, checks: runs.flatMap((run) => storage.listChecks(run.id)),
       events: storage.listEvents(id), externalActions: storage.listExternalActions(id),
       publicationRequests: storage.listPublicationRequests(id), publicationApprovals: storage.listPublicationApprovals(id),
-      linearLink: storage.getLinearLink(id) };
+      linearLink: storage.getLinearLink(id), reviewRepair: reviewRepair.view(id) };
   }
 
   const server = createServer(async (request, response) => {
@@ -530,6 +535,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     context,
     jobs,
     hostedIntake,
+    reviewRepair,
     close: async () => {
       await hostedIntake?.close();
       await linear.close();
