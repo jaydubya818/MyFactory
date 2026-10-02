@@ -272,12 +272,12 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
     "apps/cloud-control/src/cloud-harness-install.mjs": {
-      "sha256": "e5648acf6ff26fee4a5f8993a97f84682807daa2f0c5588572868d4c9e5b48a4",
+      "sha256": "ecc49b5ff24c703487c9183de771a4c98e923386e711c37194d85efce8a30deb",
       "classification": "CLOUD_HARNESS_BOUNDARY",
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
     "apps/cloud-control/src/cloud-harness-phase.mjs": {
-      "sha256": "9dbac4e7bfe737eab75c703ec3388eeed5c6ebf6e035aa357b3702bd70114394",
+      "sha256": "1b1de480457f71ab71686b4d1880d8e2fcea96bacb6df3d09305a98dc27a14f6",
       "classification": "CLOUD_HARNESS_BOUNDARY",
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },

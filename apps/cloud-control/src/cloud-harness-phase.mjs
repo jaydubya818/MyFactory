@@ -13,7 +13,11 @@ export async function installCloudHarness(sandbox){
  const files=await Promise.all(harnessSourceFiles.map(async path=>({path:'/opt/factory-harness/'+path,content:await readFile(new URL('../../../'+path,import.meta.url)),mode:0o644})));
  await root.writeFiles(files,{signal:AbortSignal.timeout(15000)});
  const installed=await root.runCommand({cmd:'node',args:['-e',cloudHarnessInstallScript],timeoutMs:60000,signal:AbortSignal.timeout(65000)});
- if(installed.exitCode!==0)throw Error('HARNESS_INSTALL_FAILED');
+ if(installed.exitCode!==0){
+  const code=(await installed.stderr({signal:AbortSignal.timeout(10000)})).trim();
+  const allowed=['HARNESS_INSTALL_IDENTITY','HARNESS_PACKAGE_UNAVAILABLE','HARNESS_PACKAGE_BOUND','HARNESS_PACKAGE_INTEGRITY','HARNESS_PACKAGE_LAYOUT','HARNESS_BINARY_TYPE','HARNESS_VERSION_MISMATCH'];
+  throw Error(allowed.includes(code)?code:'HARNESS_INSTALL_FAILED');
+ }
  const text=await installed.stdout({signal:AbortSignal.timeout(10000)});if(text.length>1000)throw Error('HARNESS_INSTALL_REPORT_BOUND');
  const observed=JSON.parse(text);if(observed.version!=='codex-cli '+cloudHarnessIdentity.version||observed.uid!==0)throw Error('HARNESS_INSTALL_REPORT');return observed;
 }
