@@ -32,7 +32,7 @@ test('CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing',
     const local=new SpendLedger(database);t.after(()=>{local.close();storage.close();});
     await query("INSERT INTO factory.work_orders(id,record,state) VALUES ($1,$2,'queued')",[order.id,JSON.stringify(order)]);
     await query("INSERT INTO factory.runs(id,work_order_id,record,state) VALUES ($1,$2,$3,'planning')",[run.id,order.id,JSON.stringify(run)]);
-    const remote=new PostgresSpendLedger(isolated),id=randomUUID();
+    const remote=new PostgresSpendLedger(isolated,{requireExecutionLease:false}),id=randomUUID();
     const binding={workId:id,workGeneration:1,dispatchIdentity:randomUUID(),requestId:randomUUID(),workOrderId:order.id,factoryVersion:'qualified-fixture',runId:run.id};
     const deadline=new Date(Date.now()+90000).toISOString();
     const plan={version:'WORK_LEDGER_V2',pricingRevision:'fixture-v1',model:'fixture-model',validUntil:deadline,perOperationReserveMicrousd:reserve,plannedProductiveOperations:productive,plannedCompletionOperations:completion,maxPaidOperations:productive+completion,completionReserveMicrousd:reserve*completion};
@@ -51,7 +51,7 @@ test('CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing',
   });
   await t.test('two connections racing for the last productive slot admit exactly one',async()=>{
     const f=await fixture({productive:1});
-    const other=new PostgresSpendLedger(isolated);
+    const other=new PostgresSpendLedger(isolated,{requireExecutionLease:false});
     const outcomes=await Promise.allSettled([f.remote.reserve(f.reservation(randomUUID())),other.reserve(f.reservation(randomUUID()))]);
     assert.equal(outcomes.filter(x=>x.status==='fulfilled').length,1);
     assert.equal((await f.remote.read(f.binding.workId)).paidOperationsUsed,1);
@@ -61,7 +61,7 @@ test('CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing',
   });
   await t.test('UNKNOWN persists across connection restart and generation changes',async()=>{
     const f=await fixture(),id=randomUUID();await f.remote.reserve(f.reservation(id));await f.remote.markDispatched(id);await f.remote.markUnknown(id);
-    const restarted=new PostgresSpendLedger(isolated);
+    const restarted=new PostgresSpendLedger(isolated,{requireExecutionLease:false});
     await assert.rejects(restarted.reserve(f.reservation(randomUUID())),/UNKNOWN/);
     const next={...f.binding,workGeneration:2,requestId:randomUUID()};await restarted.createBudget(next,4000,f.deadline,f.plan);await restarted.bindAuthority(next);
     await assert.rejects(restarted.reserve({...f.reservation(randomUUID()),...next}),/UNKNOWN/);

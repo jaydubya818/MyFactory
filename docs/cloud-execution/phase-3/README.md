@@ -22,3 +22,14 @@ Exact SDK `@vercel/queue@0.7.0`, fixed iad1 topic, ten-second delay, 120-second 
 DETERMINISTIC: full suite **204 passed, 0 failed, 6 gated skips**, [log](queue-regressions.log). Added tests cover ambiguous send/replay, duplicate and forged delivery, receipt races, HTTP authorization/staging guards and empty streamed POST handling. Initial test fixture used a token shorter than the existing minimum and correctly received 401; the fixture was corrected, without relaxing authentication.
 
 Provider references: [queue quickstart/private triggers](https://vercel.com/docs/queues/quickstart), [SDK delivery and retention contract](https://vercel.com/docs/queues/sdk). Deployment-associated delivery requires retaining the originating deployment while its admitted work is outstanding. General Work admission, cloud harness, verifier, browser-off and Mac-off/P0 remain NOT_RUN. Paid model operations and publication effects remain zero.
+
+
+## Canonical dispatch and lease storage
+
+CONNECTED: **11 passed, 0 failed** across canonical ledger parity and dispatch tests ([combined log](postgres-combined-tests.log)). The cloud protocol names exact repository/commit/tree and server-granted commands/paths; it cannot accept an owner filesystem path. Cloud WorkOrder and Run retain their existing canonical states, replacing local source/workspace references with remote identities.
+
+PostgreSQL stores canonical intake receipts, events and resource leases. A single transaction lock shared with spending protects duplicate dispatch, stop tombstones and the unresolved-resource limit. Cancellation fences spending atomically. Expired leases cannot be renewed; restart observes the same allocation intent and never allocates a replacement. A late allocation receipt after cancellation is retained for teardown and cannot grant productive authority. The PostgreSQL spend adapter now requires a RUNNING cloud resource with a live database-time lease by default; standalone accounting parity tests explicitly opt out of that resource requirement.
+
+The first dispatch test run failed because the test-only schema rewrite also changed literal event names. The isolated schema rewrite was narrowed to table references and now asserts literal preservation. [Original failure](postgres-dispatch-first-run.log) is retained; no runtime authorization check was relaxed.
+
+DETERMINISTIC: **206 passed, 0 failed, 7 gated skips** ([log](dispatch-regressions.log)). The two PostgreSQL gates were separately run above. Contract typecheck and producer governance PASS. Migration 004 is staging-only. This checkpoint has no public cloud dispatch route: hosted controller wiring, durable queue-to-Work integration, worker authority, teardown completion, signed custody and MyEve integration remain pending. In particular, resource storage tests do not constitute cloud allocation/recovery or Mac-off qualification.

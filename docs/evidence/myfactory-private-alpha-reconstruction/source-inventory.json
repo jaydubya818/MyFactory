@@ -157,9 +157,9 @@
       "authorityBoundary": "Canonical V2 pricing, admission, binding, protected completion reserve and UNKNOWN/accounting policy shared by SQLite and PostgreSQL; no provider effects."
     },
     "apps/cloud-control/src/postgres-spend.mjs": {
-      "sha256": "90391e6f4571b6714d79900a6106af850ba92fd8b315018d4a030cfd36268762",
-      "classification": "POSTGRES_SPEND_LEDGER",
-      "authorityBoundary": "Authoritative PostgreSQL transactions serialize V2 reservations, dispatch, settlement and cancellation using shared canonical policy and database time. No worker or public endpoint authority."
+      "sha256": "06ad22dc3a57b93d44e1f1445bafde7f5817bf111ff26310ec7e93b4a84a21a9",
+      "classification": "CANONICAL_CLOUD_ADMISSION",
+      "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/queue-delivery.mjs": {
       "sha256": "af8be5f41a0b18ac1c371e2685b4c09cf26a688cc1ebc34aa22814061d87fc8f",
@@ -175,6 +175,16 @@
       "sha256": "e98e9f89bd6d62289d1964e1613bc9a4502aaf7ae7b7505146970c6d572f9e10",
       "classification": "STAGING_QUEUE_QUALIFICATION",
       "authorityBoundary": "Fixed bounded infrastructure delivery check only; staging identity and durable nonce binding, private queue trigger, no Work admission, sandbox, model, verifier or publication authority."
+    },
+    "packages/contracts/src/cloud-execution.ts": {
+      "sha256": "6ccafdcd5dbed2d22df74aa4d5c45c11b841f53348633507018df5469de054dd",
+      "classification": "CANONICAL_CLOUD_ADMISSION",
+      "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
+    },
+    "apps/cloud-control/src/postgres-dispatch.mjs": {
+      "sha256": "3b4e56212ad5395b78b3e96752c58d2d40cb894b9d88a2e1cf4e3d79bd3ed385",
+      "classification": "CANONICAL_CLOUD_ADMISSION",
+      "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     }
   }
 }

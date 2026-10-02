@@ -1,0 +1,80 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import pg from 'pg';
+import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { PostgresDispatchStore } from '../src/postgres-dispatch.mjs';
+import { PostgresSpendLedger } from '../src/postgres-spend.mjs';
+import { assertStagingEnvironment,databaseConfig,stagingProjectId } from '../src/config.mjs';
+import { CLOUD_EXECUTION_PROTOCOL } from '../../../packages/contracts/src/cloud-execution.ts';
+
+test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation and leases',{skip:process.env.FACTORY_POSTGRES_TEST!=='1',timeout:120000},async t=>{
+ assertStagingEnvironment(process.env);
+ const pool=new pg.Pool({...databaseConfig(process.env.DATABASE_URL_UNPOOLED),max:5});
+ assert.equal((await pool.query('SELECT project_id FROM factory.environment WHERE singleton')).rows[0].project_id,stagingProjectId);
+ const schema='factory_test_'+randomUUID().replaceAll('-','');await pool.query(`CREATE SCHEMA ${schema}`);
+ const isolate=sql=>sql.replace(/\bfactory\.(intake_receipts|events|execution_resources|work_orders|runs|work_spend_budgets|work_spend_operations)\b/g,schema+'.$1');
+ t.after(async()=>{await pool.query(`DROP SCHEMA ${schema} CASCADE`);await pool.end();});
+ for(const version of ['002-canonical-execution-ledger','004-canonical-dispatch']){
+  const sql=isolate(await readFile(new URL(`../migrations/${version}.sql`,import.meta.url),'utf8')).replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);await pool.query(sql);await pool.query(sql);
+ }
+ const query=(sql,args)=>pool.query(isolate(sql),args);
+ const isolated={connect:async()=>{const c=await pool.connect();return{query:(sql,args)=>c.query(isolate(sql),args),release:()=>c.release()};}};
+ const source={repository:'fixture/quantity',commit:'a'.repeat(40),tree:'b'.repeat(40)};
+ const grant={clientId:'staging-client',source,commands:['node --test'],allowedPaths:['quantity.mjs'],maxDurationMs:120000,maxSpendUsd:1};
+ const store=new PostgresDispatchStore(isolated),spend=new PostgresSpendLedger(isolated);
+ assert.equal(isolate("SELECT * FROM factory.events WHERE type='factory.dispatch_claimed'"),`SELECT * FROM ${schema}.events WHERE type='factory.dispatch_claimed'`);
+ const snapshot=(request,order,run)=>({requestId:request.requestId,workOrderId:order.id,runId:run.id,inputCommit:source.commit,factoryId:'factory-staging',factoryVersion:'c'.repeat(64)});
+ async function fixture(){
+  const input={protocol:CLOUD_EXECUTION_PROTOCOL,requestId:randomUUID(),workId:randomUUID(),workGeneration:1,repository:source.repository,source,deadline:new Date(Date.now()+110000).toISOString(),maxSpendUsd:1,input:{title:'Quantity',description:'Implement positive integer input.',kind:'feature',acceptanceCriteria:['Visible tests pass'],checkCommands:grant.commands,allowedPaths:grant.allowedPaths}};
+  const row=await store.prepare(grant,input,snapshot);
+  const identity={runId:randomUUID(),writerGeneration:1,dispatchIdentity:randomUUID(),workId:input.workId,workGeneration:1,factoryId:row.snapshot.factoryId,factoryVersion:row.snapshot.factoryVersion,requestId:input.requestId,workOrderId:row.work_order_id,remoteRunId:row.run_id,repository:input.repository,baseSha:source.commit,allowedPaths:grant.allowedPaths,deadline:input.deadline};
+  const binding={workId:input.workId,workGeneration:1,dispatchIdentity:identity.dispatchIdentity,requestId:input.requestId,workOrderId:row.work_order_id,factoryVersion:identity.factoryVersion,runId:row.run_id};
+  const plan={version:'WORK_LEDGER_V2',pricingRevision:'fixture',model:'fixture-model',validUntil:input.deadline,perOperationReserveMicrousd:100,plannedProductiveOperations:1,plannedCompletionOperations:1,maxPaidOperations:2,completionReserveMicrousd:100};
+  await spend.createBudget(binding,1000000,input.deadline,plan);await spend.bindAuthority(binding);
+  return{input,row,identity,binding};
+ }
+ await t.test('prepare replay retains canonical IDs; conflicting input and cross-client read fail',async()=>{
+  const f=await fixture();assert.equal((await store.prepare(grant,f.input,snapshot)).run_id,f.row.run_id);
+  await assert.rejects(store.prepare(grant,{...f.input,maxSpendUsd:0.5},snapshot),/REPLAY_CONFLICT/);
+  await assert.rejects(store.read('other-client',f.input.requestId),/NOT_FOUND/);
+  await assert.rejects(store.prepare({...grant,clientId:'other-client'},{...f.input,requestId:randomUUID(),workGeneration:2},snapshot),/SCOPE_OR_GENERATION/);
+ });
+ await t.test('two dispatchers claim once; cancelled late allocation remains recorded without replacement',async()=>{
+  const f=await fixture();const second=new PostgresDispatchStore(isolated);
+  const results=await Promise.all([store.claim(grant.clientId,f.identity),second.claim(grant.clientId,f.identity)]);
+  assert.equal(results.filter(Boolean).length,1);const lease=results.find(Boolean);
+  const operation={...f.binding,operationId:randomUUID(),model:'fixture-model',pricingRevision:'fixture',reservedMicrousd:100,phase:'productive'};
+  await assert.rejects(spend.reserve(operation),/lease/);
+  await store.recordAllocation(f.row.run_id,lease.lease_owner,1,'sbx_lateReceipt');
+  await query("UPDATE factory.execution_resources SET state='RUNNING' WHERE run_id=$1",[f.row.run_id]);
+  await spend.reserve(operation);
+  await store.stop(grant.clientId,f.identity);
+  await assert.rejects(store.heartbeat(f.row.run_id,lease.lease_owner,1),/LEASE_FENCED/);
+  const observed=await store.recordAllocation(f.row.run_id,lease.lease_owner,1,'sbx_lateReceipt');assert.ok(observed.cancelled_at);
+  assert.equal((await second.read(grant.clientId,f.input.requestId)).resource.provider_session_id,'sbx_lateReceipt');
+  assert.equal(await second.claim(grant.clientId,f.identity),null);
+  assert.equal((await spend.read(f.input.workId)).authorityState,'fenced');
+  await assert.rejects(spend.markDispatched(operation.operationId),/cancel|authority/);
+  await assert.rejects(spend.reserve({...f.binding,operationId:randomUUID(),model:'fixture-model',pricingRevision:'fixture',reservedMicrousd:100,phase:'productive'}),/cancel|authority/);
+  await assert.rejects(store.prepare(grant,{...f.input,requestId:randomUUID(),workGeneration:2},snapshot),/RESOURCE_UNRESOLVED/);
+  // Test-only cleanup of isolated fixture rows; never a production reconciliation path.
+  await query("UPDATE factory.execution_resources SET cleanup_confirmed=true,state='DESTROYED' WHERE run_id=$1",[f.row.run_id]);
+ });
+ await t.test('stop before queue delivery creates a durable tombstone and prevents any resource allocation',async()=>{
+  const f=await fixture();await store.stop(grant.clientId,f.identity);await store.stop(grant.clientId,f.identity);
+  assert.equal(await store.claim(grant.clientId,f.identity),null);
+  const read=await store.read(grant.clientId,f.input.requestId);assert.equal(read.resource,null);assert.equal(read.events.filter(e=>e.type==='factory.stop_requested').length,1);
+ });
+ await t.test('database lease expiry cannot be revived; restart reconciles the same ambiguous resource',async()=>{
+  const f=await fixture();const lease=await store.claim(grant.clientId,f.identity);
+  await query("UPDATE factory.execution_resources SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE run_id=$1",[f.row.run_id]);
+  await assert.rejects(store.heartbeat(f.row.run_id,lease.lease_owner,1),/LEASE_FENCED/);
+  await assert.rejects(spend.reserve({...f.binding,operationId:randomUUID(),model:'fixture-model',pricingRevision:'fixture',reservedMicrousd:100,phase:'productive'}),/lease/);
+  const restarted=new PostgresDispatchStore(isolated);const resource=await restarted.reconcileExpired(grant.clientId,f.input.requestId);
+  assert.equal(resource.provider_name,lease.provider_name);assert.equal(resource.allocation_unknown,true);
+  assert.equal(await restarted.claim(grant.clientId,f.identity),null);assert.equal((await spend.read(f.input.workId)).authorityState,'fenced');
+  const other=await fixture();await assert.rejects(store.claim(grant.clientId,other.identity),error=>error.code==='23505');
+  assert.equal((await store.read(grant.clientId,other.input.requestId)).events.filter(e=>e.type==='factory.dispatch_claimed').length,0);
+ });
+});

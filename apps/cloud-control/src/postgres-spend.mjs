@@ -5,7 +5,12 @@ import { nonempty, positive, map, sameAttempt, assertSpendBinding, assertReserva
 // This small staging deployment serializes writes with one transaction lock,
 // matching the existing BEGIN IMMEDIATE semantics. No provider effects occur here.
 export class PostgresSpendLedger {
-  constructor(pool) { this.pool = pool; }
+  constructor(pool, { requireExecutionLease = true } = {}) { this.pool = pool; this.requireExecutionLease=requireExecutionLease; }
+  async assertExecutionLease(client,binding) {
+    if(!this.requireExecutionLease)return; // Explicit standalone policy-parity tests only.
+    const result=await client.query(`SELECT 1 FROM factory.execution_resources WHERE run_id=$1 AND provider_session_id IS NOT NULL AND state='RUNNING' AND lease_expires_at>clock_timestamp() AND deadline>clock_timestamp() AND cancelled_at IS NULL AND NOT cleanup_confirmed`,[binding.runId]);
+    if(result.rowCount!==1)throw Error('Cloud execution lease fenced or not running');
+  }
   async transaction(action) {
     const client = await this.pool.connect();
     try {
@@ -56,6 +61,7 @@ export class PostgresSpendLedger {
     return this.transaction(async({client,now,timestamp,budget,operations,operation})=>{
       if(await operation(input.operationId))throw Error('Spend operation already exists; replay cannot redispatch');
       const b=await budget(input.workId);assertSpendBinding(b,input,input.phase,now);assertReservation(b,await operations(input.workId),input);
+      await this.assertExecutionLease(client,input);
       await client.query(`INSERT INTO factory.work_spend_operations (operation_id,work_id,work_generation,dispatch_identity,request_id,work_order_id,factory_version,run_id,model,pricing_revision,reserved_microusd,state,created_at,updated_at,phase) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'reserved',$12,$12,$13)`,[input.operationId,input.workId,input.workGeneration,input.dispatchIdentity,input.requestId,input.workOrderId,input.factoryVersion,input.runId,input.model,input.pricingRevision,input.reservedMicrousd,timestamp,input.phase]);
       return operation(input.operationId);
     });
@@ -64,6 +70,7 @@ export class PostgresSpendLedger {
     return this.transaction(async({client,now,timestamp,budget,operation,operations})=>{
       const op=await operation(id);if(!op||op.state!=='reserved')throw Error('Only a fresh reservation can cross the paid boundary');
       const b=await budget(op.workId);assertSpendBinding(b,op,op.phase,now);
+      await this.assertExecutionLease(client,op);
       if(b.model!==op.model||b.pricing_revision!==op.pricingRevision||b.per_operation_reserve_microusd!==op.reservedMicrousd)throw Error('Pricing changed before dispatch');
       if((await operations(op.workId)).some(other=>other.operationId!==id&&other.state==='unknown'))throw Error('UNKNOWN exposure blocks paid dispatch');
       await client.query("UPDATE factory.work_spend_operations SET state='dispatched',updated_at=$2 WHERE operation_id=$1",[id,timestamp]);
@@ -83,6 +90,7 @@ export class PostgresSpendLedger {
   async completion(binding,transition=false,completed=false) {
     return this.transaction(async({client,now,budget,operations})=>{
       assertSpendBinding(await budget(binding.workId),binding,completed?'completion':'productive',now);
+      await this.assertExecutionLease(client,binding);
       const ops=await operations(binding.workId);
       if(completed){if(!ops.some(op=>sameAttempt(op,binding)&&op.phase==='completion'&&op.state==='settled')||ops.some(op=>op.state!=='settled'))throw Error('Mandatory completion spend and accounting are not settled');}
       else assertCompletionOperations(ops,binding);

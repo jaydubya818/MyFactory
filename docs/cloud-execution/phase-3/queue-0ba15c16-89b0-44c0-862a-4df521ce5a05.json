@@ -1,11 +1,6 @@
 {
   "id": "0ba15c16-89b0-44c0-862a-4df521ce5a05",
-  "deployment": {
-    "url": "https://myfactory-cloud-staging-azozoxm0r-jaydubya818.vercel.app",
-    "id": "dpl_HXNSB5qDWYsr7XDgCozwho39EFvm",
-    "target": null,
-    "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4"
-  },
+  "deployment": "https://myfactory-cloud-staging-azozoxm0r-jaydubya818.vercel.app",
   "evidenceClass": "CONNECTED",
   "purpose": "hosted-queue-delivery",
   "startedAt": "2026-10-02T07:40:06.699Z",
@@ -58,5 +53,11 @@
   "consumerHttpAccess": {
     "authenticatedPreviewRequestStatus": 404,
     "publicRouteAvailable": false
+  },
+  "deploymentMetadata": {
+    "url": "https://myfactory-cloud-staging-azozoxm0r-jaydubya818.vercel.app",
+    "id": "dpl_HXNSB5qDWYsr7XDgCozwho39EFvm",
+    "target": null,
+    "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4"
   }
 }
