@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Private Alpha consolidation handoff; accepted offline source, not production activation",
+  "observedAt": "2026-10-02T17:41:28.101581+00:00",
+  "sources": {
+    "MyFactory": {
+      "repository": "https://github.com/jaydubya818/MyFactory.git",
+      "acceptedSourceCommit": "7fe3397ad0f2423e60299872c85e7ce1fe9eed19",
+      "acceptedSourceTree": "fb8dc391bb673c4402ab327600cb2f4ae4826b46",
+      "releaseBranch": "codex/private-alpha-release",
+      "observedCanonicalMain": "c0b4c1155a6a98f91375163443938042e6a0be10",
+      "mainIsAncestor": true,
+      "mainOnlyCommits": 0,
+      "releaseOnlyCommits": 3,
+      "adoptionCommitsInOrder": [
+        "abedec77621ef057ae06ea2a5add4fd7048db5a6",
+        "9570bc48c08f0016a639cf6c1295f233c43ff4e4",
+        "7fe3397ad0f2423e60299872c85e7ce1fe9eed19"
+      ],
+      "changedFilesFromObservedMain": [
+        "README.md",
+        "apps/supervisor/src/actions.ts",
+        "apps/supervisor/src/connections.ts",
+        "apps/supervisor/src/dispatch-control.ts",
+        "apps/supervisor/src/jobs.ts",
+        "apps/supervisor/src/review-repair.ts",
+        "apps/supervisor/src/server.ts",
+        "apps/supervisor/test/fixtures/no-edit-productive.json",
+        "apps/supervisor/test/numeric-range-checkpoint.test.mjs",
+        "apps/supervisor/test/productive-context.test.mjs",
+        "apps/supervisor/test/review-repair.test.mjs",
+        "docs/evidence/myfactory-private-alpha-reconstruction/source-inventory.json",
+        "docs/private-alpha/no-edit-productive-2026-10-02/README.md",
+        "docs/review-repair.md",
+        "packages/agents/src/index.ts",
+        "packages/agents/test/agents.test.mjs",
+        "packages/contracts/src/index.ts",
+        "packages/contracts/src/review-repair.ts",
+        "packages/verification/package.json",
+        "packages/verification/test/corpus/README.md",
+        "packages/verification/test/corpus/quantity-review-repair.json",
+        "packages/verification/test/corpus/quantity-safe-integer.json",
+        "packages/verification/test/numeric-range.test.mjs"
+      ]
+    },
+    "MyEve": {
+      "repository": "https://github.com/jaydubya818/MyEveBot.git",
+      "acceptedSourceCommit": "fadf08e12340035e3691c6f047b4927b1ab21264",
+      "acceptedSourceTree": "1c5b294640eff55cf96fcfab1b60c993d77e8205",
+      "releaseBranch": "codex/private-alpha-release",
+      "observedCanonicalMain": "d75091eb333a531fa91ed9d39e273948aa9d0eaf",
+      "mainIsAncestor": true,
+      "mainOnlyCommits": 0,
+      "releaseOnlyCommits": 3,
+      "adoptionCommitsInOrder": [
+        "5ce24a9cf1fa99f1c1af484b0d43a732b7337c04",
+        "1d656e3d4615afecc0384380cb08a1dc5550debe",
+        "fadf08e12340035e3691c6f047b4927b1ab21264"
+      ],
+      "changedFilesFromObservedMain": [
+        "README.md",
+        "apps/builder/lib/manifest.ts",
+        "apps/eve/lib/engineering/base-preflight.test.ts",
+        "apps/eve/lib/engineering/base-preflight.ts",
+        "apps/eve/lib/engineering/factory-beta.test.ts",
+        "apps/eve/lib/engineering/factory-live-adapter.ts",
+        "apps/eve/lib/engineering/factory-work-driver.ts",
+        "apps/eve/scripts/executor-inventory.json",
+        "apps/eve/test/factory-controlled-cli.mjs",
+        "apps/eve/test/factory-live.integration.mjs",
+        "apps/eve/test/fixtures/attempt8-numeric-range.json",
+        "apps/eve/test/fixtures/quantity-safe-integer-base.json",
+        "apps/eve/test/fixtures/quantity-safe-integer-protected.json",
+        "apps/eve/test/numeric-range-protected.test.mjs",
+        "docs/private-alpha/no-edit-productive-2026-10-02/README.md",
+        "docs/private-alpha/review-repair.md",
+        "docs/verification/2026-10-02-numeric-range/README.md"
+      ]
+    }
+  },
+  "qualifiedFactorySourceDigest": "edc6170aeb3b34332ddbee53fbfbb9fdde44f74d9e4fe9bc46d9096b92ad5efd",
+  "qualifiedFactoryVersion": "e8154ee2bf08f283e952f8a4ee8891d5b3b21d68cbebea0b5e773ec474badb9f",
+  "migrations": {
+    "newMigrationsRelativeToObservedMain": {
+      "MyFactory": 0,
+      "MyEve": 0
+    },
+    "MyFactory": {
+      "mechanism": "Existing transactional WorkOrder events; additive review.* and repair.* event types",
+      "storageSourceBlob": "0f4c9d13fa777826959364e6715f1bd966ff14e3",
+      "unchangedFromMain": true
+    },
+    "MyEve": {
+      "currentMigration": "0079_candidate_publication.sql",
+      "orderedMigrationsValidated": 75,
+      "migrationTree": "f744fdc1349536cdd2eed6441f08d5ddebe40f5c",
+      "unchangedFromMain": true,
+      "check": "npm run db:migrations:check: PASS"
+    },
+    "productionDatabaseDriftRechecked": false,
+    "adoptionRequirement": "Retain existing 0079 publisher tables and prior Computer/federation/lifecycle lineage. Reconcile the target ledger using canonical backup/restore/migration process; no renumbering, downgrade or historical evidence rewrite."
+  },
+  "controls": {
+    "automaticRepair": "DISABLED",
+    "automaticMerge": "DISABLED",
+    "automaticDeployment": "DISABLED",
+    "ownerAcceptance": "SEPARATE_NOT_RUN",
+    "acceptedCheckpointProductionActivation": "NOT_RUN",
+    "trustedObserverConfiguration": "NOT_RUN",
+    "liveReviewRepairExecution": "NOT_RUN",
+    "newPaidCandidateAttempt": "NOT_RUN",
+    "canonicalMainIntegrationByThisWorkstream": "NOT_RUN"
+  },
+  "compatibility": {
+    "knownTextualConflictsWithObservedMain": [],
+    "basis": "Both observed canonical mains are ancestors; source delta is three commits in each repository.",
+    "otherUnmergedWorkstreamsAssessed": false,
+    "postConsolidationRuntimeCompatibility": "NOT_RUN",
+    "requiredAction": "Fetch again and reconcile new main changes normally. Preserve Computer/federation/lifecycle changes. Requalify combined exact sources, inventories, FactoryVersion and consumer runtime/profile binding. Never reset or force-push main."
+  },
+  "adoptionOrder": [
+    "Inspect accepted source pins, archived qualification and immutable historical dispositions.",
+    "Consolidation owner fetches both mains and adopts each ordered release delta, preserving newer canonical work. This handoff does not merge.",
+    "Retain MyFactory producer inventory and MyEve executor fingerprints; preserve the existing connection-reporting instruction and its builder manifest entry.",
+    "Re-run affected integrated qualification and migration-lineage validation on exact adopted sources. Recompute source/profile identity if combined sources change.",
+    "Separately qualify authenticated host-only custody/protected/CI/review observers. Empty observer allowlists deny by default; do not expose ingestion as model/HTTP authority.",
+    "Keep automatic repair/merge/deployment disabled. Fresh consumer repair binding requires exact Work revision/generation and owner-approved Factory WorkOrder through ordinary PREPARE/START.",
+    "Any runtime activation, provider preflight or paid bounded journey is a separate gate. This package grants no execution or publication authority."
+  ],
+  "stagedWork": {
+    "workId": "db8d221c-275a-498f-90ed-c42fd3b4e157",
+    "revision": 1,
+    "generation": 1,
+    "lastQualifiedState": "PAUSED",
+    "modelOperations": 0,
+    "sourceBinding": "Older no-edit checkpoint 9570bc4 / 1d656e3; not activated or freshly rebound to the accepted review-repair checkpoint.",
+    "executionAuthorizedByHandoff": false
+  },
+  "sourceIdentityNote": "Accepted source SHAs stay fixed. Subsequent documentation-only packaging commits are transport receipts, not new runtime qualification."
+}
