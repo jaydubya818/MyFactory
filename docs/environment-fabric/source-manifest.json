@@ -16,7 +16,7 @@
   "promotedFactoryVersion": null,
   "qualifiedCloudRuntimeDigest": null,
   "migrationsAdded": [],
-  "harness": "existing Codex harness unchanged",
+  "harness": "existing Codex harness with fast-child output capture race repair; no promoted FactoryVersion",
   "verificationPolicy": "existing policy unchanged; cloud verifier NOT_RUN",
   "tests": {
     "tests": 248,
@@ -33,5 +33,15 @@
     "pass": 46,
     "skipped": 8,
     "realCompanion": "NOT_RUN"
-  }
+  },
+  "reconciledCanonicalSHAs": {
+    "MyEve": "d75091eb333a531fa91ed9d39e273948aa9d0eaf",
+    "Relay": "a61f0ef697b02cf22da72ff2904c584d7faa026a",
+    "MyFactory": "c0b4c1155a6a98f91375163443938042e6a0be10"
+  },
+  "firstRemoteCheckpoints": {
+    "MyFactory": "b9b71cfc4d82c22b51abca5abb87329eeb41efb7",
+    "MyEve": "6367274c0f1465fe0a4145e40f678968fffb209f"
+  },
+  "reconciledMyEveFeatureSHA": "314036c36b94b1ccbc5f6f343ce922be26098b7e"
 }

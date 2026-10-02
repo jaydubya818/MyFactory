@@ -12,7 +12,7 @@ Reviewed 2026-10-02 UTC, upstream `pingdotgg/t3code` at `99e08526e5ec84f294940cb
 
 MyFactory branch `codex/environment-fabric` starts from canonical main and fast-forwards the existing cloud checkpoint `7a69c472f05d540f490a41e33014b978f1165e82`. The existing `ExecutionProvider`, local lifecycle, dedicated staging, architecture, runbook and qualification are retained. They were not yet on main. The dirty MyEve checkout and other tasks' branches are untouched.
 
-Attempt-8 publication is present in MyEve main. Another task has an unpushed presentation/readback repair at `d75091eb333a531fa91ed9d39e273948aa9d0eaf`; it remains owned by that task, not silently adopted here. Preserve its eventual canonical integration. Current publication/readback is not owner acceptance. Historical Proof and candidate remain immutable.
+Attempt-8 publication is present in MyEve main. The concurrent presentation/readback repair `d75091eb333a531fa91ed9d39e273948aa9d0eaf` landed on canonical main during remote verification. The MyEve feature branch merged it unchanged; the documentation-only README conflict retained both statuses. Current publication/readback is not owner acceptance. Historical Proof and candidate remain immutable.
 
 ## Pattern decisions (design decisions, not qualification claims)
 

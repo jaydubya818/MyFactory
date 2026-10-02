@@ -31,7 +31,7 @@ This checkpoint extends the preserved cloud work with independently implemented 
 | Durable intent/effect | EXISTING_EQUIVALENT, PARTIAL cloud | Local claim/restart/publication regressions pass; cloud allocation reconciliation pending |
 | UNKNOWN reconciliation | PASS existing deterministic | No new cloud UNKNOWN qualification |
 | Hidden Git checkpoints | DEFERRED | Existing productive checks/custody retained; no successor-resume claim |
-| Existing harness | PASS deterministic | Live model and installed-CLI gated checks not forced |
+| Existing harness | PASS deterministic | Start-receipt output race repaired; live model and installed-CLI gated checks not forced |
 | DeepAgent | NOT_QUALIFIED | Optional later harness qualification |
 | Relay integration / federation | NOT_RUN | No Relay contract changes; existing Alpha history preserved; no Muse/GrokBots claims |
 | Candidate custody / independent verifier | PASS existing deterministic, NOT_RUN cloud | No cloud upload/verdict/laptop-independence claim |
@@ -57,3 +57,5 @@ An operator must restore authenticated VCR image upload or provide a compatible 
 After that prerequisite: complete owner-scoped registry and production admission/Work binding; connect existing Owner Computer and Local Factory adapters without changing their authority; add environment Current Truth/UI; implement durable allocation and remote execution in the existing dedicated staging stack; move candidate custody and independent verification; run deterministic Mac-off/browser-off, P0, fault/security and cleanup qualification. Only then prepare the separate bounded paid-cloud authorization envelope. Publication defaults disabled.
 
 MyEve canonical Mac deterministic regressions: **46 PASS, 8 gated SQL skips**; [retained MyEve evidence](https://github.com/jaydubya818/MyEveBot/blob/codex/environment-fabric/docs/environment-fabric/mac-regressions.txt). Real companion E2E remains NOT_RUN.
+
+[Hosted CI repair evidence](ci-repair.md): first fresh runner exposed the missing local verifier image and a reproduced fast-child output race; the harness correction preserves receipt-before-event authority. No paid operation or cloud allocation was used.

@@ -22,9 +22,9 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "b891f1d66677fc8e40967bbfa16f0fcaa6faa7cb3aafe125dde2a87a909fd04d",
+      "sha256": "00902bed1c6f8e6173a6f082491ba27fe20743c03bdd9e37d04d954d2d5932df",
       "classification": "EXECUTOR_LIFECYCLE",
-      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved."
+      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved.; output capture subscribes before asynchronous start persistence, but event interpretation awaits the durable start receipt; callback failure still fails closed"
     },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",

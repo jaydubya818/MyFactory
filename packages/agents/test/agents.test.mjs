@@ -83,7 +83,15 @@ test("process start callback is awaited before event processing", async (t) => {
     onProcessStart: async (info) => {
       processInfo = info;
       order.push("process-start");
-      await new Promise((resolve) => setTimeout(resolve, 30));
+      // Hold persistence until this fast child has actually exited. A fixed
+      // sleep can miss the lost-output race on slower development machines.
+      let exited = false;
+      for (let i = 0; i < 200; i++) {
+        try { process.kill(info.pid, 0); }
+        catch (error) { if (error.code === 'ESRCH') { exited = true; break; } throw error; }
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+      assert.equal(exited, true, 'fixture must exit before the start receipt settles');
       persisted = true;
     },
     onEvent: (event) => {

@@ -27,4 +27,4 @@ dist/index.html                   0.46 kB │ gzip:  0.30 kB
 dist/assets/index-Brno_Yt9.css   36.71 kB │ gzip:  7.89 kB
 dist/assets/index-DnRL6evR.js   303.61 kB │ gzip: 87.61 kB
 
-✓ built in 75ms
+✓ built in 171ms
