@@ -7,9 +7,9 @@
       "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/jobs.ts": {
-      "sha256": "5509f3f03b4842b6af747a2f12c6578c47d0dda63ba8e288e690b7e974735399",
+      "sha256": "158af745ef6c6418f4e067ceb25e9d9ba3ff3c705f6c239db588724b9eca1f44",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. Durable Test/Diff evidence is bound to candidate and FactoryVersion and rechecked before local review; browser profile additionally requires screenshot and journey, and a missing trusted preview fails closed. Collection grants no Proof, semantic PASS, publication, budget or authority."
     },
     "apps/supervisor/src/spend-gateway.ts": {
       "sha256": "50dd036ba5d2e1a079b4b9fb1c75238ab2b4c2ded2a9c64e4262b2babcaddb92",
@@ -85,6 +85,16 @@
       "classification": "BOUNDED_LOCAL_CONTEXT",
       "authorityBoundary": "Deterministic approved-source context and filesystem progress; no model, credential or authority grants. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority.",
       "sha256": "2a3fed4dd9195828cad6301063def3cb78eda7ede3132ab4f7104d4055ae35c1"
+    },
+    "packages/verification/src/browser-evidence.ts": {
+      "sha256": "ecea4ff867a4b2a56afa57029c938e01a927e60122aa31c30fa548906d9a28b5",
+      "classification": "EVIDENCE_COLLECTION",
+      "authorityBoundary": "Playwright observes only an explicitly supplied loopback preview; collection is not candidate proof or a PASS decision. Cross-origin requests and unbounded journeys are denied."
+    },
+    "packages/verification/src/evidence.ts": {
+      "sha256": "8ea87e72c2325efd9a09675a31408ec914aeb13f9f82212dc39402bc3f4758db",
+      "classification": "EVIDENCE_CUSTODY",
+      "authorityBoundary": "Candidate-bound artifact bytes and metadata are stored in persistent Factory data and rechecked by digest before readiness. Structural satisfaction does not grant Proof, publication or independent semantic PASS."
     },
     "packages/verification/src/index.ts": {
       "sha256": "70345fb107dafe795150ac9b70617ccdb92525177a3abd69c830ee02ea8df5b0",

@@ -6,6 +6,8 @@ import { preflightCodex, runCodex } from "../../../packages/agents/src/index.ts"
 import type { FactoryEvent, Run, RunState, WorkOrder, WorkOrderState } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 import { verifyCandidate, verifyWorkspaceTree } from "../../../packages/verification/src/index.ts";
+import { evaluateEvidence, evidencePolicyFor, proofEvidenceReference, storeEvidence, type EvidenceBinding } from "../../../packages/verification/src/evidence.ts";
+import { collectBrowserEvidence, type BrowserJourney } from "../../../packages/verification/src/browser-evidence.ts";
 import { ActionError } from "./actions.ts";
 import { snapshotCandidateTree, commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
 import { ProducerResults } from "./producer-results.ts";
@@ -34,6 +36,9 @@ export interface JobDependencies {
   createTaskWorktree: typeof createTaskWorktree;
   removeTaskWorktree: typeof removeTaskWorktree;
   commitCandidate: typeof commitCandidate;
+  /** Only a trusted launcher serving the exact exported candidate may supply this preview. */
+  candidatePreview?: (input: { workOrder: WorkOrder; run: Run; candidateCommit: string }) => Promise<
+    { candidateCommit: string; journey: BrowserJourney } | null>;
 }
 
 const defaultDependencies: JobDependencies = {
@@ -566,6 +571,34 @@ export class JobManager {
           candidateCommit: storedCheck.candidateCommit,
         });
       }
+      const evidenceBinding: EvidenceBinding = {
+        workOrderId: workOrder.id, runId: run.id, candidateCommit: candidate.commit,
+        factoryVersion: snapshot?.factoryVersion ?? createHash('sha256').update(JSON.stringify({
+          workerProfile: workOrder.workerProfile, commands: verificationCommands, allowedPaths: workOrder.allowedPaths,
+        })).digest('hex'),
+      };
+      const testEvidence = await storeEvidence(this.dataDir, evidenceBinding, 'TestEvidence', 'application/json',
+        'factory-protected-verifier', Buffer.from(JSON.stringify(verification.checks.map(check => ({
+          command: check.command, status: check.status, exitCode: check.exitCode,
+          candidateCommit: check.candidateCommit,
+        })))));
+      const diffEvidence = await storeEvidence(this.dataDir, evidenceBinding, 'DiffEvidence', 'text/x-diff',
+        'factory-candidate-diff', await readFile(candidate.diffPath));
+      const evidenceRefs = [testEvidence, diffEvidence];
+      if (workOrder.workerProfile === 'browser') {
+        const preview = await this.dependencies.candidatePreview?.({ workOrder, run, candidateCommit: candidate.commit });
+        if (preview) {
+          if (preview.candidateCommit !== candidate.commit) throw new Error('Browser preview is bound to another candidate');
+          const browserEvidence = await collectBrowserEvidence(this.dataDir, evidenceBinding, preview.journey, signal);
+          evidenceRefs.push(...browserEvidence.refs);
+        }
+      }
+      this.#event(workOrder.id, run.id, 'run.evidence_collected', { binding: evidenceBinding,
+        refs: evidenceRefs.map(ref => ({ ...ref, proofReference: proofEvidenceReference(ref) })) });
+      const evidenceEvaluation = await evaluateEvidence(this.dataDir, evidenceBinding,
+        evidencePolicyFor(workOrder.workerProfile), evidenceRefs);
+      this.#event(workOrder.id, run.id, 'run.evidence_evaluated', { ...evidenceEvaluation });
+      if (evidenceEvaluation.status !== 'SATISFIED') throw new Error(`Candidate evidence ${evidenceEvaluation.status}: ${evidenceEvaluation.reason}`);
       if (signal.aborted) throw new Error("Run interrupted during verification");
       if (verification.checks.length === 0 || verification.checks.some((check) => check.status !== "passed")) {
         const unavailable = verification.checks.length === 0 ||
