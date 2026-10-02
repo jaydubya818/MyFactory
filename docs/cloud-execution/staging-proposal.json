@@ -1,5 +1,5 @@
 {
-  "status": "OWNER_SCOPE_DECISION_PENDING",
+  "status": "DEDICATED_STAGING_APPROVED",
   "productionEnabled": false,
   "recommendedProjectName": "myfactory-cloud-staging",
   "preferredRegion": "iad1",
@@ -30,7 +30,7 @@
     "No plan upgrades or material recurring commitment without explicit approval",
     "Confirm account pricing and final resource ceiling before provisioning"
   ],
-  "alternative": "Explicitly isolated preview resources inside existing sofie-personal-agent project; higher shared-identity/data blast radius",
+  "alternative": "Shared Sofie preview resources explicitly rejected by owner",
   "notYetImplemented": [
     "remote protocol and cloud provider adapter",
     "PostgreSQL Factory storage/ledger",
@@ -38,5 +38,9 @@
     "cloud protected verifier",
     "cloud Result/Proof return",
     "Mac-off P0"
-  ]
+  ],
+  "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4",
+  "databaseResourceId": "store_Z5va0qHQwe9Ok4LH",
+  "privateArtifactStoreId": "store_kZ9n2mzEmqmKX7bZ",
+  "authorization": "Dedicated development/staging resources reasonably required for deterministic qualification approved; production and paid models excluded"
 }

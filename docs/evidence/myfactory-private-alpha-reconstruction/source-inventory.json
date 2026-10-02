@@ -100,6 +100,31 @@
       "sha256": "727738ba01b853feb93c220b7cd4529f7a8aade3e1e83fc9276cde30cfae3192",
       "classification": "LOCAL_RESOURCE_RECONCILIATION",
       "authorityBoundary": "Scope process and verifier observations to the exact persisted attempt. Unknown resources prevent quiescence; only dispatch control decides canonical terminal state after fencing. Keep candidate workspace required by existing publication; never claim it was destroyed."
+    },
+    "apps/cloud-control/src/dependencies.mjs": {
+      "sha256": "85e769d564f9cdcc3d9caf40a3f9fb492baf7d30ee48f577ddc83375a87568c6",
+      "classification": "cloud-staging-foundation",
+      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+    },
+    "apps/cloud-control/src/config.mjs": {
+      "sha256": "e8d75c8a18be38c083ab4b6ab6180260c5c9abdb66cd815c1cf497fe792a2472",
+      "classification": "cloud-staging-foundation",
+      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+    },
+    "apps/cloud-control/src/readiness.mjs": {
+      "sha256": "d99426407f5870c06dd016ad4c161951a8094ef5b1c7af80d7e5b6f5d9f4ff2e",
+      "classification": "cloud-staging-foundation",
+      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+    },
+    "apps/cloud-control/api/health.mjs": {
+      "sha256": "474f45db39e74a036a207f41ebf6a1d0a76ef41f576de9e48a4b069352c72ea2",
+      "classification": "cloud-staging-foundation",
+      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+    },
+    "apps/cloud-control/api/readiness.mjs": {
+      "sha256": "28363ad4bf96e44e158d79dadffdd5b254ed48650997ac63c0384a18dbba1b83",
+      "classification": "cloud-staging-foundation",
+      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
     }
   }
 }

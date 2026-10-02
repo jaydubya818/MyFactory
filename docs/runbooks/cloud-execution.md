@@ -18,9 +18,9 @@ npm run build
 
 Ordinary tests use controlled model boundaries. Environment-gated installed-CLI/Docker tests remain SKIPPED unless their explicit prerequisites are configured. Never set a live flag to make a skipped test green.
 
-## Next provisioning gate
+## Approved staging boundary
 
-Resolve the staging service/project and isolated PostgreSQL/private Blob scope. Recommended: dedicated MyFactory staging service, separate from production Sofie/Relay. Retain exact source SHAs, review the SDK version and image digest, verify nonsecret configuration, then implement the bounded deterministic provider probe. The proposal is one 1-vCPU/2-GB ephemeral sandbox, 120 seconds, no public port/model/publication, limited artifacts, automatic expiry and exact-resource cleanup. See the ADR for estimated costs. No production rollout, source write credential, recurring plan or real model canary is authorized by this probe.
+Dedicated MyFactory staging is approved and its separate project, Neon database and private Blob store have been created. See the ADR for exact resource identities. Only preview is connected; no production owner data is copied. Retain exact source SHAs, review the SDK version and image digest, verify nonsecret configuration, then implement the bounded deterministic provider probe. The proposal is one 1-vCPU/2-GB ephemeral sandbox, 120 seconds, no public port/model/publication, limited artifacts, automatic expiry and exact-resource cleanup. See the ADR for estimated costs. No production rollout, source write credential, recurring plan or real model canary is authorized by this probe.
 
 ## Controls that must exist before staging Work can be admitted
 
@@ -53,3 +53,11 @@ Local candidate teardown is intentionally retained because current publication c
 Separate DETERMINISTIC, CONNECTED and LIVE reports. Record first-run results, skips, source pins, exact image/FactoryVersion, resource identities, sanitized events, candidate/tree hashes, verification, Result/Proof, costs and unresolved cleanup. A paid live canary requires a separately approved envelope containing Work, objective/repository, provider/project/region/image, harness/model, original limits/deadline/cost and permitted effects; publication stays disabled by default.
 
 No weekly cloud automation has been scheduled at this checkpoint: there is no qualified cloud command or deployment to run. Add the requested recurring qualification only after the deterministic suite exists, with bounded cost and quiet-on-unchanged reporting.
+
+## Staging foundation operations
+
+Service source: `apps/cloud-control`. Exact resources and deployment evidence: [Phase 2](../cloud-execution/phase-2/README.md). Never pull Sofie environment values into this project. Database/Blob bindings are preview-only. The readiness token is a separate sensitive preview variable and has no dispatch/publication authority.
+
+Migrations are explicit operator actions, never performed on a web request: run `apps/cloud-control/scripts/migrate.mjs` with only this dedicated staging database and matching project/environment. The script validates TLS, rejects non-Factory tables, takes a transaction advisory lock and verifies the database marker. Keep local environment files gitignored and mode 600.
+
+Preview deployments use `vercel deploy --target preview`. Verify the returned target: the CLI can promote the first deployment of a new project despite that flag. No production-target deployment may receive staging credentials. The observed first-deploy exception was removed.

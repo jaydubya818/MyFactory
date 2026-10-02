@@ -10,6 +10,8 @@ if(baseline!=='8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f')throw Error('Unexpected
 const paths=[];
 function walk(dir){for(const f of readdirSync(dir,{withFileTypes:true})){const path=join(dir,f.name);if(f.isDirectory())walk(path);else if(/\.(ts|mjs|js)$/.test(f.name))paths.push(relative(root,path));}}
 walk(join(root,'apps/supervisor/src'));
+walk(join(root,'apps/cloud-control/src'));
+walk(join(root,'apps/cloud-control/api'));
 for(const p of readdirSync(join(root,'packages'),{withFileTypes:true}).filter(p=>p.isDirectory())){
  const dir=join(root,'packages',p.name,'src');try{walk(dir);}catch(e){if(e.code!=='ENOENT')throw e;}
 }

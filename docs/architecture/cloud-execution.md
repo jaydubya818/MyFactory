@@ -1,6 +1,6 @@
 # Cloud execution: laptop-independent MyFactory
 
-Status: **PROPOSED target architecture; local provider seam implemented. Cloud NOT_READY.**
+Status: **APPROVED dedicated staging architecture; local provider seam implemented. Cloud NOT_READY.**
 Date: 2026-10-02 UTC. Integration owner: this cloud-execution workstream. Integration target: canonical `main` after review and qualification. Feature branch: `codex/cloud-execution`.
 
 ## Source authority
@@ -49,7 +49,9 @@ Alternatives: a dedicated container/VM runner would allow retaining more host me
 
 **Recommended control plane: a separate MyFactory Vercel staging service with dedicated PostgreSQL and private Blob scope.** Each HTTP/cron invocation performs bounded durable orchestration only. Detached worker execution outlives the invocation. Durable queue, command IDs, leases and reconciliation bridge requests. This preserves hosted project OIDC at a trusted inference broker without giving producer code a Vercel/OIDC credential. The existing supervisor is not deployable unchanged: synchronous SQLite, process ownership, loopback gateways and local Git assumptions require a deliberate storage/protocol migration.
 
-The deployment scope remains an owner decision: dedicated Factory staging project/data versus explicitly isolated preview resources within the existing Sofie project. Dedicated staging adds configuration but gives a clear identity/data boundary; shared preview reduces setup but couples credentials, billing and deployment mistakes to the owner application. Do not create production resources or apply a migration to the current owner database to avoid this decision.
+The owner approved dedicated MyFactory staging on 2026-10-02 UTC. Authoritative execution, custody and verifier state must not use Sofie preview resources. Created project `myfactory-cloud-staging` (`prj_IRXTY6HOzS2q9wRPdabsJnmddzl4`), separate free-plan Neon database `myfactory-cloud-staging-db` (`store_Z5va0qHQwe9Ok4LH`, iad1), and private Blob store `myfactory-cloud-staging-custody` (`store_kZ9n2mzEmqmKX7bZ`, iad1). Resource connections target preview only. Provisioning is not lifecycle qualification.
+
+MyEve retains all owner data and sends only authenticated Work submit/read/cancel contracts. Factory stores execution/custody state, not a duplicate owner account system. Producer and verifier use separate bounded identities; neither receives database, Blob, deployment, publication or control-plane credentials. Promote code, migrations, FactoryVersion, image and qualified policy/configuration later; never copy staging Work, candidates or database contents into production.
 
 **Harness: retain Codex CLI and qualify it in Linux cloud first.** The current local qualification does not transfer automatically. DeepAgent is NOT_QUALIFIED and independent of cloud rollout. Pin one harness/model per attempt; no fallback. Inventory, restore and qualify DeepAgent separately against the same corpus only after the cloud path works.
 
@@ -104,7 +106,7 @@ Treat repository files, install hooks and scripts as hostile sandbox code. Defau
 ## Migration and qualification sequence
 
 1. Preserve all local regression checks through the provider seam (this checkpoint).
-2. Resolve staging scope, pin image/SDK; implement versioned remote commands/events and deterministic sandbox driver. Prove exact source → bounded command → hashed artifact → confirmed teardown, without a model.
+2. Use approved dedicated staging scope, pin image/SDK; implement versioned remote commands/events and deterministic sandbox driver. Prove exact source → bounded command → hashed artifact → confirmed teardown, without a model.
 3. Migrate Factory storage/ledger atomically to a dedicated durable cloud database contract. Exercise two dispatchers, duplicate delivery, restore, lease expiry, cancellation/completion races and zombie fencing with real PostgreSQL. Reuse canonical entities rather than parallel business states.
 4. Run the existing harness through deterministic Responses fixtures and a metered broker. Qualify productive 1 → tests → optional productive 2 → tests → stopped executor → immutable checked tree → read-only completion → exact candidate.
 5. Move signed custody and the independently protected verifier to private storage and separate cloud compute. Remove MyEve's local source/Git and verifier dependencies. Preserve partial Result semantics for unestablished publication/acceptance.
