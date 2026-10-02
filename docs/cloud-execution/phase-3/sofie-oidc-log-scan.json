@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-10-02T19:38:14.603Z",
+  "deploymentId": "dpl_FzuueRbJuLx3ijnLovwgaZXYXCHD",
+  "status": "PASS",
+  "exit": 0,
+  "bytes": 10339,
+  "entries": 21,
+  "credentialMatches": 0,
+  "oidcJwtPatternMatches": 0,
+  "scope": "Observed deployment logs only; not an assertion about unobserved future execution"
+}
