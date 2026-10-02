@@ -1,6 +1,6 @@
 import { isModelReference } from '../../../packages/contracts/src/model-reference.ts';
-import { randomUUID, timingSafeEqual } from 'node:crypto';
-import { createServer, type IncomingMessage, type Server } from 'node:http';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { SpendLedger, type SpendBinding, type SpendPhase } from '../../../packages/storage/src/spend.ts';
 import {providerAuthorization,type ProviderConnection} from './provider-connection.ts';
@@ -29,6 +29,8 @@ export interface SpendGatewayOptions extends ProviderConnection {
   childToken: string;
   phase: SpendPhase;
   timeoutMs?: number;
+  /** Trusted deployment injection for deterministic qualification behind this boundary. */
+  upstreamFetch?: typeof fetch;
   assertImplementationProgress?: () => Promise<void>;
   /** Trusted host signal only. Closes the productive CLI; does not admit completion. */
   onProductiveBoundary?: () => void;
@@ -50,12 +52,15 @@ export function validatePrice(price: SpendPrice): void {
   }
 }
 
-function denied(response: import('node:http').ServerResponse, status: number, detail: string, code = 'REQUEST_DENIED'): void {
+interface GatewayRequest extends AsyncIterable<Uint8Array | string> { method?: string; url?: string; headers: { authorization?: string } }
+interface GatewayResponse { writeHead(status: number, headers: Record<string,string>): unknown; end(body: string | Uint8Array): unknown }
+
+function denied(response: GatewayResponse, status: number, detail: string, code = 'REQUEST_DENIED'): void {
   response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
   response.end(JSON.stringify({ error: { message: detail, type: 'factory_spend_denied', code, retryable: false } }));
 }
 
-async function bodyOf(request: IncomingMessage): Promise<Buffer> {
+async function bodyOf(request: GatewayRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
@@ -114,7 +119,7 @@ function unpricedContent(value: unknown): boolean {
   return Object.values(record).some(unpricedContent);
 }
 
-/** A local, exact-binding Responses boundary. Unknown routes and usage fail closed. */
+/** Exact-binding Responses boundary shared by local HTTP and hosted Fetch adapters. */
 export class SpendGateway {
   readonly #server: Server;
   readonly #options: SpendGatewayOptions;
@@ -135,12 +140,26 @@ export class SpendGateway {
   }
   async close(): Promise<void> { await new Promise<void>(resolve => this.#server.close(() => resolve())); }
 
-  async #handle(request: IncomingMessage, response: import('node:http').ServerResponse): Promise<void> {
+  async fetch(request: Request): Promise<Response> {
+    const url=new URL(request.url);
+    let status=500,headers:Record<string,string>={},result:Response|undefined;
+    await this.#handle({method:request.method,url:url.pathname+url.search,
+      headers:{authorization:request.headers.get('authorization')??undefined},
+      async *[Symbol.asyncIterator](){if(request.body)for await(const chunk of request.body)yield chunk;},
+    },{
+      writeHead(code,values){status=code;headers=values;},
+      end(body){result=new Response(typeof body==='string'?body:new Uint8Array(body),{status,headers});},
+    });
+    if(!result)throw Error('Gateway response missing');
+    return result;
+  }
+
+  async #handle(request: GatewayRequest, response: GatewayResponse): Promise<void> {
     const { ledger, binding, price } = this.#options;
     if (request.method !== 'POST' || request.url !== '/v1/responses') return denied(response, 404, 'Unqualified provider route');
     const submitted = /^Bearer (.+)$/.exec(request.headers.authorization ?? '')?.[1] ?? '';
     const expected = this.#options.childToken;
-    if (submitted.length !== expected.length || !timingSafeEqual(Buffer.from(submitted), Buffer.from(expected))) {
+    if (!timingSafeEqual(createHash('sha256').update(submitted).digest(), createHash('sha256').update(expected).digest())) {
       return denied(response, 401, 'Gateway child credential required');
     }
     if(this.#requestActive && (this.#options.assertImplementationProgress||this.#options.onProductiveBoundary)) return denied(response,409,'Concurrent executor request denied','CONCURRENT_REQUEST_DENIED');
@@ -204,7 +223,7 @@ export class SpendGateway {
         reservedMicrousd: reserveMicrousd, phase: this.#options.phase });
       await ledger.markDispatched(operationId);
       stage='upstream';
-      const upstream = await fetch(new URL('/v1/responses', this.#options.upstreamOrigin), {
+      const upstream = await (this.#options.upstreamFetch??fetch)(new URL('/v1/responses', this.#options.upstreamOrigin), {
         method: 'POST', headers: { authorization: `Bearer ${credential}`,
           'content-type': 'application/json' }, body: JSON.stringify(outgoing),redirect:'error',
         signal: AbortSignal.timeout(this.#options.timeoutMs ?? 120_000),

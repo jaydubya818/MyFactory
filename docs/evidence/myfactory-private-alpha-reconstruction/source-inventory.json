@@ -12,9 +12,9 @@
       "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "ce7f6a974dbf19cc32ab23c4fbdceda15f871e0718b2281437528219de1494bd",
+      "sha256": "668f87def6fa1ac8ddb68058cf582500ba71fb46e6ef50949d5353d8e771933e",
       "classification": "PAID_BOUNDARY",
-      "authorityBoundary": "Await synchronous or asynchronous durable reserve/dispatch/settlement; preserve upstream routing, scope/model bounds, no retries, UNKNOWN and protected completion behavior."
+      "authorityBoundary": "Share exact paid boundary across Node HTTP and hosted Fetch adapters; await durable accounting, retain UNKNOWN and no fallback. Deterministic upstream injection is trusted server configuration, never client data. Constant-time hashed credentials reject multibyte input safely."
     },
     "apps/supervisor/src/real-provider.ts": {
       "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
