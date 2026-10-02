@@ -27,8 +27,10 @@ Schema migration 001 creates only a Factory staging identity marker and infrastr
 
 Vercel CLI 62.1.0 unexpectedly labeled the first deployment production despite `--target preview`. That deployment (`dpl_4iW9NNMuFw8nrUP7bD87849NaAYZ`) was confined to the new staging project, had no production-environment database/Blob connection, and was removed after creating the verified preview above. Existing production services were untouched. Do not infer deployment target from command intent; verify provider readback.
 
-Managed image digest resolution returned 404. A private custom image is being prepared from official Node 24 linux/amd64 digest `sha256:5a750d3be5e5c80275f8c9a5367c3aed99c2875656590c8d0701c7ee687f5f0a`; allocation remains pending immutable VCR digest and readiness. Public canonical MyEve/MyFactory repositories permit initial exact source reads without private-alpha or personal GitHub credentials.
+## Image qualification checkpoint
 
-## Current external block
+CONNECTED image qualification is PASS: the official managed Node 24 image resolves through the supported Sandbox API and is now pinned by immutable digest. The earlier direct OCI manifest lookup was not a valid test of Sandbox managed-image availability. See [resolution and preserved failures](image-blocker.md).
 
-The custom worker image builds locally, but legacy Docker, compressed Buildx and independent host-side crane uploads fail at the VCR TLS boundary. Both documented managed-image alternatives return 404. Provider inventory confirms no published image or sandbox. See [exact failures and required external configuration](image-blocker.md). No further upload retries or sandbox allocation are running.
+The pinned image runs Node 24.19.0 and Git 2.53.0 on linux/x64. A dedicated producer user has uid 1001 and cannot sudo. CA trust, blocked public/metadata egress, fresh filesystem isolation, command execution and deletion/absence readback passed. No application secrets or source were injected. All three diagnostic sandboxes have confirmed cleanup. This proves image mechanics only; canonical Work, custody, harness, verifier and Mac-off remain NOT_RUN.
+
+Custom upload TLS failure remains unexplained, but is no longer on the required execution path. No further custom uploads are needed. Cloud admission remains DISABLED and paid model operations remain 0.

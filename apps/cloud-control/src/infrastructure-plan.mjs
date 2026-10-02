@@ -1,8 +1,9 @@
 import { stagingProjectId } from './config.mjs';
+export const qualifiedImage = 'vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1';
 export const source = Object.freeze({ repository: 'https://github.com/jaydubya818/MyFactory.git', commit: '4753ba1bbbe2ee1cd81a3583e8a8f62f2233c3d9' });
 export function allocationPlan(id, image, remainingMs) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id)) throw new Error('INVALID_ATTEMPT');
-  if (!/^factory-worker@sha256:[a-f0-9]{64}$/.test(image ?? '')) throw new Error('PINNED_STAGING_IMAGE_REQUIRED');
+  if (image !== qualifiedImage) throw new Error('PINNED_STAGING_IMAGE_REQUIRED');
   if (!Number.isInteger(remainingMs) || remainingMs < 1000 || remainingMs > 120000) throw new Error('INVALID_DEADLINE');
   return {
     name: `factory-infra-${id}`, image, persistent: false, region: 'iad1', failoverRegions: [],

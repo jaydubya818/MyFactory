@@ -127,9 +127,9 @@
       "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
     },
     "apps/cloud-control/src/infrastructure-plan.mjs": {
-      "sha256": "df7a441e111d9c50dbeb30fbbd24ee50f777bebb85e585b2a897491da24a0dcf",
+      "sha256": "d35d3adf2b5e650befcfd96c9ff28850158535059aa98c4dae5acecc9840279e",
       "classification": "cloud-staging-infrastructure-plan",
-      "authorityBoundary": "Fixed public source, immutable staging image, bounded nonpersistent single sandbox plan; no caller-supplied commands or credentials; not wired to allocation"
+      "authorityBoundary": "Accept only the connected-qualified provider-native Node 24 immutable digest; exact public source, one CPU, bounded deadline, no credentials, ports, persistence or failover. No canonical Work admission."
     }
   }
 }

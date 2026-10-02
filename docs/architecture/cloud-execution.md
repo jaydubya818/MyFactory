@@ -125,7 +125,7 @@ Using documented `iad1` Pro rates as an estimate, 120 seconds at fully active 1 
 
 ## Readiness
 
-Overall: NOT_READY. Local abstraction: deterministic regression PASS, portability PARTIAL. Cloud allocation, queue/leases, runtime image, cloud harness, independent cloud verification, Mac-off, browser-off, P0 UI and live cloud canary: NOT_RUN. DeepAgent: NOT_QUALIFIED. New cloud model operations and publications in this workstream: 0. Cloud security counters/local-dependency count: NOT_MEASURED. Do not infer them from local fixtures.
+Overall: NOT_READY. Local abstraction: deterministic regression PASS, portability PARTIAL. Canonical cloud allocation, queue/leases, cloud harness, independent cloud verification, Mac-off, browser-off, P0 UI and live cloud canary: NOT_RUN. DeepAgent: NOT_QUALIFIED. New cloud model operations and publications in this workstream: 0. Cloud security counters/local-dependency count: NOT_MEASURED. Do not infer them from local fixtures.
 
 See [checkpoint evidence](../cloud-execution/phase-1/README.md) and [runbook](../runbooks/cloud-execution.md).
 
@@ -137,4 +137,4 @@ See [checkpoint evidence](../cloud-execution/phase-1/README.md) and [runbook](..
 
 ## Phase 2 checkpoint
 
-Dedicated staging resources and hosted admission-disabled readiness are established; [Phase 2 evidence](../cloud-execution/phase-2/README.md) separates those connected checks from unrun Work lifecycle gates. Immutable image distribution is externally blocked: managed images return 404 and both daemon/host VCR uploads fail TLS. [Unblock requirements](../cloud-execution/phase-2/image-blocker.md). No cloud allocation, harness or Mac-off result is claimed.
+Dedicated staging resources and hosted admission-disabled readiness are established; [Phase 2 evidence](../cloud-execution/phase-2/README.md) separates those connected checks from unrun Work lifecycle gates. The provider-native Node 24 image passed connected qualification through the supported Sandbox resolver; direct OCI manifest 404 responses did not establish runtime unavailability. [Resolution and retained failure evidence](../cloud-execution/phase-2/image-blocker.md). The exact digest is pinned in the infrastructure plan. Qualification used a dedicated sudo-disabled producer user because the image default user has sudo. No canonical Work, harness or Mac-off result is claimed.

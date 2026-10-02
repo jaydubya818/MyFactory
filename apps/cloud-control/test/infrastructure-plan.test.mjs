@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { allocationPlan, source } from '../src/infrastructure-plan.mjs';
+import { allocationPlan, source, qualifiedImage } from '../src/infrastructure-plan.mjs';
 const id = 'ee6250bd-d97b-4ddc-953b-ae713d01045f';
-const image = 'factory-worker@sha256:' + 'a'.repeat(64);
+const image = qualifiedImage;
 test('allocation refuses mutable images, wrong registry scope and unbounded time', () => {
-  for (const value of ['factory-worker:latest','other-project/worker@sha256:'+'a'.repeat(64),'']) assert.throws(() => allocationPlan(id,value,120000));
+  for (const value of ['vercel/sandbox/node:24', 'vercel/sandbox/node@sha256:'+'a'.repeat(64), 'factory-worker:latest','other-project/worker@sha256:'+'a'.repeat(64),'']) assert.throws(() => allocationPlan(id,value,120000));
   for (const value of [0,-1,120001,Infinity,NaN]) assert.throws(() => allocationPlan(id,image,value));
   assert.throws(() => allocationPlan('../another-work',image,120000));
 });

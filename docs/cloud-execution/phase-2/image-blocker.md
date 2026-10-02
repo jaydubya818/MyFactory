@@ -1,6 +1,16 @@
-# External unblock: usable immutable staging worker image
+# Image acquisition: resolved through provider-native Sandbox API
 
-Status: BLOCKED before sandbox allocation. Checked 2026-10-02 05:15 UTC.
+Current status: RESOLVED for the supported managed image path, 2026-10-02 07:12 UTC. No owner action is required.
+
+`Sandbox.create()` with SDK 3.5.1 resolves `vercel/sandbox/node:24` through `/api/v3/sandboxes` and returns immutable image `vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1`. [Discovery evidence](provider-diagnosis/managed-node.json) and [pinned image qualification](provider-diagnosis/image-ebcd8099-c810-4764-bec3-b3c3ed918bb2.json) are CONNECTED PASS. All diagnostic sandboxes were stopped, deleted and confirmed absent.
+
+The earlier inference from direct registry manifest 404 to managed runtime unavailability was incorrect. The supported Sandbox resolver succeeds with the same staging account, region and Node tag. The provider-internal reason for direct registry 404 is unknown. Custom-image TLS failures occurred after authentication and upload initialization, during layer PATCH/PUT transfer/finalization, before manifest publication; their underlying cause remains unknown and is now nonblocking. TLS was not weakened.
+
+Qualification observed Node v24.19.0, Git 2.53.0, linux/x64, dedicated producer uid 1001 without sudo, verified HTTPS CA trust, deny-all public/metadata egress, separate fresh filesystems and clean teardown. Secret/repository checks cover known credential environment names and file locations; they are not an exhaustive image audit. No application credentials, repository, owner data or verifier material were injected.
+
+## Historical blocker at checkpoint 7a69c47
+
+The following records the diagnosis and requested action as of 2026-10-02 05:15 UTC. It is preserved as historical evidence, superseded by the resolution above.
 
 Target: Vercel team `team_p8z8exJRTGfOPk1GC9vUOpv3`, staging project `prj_IRXTY6HOzS2q9wRPdabsJnmddzl4`, private VCR repository `repo_hA2FvWTkS9VauoNnaSAJnDh97lge` (`jaydubya818/myfactory-cloud-staging/factory-worker`).
 
