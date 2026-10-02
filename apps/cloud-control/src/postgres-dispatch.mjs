@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { canonical, digest } from '../../../packages/hosted-routing/src/result.ts';
 import { assertSpendBinding } from '../../../packages/storage/src/spend-policy.ts';
 import { parseCloudPrepare } from '../../../packages/contracts/src/cloud-execution.ts';
@@ -112,12 +112,80 @@ export class PostgresDispatchStore {
       if(!r.rowCount)throw Error('LEASE_FENCED');return r.rows[0];
     });
   }
+  async reserveDelivery(clientId,identity,deploymentId,nonce) {
+    if(!/^dpl_[A-Za-z0-9]+$/.test(deploymentId)||!/^[a-f0-9]{64}$/.test(nonce))throw Error('INVALID_DELIVERY_INTENT');
+    return this.transaction(async(client,now)=>{
+      const row=await this.record(client,clientId,identity.requestId);this.assertIdentity(row,identity);
+      const previous=(await client.query('SELECT * FROM factory.delivery_intents WHERE run_id=$1',[row.run_id])).rows[0];
+      if(previous)return{created:false,intent:previous};
+      if(new Date(row.deadline).getTime()<=now)throw Error('WORK_DEADLINE_EXPIRED');
+      if((await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.stop_requested','factory.terminal')",[row.run_id])).rowCount)throw Error('WORK_FENCED');
+      const budget=(await client.query('SELECT * FROM factory.work_spend_budgets WHERE work_id=$1',[row.work_id])).rows[0];
+      assertSpendBinding(budget,{workId:identity.workId,workGeneration:identity.workGeneration,dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,factoryVersion:identity.factoryVersion,runId:identity.remoteRunId},'productive',now);
+      await client.query('UPDATE factory.intake_receipts SET identity=$3 WHERE client_id=$1 AND request_id=$2',[clientId,identity.requestId,identity]);
+      const intent=(await client.query("INSERT INTO factory.delivery_intents(run_id,deployment_id,nonce_sha256,state) VALUES($1,$2,$3,'SENDING') RETURNING *",[row.run_id,deploymentId,createHash('sha256').update(nonce).digest('hex')])).rows[0];
+      return{created:true,intent};
+    });
+  }
+  async recordDeliverySend(runId,messageId=null) {
+    if(messageId!==null&&(typeof messageId!=='string'||!messageId.length||messageId.length>256))throw Error('INVALID_MESSAGE_ID');
+    return this.transaction(async client=>{
+      await client.query("UPDATE factory.delivery_intents SET state=$2,message_id=$3 WHERE run_id=$1 AND state='SENDING'",[runId,messageId?'ACCEPTED':'UNKNOWN',messageId]);
+    });
+  }
+  async acceptDelivery(runId,deploymentId,nonce,messageId) {
+    if(typeof nonce!=='string'||!/^[a-f0-9]{64}$/.test(nonce)||typeof messageId!=='string'||!messageId.length||messageId.length>256)throw Error('INVALID_DELIVERY');
+    return this.transaction(async client=>{
+      const result=await client.query("UPDATE factory.delivery_intents SET state='DELIVERED',message_id=$4,delivered_at=COALESCE(delivered_at,clock_timestamp()) WHERE run_id=$1 AND deployment_id=$2 AND nonce_sha256=$3 AND (message_id IS NULL OR message_id=$4) RETURNING run_id",[runId,deploymentId,createHash('sha256').update(nonce).digest('hex'),messageId]);
+      if(!result.rowCount)throw Error('DELIVERY_BINDING_MISMATCH');
+      // A delivery authenticates the wake-up only. claim() still checks deadline,
+      // cancellation, spend binding and the sole durable execution resource.
+      return(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
+    });
+  }
+  async advanceResource(runId,leaseOwner,generation,state,evidence={}) {
+    const previous={PREPARING:'ALLOCATING',READY:'PREPARING',RUNNING:'READY',QUIESCING:'RUNNING',COLLECTING:'QUIESCING'}[state];
+    if(!previous||Buffer.byteLength(canonical(evidence))>16000)throw Error('INVALID_RESOURCE_TRANSITION');
+    return this.transaction(async client=>{
+      const result=await client.query(`UPDATE factory.execution_resources SET state=$4,evidence=evidence||$5::jsonb,updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 AND state=$6 AND provider_session_id IS NOT NULL AND lease_expires_at>clock_timestamp() AND deadline>clock_timestamp() AND cancelled_at IS NULL AND NOT cleanup_confirmed RETURNING *`,[runId,leaseOwner,generation,state,evidence,previous]);
+      if(!result.rowCount)throw Error('RESOURCE_TRANSITION_FENCED');
+      const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
+      await this.event(client,row,'factory.resource_advanced',{state});return result.rows[0];
+    });
+  }
+  async retainCustody(runId,leaseOwner,generation,receipt) {
+    if(!receipt||Object.keys(receipt).sort().join(',')!=='bytes,commit,pathname,sha256,tree'||!Number.isSafeInteger(receipt.bytes)||receipt.bytes<1||receipt.bytes>256000||!/^[a-f0-9]{40}$/.test(receipt.commit)||!/^[a-f0-9]{40}$/.test(receipt.tree)||!/^[a-f0-9]{64}$/.test(receipt.sha256)||receipt.pathname!==`factory/staging/runs/${runId}/${receipt.sha256}.json`)throw Error('INVALID_CUSTODY_RECEIPT');
+    return this.transaction(async client=>{
+      const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[runId])).rows[0];
+      if(!resource||resource.lease_owner!==leaseOwner||resource.lease_generation!==generation||!resource.provider_session_id)throw Error('CUSTODY_RESOURCE_MISMATCH');
+      // Collection is observation, not execution authority: retain authenticated
+      // bytes even if cancellation raced with storage readback.
+      if(!['COLLECTING','DESTROYED'].includes(resource.state)||(await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type='factory.resource_advanced' AND payload->>'state'='COLLECTING'",[runId])).rowCount!==1)throw Error('CUSTODY_BEFORE_QUIESCENCE');
+      const prior=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[runId])).rows[0];
+      if(prior){if(prior.candidate_commit!==receipt.commit||prior.candidate_tree!==receipt.tree||prior.artifact_sha256!==receipt.sha256||prior.artifact_path!==receipt.pathname||prior.artifact_bytes!==receipt.bytes)throw Error('CUSTODY_CONFLICT');return prior;}
+      return(await client.query('INSERT INTO factory.candidate_custody(run_id,candidate_commit,candidate_tree,artifact_sha256,artifact_path,artifact_bytes) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',[runId,receipt.commit,receipt.tree,receipt.sha256,receipt.pathname,receipt.bytes])).rows[0];
+    });
+  }
+  async confirmCleanup(runId,leaseOwner,generation,providerSessionId) {
+    return this.transaction(async(client,now)=>{
+      const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[runId])).rows[0];
+      if(!resource||resource.lease_owner!==leaseOwner||resource.lease_generation!==generation||resource.provider_session_id!==providerSessionId)throw Error('CLEANUP_RESOURCE_MISMATCH');
+      // With no allocation receipt, an early 404 cannot prove absence. Only a
+      // delayed provider lookup after the original deadline + grace can resolve it.
+      if(!providerSessionId&&now<new Date(resource.deadline).getTime()+30000)throw Error('CLEANUP_TOO_EARLY');
+      await client.query("UPDATE factory.execution_resources SET state='DESTROYED',cleanup_confirmed=true,allocation_unknown=false,updated_at=clock_timestamp() WHERE run_id=$1",[runId]);
+      const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
+      await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id=$1 AND work_generation=$2",[row.work_id,row.work_generation]);
+      if(!resource.cleanup_confirmed)await this.event(client,row,'factory.resource_destroyed',{providerName:resource.provider_name,providerSessionId});
+    });
+  }
   async read(clientId,requestId) {
     return this.transaction(async client=>{
       const row=await this.record(client,clientId,requestId);
       const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[row.run_id])).rows[0]??null;
       const events=(await client.query('SELECT type,payload,created_at FROM factory.events WHERE run_id=$1 ORDER BY id',[row.run_id])).rows;
-      return{...row,resource,events};
+      const custody=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[row.run_id])).rows[0]??null;
+      return{...row,resource,events,custody};
     });
   }
 }

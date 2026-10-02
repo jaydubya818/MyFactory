@@ -182,9 +182,14 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "3b4e56212ad5395b78b3e96752c58d2d40cb894b9d88a2e1cf4e3d79bd3ed385",
+      "sha256": "09990e70440da1df3ccf022410f1461c1ff8af98efa68b3bd3f9afbf6bbb03fb",
       "classification": "CANONICAL_CLOUD_ADMISSION",
-      "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
+      "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired. Immutable private custody and exact-resource cleanup observations; queue receipts only authenticate wake-ups, never execution authority."
+    },
+    "apps/cloud-control/src/candidate-custody.mjs": {
+      "classification": "PRIVATE_CANDIDATE_VALIDATION",
+      "authorityBoundary": "Bounded pure-data Git object and exact patch validation against admitted source/tree/path; no process execution, filesystem, network, protected-verifier verdict or publication authority.",
+      "sha256": "d5927ad0b63641456ca2c3252cb65bc6f7dea6718ac97f593037ba06157bc0e9"
     }
   }
 }

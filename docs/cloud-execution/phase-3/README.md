@@ -51,3 +51,12 @@ Execution snapshot V2 binds the exact source tree, immutable worker/verifier ima
 Validation: 210 Factory tests passed, 0 failed, 7 environment-gated skips; producer typecheck and governance passed. MyEve: 2,003 passed, 94 gated skips, typecheck/governance passed. These are deterministic regression results, not cloud Work or Mac-off qualification.
 
 The new project-slug corpus has three intentionally failing baseline checks. It is qualification input, separate from the passing repository regression suite. It replaces the infrastructure quantity-style objective for subsequent engineering Work. No worker has executed this corpus yet. Cloud admission remains disabled, paid model calls remain zero, and cloud harness/verifier/Mac-off/P0 remain NOT_RUN.
+
+
+### Cloud custody checkpoint
+
+Factory validates bounded source/candidate files, exact Git tree/commit identities, allowed paths and exact patch application before storage; no local Git process is needed in the controller. Patch parsing uses pinned jsdiff 8.0.4 with zero fuzz and no line-ending conversion ([upstream documentation](https://github.com/kpdecker/jsdiff)). MyEve's V2 custody path consumes a bounded file projection and retains the existing signed exact-tree candidate guard; the V1 local path and Attempt-8 publisher are unchanged. This is implementation evidence, not a hosted candidate lifecycle PASS.
+
+Migration 005 was applied only to dedicated staging with verified TLS. Connected PostgreSQL tests: 7 passed, including delivery-before-send receipt, duplicate/rebound messages, cancel/collection races, immutable custody, wrong-resource cleanup, early ambiguous 404 and fenced restart. Queue messages cannot grant execution authority. The new source branch pins three intentionally incomplete project-slug files; see qualification-source.json.
+
+Factory regression: 212 passed, 0 failed, 7 environment-gated skips; producer typecheck/governance passed. The first restricted-environment run failed to bind loopback sockets (EPERM); its log is retained separately and is not counted as PASS. MyEve: 2,005 passed, 94 skipped, typecheck/governance passed. Hosted canonical Work/controller integration, cloud harness, independent verifier, Mac-off and P0 remain NOT_RUN. Public cloud admission disabled; paid models/publication: zero.

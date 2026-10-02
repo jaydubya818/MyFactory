@@ -13,9 +13,9 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
  const pool=new pg.Pool({...databaseConfig(process.env.DATABASE_URL_UNPOOLED),max:5});
  assert.equal((await pool.query('SELECT project_id FROM factory.environment WHERE singleton')).rows[0].project_id,stagingProjectId);
  const schema='factory_test_'+randomUUID().replaceAll('-','');await pool.query(`CREATE SCHEMA ${schema}`);
- const isolate=sql=>sql.replace(/\bfactory\.(intake_receipts|events|execution_resources|work_orders|runs|work_spend_budgets|work_spend_operations)\b/g,schema+'.$1');
+ const isolate=sql=>sql.replace(/\bfactory\.(candidate_custody|delivery_intents|intake_receipts|events|execution_resources|work_orders|runs|work_spend_budgets|work_spend_operations)\b/g,schema+'.$1');
  t.after(async()=>{await pool.query(`DROP SCHEMA ${schema} CASCADE`);await pool.end();});
- for(const version of ['002-canonical-execution-ledger','004-canonical-dispatch']){
+ for(const version of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody']){
   const sql=isolate(await readFile(new URL(`../migrations/${version}.sql`,import.meta.url),'utf8')).replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);await pool.query(sql);await pool.query(sql);
  }
  const query=(sql,args)=>pool.query(isolate(sql),args);
@@ -65,6 +65,40 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
   const f=await fixture();await store.stop(grant.clientId,f.identity);await store.stop(grant.clientId,f.identity);
   assert.equal(await store.claim(grant.clientId,f.identity),null);
   const read=await store.read(grant.clientId,f.input.requestId);assert.equal(read.resource,null);assert.equal(read.events.filter(e=>e.type==='factory.stop_requested').length,1);
+ });
+ await t.test('delivery receipts cannot grant new authority or regress callback-before-send observation',async()=>{
+  const f=await fixture(),nonce='1'.repeat(64),deployment='dpl_fixture';
+  const reserved=await store.reserveDelivery(grant.clientId,f.identity,deployment,nonce);assert.equal(reserved.created,true);
+  const replay=await store.reserveDelivery(grant.clientId,f.identity,deployment,'2'.repeat(64));assert.equal(replay.created,false);
+  await assert.rejects(store.acceptDelivery(f.row.run_id,deployment,'2'.repeat(64),'message-1'),/BINDING/);
+  await assert.rejects(store.acceptDelivery(f.row.run_id,'dpl_other',nonce,'message-1'),/BINDING/);
+  assert.equal((await store.acceptDelivery(f.row.run_id,deployment,nonce,'message-1')).run_id,f.row.run_id);
+  await store.recordDeliverySend(f.row.run_id,'message-1');await store.recordDeliverySend(f.row.run_id);
+  assert.equal((await query('SELECT state FROM factory.delivery_intents WHERE run_id=$1',[f.row.run_id])).rows[0].state,'DELIVERED');
+  await assert.rejects(store.acceptDelivery(f.row.run_id,deployment,nonce,'message-2'),/BINDING/);
+  await store.stop(grant.clientId,f.identity);
+  assert.equal((await store.acceptDelivery(f.row.run_id,deployment,nonce,'message-1')).run_id,f.row.run_id);
+  assert.equal(await store.claim(grant.clientId,f.identity),null);
+ });
+ await t.test('private custody is immutable, survives cancel/cleanup and never revives execution',async()=>{
+  const f=await fixture(),lease=await store.claim(grant.clientId,f.identity),owner=lease.lease_owner;
+  const receipt={commit:'c'.repeat(40),tree:'d'.repeat(40),sha256:'e'.repeat(64),bytes:200,pathname:`factory/staging/runs/${f.row.run_id}/${'e'.repeat(64)}.json`};
+  await assert.rejects(store.confirmCleanup(f.row.run_id,owner,1,null),/TOO_EARLY/);
+  await store.recordAllocation(f.row.run_id,owner,1,'sbx_custody');
+  await assert.rejects(store.retainCustody(f.row.run_id,owner,1,receipt),/BEFORE_QUIESCENCE/);
+  await assert.rejects(store.advanceResource(f.row.run_id,owner,1,'RUNNING'),/TRANSITION_FENCED/);
+  for(const state of ['PREPARING','READY','RUNNING','QUIESCING','COLLECTING'])await store.advanceResource(f.row.run_id,owner,1,state);
+  await store.stop(grant.clientId,f.identity);
+  await store.retainCustody(f.row.run_id,owner,1,receipt);
+  await assert.rejects(store.retainCustody(f.row.run_id,owner,1,{...receipt,bytes:201}),/CONFLICT/);
+  await assert.rejects(store.confirmCleanup(f.row.run_id,owner,1,'sbx_other'),/MISMATCH/);
+  await store.confirmCleanup(f.row.run_id,owner,1,'sbx_custody');await store.confirmCleanup(f.row.run_id,owner,1,'sbx_custody');
+  const read=await store.read(grant.clientId,f.input.requestId);assert.equal(read.custody.artifact_sha256,receipt.sha256);assert.equal(read.resource.cleanup_confirmed,true);
+  assert.equal(read.events.filter(e=>e.type==='factory.resource_destroyed').length,1);
+  assert.equal((await spend.read(f.input.workId)).authorityState,'fenced');
+  await assert.rejects(store.heartbeat(f.row.run_id,owner,1),/FENCED/);
+  await assert.rejects(store.advanceResource(f.row.run_id,owner,1,'RUNNING'),/FENCED/);
+  assert.equal(await store.claim(grant.clientId,f.identity),null);
  });
  await t.test('database lease expiry cannot be revived; restart reconciles the same ambiguous resource',async()=>{
   const f=await fixture();const lease=await store.claim(grant.clientId,f.identity);
