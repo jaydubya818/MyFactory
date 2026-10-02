@@ -1,5 +1,7 @@
 # Cloud execution: laptop-independent MyFactory
 
+**Current custody correction — 2026-10-02:** The local Factory diagnostic exceeded the backend-only bypass boundary. Both old Factory bypasses are revoked; rejection is CONNECTED PASS through Sofie. Unsafe local entry points are retired. Replacement custody/access qualification is blocked on the protection-mechanism decision; preview-only OIDC trust is proposed, not enabled. The separately authorized Sofie operator bypass is active. Earlier configuration/access statements below are historical and do not establish current custody. [Incident, evidence, regression and next decision](../cloud-execution/phase-3/factory-bypass-custody-incident.md). Paid models: 0; production admission/publication: DISABLED.
+
 Status: **APPROVED dedicated staging architecture; local provider seam implemented. Cloud NOT_READY.**
 Date: 2026-10-02 UTC. Integration owner: this cloud-execution workstream. Integration target: canonical `main` after review and qualification. Feature branch: `codex/cloud-execution`.
 

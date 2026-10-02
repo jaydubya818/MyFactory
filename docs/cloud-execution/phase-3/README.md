@@ -1,5 +1,7 @@
 # Cloud canonical ledger migration — partial
 
+**Current custody correction — 2026-10-02:** The local Factory diagnostic exceeded the backend-only bypass boundary. Both old Factory bypasses are revoked; rejection is CONNECTED PASS through Sofie. Unsafe local entry points are retired. Replacement custody/access qualification is blocked on the protection-mechanism decision; preview-only OIDC trust is proposed, not enabled. The separately authorized Sofie operator bypass is active. Earlier configuration/access statements below are historical and do not establish current custody. [Incident, evidence, regression and next decision](factory-bypass-custody-incident.md). Paid models: 0; production admission/publication: DISABLED.
+
 The dedicated Sofie runtime/operator bypass is now explicitly approved and its hosted access matrix is **PASS**, including independent Factory auth and Work-scope denial. Build/client/HTML and observed log scans pass. The credential was then revoked and protection reverified; zero Sofie bypasses remain. [Access evidence and continuation](sofie-runtime-access.md). Canonical cloud harness, verifier, Mac-off and P0 remain NOT_RUN; paid calls are zero.
 
 The image and hosted infrastructure lifecycle passed Phase 2. Canonical cloud Work and the existing harness have not yet been connected. Cloud admission remains DISABLED and paid model operations remain 0.

@@ -1,5 +1,7 @@
 # Sofie staging access approval boundary
 
+**Current custody correction — 2026-10-02:** The local Factory diagnostic exceeded the backend-only bypass boundary. Both old Factory bypasses are revoked; rejection is CONNECTED PASS through Sofie. Unsafe local entry points are retired. Replacement custody/access qualification is blocked on the protection-mechanism decision; preview-only OIDC trust is proposed, not enabled. The separately authorized Sofie operator bypass is active. Earlier configuration/access statements below are historical and do not establish current custody. [Incident, evidence, regression and next decision](factory-bypass-custody-incident.md). Paid models: 0; production admission/publication: DISABLED.
+
 The VCR image blocker is resolved. The dedicated staging infrastructure-only
 lifecycle passed: exact source, deterministic checks, private artifact custody,
 readback and confirmed sandbox deletion. This does not establish canonical cloud

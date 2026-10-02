@@ -1,5 +1,7 @@
 # Dedicated Sofie runtime bypass qualification
 
+**Current custody correction — 2026-10-02:** The local Factory diagnostic exceeded the backend-only bypass boundary. Both old Factory bypasses are revoked; rejection is CONNECTED PASS through Sofie. Unsafe local entry points are retired. Replacement custody/access qualification is blocked on the protection-mechanism decision; preview-only OIDC trust is proposed, not enabled. The separately authorized Sofie operator bypass is active. Earlier configuration/access statements below are historical and do not establish current custody. [Incident, evidence, regression and next decision](factory-bypass-custody-incident.md). Paid models: 0; production admission/publication: DISABLED.
+
 **CONNECTED access boundary: PASS**, 2026-10-02. This is service access and
 credential containment qualification, not productive cloud Work qualification.
 The owner explicitly approved the provider-required server/build injection into
