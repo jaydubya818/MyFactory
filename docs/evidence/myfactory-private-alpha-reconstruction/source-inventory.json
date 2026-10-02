@@ -127,9 +127,29 @@
       "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
     },
     "apps/cloud-control/src/infrastructure-plan.mjs": {
-      "sha256": "d35d3adf2b5e650befcfd96c9ff28850158535059aa98c4dae5acecc9840279e",
-      "classification": "cloud-staging-infrastructure-plan",
-      "authorityBoundary": "Accept only the connected-qualified provider-native Node 24 immutable digest; exact public source, one CPU, bounded deadline, no credentials, ports, persistence or failover. No canonical Work admission."
+      "sha256": "3e5ffdae46115ccdd110b7c0871f8e1e5e5e8245151d79b9c7f9746996241351",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "apps/cloud-control/src/infrastructure-store.mjs": {
+      "sha256": "f5865e1efa63157fab54914566d61aedcf66f417e3abfd7f858ce1b3111d3425",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "apps/cloud-control/src/infrastructure-lifecycle.mjs": {
+      "sha256": "d5e2f62cee6c9f8b860f449c9a09d18f422588a50aab0160033633dc75d738f7",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "apps/cloud-control/src/infrastructure-provider.mjs": {
+      "sha256": "139d522f3adca83b88023974dd263908b7aff4837a12377869a91affd0ee40ad",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "apps/cloud-control/api/infrastructure.mjs": {
+      "sha256": "08915d4fed39da4cd9b091368223b3f0928c4076418d3b5971df29aa1b99e91d",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
     }
   }
 }

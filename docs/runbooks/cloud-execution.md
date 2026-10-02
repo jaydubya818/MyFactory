@@ -63,3 +63,14 @@ Migrations are explicit operator actions, never performed on a web request: run 
 Preview deployments use `vercel deploy --target preview`. Verify the returned target: the CLI can promote the first deployment of a new project despite that flag. No production-target deployment may receive staging credentials. The observed first-deploy exception was removed.
 
 Image acquisition is [resolved](../cloud-execution/phase-2/image-blocker.md). Use the exact qualified managed digest in `apps/cloud-control/src/infrastructure-plan.mjs`; never substitute its mutable discovery tag. `scripts/qualify-image.mjs` creates two sequential bounded diagnostic sandboxes and requires confirmed deletion. Diagnostic credentials stay in the local OS credential helper; hosted lifecycle code must use staging deployment OIDC. Custom VCR uploads remain unqualified and unnecessary. Continue with hosted durable allocation, exact source materialization, collection and cleanup before advancing qualification.
+
+
+### Hosted infrastructure qualification
+
+Current preview: `https://myfactory-cloud-staging-jhhd74zgx-jaydubya818.vercel.app` (`dpl_4eYNfnurMGEN4nnJSa7w6oaGGz31`, provider target null/preview).
+
+`/api/infrastructure?id=<UUIDv4>` uses the separate `FACTORY_INFRASTRUCTURE_TOKEN`; the readiness token is denied. POST executes the fixed probe only when the UUID is new; GET reads durable state. DELETE is delayed recovery/cleanup after deadline plus 30 seconds, not a canonical Work cancellation API. All responses are private/no-store. Do not include a body, image, repository, command or model override. `scripts/hosted-infrastructure-probe.mjs <verified-preview-url>` sends the token over stdin to authenticated `vercel curl`, records each request and checks readback/replay. It performs no worker execution locally.
+
+Never retry a failed/UNKNOWN attempt as fresh Work automatically. Read its retained stage/command error, confirm exact-resource cleanup, add a deterministic regression, repair and preserve the next numbered/UUID attempt. A lost allocation receipt holds the sole slot until delayed reconciliation. A successful artifact receipt is not a protected verifier verdict. Keep Work admission disabled.
+
+The direct PostgreSQL credential is used only in the Factory controller for session advisory locks. Producer receives no OIDC, database or Blob credential. Host OIDC authorizes private Blob writes and readback against the fixed staging store ID. Bound artifact reads to 256 KB; retain content-addressed private evidence after teardown. The initial lifetime ceiling is eight infrastructure allocations and must not be raised to hide repeated failures.

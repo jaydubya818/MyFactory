@@ -11,7 +11,7 @@ test('allocation refuses mutable images, wrong registry scope and unbounded time
 test('allocation pins exact source and grants no worker credentials, ports, persistence or failover', () => {
   const plan=allocationPlan(id,image,119000);
   assert.deepEqual(plan.env,{});assert.deepEqual(plan.ports,[]);assert.deepEqual(plan.failoverRegions,[]);
-  assert.equal(plan.persistent,false);assert.equal(plan.source.revision,source.commit);
-  assert.equal(plan.source.url,'https://github.com/jaydubya818/MyFactory.git');
+  assert.equal(plan.persistent,false);assert.equal(plan.source,undefined);assert.match(source.commit,/^[a-f0-9]{40}$/);
+  assert.equal(source.repository,'https://github.com/jaydubya818/MyFactory.git');
   assert.deepEqual(plan.networkPolicy,{allow:['github.com']});assert.equal(plan.resources.vcpus,1);
 });
