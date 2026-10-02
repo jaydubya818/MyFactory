@@ -15,11 +15,11 @@
           "topic": "factory-staging-delivery-check"
         }
       ],
-      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts,../../packages/agents/src/index.ts,../../apps/supervisor/src/spend-gateway.ts,../../apps/supervisor/src/provider-connection.ts,src/cloud-harness-worker.mjs,src/cloud-harness-mailbox.mjs}"
     },
     "api/infrastructure.mjs": {
       "maxDuration": 180,
-      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts,../../packages/agents/src/index.ts,../../apps/supervisor/src/spend-gateway.ts,../../apps/supervisor/src/provider-connection.ts,src/cloud-harness-worker.mjs,src/cloud-harness-mailbox.mjs}"
     },
     "api/cloud-work.mjs": {
       "maxDuration": 180,
@@ -29,7 +29,7 @@
           "topic": "factory-staging-work"
         }
       ],
-      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts,../../packages/agents/src/index.ts,../../apps/supervisor/src/spend-gateway.ts,../../apps/supervisor/src/provider-connection.ts,src/cloud-harness-worker.mjs,src/cloud-harness-mailbox.mjs}"
     },
     "api/cloud-recovery.mjs": {
       "maxDuration": 60,
@@ -39,15 +39,15 @@
           "topic": "factory-staging-recovery"
         }
       ],
-      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts,../../packages/agents/src/index.ts,../../apps/supervisor/src/spend-gateway.ts,../../apps/supervisor/src/provider-connection.ts,src/cloud-harness-worker.mjs,src/cloud-harness-mailbox.mjs}"
     },
     "api/cloud.mjs": {
       "maxDuration": 60,
-      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts,../../packages/agents/src/index.ts,../../apps/supervisor/src/spend-gateway.ts,../../apps/supervisor/src/provider-connection.ts,src/cloud-harness-worker.mjs,src/cloud-harness-mailbox.mjs}"
     },
     "api/*.mjs": {
       "maxDuration": 30,
-      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts,../../packages/agents/src/index.ts,../../apps/supervisor/src/spend-gateway.ts,../../apps/supervisor/src/provider-connection.ts,src/cloud-harness-worker.mjs,src/cloud-harness-mailbox.mjs}"
     }
   },
   "git": {

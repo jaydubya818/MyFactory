@@ -22,14 +22,14 @@ export async function executeCloudWork(store,provider,clientId,identity,schedule
   const source=await provider.materialize(sandbox);
   await active();await store.advanceResource(...args,'READY',{source});
   await store.advanceResource(...args,'RUNNING');
-  const manifest=await provider.execute(sandbox,commandId=>store.noteResource(...args,{commandId}));
+  const manifest=await provider.execute(sandbox,commandId=>store.noteResource(...args,{commandId}),row,evidence=>store.noteResource(...args,evidence));
   await active();await store.advanceResource(...args,'QUIESCING');
   const quiescence=await provider.quiesce(sandbox);
   await active();await store.advanceResource(...args,'COLLECTING',{quiescence});
   const collected=await provider.collect(sandbox,row,manifest);
   await store.retainCustody(...args,collected.receipt);
   const visibleChecksPassed=collected.bundle.checks.every(c=>c.exitCode===0);
-  await store.noteResource(...args,{visibleChecksPassed,modelOperations:0,sessionSurface:cloudSessionSurface,executor:'deterministic-qualification',protectedVerification:'NOT_RUN'});
+  await store.noteResource(...args,{visibleChecksPassed,sessionSurface:cloudSessionSurface,protectedVerification:'NOT_RUN'});
   status=visibleChecksPassed?'COMPLETED':'FAILED';
  }catch(error){
   await store.noteResource(...args,{failure:safeCode(error)});

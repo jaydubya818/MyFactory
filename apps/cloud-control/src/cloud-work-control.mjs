@@ -5,7 +5,8 @@ import { cloudResult } from './cloud-work-result.mjs';
 export const workTopic='factory-staging-work';
 export const recoveryTopic='factory-staging-recovery';
 export const binding=i=>({workId:i.workId,workGeneration:i.workGeneration,dispatchIdentity:i.dispatchIdentity,requestId:i.requestId,workOrderId:i.workOrderId,factoryVersion:i.factoryVersion,runId:i.remoteRunId});
-export const spendPlan={version:'WORK_LEDGER_V2',pricingRevision:'cloud-deterministic-v1',model:'fixture-model',validUntil:'2026-10-09T00:00:00.000Z',perOperationReserveMicrousd:100,plannedProductiveOperations:1,plannedCompletionOperations:1,maxPaidOperations:2,completionReserveMicrousd:100};
+export {cloudHarnessSpendPlan as spendPlan} from './cloud-harness-plan.mjs';
+import {cloudHarnessSpendPlan as spendPlan} from './cloud-harness-plan.mjs';
 
 export class CloudWorkControl {
  constructor({store,spend,provider,queue,signing,sourceDigest,deploymentId}) {Object.assign(this,{store,spend,provider,queue,signing,sourceDigest,deploymentId});}

@@ -119,3 +119,6 @@ Qualification evidence must include loaded skill hashes. Differential reports
 use the same corpus/environment/model and report success, independent
 verification rate, repair rate, operations, latency, cost and cleanup/recovery.
 These contract changes do not qualify the hosted harness or Mac-off journey.
+
+
+The existing Codex adapter is now wired into the dedicated cloud worker through the canonical SpendGateway/PostgreSQL ledger, with integrity-pinned installation, bounded SDK transport, host checkpoints, read-only completion and exact-tree custody. [Implementation and evidence limits](../cloud-execution/phase-3/cloud-harness-implementation.md): 119 local tests PASS, six gated skips; hosted harness and independent verifier remain NOT_RUN. This does not enable production, paid models or publication.

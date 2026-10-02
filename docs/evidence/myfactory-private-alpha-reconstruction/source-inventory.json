@@ -22,9 +22,9 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "b891f1d66677fc8e40967bbfa16f0fcaa6faa7cb3aafe125dde2a87a909fd04d",
+      "sha256": "f1029de7e11423d76bb36d8475a6247f9843ef19448f9593cc70761d14c3af74",
       "classification": "EXECUTOR_LIFECYCLE",
-      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved."
+      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Explicit container profile preserves the same process/sandbox/credential behavior and default Mac compatibility."
     },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
@@ -194,7 +194,7 @@
     "apps/cloud-control/src/cloud-work-control.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
       "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "eaf13546fa4c9a29e0cd381be03e7dec0e022b461e6d5a2d37a1c64af83948b7"
+      "sha256": "d1ae7010206a7ba8efb4eae8e46c2ffa594e8a2ea85a48d20e78a07c64ee5507"
     },
     "apps/cloud-control/src/cloud-queue-consumer.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -209,20 +209,20 @@
     "apps/cloud-control/src/cloud-runtime.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
       "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "5dfbc1e2b9ee776bf68711a64c9d4bf6e09d6d37dd873fcd03e458e1da439f13"
+      "sha256": "6fe1513985e7d4a29aa3956fd33e81560d0f3e86726016f2fb126b3ecf9b1b97"
     },
     "apps/cloud-control/src/cloud-work-provider.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
       "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "e013c73c704eb2a116fb1296f6d594329a17a688793bddce6cb69e89ba4f65fb"
+      "sha256": "b86fa09524c74243c715770f616813093676f7212ca1c3ae0f672043213ca9c8"
     },
     "apps/cloud-control/src/cloud-work-plan.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
       "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "daf0ffa29c40cbc524139f323d13434e107a26b7ab3fbf88b9aa759de74823fe"
+      "sha256": "613ae8424e6632cf2883b6ae48653667fc9122d28656bfbf75ef97c728defd75"
     },
     "apps/cloud-control/src/cloud-work-lifecycle.mjs": {
-      "sha256": "4b1c02a8f9246b87fdf3bbd47536be333fb4418149cfee42480fe6d691795670",
+      "sha256": "136a0cd3fd9eda12982cebbbfd74f2b57755d2246de2227babb6bfa1ac7c89e2",
       "classification": "CLOUD_WORK_LIFECYCLE",
       "authorityBoundary": "Retain canonical claim, recovery, fencing, custody, cleanup and terminal transitions. Record mandatory HEADLESS policy in durable execution evidence; never consult a session surface or launch a terminal adapter."
     },
@@ -250,6 +250,51 @@
       "sha256": "3edb7f4139e53f7306084d9fd14bb2d17474a3e68359e5aebe95031a45d695da",
       "classification": "HEADLESS_POLICY",
       "authorityBoundary": "Consume canonical SessionSurfaceKind; mandatory HEADLESS production default, no provider construction or runtime terminal dependency."
+    },
+    "apps/cloud-control/src/cloud-harness-executor.mjs": {
+      "sha256": "4de97617e330c5f98567502aa4f74079330a9cf48ed8f85b24f506ac44724c2d",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-mailbox.mjs": {
+      "sha256": "e651b5c24f93a1a1dfb99f9d66e3abe60822964811f78b2ffae6c4cdbc36bc91",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-worker.mjs": {
+      "sha256": "1ccce72a0634fafb818946d9c3cb79872dfd2782a9888ab8f4143518e7484c48",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-checkpoint.mjs": {
+      "sha256": "2d3894f0c7ad138bdac3ca73b691b198a32c9b01ae6eaf000e27debdbddfed78",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-install.mjs": {
+      "sha256": "e5648acf6ff26fee4a5f8993a97f84682807daa2f0c5588572868d4c9e5b48a4",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-phase.mjs": {
+      "sha256": "9dbac4e7bfe737eab75c703ec3388eeed5c6ebf6e035aa357b3702bd70114394",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-relay.mjs": {
+      "sha256": "373e97889158e0c19a6f4b1c124f7e31490cb42182cce93aa52430edc6547e13",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-plan.mjs": {
+      "sha256": "2a3815b4ccda8cf8c5515715a3dd29bd19c3ccd6c91f0c80cd92be275759f44e",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-fixture.mjs": {
+      "sha256": "6e2b728b8d4d882dac52c9ac25d5af9f8a11dc09ebaa4cfbf67554c064aabfaf",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     }
   }
 }

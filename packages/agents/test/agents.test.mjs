@@ -220,3 +220,12 @@ test('owner cancellation dominates a productive boundary signal',async t=>{
  }));
  assert.equal(result.status,'cancelled');assert.equal(result.success,false);
 });
+
+test('explicit container adapter reports its execution profile without changing local defaults',async t=>{
+ const work=await fixture(t),binaryPath=join(work.workspacePath,'..','fake-codex.mjs');
+ const adapter=createCodexAdapter(binaryPath,'container');
+ assert.equal((await adapter.preflightCodex()).workerProfile,'container');
+ const result=await adapter.runCodex(options(work,'bounded container fixture'));
+ assert.equal(result.workerProfile,'container');assert.equal(result.status,'completed');
+ assert.throws(()=>createCodexAdapter(binaryPath,'unqualified'),/Unsupported/);
+});

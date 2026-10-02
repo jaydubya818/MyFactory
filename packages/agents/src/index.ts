@@ -36,7 +36,7 @@ export interface CodexRunOptions {
 export type CodexRunStatus = "completed" | "yielded" | "failed" | "cancelled" | "timed_out";
 
 export interface CodexRunResult {
-  workerProfile: "mac";
+  workerProfile: "mac" | "container";
   status: CodexRunStatus;
   success: boolean;
   exitCode: number | null;
@@ -54,7 +54,7 @@ export interface CodexRunResult {
 }
 
 export interface CodexPreflight {
-  workerProfile: "mac";
+  workerProfile: "mac" | "container";
   binaryAvailable: boolean;
   version: string | null;
   authenticated: boolean;
@@ -151,7 +151,7 @@ function signalProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   }
 }
 
-async function runCodexWith(executablePath: string, options: CodexRunOptions): Promise<CodexRunResult> {
+async function runCodexWith(executablePath: string, options: CodexRunOptions, workerProfile: "mac" | "container"): Promise<CodexRunResult> {
   validateRunOptions(options);
   const workspacePath = await checkedDirectory(options.workspacePath, "workspacePath");
   const artifactsDir = await checkedDirectory(options.artifactsDir, "artifactsDir");
@@ -383,7 +383,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions): P
       "Codex run failed");
 
   return {
-    workerProfile: "mac",
+    workerProfile,
     status,
     success: status === "completed",
     exitCode: exit.code,
@@ -438,17 +438,17 @@ async function readOnlyCommand(executablePath: string, args: string[]): Promise<
   return { code, output, error };
 }
 
-async function preflightCodexWith(executablePath: string): Promise<CodexPreflight> {
+async function preflightCodexWith(executablePath: string, workerProfile: "mac" | "container"): Promise<CodexPreflight> {
   const versionResult = await readOnlyCommand(executablePath, ["--version"]);
   if (versionResult.code !== 0 || versionResult.error) {
-    return { workerProfile: "mac", binaryAvailable: false, version: null, authenticated: false,
+    return { workerProfile, binaryAvailable: false, version: null, authenticated: false,
       error: versionResult.error ?? "Codex --version failed" };
   }
   const version = versionResult.output.split(/\r?\n/).map((line) => line.trim())
     .find((line) => /^codex-cli\s+\S+/.test(line)) ?? null;
   const loginResult = await readOnlyCommand(executablePath, ["login", "status"]);
   return {
-    workerProfile: "mac",
+    workerProfile,
     binaryAvailable: true,
     version,
     authenticated: loginResult.code === 0 && !loginResult.error,
@@ -457,11 +457,12 @@ async function preflightCodexWith(executablePath: string): Promise<CodexPrefligh
 }
 
 /** Test/configuration seam. Only host configuration should choose an executable path. */
-export function createCodexAdapter(executablePath = "codex"): CodexAdapter {
+export function createCodexAdapter(executablePath = "codex", workerProfile: "mac" | "container" = "mac"): CodexAdapter {
+  if(!["mac","container"].includes(workerProfile))throw new TypeError("Unsupported Codex worker profile");
   validateExecutable(executablePath);
   return {
-    runCodex: (options) => runCodexWith(executablePath, options),
-    preflightCodex: () => preflightCodexWith(executablePath),
+    runCodex: (options) => runCodexWith(executablePath, options, workerProfile),
+    preflightCodex: () => preflightCodexWith(executablePath, workerProfile),
   };
 }
 

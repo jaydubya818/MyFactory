@@ -15,7 +15,7 @@ export async function withCloudRuntime(env,action){
  try{
   const marker=(await pool.query('SELECT project_id,environment FROM factory.environment WHERE singleton')).rows[0];
   if(marker?.project_id!==stagingProjectId||marker.environment!=='staging')throw Error('DATABASE_BOUNDARY_MISMATCH');
-  const store=new PostgresDispatchStore(pool),spend=new PostgresSpendLedger(pool),provider=cloudWorkProvider(),queue=new QueueClient({region:'iad1'});
+  const store=new PostgresDispatchStore(pool),spend=new PostgresSpendLedger(pool),provider=cloudWorkProvider({ledger:spend}),queue=new QueueClient({region:'iad1'});
   const control=new CloudWorkControl({store,spend,provider,queue,signing,sourceDigest:sourceIdentity.sourceDigest,deploymentId:env.VERCEL_DEPLOYMENT_ID});
   return await action({store,spend,provider,queue,control});
  }finally{await pool.end();}

@@ -1,3 +1,4 @@
+import {cloudHarnessIdentity,cloudCodexPackage} from './cloud-harness-plan.mjs';
 import { qualifiedImage } from './infrastructure-plan.mjs';
 import { digest } from '../../../packages/hosted-routing/src/result.ts';
 export const cloudSource=Object.freeze({repository:'jaydubya818/MyFactory',commit:'5cd13fa1f307a0c0f42f6317d966bb3179ad77c9',tree:'1084844b1454165358e51248afe8676f96daf17c'});
@@ -11,8 +12,8 @@ export const deterministicSolution=`export function projectSlug(value) {
   return value.trim().toLowerCase().replace(/\\s+/g, '-');
 }
 `;
-export const cloudConfiguration=Object.freeze({model:'fixture-model',executor:'deterministic-qualification',executorVersion:'1',skillRevision:'none',workerProfile:'container',verificationImage:qualifiedImage,nodeVersion:'v24.19.0',platform:'linux',architecture:'x64',commands:[checkCommand],allowedPaths,timeoutMs:120000,
- cloud:{provider:'vercel-sandbox',providerVersion:'3.5.1',region:'iad1',workerImage:qualifiedImage,networkPolicy:'deny-all-after-materialization-v1',toolPolicySha256:digest({allowedPaths,command:checkCommand,executor:'deterministic-qualification'}),contextPolicySha256:digest({source:cloudSource,ownerData:false}),verificationPolicySha256:digest({status:'NOT_QUALIFIED',protected:false}),evidenceClass:'DETERMINISTIC',resources:{vcpus:1,memoryMb:2048,timeoutMs:120000,maxArtifactBytes:256000},skills:[]}});
+export const cloudConfiguration=Object.freeze({model:cloudHarnessIdentity.model,executor:cloudHarnessIdentity.id,executorVersion:cloudHarnessIdentity.version,skillRevision:'none',workerProfile:'container',verificationImage:qualifiedImage,nodeVersion:'v24.19.0',platform:'linux',architecture:'x64',commands:[checkCommand],allowedPaths,timeoutMs:180000,
+ cloud:{provider:'vercel-sandbox',providerVersion:'3.5.1',region:'iad1',workerImage:qualifiedImage,networkPolicy:'deny-all-after-pinned-harness-and-source-v1',toolPolicySha256:digest({allowedPaths,command:checkCommand,executor:cloudHarnessIdentity.id,packageIntegrity:cloudCodexPackage.integrity}),contextPolicySha256:digest({source:cloudSource,ownerData:false}),verificationPolicySha256:digest({status:'NOT_QUALIFIED',protected:false}),evidenceClass:'DETERMINISTIC',resources:{vcpus:1,memoryMb:2048,timeoutMs:180000,maxArtifactBytes:256000},skills:[]}});
 
 export const materializationScript=`
 const fs=require('node:fs'),cp=require('node:child_process');

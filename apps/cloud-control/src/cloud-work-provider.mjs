@@ -3,33 +3,33 @@ import { put,get } from '@vercel/blob';
 import { custodyStoreId,stagingProjectId } from './config.mjs';
 import { noReplayFetch,boundedBytes,infrastructureProvider } from './infrastructure-provider.mjs';
 import { qualifiedImage } from './infrastructure-plan.mjs';
-import { cloudSource,materializationScript,deterministicWorkerScript,quiescenceScript } from './cloud-work-plan.mjs';
+import { cloudSource,materializationScript,quiescenceScript } from './cloud-work-plan.mjs';
 import { validateCandidateBundle } from './candidate-custody.mjs';
 import { sha256 } from '../../../packages/hosted-routing/src/result.ts';
 
-export function cloudWorkProvider() {
+import {installCloudHarness} from './cloud-harness-phase.mjs';
+import {executeCloudHarness} from './cloud-harness-executor.mjs';
+
+export function cloudWorkProvider({ledger}) {
  const sdk={fetch:noReplayFetch()},signal=()=>AbortSignal.timeout(15000);
  return {
   async allocate(resource){
-   const remaining=Math.min(120000,new Date(resource.deadline).getTime()-Date.now());
+   const remaining=Math.min(180000,new Date(resource.deadline).getTime()-Date.now());
    if(!Number.isSafeInteger(remaining)||remaining<30000||resource.provider_name!==`factory-run-${resource.run_id}`)throw Error('RESOURCE_ENVELOPE');
-   return Sandbox.create({name:resource.provider_name,image:qualifiedImage,persistent:false,region:'iad1',failoverRegions:[],resources:{vcpus:1},timeout:remaining,ports:[],env:{},networkPolicy:{allow:['github.com']},tags:{purpose:'factory-canonical-work',run:resource.run_id,project:stagingProjectId},...sdk,signal:AbortSignal.timeout(30000)});
+   return Sandbox.create({name:resource.provider_name,image:qualifiedImage,persistent:false,region:'iad1',failoverRegions:[],resources:{vcpus:1},timeout:remaining,ports:[],env:{},networkPolicy:{allow:['github.com','registry.npmjs.org']},tags:{purpose:'factory-canonical-work',run:resource.run_id,project:stagingProjectId},...sdk,signal:AbortSignal.timeout(30000)});
   },
   async materialize(sandbox){
    if(sandbox.image!==qualifiedImage)throw Error('IMAGE_MISMATCH');
+   const harness=await installCloudHarness(sandbox);
    const user=await sandbox.createUser('factoryproducer',{signal:signal()});
    const done=await user.runCommand({cmd:'node',args:['-e',materializationScript],timeoutMs:30000,signal:AbortSignal.timeout(35000)});
    if(done.exitCode!==0)throw Error('SOURCE_MATERIALIZATION_FAILED');
    const report=JSON.parse(await done.stdout({signal:signal()}));
    if(report.commit!==cloudSource.commit||report.tree!==cloudSource.tree)throw Error('SOURCE_MISMATCH');
-   await sandbox.updateNetworkPolicy('deny-all',{signal:signal()});return report;
+   await sandbox.updateNetworkPolicy('deny-all',{signal:signal()});return {...report,harness};
   },
-  async execute(sandbox,recordCommand){
-   const command=await sandbox.asUser('factoryproducer').runCommand({cmd:'node',args:['-e',deterministicWorkerScript],cwd:'/home/factoryproducer/workspace',timeoutMs:45000,detached:true,signal:signal()});
-   await recordCommand(command.cmdId);
-   const done=await command.wait({signal:AbortSignal.timeout(50000)});
-   if(done.exitCode!==0)throw Error('WORKER_COMMAND_FAILED');
-   const text=await done.stdout({signal:signal()});if(text.length>1000)throw Error('MANIFEST_BOUND');return JSON.parse(text);
+  async execute(sandbox,recordCommand,row,recordEvidence){
+   return executeCloudHarness({sandbox,row,ledger,recordCommand,recordEvidence});
   },
   async quiesce(sandbox){
    const done=await sandbox.asUser('root').runCommand({cmd:'node',args:['-e',quiescenceScript],timeoutMs:5000,signal:signal()});
