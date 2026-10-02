@@ -2,7 +2,7 @@ import { isModelReference } from '../../../packages/contracts/src/model-referenc
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { SpendLedger, type SpendBinding, type SpendPhase } from '../../../packages/storage/src/spend.ts';
+import type { SpendLedger, SpendBinding, SpendPhase } from '../../../packages/storage/src/spend.ts';
 import {providerAuthorization,type ProviderConnection} from './provider-connection.ts';
 
 /** Revisioned, operator-approved rate card. Rates are integer micro-USD per million tokens. */

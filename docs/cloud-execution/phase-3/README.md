@@ -42,3 +42,12 @@ The existing SpendGateway now exposes a Fetch adapter using the same validation,
 Sofie's ordinary preview inherited a shared database binding. Qualification therefore uses a new isolated owner-facing project `sofie-cloud-qualification` (`prj_XU7fJW735PtsnKoAYtGfzdnsotIB`) and a fresh free Neon resource `sofie-cloud-qualification-db` (`store_fOPC5aF0CPD0FfOW`, iad1), connected only to preview. MyEve's canonical schema through 0079 was applied to that initially empty database. Existing Sofie project/environment bindings were not changed. There is no deployed qualification web app yet. Factory execution/custody stays exclusively in `myfactory-cloud-staging`; the new client receives no Factory database, artifact or verifier credential.
 
 See [project metadata](sofie-staging-project.json) and [database metadata](sofie-staging-database.json). No production data was copied. The MyEve V2 transport is separately tested and remains blocked at cloud runtime initialization until source and protected verification integration lands.
+
+
+### Signed cloud configuration checkpoint
+
+Execution snapshot V2 binds the exact source tree, immutable worker/verifier images, provider version, region, policy hashes, resource bounds, versioned skills and explicit DETERMINISTIC/LIVE evidence class. V1 parsing remains strict. Factory and MyEve verify the same public synthetic signed packet and reject changed trees, image pins and version downgrades. A deterministic configuration does not authorize live models.
+
+Validation: 210 Factory tests passed, 0 failed, 7 environment-gated skips; producer typecheck and governance passed. MyEve: 2,003 passed, 94 gated skips, typecheck/governance passed. These are deterministic regression results, not cloud Work or Mac-off qualification.
+
+The new project-slug corpus has three intentionally failing baseline checks. It is qualification input, separate from the passing repository regression suite. It replaces the infrastructure quantity-style objective for subsequent engineering Work. No worker has executed this corpus yet. Cloud admission remains disabled, paid model calls remain zero, and cloud harness/verifier/Mac-off/P0 remain NOT_RUN.

@@ -16,13 +16,21 @@ export function canonical(value: unknown): string {
 }
 export function sha256(bytes: string | Uint8Array): string { return createHash('sha256').update(bytes).digest('hex'); }
 export function digest(value: unknown): string { return sha256(canonical(value)); }
+export interface CloudExecutionConfiguration {
+  provider: 'vercel-sandbox'; providerVersion: string; region: 'iad1'; workerImage: string;
+  networkPolicy: string; toolPolicySha256: string; contextPolicySha256: string; verificationPolicySha256: string;
+  evidenceClass: 'DETERMINISTIC' | 'LIVE';
+  resources: { vcpus: number; memoryMb: number; timeoutMs: number; maxArtifactBytes: number };
+  skills: { name: string; sha256: string; capabilities: string[] }[];
+}
 export interface ExecutionConfiguration {
   model: string; executor: string; executorVersion: string; skillRevision: string;
   workerProfile: string; verificationImage: string; nodeVersion: string; platform: string; architecture: string;
   commands: string[]; allowedPaths: string[]; timeoutMs: number;
+  cloud?: CloudExecutionConfiguration;
 }
 export interface ExecutionSnapshot {
-  version: 1; factoryId: string; factoryVersion: string; sourceDigest: string;
+  version: 1 | 2; inputTree?: string; factoryId: string; factoryVersion: string; sourceDigest: string;
   configurationDigest: string; configuration: ExecutionConfiguration;
   requestId: string; requestDigest: string; workOrderId: string; runId: string;
   attemptNumber: number; inputCommit: string; capturedAt: string;
@@ -65,6 +73,28 @@ function time(value: unknown): asserts value is string { text(value); requireVal
 function hash(value: unknown): asserts value is string { requireValue(typeof value === 'string' && /^[a-f0-9]{64}$/.test(value), 'Invalid digest'); }
 function gitHash(value: unknown): asserts value is string { requireValue(typeof value === 'string' && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(value), 'Invalid Git identity'); }
 
+function validateCloudConfiguration(c: Record<string,unknown>): void {
+  requireValue(c.workerProfile==='container'&&c.platform==='linux'&&c.architecture==='x64', 'Cloud runtime mismatch');
+  const cloud=c.cloud;
+  exact(cloud,['provider','providerVersion','region','workerImage','networkPolicy','toolPolicySha256','contextPolicySha256','verificationPolicySha256','evidenceClass','resources','skills']);
+  requireValue(cloud.provider==='vercel-sandbox'&&cloud.region==='iad1', 'Unqualified cloud provider');
+  text(cloud.providerVersion);text(cloud.networkPolicy);
+  const immutable=(value:unknown)=>typeof value==='string'&&/^[a-zA-Z0-9./:_-]+@sha256:[a-f0-9]{64}$/.test(value);
+  requireValue(immutable(cloud.workerImage)&&immutable(c.verificationImage), 'Immutable cloud image required');
+  for(const key of ['toolPolicySha256','contextPolicySha256','verificationPolicySha256'])hash(cloud[key]);
+  requireValue(['DETERMINISTIC','LIVE'].includes(String(cloud.evidenceClass)), 'Cloud evidence class required');
+  exact(cloud.resources,['vcpus','memoryMb','timeoutMs','maxArtifactBytes']);
+  for(const value of Object.values(cloud.resources))requireValue(Number.isSafeInteger(value)&&Number(value)>0, 'Bounded cloud resource required');
+  requireValue(cloud.resources.vcpus===1&&Number(cloud.resources.memoryMb)<=2048&&Number(cloud.resources.timeoutMs)<=600000&&cloud.resources.timeoutMs===c.timeoutMs&&Number(cloud.resources.maxArtifactBytes)<=MAX_RESULT_BYTES, 'Cloud envelope exceeded');
+  requireValue(Array.isArray(cloud.skills)&&cloud.skills.length<=20, 'Bounded cloud skills required');
+  const names=new Set();
+  for(const skill of cloud.skills){
+    exact(skill,['name','sha256','capabilities']);text(skill.name);hash(skill.sha256);
+    requireValue(!names.has(skill.name),'Duplicate cloud skill');names.add(skill.name);
+    requireValue(Array.isArray(skill.capabilities)&&skill.capabilities.length<=20,'Bounded skill capabilities required');skill.capabilities.forEach(text);
+  }
+}
+
 export function validateManifest(value: unknown): asserts value is ResultManifest {
   exact(value, ['protocol','keyId','producer','operationId','execution','status','candidate','evidence','artifacts','evidenceDigest','artifactDigest','completedAt','issuedAt']);
   requireValue(value.protocol === RESULT_PROTOCOL, 'Unknown result protocol');
@@ -73,15 +103,17 @@ export function validateManifest(value: unknown): asserts value is ResultManifes
   requireValue(Date.parse(value.completedAt) <= Date.parse(value.issuedAt), 'Completion after issuance');
   requireValue(['COMPLETED','FAILED','CANCELLED'].includes(String(value.status)), 'Nonterminal result');
   const e = value.execution;
-  exact(e, ['version','factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','capturedAt']);
-  requireValue(e.version === 1 && e.factoryId === value.producer, 'Producer mismatch');
+  exact(e, ['version','factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','capturedAt',...((e as Record<string,unknown>)?.version===2?['inputTree']:[])]);
+  requireValue((e.version === 1 || e.version === 2) && e.factoryId === value.producer, 'Producer mismatch');
+  if(e.version===2)gitHash(e.inputTree);
   for (const key of ['factoryId','requestId','workOrderId','runId']) text(e[key]);
   for (const key of ['factoryVersion','sourceDigest','configurationDigest','requestDigest']) hash(e[key]);
   gitHash(e.inputCommit); time(e.capturedAt);
   requireValue(Number.isSafeInteger(e.attemptNumber) && Number(e.attemptNumber) > 0, 'Invalid attempt');
   requireValue(Date.parse(e.capturedAt) <= Date.parse(value.completedAt), 'Completion before admission');
   const c = e.configuration;
-  exact(c, ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture','commands','allowedPaths','timeoutMs']);
+  exact(c, ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture','commands','allowedPaths','timeoutMs',...(e.version===2?['cloud']:[])]);
+  if(e.version===2)validateCloudConfiguration(c);
   for (const key of ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture']) text(c[key]);
   requireValue(isModelReference(c.model), 'Invalid canonical model reference');
   for (const key of ['commands','allowedPaths']) {

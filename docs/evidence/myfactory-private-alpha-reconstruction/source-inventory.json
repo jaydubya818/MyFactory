@@ -12,7 +12,7 @@
       "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "668f87def6fa1ac8ddb68058cf582500ba71fb46e6ef50949d5353d8e771933e",
+      "sha256": "ed4da172aa6e0d1cfa4a291afcdcbc0326dd97be112deda9dcfc50081fbe09f3",
       "classification": "PAID_BOUNDARY",
       "authorityBoundary": "Share exact paid boundary across Node HTTP and hosted Fetch adapters; await durable accounting, retain UNKNOWN and no fallback. Deterministic upstream injection is trusted server configuration, never client data. Constant-time hashed credentials reject multibyte input safely."
     },
@@ -73,8 +73,8 @@
     },
     "packages/hosted-routing/src/result.ts": {
       "classification": "NOT_APPLICABLE",
-      "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory.",
-      "sha256": "21971070d3d52fe8febbbb3ecdac3510a92501bb9c18f7677c1deb0f2ac70ed5"
+      "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory. Explicit snapshot V2 pins immutable cloud image/provider/policy/resources/skills and input tree; strict V1 remains unchanged. Evidence class is part of FactoryVersion; no readiness or publication grant.",
+      "sha256": "e3eb377960f47cb1e0b4f9dea4949991e64aff3ccf1548b88815301d049ceda0"
     },
     "apps/supervisor/src/git.ts": {
       "sha256": "5969e10d9dd82a0413c56d25d4e92bb2deca2b749d1654e5d00bd04c419639d0",
