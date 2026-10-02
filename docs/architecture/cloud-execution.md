@@ -55,6 +55,8 @@ MyEve retains all owner data and sends only authenticated Work submit/read/cance
 
 **Harness: retain Codex CLI and qualify it in Linux cloud first.** The current local qualification does not transfer automatically. DeepAgent is NOT_QUALIFIED and independent of cloud rollout. Pin one harness/model per attempt; no fallback. Inventory, restore and qualify DeepAgent separately against the same corpus only after the cloud path works.
 
+**Harness-neutral contract:** [HarnessProvider](harness-provider.md) separates admitted execution resources from bounded harness sessions. Qualification pins Environment × ExecutionProvider × Harness × Harness version × Model × Tools × Skills × Verification policy. Preserve existing harness → deterministic CLOUD → independent verifier → Mac-off/P0 → separately authorized real canary → DeepAgent → later measured alternatives. The registry is deferred; no mid-Work switching or silent fallback.
+
 ## Phase 1 implementation and honest limits
 
 `ExecutionProvider` now defines prepare/start/read/cancel/collect/health/teardown/reconcile. `LocalExecutionProvider` wraps the existing JobManager and isolates host process/Docker resource observations. Factory dispatch retains client authorization, exact admission binding, transactionally claimed START, spend authority, cancellation and terminal tombstones. The server explicitly constructs the local provider; there is no cloud toggle or fallback.

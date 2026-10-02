@@ -100,3 +100,14 @@ The qualification-only hosted Work controller now implements private queue dispa
 The current access-qualification controller preview is https://myfactory-cloud-staging-ao0tx133g-jaydubya818.vercel.app (`dpl_AWaRtExXPgKucMn2jHHudZe3ckDS`, source digest `a4c87222bebc47b621b95cd53e44952a57e6257521855d737a71410d3df255ab`). Application grants are independent of the deployment bypass. The [approved scope and revocation procedure](../cloud-execution/phase-3/sofie-access-approval.md) apply. Hosted boundary checks remain pending; no real model or publication is authorized.
 
 The approved Factory bypass is configured, but Sofie operator ingress is separately protected and has no bypass. Hosted access matrix is **NOT_RUN** pending that distinct security decision; [scope and evidence](../cloud-execution/phase-3/sofie-access-approval.md). Factory deterministic regressions: 224 PASS, 0 FAIL, 7 gated skips. No Work was dispatched and no paid model or publication was invoked.
+
+## Harness qualification order
+
+Follow the [HarnessProvider contract](../architecture/harness-provider.md). First
+qualify the existing MyFactory/Codex harness in CLOUD with deterministic responses
+and independent verification, then Mac-off/P0, then request the bounded real
+canary. DeepAgent and other adapters follow afterward. Pin the full effective
+eight-dimensional tuple in FactoryVersion; qualification does not transfer
+between local/cloud environments or harness versions. Use the same versioned
+Work corpus and controlled environment for later harness comparisons. Never
+switch an admitted Work to a fallback harness. The registry remains deferred.

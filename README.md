@@ -90,3 +90,10 @@ Cloud custody now has pure-data source/tree/patch validation and durable Postgre
 The qualification-only hosted Work controller now implements private queue dispatch, exact source/worker execution, custody validation, cancellation/recovery and signed Result retention. Hosted Work qualification remains NOT_RUN. The dedicated staging-project deployment-protection bypass is now explicitly approved and configured only in Sofie sensitive preview backend configuration; Factory environment injection is disabled. Hosted application-boundary qualification is pending; see the Phase 3 access approval document. Public cloud admission stays disabled and paid model calls remain zero.
 
 The approved Factory bypass is configured, but Sofie operator ingress is separately protected and has no bypass. Hosted access matrix is **NOT_RUN** pending that distinct security decision; [scope and evidence](docs/cloud-execution/phase-3/sofie-access-approval.md). Factory deterministic regressions: 224 PASS, 0 FAIL, 7 gated skips. No Work was dispatched and no paid model or publication was invoked.
+
+Cloud execution remains [harness-neutral](docs/architecture/harness-provider.md).
+The current MyFactory/Codex harness is first: deterministic cloud execution →
+independent verifier → Mac-off/P0 → separately approved real cloud canary.
+DeepAgent, Claude Code, OpenCode and other adapters are deferred until their turn
+in qualification; none is implied qualified. FactoryVersion pins the complete
+environment/provider/harness/version/model/tools/skills/verification tuple.
