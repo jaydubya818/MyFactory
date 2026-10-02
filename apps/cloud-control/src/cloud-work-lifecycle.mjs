@@ -1,3 +1,4 @@
+import {cloudSessionSurface} from './session-surface-policy.ts';
 const safeCode=error=>/^[A-Z_]{3,80}$/.test(error?.message??'')?error.message:'PROVIDER_OR_STORAGE_ERROR';
 
 /** One callback may claim the canonical Run. Redelivery never starts a second
@@ -28,7 +29,7 @@ export async function executeCloudWork(store,provider,clientId,identity,schedule
   const collected=await provider.collect(sandbox,row,manifest);
   await store.retainCustody(...args,collected.receipt);
   const visibleChecksPassed=collected.bundle.checks.every(c=>c.exitCode===0);
-  await store.noteResource(...args,{visibleChecksPassed,modelOperations:0,executor:'deterministic-qualification',protectedVerification:'NOT_RUN'});
+  await store.noteResource(...args,{visibleChecksPassed,modelOperations:0,sessionSurface:cloudSessionSurface,executor:'deterministic-qualification',protectedVerification:'NOT_RUN'});
   status=visibleChecksPassed?'COMPLETED':'FAILED';
  }catch(error){
   await store.noteResource(...args,{failure:safeCode(error)});

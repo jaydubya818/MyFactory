@@ -25,3 +25,14 @@ test('recovery fences first and never restarts productive execution',async()=>{
  await reconcileCloudWork(f.store,f.provider,'client','request',()=>Date.now()+200000);
  assert.equal(f.effects.filter(x=>x==='ALLOCATE').length,1);assert.equal(f.effects.includes('EXECUTE'),false);assert.equal(f.row.events[0].payload.status,'FAILED');
 });
+
+test('HEADLESS cloud custody and teardown never consult unavailable operator session surfaces',async()=>{
+ const f=fixture();
+ // Any accidental surface discovery/construction is a failure, not a fallback.
+ const provider=new Proxy(f.provider,{get(target,key){if(['sessionSurface','sessionSurfaceProvider','attach','tmux','cmux'].includes(String(key)))throw Error('SURFACE_MUST_NOT_BE_REQUIRED');return Reflect.get(target,key);}});
+ await executeCloudWork(f.store,provider,'client',f.identity,f.recovery);
+ assert.equal(f.row.resource.evidence.sessionSurface,'HEADLESS');
+ assert.equal(f.row.custody.commit,'candidate');
+ assert.equal(f.row.resource.cleanup_confirmed,true);
+ assert.equal(f.row.events[0].payload.status,'COMPLETED');
+});

@@ -74,7 +74,7 @@ Skills × Verification policy.**
 | Harness and version | Harness ID, adapter implementation digest, exact upstream binary/package version and integrity. Existing `executor`/`executorVersion` plus source digest are the compatibility fields, not permission to select a different adapter. |
 | Model | Exact model and provider route, pricing/accounting policy; deterministic fixtures still traverse the production model boundary. |
 | Tools | Explicit versions/integrity and capability policy; existing tool policy digest, commands and allowed paths. |
-| Skills | Explicit name, version/content hash and capability requirements; existing V2 skill descriptors. Dynamic discovery never expands authority. |
+| Skills | Explicit name, version/content hash and capability requirements; existing V2 skill descriptors. Every loaded skill descriptor and content hash must appear in execution evidence, not only configuration. Dynamic discovery never expands authority. |
 | Verification policy | Independently qualified policy/version/hash, verifier image and identity boundary; existing verification policy digest/image. A NOT_QUALIFIED policy cannot yield Ready. |
 
 The tuple is frozen at preparation and bound through dispatch, broker operations,
@@ -93,6 +93,39 @@ qualified tuples before admission. The LLM cannot choose or switch harnesses
 mid-Work. Missing, unhealthy or unqualified selection fails closed into canonical
 Waiting/Needs attention; there is no silent harness, model, environment or local
 fallback. Retry/recovery preserves the admitted identity and UNKNOWN semantics.
+
+## Optional session surfaces
+
+Consume Environment Fabric's canonical `@factory/contracts/session-surface`,
+imported unchanged from Fabric commit
+`9983ccfcc6881b090e3d11bc575d1af1e710195e`. The cloud session policy now uses
+that contract's `SessionSurfaceKind` and records **HEADLESS** in durable resource
+evidence. This import does not bring in Fabric's routing implementation, merge
+its branch, or enable a terminal adapter.
+
+HEADLESS is the mandatory production default. No `SessionSurfaceProvider` needs
+to exist or be called during productive execution, custody, independent
+verification, Result retention or recovery. No `session.headless` capability
+advertisement is a prerequisite for productive Work. TMUX and CMUX are optional
+operator conveniences after the Mac-off milestone. They must not become process
+supervisors, Work truth, execution leases, model brokers or recovery dependencies.
+
+Any future integration uses only canonical `observe`, `attach`, `detach` and
+`reconcile`, with exact Work/execution generations, environment and attempt.
+Recheck operator scope, live authority, lease/fence, environment qualification,
+capabilities, policy and revocation at effect time; the pure scope guard alone
+is insufficient. An attachment ID is not a bearer grant. No verifier attachment,
+caller-selected host/path/command, credential forwarding, sibling-Work access or
+terminal-derived completion. A Sandbox SDK session ID identifies a resource,
+not an operator attachment. Surface failure/detach/reconnect cannot start, stop,
+restart or grant authority to productive execution. Keep optional observation
+outside authoritative lifecycle transactions with bounded failure handling.
+
+Deterministic contract tests cover cross-Work/owner/business, stale generations,
+revocation, expiry, verifier denial and injected host/path/command/credential
+fields. The cloud lifecycle regression completes custody and teardown without
+consulting even an unavailable surface integration. This is local deterministic
+evidence, not a connected crash/reconnect or Mac-off PASS.
 
 ## Critical path and evidence
 
@@ -123,6 +156,24 @@ changes separately from environment changes. Compare success, operation counts,
 latency, test pass rate, repair effectiveness, cancellation, recovery, actual
 cost/accounting completeness and evidence completeness. Record first-run and
 retry outcomes. Subjective output quality alone cannot select the default.
+
+Use these explicit metrics, with raw counts and eligibility rules retained:
+
+| Metric | Comparison evidence |
+| --- | --- |
+| Success | Successful Work / admitted corpus Work; retain failures, UNKNOWN, skips and NOT_RUN separately. |
+| Verification rate | Independently passing candidates / submitted candidates; missing/failed verifier evidence is not a pass. |
+| Repair rate | Initially failing, repair-eligible cases corrected within the original budget / all repair-eligible failures; retain no-repair and budget-exhausted outcomes. |
+| Operations | Productive, repair and completion counts, rejected requests, reservations and UNKNOWN exposure. |
+| Latency | Admission-to-terminal and phase durations; show timeouts/failures and sample counts alongside percentiles. |
+| Cost | Actual provider/accounted cost with completeness and unresolved exposure; distinguish zero paid fixture calls from estimated live cost. |
+| Cleanup/recovery | Confirmed teardown / allocations, unresolved resources, cancellation/recovery outcomes and duplicate effects. |
+
+Compare harness-only changes within the same environment/task/model stratum. If
+a harness requires another image or tool policy, report that as a different
+tuple and a separate comparison, not a harness-only improvement. Skill evidence
+must identify what was actually loaded; record an explicit empty set if none
+were loaded. A changed skill hash invalidates the prior tuple qualification.
 
 Current hosted access matrix, cloud harness, independent verifier and Mac-off/P0
 remain NOT_RUN. The approved Factory bypass is configured; the separately

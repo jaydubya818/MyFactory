@@ -97,3 +97,11 @@ independent verifier → Mac-off/P0 → separately approved real cloud canary.
 DeepAgent, Claude Code, OpenCode and other adapters are deferred until their turn
 in qualification; none is implied qualified. FactoryVersion pins the complete
 environment/provider/harness/version/model/tools/skills/verification tuple.
+
+The [harness addendum](docs/architecture/harness-provider.md) now consumes Fabric's canonical optional
+SessionSurface contract. HEADLESS remains mandatory; TMUX/CMUX are deferred
+operator conveniences, with no role in productive lifetime or recovery.
+Qualification evidence must include loaded skill hashes. Differential reports
+use the same corpus/environment/model and report success, independent
+verification rate, repair rate, operations, latency, cost and cleanup/recovery.
+These contract changes do not qualify the hosted harness or Mac-off journey.

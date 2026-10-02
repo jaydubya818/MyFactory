@@ -166,3 +166,11 @@ Cloud custody now has pure-data source/tree/patch validation and durable Postgre
 The qualification-only hosted Work controller now implements private queue dispatch, exact source/worker execution, custody validation, cancellation/recovery and signed Result retention. Hosted Work qualification remains NOT_RUN. The dedicated staging-project deployment-protection bypass is now explicitly approved and configured only in Sofie sensitive preview backend configuration; Factory environment injection is disabled. Hosted application-boundary qualification is pending; see the Phase 3 access approval document. Public cloud admission stays disabled and paid model calls remain zero.
 
 The approved Factory bypass is configured, but Sofie operator ingress is separately protected and has no bypass. Hosted access matrix is **NOT_RUN** pending that distinct security decision; [scope and evidence](../cloud-execution/phase-3/sofie-access-approval.md). Factory deterministic regressions: 224 PASS, 0 FAIL, 7 gated skips. No Work was dispatched and no paid model or publication was invoked.
+
+The [harness addendum](harness-provider.md) now consumes Fabric's canonical optional
+SessionSurface contract. HEADLESS remains mandatory; TMUX/CMUX are deferred
+operator conveniences, with no role in productive lifetime or recovery.
+Qualification evidence must include loaded skill hashes. Differential reports
+use the same corpus/environment/model and report success, independent
+verification rate, repair rate, operations, latency, cost and cleanup/recovery.
+These contract changes do not qualify the hosted harness or Mac-off journey.

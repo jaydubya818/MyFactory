@@ -222,9 +222,9 @@
       "sha256": "daf0ffa29c40cbc524139f323d13434e107a26b7ab3fbf88b9aa759de74823fe"
     },
     "apps/cloud-control/src/cloud-work-lifecycle.mjs": {
-      "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "9217296bed0d6a5dd64edcf92320db2a05d89c3c20d54f4531ebed34dd7e2416"
+      "sha256": "4b1c02a8f9246b87fdf3bbd47536be333fb4418149cfee42480fe6d691795670",
+      "classification": "CLOUD_WORK_LIFECYCLE",
+      "authorityBoundary": "Retain canonical claim, recovery, fencing, custody, cleanup and terminal transitions. Record mandatory HEADLESS policy in durable execution evidence; never consult a session surface or launch a terminal adapter."
     },
     "apps/cloud-control/api/cloud-recovery.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -240,6 +240,16 @@
       "classification": "STAGING_CLOUD_EXECUTION",
       "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
       "sha256": "66fae736e34da2dba309798f9da49cf965b74b30c7673dfb89d4a1c2dd63d442"
+    },
+    "packages/contracts/src/session-surface.ts": {
+      "sha256": "19b90b64505f4ce01bbc77326fdbecf3f951c789dd4f5c87a7bcac2540f95698",
+      "classification": "OPTIONAL_SESSION_SURFACE_CONTRACT",
+      "authorityBoundary": "Exact Environment Fabric contract from 9983ccfcc6881b090e3d11bc575d1af1e710195e; pure scope parser/guard and optional observation/attachment types. No adapters/endpoints or new Work authority. Full authority/lease/qualification checks remain required at any future effect."
+    },
+    "apps/cloud-control/src/session-surface-policy.ts": {
+      "sha256": "3edb7f4139e53f7306084d9fd14bb2d17474a3e68359e5aebe95031a45d695da",
+      "classification": "HEADLESS_POLICY",
+      "authorityBoundary": "Consume canonical SessionSurfaceKind; mandatory HEADLESS production default, no provider construction or runtime terminal dependency."
     }
   }
 }

@@ -111,3 +111,11 @@ eight-dimensional tuple in FactoryVersion; qualification does not transfer
 between local/cloud environments or harness versions. Use the same versioned
 Work corpus and controlled environment for later harness comparisons. Never
 switch an admitted Work to a fallback harness. The registry remains deferred.
+
+The [harness addendum](../architecture/harness-provider.md) now consumes Fabric's canonical optional
+SessionSurface contract. HEADLESS remains mandatory; TMUX/CMUX are deferred
+operator conveniences, with no role in productive lifetime or recovery.
+Qualification evidence must include loaded skill hashes. Differential reports
+use the same corpus/environment/model and report success, independent
+verification rate, repair rate, operations, latency, cost and cleanup/recovery.
+These contract changes do not qualify the hosted harness or Mac-off journey.
