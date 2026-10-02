@@ -57,3 +57,14 @@ export function validateCandidateBundle(bytes,request) {
   }
   return{bundle:b,sha256:sha256(bytes),bytes:bytes.length,commit:b.commit,tree:b.tree,paths};
 }
+
+/** Validate bytes actually delivered by private storage. SDK blob.size comes
+ * from HTTP Content-Length, which can be absent or describe compressed bytes. */
+export async function validateCustodyReadback(saved,expected){
+ if(saved?.statusCode!==200||!saved.stream||!Number.isSafeInteger(expected.bytes)||expected.bytes<1||expected.bytes>256000||!/^[a-f0-9]{64}$/.test(expected.sha256))throw Error('PRIVATE_CUSTODY_READBACK');
+ const chunks=[];let length=0;
+ for await(const chunk of saved.stream){const bytes=Buffer.from(chunk);length+=bytes.length;if(length>expected.bytes)throw Error('PRIVATE_CUSTODY_READBACK');chunks.push(bytes);}
+ const bytes=Buffer.concat(chunks);
+ if(length!==expected.bytes||sha256(bytes)!==expected.sha256)throw Error('PRIVATE_CUSTODY_READBACK');
+ return bytes;
+}

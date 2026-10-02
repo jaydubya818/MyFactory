@@ -116,3 +116,5 @@ The existing Codex adapter is now wired into the dedicated cloud worker through 
 Independent cloud verification is now implemented behind the qualification boundary, including Factory-owned leases/custody, separate sandbox identity, cancellation/cleanup fencing and signed canonical Result evidence. [Implementation and validation limits](docs/cloud-execution/phase-3/independent-verifier.md). Hosted verification and the full Golden Journey remain NOT_RUN.
 
 Cloud staging: canonical hosted admission and producer allocation reached; [attempt 2](docs/cloud-execution/phase-3/hosted-attempt-2.md) failed on the pinned harness archive layout, with cleanup confirmed and zero model operations. Installer repair is under deterministic regression; Golden Journey remains NOT_RUN.
+
+[Hosted attempt 3](docs/cloud-execution/phase-3/hosted-attempt-3.md): existing harness productive/checkpoint/read-only completion observed in CLOUD, two deterministic operations and zero paid calls. Private custody readback failed; sandbox destroyed. Independent verifier and Golden Journey remain NOT_RUN.

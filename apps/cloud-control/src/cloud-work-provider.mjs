@@ -4,8 +4,7 @@ import { custodyStoreId,stagingProjectId } from './config.mjs';
 import { noReplayFetch,boundedBytes,infrastructureProvider } from './infrastructure-provider.mjs';
 import { qualifiedImage } from './infrastructure-plan.mjs';
 import { cloudSource,materializationScript,quiescenceScript } from './cloud-work-plan.mjs';
-import { validateCandidateBundle } from './candidate-custody.mjs';
-import { sha256 } from '../../../packages/hosted-routing/src/result.ts';
+import { validateCandidateBundle,validateCustodyReadback } from './candidate-custody.mjs';
 
 import {installCloudHarness} from './cloud-harness-phase.mjs';
 import {executeCloudHarness} from './cloud-harness-executor.mjs';
@@ -43,7 +42,7 @@ export function cloudWorkProvider({ledger}) {
    const pathname=`factory/staging/runs/${row.run_id}/${validated.sha256}.json`;
    await put(pathname,bytes,{access:'private',storeId:custodyStoreId,addRandomSuffix:false,allowOverwrite:false,contentType:'application/json',abortSignal:signal()});
    const saved=await get(pathname,{access:'private',storeId:custodyStoreId,useCache:false,abortSignal:signal()});
-   if(saved?.statusCode!==200||saved.blob.size!==bytes.length||sha256(await boundedBytes(saved.stream))!==validated.sha256)throw Error('PRIVATE_CUSTODY_READBACK');
+   await validateCustodyReadback(saved,{bytes:bytes.length,sha256:validated.sha256});
    return{receipt:{commit:validated.commit,tree:validated.tree,sha256:validated.sha256,bytes:bytes.length,pathname},bundle:validated.bundle};
   },
   async readCustody(row){

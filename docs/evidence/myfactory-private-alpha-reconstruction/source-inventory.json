@@ -189,7 +189,7 @@
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
       "authorityBoundary": "Bounded pure-data Git object and exact patch validation against admitted source/tree/path; no process execution, filesystem, network, protected-verifier verdict or publication authority.",
-      "sha256": "d5927ad0b63641456ca2c3252cb65bc6f7dea6718ac97f593037ba06157bc0e9"
+      "sha256": "6c70b229315db0725488ca0a97dcebb81b8035ca1892115b5c8997a330ba7e28"
     },
     "apps/cloud-control/src/cloud-work-control.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -214,7 +214,7 @@
     "apps/cloud-control/src/cloud-work-provider.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
       "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "b86fa09524c74243c715770f616813093676f7212ca1c3ae0f672043213ca9c8"
+      "sha256": "cbab0574824b53068a1c23014fc24d5e4012351e05b090792fc9cfaeb24c6b9d"
     },
     "apps/cloud-control/src/cloud-work-plan.mjs": {
       "sha256": "8efb19e5cbc6a8dbc7259d6299412632f278c97b4076eb1539e4da2f7b8395e6",

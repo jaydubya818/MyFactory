@@ -128,3 +128,5 @@ The existing Codex adapter is now wired into the dedicated cloud worker through 
 Independent cloud verification is now implemented behind the qualification boundary, including Factory-owned leases/custody, separate sandbox identity, cancellation/cleanup fencing and signed canonical Result evidence. [Implementation and validation limits](../cloud-execution/phase-3/independent-verifier.md). Hosted verification and the full Golden Journey remain NOT_RUN.
 
 Pinned harness packaging: 0.157.0 uses vendor/bin/codex and companion resources; install the integrity-pinned vendor subtree. Hosted attempt 2 failed on the old layout and was destroyed; see phase-3/hosted-attempt-2.md. Installer failures must retain only allowlisted codes, never raw provider stderr.
+
+Private custody readback must check bounded decoded stream bytes and SHA-256, not SDK Content-Length metadata. Hosted attempt 3 proved the existing harness phases but failed readback; no independent verification or Golden Journey claim is justified. Preserve its ledger and uploaded unaccepted artifact as evidence.

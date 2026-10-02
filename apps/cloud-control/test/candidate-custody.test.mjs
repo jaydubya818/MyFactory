@@ -4,7 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
-import {fileTree,validateCandidateBundle} from '../src/candidate-custody.mjs';
+import {fileTree,validateCandidateBundle,validateCustodyReadback} from '../src/candidate-custody.mjs';
 
 function fixture(){
  const dir=mkdtempSync(join(tmpdir(),'factory-custody-test-'));
@@ -25,4 +25,13 @@ test('cloud custody computes exactly the same nested tree and commit as Git with
 test('cloud custody rejects source substitution, candidate tampering, scope escalation and malformed files',()=>{
  const f=fixture();for(const mutate of [b=>b.sourceFiles['folder.other']='other',b=>b.files['folder/file.mjs']='changed',b=>b.commit='a'.repeat(40),b=>b.treeBase64='',b=>b.commitBase64+='=',b=>b.patchBase64=Buffer.from(Buffer.from(b.patchBase64,'base64').toString().replace('+export const value = 1;','+export const value = 9;')).toString('base64'),b=>b.checks[0].command='unauthorized',b=>b.files['../escape']='x',b=>b.files.folder='collision',b=>b.files['folder/file.mjs']='\0']){const b=structuredClone(f.bundle);mutate(b);assert.throws(()=>validateCandidateBundle(Buffer.from(JSON.stringify(b)),f.request));}
  assert.throws(()=>validateCandidateBundle(Buffer.from(JSON.stringify(f.bundle)),{...f.request,input:{...f.request.input,allowedPaths:['other']}}),/PATH_DENIED/);
+});
+
+test('Attempt 3: storage readback validates decoded bytes, not absent or compressed Content-Length',async()=>{
+ const bytes=Buffer.from('a bounded custody artifact'),sha256=(await import('node:crypto')).createHash('sha256').update(bytes).digest('hex');
+ for(const size of [0,7,bytes.length])assert.deepEqual(await validateCustodyReadback({statusCode:200,blob:{size},stream:[bytes.subarray(0,3),bytes.subarray(3)]},{bytes:bytes.length,sha256}),bytes);
+});
+test('storage readback rejects missing, partial, enlarged and changed content regardless of metadata',async()=>{
+ const bytes=Buffer.from('custody'),sha256=(await import('node:crypto')).createHash('sha256').update(bytes).digest('hex'),expected={bytes:bytes.length,sha256};
+ for(const saved of [null,{statusCode:304,stream:[bytes]},{statusCode:200,stream:null},{statusCode:200,blob:{size:bytes.length},stream:[bytes.subarray(1)]},{statusCode:200,stream:[bytes,Buffer.from('x')]},{statusCode:200,stream:[Buffer.from('altered')]}])await assert.rejects(validateCustodyReadback(saved,expected),/PRIVATE_CUSTODY_READBACK/);
 });
