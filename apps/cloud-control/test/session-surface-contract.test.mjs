@@ -62,4 +62,3 @@ for (const [name, mutate] of [
   const r = structuredClone(request); mutate(r);
   assert.throws(() => parseSessionAttachmentRequest(r), /INVALID_SESSION_ATTACHMENT/);
 });
-
