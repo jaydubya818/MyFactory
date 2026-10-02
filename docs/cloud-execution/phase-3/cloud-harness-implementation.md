@@ -40,8 +40,8 @@ closure and worker files. Local tests are not a hosted harness PASS.
 
 Next: compose the authenticated canonical Sofie staging Work path and independent
 Factory-owned verifier, deploy the exact pinned configuration, and preserve the
-first bounded connected attempt. Factory's protection bypass remains only in
-Sofie's backend; do not copy it into a runner to shortcut this composition.
+first bounded connected attempt. Factory protection now uses exact preview-only Trusted Sources OIDC from
+Sofie's backend; no static Factory bypass may enter runner custody.
 Product remains WAITING_FOR_CANONICAL_STAGING_COMPOSITION. Mac-off, browser-off
 and P0 are NOT_RUN. Attempt-8 publication code is unchanged and publication is
 DISABLED. No alternative harness or terminal/computer adapter was introduced.

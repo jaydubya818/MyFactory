@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {executeCloudWork,reconcileCloudWork} from '../src/cloud-work-lifecycle.mjs';
+import {cloudVerifierPolicySha256} from '../src/cloud-verifier-policy.mjs';
 function fixture(fault){
  const effects=[];const row={run_id:'run',resource:{run_id:'run',lease_owner:'owner',lease_generation:1,provider_name:'factory-run-run',provider_session_id:null,cleanup_confirmed:false,deadline:new Date(Date.now()+100000).toISOString(),evidence:{}},events:[],custody:null};let claimed=false;
  const store={claim:async()=>{if(claimed)return null;claimed=true;return structuredClone(row.resource);},read:async()=>structuredClone(row),heartbeat:async()=>{if(fault==='cancel')throw Error('LEASE_FENCED');},recordAllocation:async(_r,_o,_g,id)=>{row.resource.provider_session_id=id;},advanceResource:async(_r,_o,_g,state)=>{effects.push(state);row.resource.state=state;},noteResource:async(_r,_o,_g,data)=>Object.assign(row.resource.evidence,data),retainCustody:async(_r,_o,_g,data)=>{row.custody=data;},confirmCleanup:async()=>{row.resource.cleanup_confirmed=true;},finalize:async(_c,_q,status)=>{row.events.push({type:'factory.terminal',payload:{status}});},reconcileExpired:async()=>{effects.push('FENCE');}};
@@ -35,4 +36,18 @@ test('HEADLESS cloud custody and teardown never consult unavailable operator ses
  assert.equal(f.row.custody.commit,'candidate');
  assert.equal(f.row.resource.cleanup_confirmed,true);
  assert.equal(f.row.events[0].payload.status,'COMPLETED');
+});
+
+test('pinned cloud verifier runs after producer teardown and before canonical terminal',async()=>{
+ const f=fixture();f.row.snapshot={configuration:{cloud:{verificationPolicySha256:cloudVerifierPolicySha256}}};
+ f.provider.verifyCandidate=async row=>{assert.equal(row.resource.cleanup_confirmed,true);assert.equal(row.events.length,0);f.effects.push('VERIFY');return{cleanup_confirmed:true,outcome:'PASS'};};
+ await executeCloudWork(f.store,f.provider,'client',f.identity,f.recovery);
+ assert.equal(f.effects.at(-1),'VERIFY');assert.equal(f.row.events[0].payload.status,'COMPLETED');
+});
+test('missing or unclean verifier cannot silently fall back to producer checks',async()=>{
+ for(const missing of [true,false]){
+  const f=fixture();f.row.snapshot={configuration:{cloud:{verificationPolicySha256:cloudVerifierPolicySha256}}};
+  if(!missing)f.provider.verifyCandidate=async()=>({cleanup_confirmed:false,outcome:'PASS'});
+  await assert.rejects(executeCloudWork(f.store,f.provider,'client',f.identity,f.recovery));assert.equal(f.row.events.length,0);
+ }
 });

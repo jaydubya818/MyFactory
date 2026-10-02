@@ -1,4 +1,6 @@
 import {cloudSessionSurface} from './session-surface-policy.ts';
+import {cloudVerifierPolicySha256} from './cloud-verifier-policy.mjs';
+const requiresVerifier=row=>row.snapshot?.configuration?.cloud?.verificationPolicySha256===cloudVerifierPolicySha256;
 const safeCode=error=>/^[A-Z_]{3,80}$/.test(error?.message??'')?error.message:'PROVIDER_OR_STORAGE_ERROR';
 
 /** One callback may claim the canonical Run. Redelivery never starts a second
@@ -41,7 +43,16 @@ export async function executeCloudWork(store,provider,clientId,identity,schedule
   }
  }
  const observed=await store.read(clientId,identity.requestId);
- if(observed.resource?.cleanup_confirmed)await store.finalize(clientId,identity.requestId,status);
+ if(observed.resource?.cleanup_confirmed){
+  if(status==='COMPLETED'&&requiresVerifier(observed)){
+   // Producer is destroyed before protected inputs enter an independent
+   // sandbox. A missing adapter or ambiguous cleanup never skips this gate.
+   const verification=await provider.verifyCandidate(observed);
+   if(!verification?.cleanup_confirmed)throw Error('VERIFIER_CLEANUP_UNPROVEN');
+   if(!['PASS','FAIL'].includes(verification.outcome))status='FAILED';
+  }
+  await store.finalize(clientId,identity.requestId,status);
+ }
  return store.read(clientId,identity.requestId);
 }
 
@@ -49,6 +60,7 @@ export async function reconcileCloudWork(store,provider,clientId,requestId,now=D
  const row=await store.read(clientId,requestId),r=row.resource;
  if(!r){if(row.events.some(e=>e.type==='factory.stop_requested'))await store.finalize(clientId,requestId,'CANCELLED');return store.read(clientId,requestId);}
  if(r.cleanup_confirmed){
+  if(requiresVerifier(row))await provider.reconcileVerification(row);
   if(!row.events.some(e=>e.type==='factory.terminal'))await store.finalize(clientId,requestId,row.custody&&r.evidence.visibleChecksPassed?'COMPLETED':'FAILED');
   return store.read(clientId,requestId);
  }

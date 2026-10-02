@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { canonical, digest } from '../../../packages/hosted-routing/src/result.ts';
 import { assertSpendBinding } from '../../../packages/storage/src/spend-policy.ts';
 import { parseCloudPrepare } from '../../../packages/contracts/src/cloud-execution.ts';
+import {cloudVerifierPolicySha256} from './cloud-verifier-policy.mjs';
 
 /** Canonical Factory admission history and resource leases. Queue delivery grants
  * no authority. All mutable checks serialize with the canonical spend ledger. */
@@ -36,6 +37,7 @@ export class PostgresDispatchStore {
       if(other.some(r=>r.client_id!==grant.clientId||r.work_generation>=request.workGeneration))throw Error('WORK_SCOPE_OR_GENERATION_CONFLICT');
       // No new generation while an earlier resource can still execute.
       if((await client.query('SELECT 1 FROM factory.intake_receipts i JOIN factory.execution_resources r ON r.run_id=i.run_id WHERE i.work_id=$1 AND NOT r.cleanup_confirmed',[request.workId])).rowCount)throw Error('WORK_RESOURCE_UNRESOLVED');
+      if((await client.query('SELECT 1 FROM factory.intake_receipts i JOIN factory.verification_resources v ON v.run_id=i.run_id WHERE i.work_id=$1 AND NOT v.cleanup_confirmed',[request.workId])).rowCount)throw Error('WORK_RESOURCE_UNRESOLVED');
       const workOrderId=randomUUID(),runId=randomUUID(),at=new Date(now).toISOString();
       const order={...request.input,id:workOrderId,source:request.source,baseRef:request.source.commit,reproductionCommand:null,expectedFailureText:null,workerProfile:'container',state:'queued',createdAt:at,updatedAt:at};
       const run={id:runId,workOrderId,attemptNumber:1,state:'planning',workerProfile:'container',inputCommit:request.source.commit,candidateCommit:null,workspaceRef:`factory-run:${runId}`,startedAt:at,finishedAt:null,failure:null};
@@ -65,6 +67,7 @@ export class PostgresDispatchStore {
       const prior=await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.dispatch_claimed','factory.stop_requested','factory.terminal')",[row.run_id]);
       if(prior.rowCount)return null;
       if(new Date(row.deadline).getTime()<=now)throw Error('WORK_DEADLINE_EXPIRED');
+      if((await client.query('SELECT 1 FROM factory.verification_resources WHERE NOT cleanup_confirmed LIMIT 1')).rowCount)throw Error('VERIFIER_RESOURCE_UNRESOLVED');
       const b=(await client.query('SELECT * FROM factory.work_spend_budgets WHERE work_id=$1',[row.work_id])).rows[0];
       assertSpendBinding(b,{workId:identity.workId,workGeneration:identity.workGeneration,dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,factoryVersion:identity.factoryVersion,runId:identity.remoteRunId},'productive',now);
       if((await client.query("SELECT 1 FROM factory.work_spend_operations WHERE work_id=$1 AND state='unknown' LIMIT 1",[row.work_id])).rowCount)throw Error('UNKNOWN_SPEND_BLOCKS_DISPATCH');
@@ -205,11 +208,15 @@ export class PostgresDispatchStore {
       if((resource&&!resource.cleanup_confirmed)||(!resource&&!stopped))throw Error('RESOURCE_NOT_QUIESCENT');
       const custody=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[row.run_id])).rows[0];
       const expired=new Date(row.deadline).getTime()<=now;
-      const status=stopped?'CANCELLED':expired||resource?.evidence.failure?'FAILED':requestedStatus;
+      const protectedRequired=row.snapshot.configuration?.cloud?.verificationPolicySha256===cloudVerifierPolicySha256;
+      const verification=protectedRequired?(await client.query('SELECT * FROM factory.verification_resources WHERE run_id=$1',[row.run_id])).rows[0]:null;
+      if(verification&&!verification.cleanup_confirmed)throw Error('VERIFIER_CLEANUP_UNPROVEN');
+      const verifierUnknown=protectedRequired&&(!verification||!['PASS','FAIL'].includes(verification.outcome));
+      const status=stopped?'CANCELLED':expired||resource?.evidence.failure||verifierUnknown?'FAILED':requestedStatus;
       if(status==='CANCELLED'&&!stopped)throw Error('CANCELLATION_NOT_REQUESTED');
       if(status==='COMPLETED'&&(!custody||resource.evidence.visibleChecksPassed!==true))throw Error('CANDIDATE_NOT_CHECKED');
       const finishedAt=new Date(now).toISOString(),state=status==='COMPLETED'?'ready_for_review':status.toLowerCase();
-      const terminal={status,finishedAt,candidateCommit:custody?.candidate_commit??null,evidenceRef:`factory:run:${row.run_id}:cleanup`,protectedVerification:'NOT_RUN'};
+      const terminal={status,finishedAt,candidateCommit:custody?.candidate_commit??null,evidenceRef:`factory:run:${row.run_id}:cleanup`,protectedVerification:verification?.outcome??'NOT_RUN'};
       await client.query("UPDATE factory.runs SET state=$2,record=record||$3::jsonb WHERE id=$1",[row.run_id,state,{state,finishedAt,candidateCommit:terminal.candidateCommit,failure:status==='FAILED'?(resource?.evidence.failure??(expired?'WORK_DEADLINE_EXPIRED':resource?.evidence.visibleChecksPassed===false?'VISIBLE_CHECKS_FAILED':'EXECUTION_INTERRUPTED')):null}]);
       await client.query("UPDATE factory.work_orders SET state=$2,record=record||$3::jsonb,updated_at=clock_timestamp() WHERE id=$1",[row.work_order_id,state,{state,updatedAt:finishedAt}]);
       await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id=$1 AND work_generation=$2",[row.work_id,row.work_generation]);
@@ -241,7 +248,8 @@ export class PostgresDispatchStore {
       const events=(await client.query('SELECT type,payload,created_at FROM factory.events WHERE run_id=$1 ORDER BY id',[row.run_id])).rows;
       const custody=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[row.run_id])).rows[0]??null;
       const delivery=(await client.query('SELECT state FROM factory.delivery_intents WHERE run_id=$1',[row.run_id])).rows[0]??null;
-      return{...row,resource,events,custody,delivery};
+      const verification=row.snapshot.configuration?.cloud?.verificationPolicySha256===cloudVerifierPolicySha256?(await client.query('SELECT * FROM factory.verification_resources WHERE run_id=$1',[row.run_id])).rows[0]??null:null;
+      return{...row,resource,events,custody,delivery,verification};
     });
   }
 }

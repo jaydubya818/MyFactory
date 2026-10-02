@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {globSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {mkdtemp,cp,mkdir,copyFile,symlink,rm,readFile,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -19,7 +20,8 @@ test('deployed MJS entries retain the explicit TypeScript dependency closure',as
  assert.throws(run,e=>String(e.stderr).includes('ERR_MODULE_NOT_FOUND'));
  const config=JSON.parse(await readFile(join(root,'apps/cloud-control/vercel.json'),'utf8'));
  for(const f of Object.values(config.functions))assert.equal(f.includeFiles,config.functions['api/*.mjs'].includeFiles);
- const files=config.functions['api/*.mjs'].includeFiles.slice(1,-1).split(',');
+ const pattern=config.functions['api/*.mjs'].includeFiles;assert(pattern.length<=256,'Vercel includeFiles schema bound');
+ const files=pattern.slice(1,-1).split(',').flatMap(part=>globSync(part,{cwd:join(root,'apps/cloud-control')}));
  for(const path of files){const source=resolve(root,'apps/cloud-control',path),relative=source.slice(root.length+1),target=join(dir,relative);assert(!relative.startsWith('..'));await mkdir(dirname(target),{recursive:true});await copyFile(source,target);}
  assert.equal(run(),'');
 });

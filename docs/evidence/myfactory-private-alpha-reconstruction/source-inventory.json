@@ -72,9 +72,9 @@
       "sha256": "63a2e204fe61af29debca551bba01bfb043bec54b0098eb11811782616c93cfb"
     },
     "packages/hosted-routing/src/result.ts": {
-      "classification": "NOT_APPLICABLE",
-      "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory. Explicit snapshot V2 pins immutable cloud image/provider/policy/resources/skills and input tree; strict V1 remains unchanged. Evidence class is part of FactoryVersion; no readiness or publication grant.",
-      "sha256": "e3eb377960f47cb1e0b4f9dea4949991e64aff3ccf1548b88815301d049ceda0"
+      "sha256": "9f3ad70fad6310d9c46f9393db03e63c9af9a79b7ee0d55412916a6870209369",
+      "classification": "RESULT_VERIFICATION_CONTRACT",
+      "authorityBoundary": "Strict legacy snapshot V1 unchanged. Optional cloud-only independent verification is signature-bound, exact-shaped, candidate/policy/resource/chronology checked, and grants no readiness or publication by itself."
     },
     "apps/supervisor/src/git.ts": {
       "sha256": "5969e10d9dd82a0413c56d25d4e92bb2deca2b749d1654e5d00bd04c419639d0",
@@ -182,9 +182,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "5240b3dbabcc544da9e15f1c3d2bc08a126477842746eb046c0ecb132555af22",
-      "classification": "CANONICAL_CLOUD_ADMISSION",
-      "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired. Immutable private custody and exact-resource cleanup observations; queue receipts only authenticate wake-ups, never execution authority."
+      "sha256": "9ee4f1097930cc499e925dc7ebd3ab9a303c100fe38a5ed28f65aa38b974927f",
+      "classification": "CLOUD_DISPATCH_AUTHORITY",
+      "authorityBoundary": "Canonical staging admission, writer lease, budget and cancellation preserved. Unresolved verifier blocks new productive allocation; terminal result requires verifier teardown."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -202,14 +202,14 @@
       "sha256": "b3df9578ca5da96f544e80407854e3522b8cbb8330d6864bc83ff0a019b5d401"
     },
     "apps/cloud-control/src/cloud-work-result.mjs": {
-      "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "c8bbd947a6e28ec2be1979d28f3d740fe1f79d3683b56b5480567faf1ba9b3eb"
+      "sha256": "8638f112462742f59173ab2b73dcc053a8c34cbb013fe5b3f9ca63f1bf239200",
+      "classification": "CLOUD_SIGNED_RESULT",
+      "authorityBoundary": "Canonical signed Result separately attests independent verifier policy, immutable candidate, Work and distinct destroyed resource; hidden inputs and raw provider errors excluded. No publication/owner authority."
     },
     "apps/cloud-control/src/cloud-runtime.mjs": {
-      "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "6fe1513985e7d4a29aa3956fd33e81560d0f3e86726016f2fb126b3ecf9b1b97"
+      "sha256": "e1ec7af46211a2b8f0cbf8875dd8c72720104c45d44538cafe14c68565740802",
+      "classification": "CLOUD_RUNTIME_COMPOSITION",
+      "authorityBoundary": "Dedicated staging controller binds canonical PostgreSQL dispatch/spend/custody with separate verifier provider; credentials remain host-side; no production admission."
     },
     "apps/cloud-control/src/cloud-work-provider.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -217,14 +217,14 @@
       "sha256": "b86fa09524c74243c715770f616813093676f7212ca1c3ae0f672043213ca9c8"
     },
     "apps/cloud-control/src/cloud-work-plan.mjs": {
-      "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "613ae8424e6632cf2883b6ae48653667fc9122d28656bfbf75ef97c728defd75"
+      "sha256": "8efb19e5cbc6a8dbc7259d6299412632f278c97b4076eb1539e4da2f7b8395e6",
+      "classification": "CLOUD_WORK_POLICY",
+      "authorityBoundary": "Exact source, image, existing Codex harness, deterministic model budget, tools and protected verification hash pinned in FactoryVersion; no model/environment/harness fallback."
     },
     "apps/cloud-control/src/cloud-work-lifecycle.mjs": {
-      "sha256": "136a0cd3fd9eda12982cebbbfd74f2b57755d2246de2227babb6bfa1ac7c89e2",
+      "sha256": "f113f9c28c89bd33b4a21033f2cc1f6b952d76affaaa37c5aefdcdf7805adea7",
       "classification": "CLOUD_WORK_LIFECYCLE",
-      "authorityBoundary": "Retain canonical claim, recovery, fencing, custody, cleanup and terminal transitions. Record mandatory HEADLESS policy in durable execution evidence; never consult a session surface or launch a terminal adapter."
+      "authorityBoundary": "Pinned protected verification occurs only after producer cleanup and before terminal Result. Reconciliation observes original verifier without rerunning; HEADLESS remains mandatory."
     },
     "apps/cloud-control/api/cloud-recovery.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -295,6 +295,26 @@
       "sha256": "6e2b728b8d4d882dac52c9ac25d5af9f8a11dc09ebaa4cfbf67554c064aabfaf",
       "classification": "CLOUD_HARNESS_BOUNDARY",
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-verification.mjs": {
+      "sha256": "fddc2f830348289a018ca9a79b1828e9b0bf2749306eda69419f3039388c7b2c",
+      "classification": "CLOUD_PROTECTED_VERIFICATION",
+      "authorityBoundary": "One durable verification claim per Run; candidate custody is immutable; no replacement on ambiguity; cleanup before observation; errors reduced to controlled codes."
+    },
+    "apps/cloud-control/src/cloud-verifier-policy.mjs": {
+      "sha256": "ba8e1d01dc6135b149bcb08483697adba87c45eecc3170b1647e5c8dd2aa603c",
+      "classification": "CLOUD_PROTECTED_VERIFICATION",
+      "authorityBoundary": "Pinned protected policy and inputs stay in Factory control plane, never producer source/context; no model, publication or owner authority."
+    },
+    "apps/cloud-control/src/cloud-verifier-provider.mjs": {
+      "sha256": "599285c81e13f051446cdf668ad4c519ad05a8362a714ab425dbfceef18065f6",
+      "classification": "CLOUD_PROTECTED_VERIFICATION",
+      "authorityBoundary": "Independent ephemeral sandbox after producer teardown; exact digest, deny-all network, no injected credentials, non-root candidate process; host compares bounded values, then exact resource cleanup."
+    },
+    "apps/cloud-control/src/postgres-verification.mjs": {
+      "sha256": "cfa2da724a8d5c6a9beb681c2be371c983e3ff2748f79b71d2504a2b493ceba9",
+      "classification": "CLOUD_PROTECTED_VERIFICATION",
+      "authorityBoundary": "Factory-only verification custody and leases serialize with canonical dispatch. Cancellation/deadline fence verdicts; one resource per Run; unknown allocation retains slot until reconciled."
     }
   }
 }

@@ -14,7 +14,7 @@ try {
   if (rows.some(row => row.table_schema !== 'factory')) throw new Error('DATABASE_NOT_DEDICATED');
   await client.query(await readFile(new URL('../migrations/001-staging-boundary.sql', import.meta.url), 'utf8'));
   await client.query(`CREATE TABLE IF NOT EXISTS factory.schema_migrations (version text PRIMARY KEY, sha256 text NOT NULL CHECK (sha256 ~ '^[a-f0-9]{64}$'), applied_at timestamptz NOT NULL DEFAULT now())`);
-  for (const version of ['001-staging-boundary','002-canonical-execution-ledger','003-queue-delivery-checks','004-canonical-dispatch','005-cloud-custody']) {
+  for (const version of ['001-staging-boundary','002-canonical-execution-ledger','003-queue-delivery-checks','004-canonical-dispatch','005-cloud-custody','006-cloud-verification']) {
     const sql = await readFile(new URL(`../migrations/${version}.sql`, import.meta.url), 'utf8');
     const sha256 = createHash('sha256').update(sql).digest('hex');
     const prior = (await client.query('SELECT sha256 FROM factory.schema_migrations WHERE version=$1',[version])).rows[0];

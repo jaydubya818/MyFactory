@@ -179,3 +179,5 @@ These contract changes do not qualify the hosted harness or Mac-off journey.
 
 
 The existing Codex adapter is now wired into the dedicated cloud worker through the canonical SpendGateway/PostgreSQL ledger, with integrity-pinned installation, bounded SDK transport, host checkpoints, read-only completion and exact-tree custody. [Implementation and evidence limits](../cloud-execution/phase-3/cloud-harness-implementation.md): 119 local tests PASS, six gated skips; hosted harness and independent verifier remain NOT_RUN. This does not enable production, paid models or publication.
+
+Independent cloud verification is now implemented behind the qualification boundary, including Factory-owned leases/custody, separate sandbox identity, cancellation/cleanup fencing and signed canonical Result evidence. [Implementation and validation limits](../cloud-execution/phase-3/independent-verifier.md). Hosted verification and the full Golden Journey remain NOT_RUN.
