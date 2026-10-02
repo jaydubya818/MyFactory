@@ -114,3 +114,8 @@ Jay approved the separate operator/test-runner bypass. That approval supersedes
 the earlier pending permission above. Configuration now encounters a different
 provider constraint: the only project bypass cannot have environment injection
 disabled. See the [provider boundary evidence and decision](sofie-operator-bypass-provider-boundary.md). Both attempted credentials are revoked.
+
+
+## Runtime injection approved and access qualified
+
+The owner approved Option 1 for only the dedicated Sofie qualification server/build environment. [Hosted access and revocation qualification](sofie-runtime-access.md) supersedes the earlier pending provider-scope decision. Access PASS is not cloud Work PASS.

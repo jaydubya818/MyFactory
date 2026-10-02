@@ -81,3 +81,8 @@ application response. These metadata/deployment-protection checks passed.
 
 No active credential remains. Any later credential creation must use the
 approved custody boundary; do not automatically regenerate during revocation.
+
+
+## Resolved by explicit owner approval
+
+The owner approved Option 1. The [subsequent hosted access matrix and revocation check](sofie-runtime-access.md) pass; this document retains the historical blocked attempts.

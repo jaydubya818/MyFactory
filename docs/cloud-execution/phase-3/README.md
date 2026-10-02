@@ -1,6 +1,6 @@
 # Cloud canonical ledger migration — partial
 
-Sofie operator bypass is now approved, but Vercel rejects disabling deployment environment injection on the project’s sole bypass. Both attempted credentials are revoked; no deployment was created and no bypass remains. The hosted application matrix is **NOT_RUN**, pending a decision on this provider-required expansion beyond operator-only custody. [Evidence and scope decision](sofie-operator-bypass-provider-boundary.md).
+The dedicated Sofie runtime/operator bypass is now explicitly approved and its hosted access matrix is **PASS**, including independent Factory auth and Work-scope denial. Build/client/HTML and observed log scans pass. The credential was then revoked and protection reverified; zero Sofie bypasses remain. [Access evidence and continuation](sofie-runtime-access.md). Canonical cloud harness, verifier, Mac-off and P0 remain NOT_RUN; paid calls are zero.
 
 The image and hosted infrastructure lifecycle passed Phase 2. Canonical cloud Work and the existing harness have not yet been connected. Cloud admission remains DISABLED and paid model operations remain 0.
 

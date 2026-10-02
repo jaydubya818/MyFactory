@@ -36,3 +36,14 @@ test('provider-only credential cannot create/read/dispatch/collect/verify/publis
  }
  assert.equal(calls,0);
 });
+
+test('Vercel rewrite capture preserves the canonical route without accepting query overrides',async()=>{
+ let calls=0;const runtime=async(_env,action)=>{calls++;return action({});};
+ for(const path of ['/api/cloud?path=actions','/api/connect/v2/actions?path=actions']){
+  const r=await handleCloud(request(path),env,runtime);assert.equal(r.status,200);assert.equal((await r.json()).admission,'DISABLED');
+ }
+ assert.equal(calls,2);
+ for(const path of ['/api/connect/v2/actions?path=dispatches','/api/cloud?path=actions&image=other','/api/cloud?path=actions&path=dispatches','/api/cloud?path=../actions','/api/cloud?path=actions//','/other?path=actions'])assert.equal((await handleCloud(request(path),env,runtime)).status,400);
+ assert.equal(calls,2);
+ assert.equal((await handleCloud(request('/api/cloud?path=actions','GET',null,'wrong'),env,runtime)).status,401);
+});

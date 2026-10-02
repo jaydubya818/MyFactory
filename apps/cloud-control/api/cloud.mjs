@@ -9,8 +9,16 @@ export async function handleCloud(request,env,withRuntime=withCloudRuntime){
  const respond=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'private, no-store'}});
  if(!authorized(request,env.FACTORY_SOFIE_STAGING_TOKEN))return respond({error:'UNAUTHORIZED'},401);
  try{assertStagingEnvironment(env);}catch{return respond({error:'STAGING_BOUNDARY_MISMATCH'},503);}
- const url=new URL(request.url),path=url.pathname;
- if(url.search||!['GET','POST'].includes(request.method))return respond({error:'INVALID_REQUEST'},400);
+ const url=new URL(request.url);let path=url.pathname;
+ // Vercel's named rewrite capture is carried as ?path=... to this function.
+ // Accept only that exact transport projection, never arbitrary query options.
+ if(url.search){
+  const entries=[...url.searchParams];const tail=url.searchParams.get('path');
+  if(entries.length!==1||!tail||entries[0][0]!=='path'||!/^[-a-z0-9/]+$/.test(tail)||tail.split('/').some(p=>!p)||
+    !['/api/cloud',`/api/connect/v2/${tail}`].includes(path))return respond({error:'INVALID_REQUEST'},400);
+  path=`/api/connect/v2/${tail}`;
+ }
+ if(!['GET','POST'].includes(request.method))return respond({error:'INVALID_REQUEST'},400);
  try{
   return await withRuntime(env,async({store,control,provider})=>{
    if(path==='/api/connect/v2/actions'&&request.method==='GET')return respond({controls:['factory.prepare','factory.dispatch','factory.observe','factory.stop'],execution:{mode:'CLOUD_DETERMINISTIC',spendEnforced:true},admission:'DISABLED',qualificationOnly:true});

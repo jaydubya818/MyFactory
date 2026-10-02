@@ -14,10 +14,12 @@
           "type": "queue/v2beta",
           "topic": "factory-staging-delivery-check"
         }
-      ]
+      ],
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
     },
     "api/infrastructure.mjs": {
-      "maxDuration": 180
+      "maxDuration": 180,
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
     },
     "api/cloud-work.mjs": {
       "maxDuration": 180,
@@ -26,7 +28,8 @@
           "type": "queue/v2beta",
           "topic": "factory-staging-work"
         }
-      ]
+      ],
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
     },
     "api/cloud-recovery.mjs": {
       "maxDuration": 60,
@@ -35,13 +38,16 @@
           "type": "queue/v2beta",
           "topic": "factory-staging-recovery"
         }
-      ]
+      ],
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
     },
     "api/cloud.mjs": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
     },
     "api/*.mjs": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "includeFiles": "{src/session-surface-policy.ts,../../packages/hosted-routing/src/result.ts,../../packages/contracts/src/model-reference.ts,../../packages/contracts/src/cloud-execution.ts,../../packages/storage/src/spend-policy.ts}"
     }
   },
   "git": {
