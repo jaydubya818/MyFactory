@@ -134,3 +134,7 @@ See [checkpoint evidence](../cloud-execution/phase-1/README.md) and [runbook](..
 - [Vercel Sandbox SDK](https://vercel.com/docs/sandbox/sdk-reference): detached command identity/readback, explicit nonpersistence, stop/delete and authenticated controls.
 - [Vercel Sandbox images](https://vercel.com/docs/sandbox/concepts/images): custom images and digest-qualified references.
 - [Vercel Sandbox pricing/quotas](https://vercel.com/docs/sandbox/pricing): resource limits and the estimates above. Local dependencies/type definitions must be checked against the pinned version during implementation.
+
+## Phase 2 checkpoint
+
+Dedicated staging resources and hosted admission-disabled readiness are established; [Phase 2 evidence](../cloud-execution/phase-2/README.md) separates those connected checks from unrun Work lifecycle gates. Immutable image distribution is externally blocked: managed images return 404 and both daemon/host VCR uploads fail TLS. [Unblock requirements](../cloud-execution/phase-2/image-blocker.md). No cloud allocation, harness or Mac-off result is claimed.

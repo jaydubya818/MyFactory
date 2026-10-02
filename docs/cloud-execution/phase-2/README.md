@@ -18,8 +18,8 @@ Schema migration 001 creates only a Factory staging identity marker and infrastr
 
 ## Evidence
 
-- DETERMINISTIC: complete ordinary suite **185 PASS, 0 FAIL, 5 environment-gated SKIPPED**. Six new tests cover authorization, scope denial, honest readiness, independent dependency failure/redaction and TLS enforcement.
-- DETERMINISTIC: producer typecheck, source-governance check (25 reviewed changed runtime sources), workspace typecheck and build PASS.
+- DETERMINISTIC: complete ordinary suite **187 PASS, 0 FAIL, 5 environment-gated SKIPPED**. Eight new tests cover immutable image/source/time bounds, credential-free allocation plans, authorization, scope denial, honest readiness, independent dependency failure/redaction and TLS enforcement.
+- DETERMINISTIC: producer typecheck, source-governance check (26 reviewed changed runtime sources), workspace typecheck and build PASS.
 - CONNECTED: migration and idempotent rerun PASS; TLS socket and certificate verified.
 - CONNECTED: local and hosted readiness read the dedicated database marker, private Blob namespace and Sandbox API successfully. They report **ready=false / admission=DISABLED**.
 - LIVE model: NOT_RUN, operations 0. No production owner data copied; no GitHub writes.
@@ -28,3 +28,7 @@ Schema migration 001 creates only a Factory staging identity marker and infrastr
 Vercel CLI 62.1.0 unexpectedly labeled the first deployment production despite `--target preview`. That deployment (`dpl_4iW9NNMuFw8nrUP7bD87849NaAYZ`) was confined to the new staging project, had no production-environment database/Blob connection, and was removed after creating the verified preview above. Existing production services were untouched. Do not infer deployment target from command intent; verify provider readback.
 
 Managed image digest resolution returned 404. A private custom image is being prepared from official Node 24 linux/amd64 digest `sha256:5a750d3be5e5c80275f8c9a5367c3aed99c2875656590c8d0701c7ee687f5f0a`; allocation remains pending immutable VCR digest and readiness. Public canonical MyEve/MyFactory repositories permit initial exact source reads without private-alpha or personal GitHub credentials.
+
+## Current external block
+
+The custom worker image builds locally, but legacy Docker, compressed Buildx and independent host-side crane uploads fail at the VCR TLS boundary. Both documented managed-image alternatives return 404. Provider inventory confirms no published image or sandbox. See [exact failures and required external configuration](image-blocker.md). No further upload retries or sandbox allocation are running.

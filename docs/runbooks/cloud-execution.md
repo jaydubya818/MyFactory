@@ -61,3 +61,5 @@ Service source: `apps/cloud-control`. Exact resources and deployment evidence: [
 Migrations are explicit operator actions, never performed on a web request: run `apps/cloud-control/scripts/migrate.mjs` with only this dedicated staging database and matching project/environment. The script validates TLS, rejects non-Factory tables, takes a transaction advisory lock and verifies the database marker. Keep local environment files gitignored and mode 600.
 
 Preview deployments use `vercel deploy --target preview`. Verify the returned target: the CLI can promote the first deployment of a new project despite that flag. No production-target deployment may receive staging credentials. The observed first-deploy exception was removed.
+
+Image distribution currently requires an [external unblock](../cloud-execution/phase-2/image-blocker.md). Do not repeatedly retry uploads, loosen TLS, use mutable images, or advance to model execution. No sandbox has been allocated. Resume with image digest/readiness verification after configuration is repaired.

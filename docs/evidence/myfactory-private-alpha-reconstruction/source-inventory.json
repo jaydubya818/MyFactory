@@ -125,6 +125,11 @@
       "sha256": "28363ad4bf96e44e158d79dadffdd5b254ed48650997ac63c0384a18dbba1b83",
       "classification": "cloud-staging-foundation",
       "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+    },
+    "apps/cloud-control/src/infrastructure-plan.mjs": {
+      "sha256": "df7a441e111d9c50dbeb30fbbd24ee50f777bebb85e585b2a897491da24a0dcf",
+      "classification": "cloud-staging-infrastructure-plan",
+      "authorityBoundary": "Fixed public source, immutable staging image, bounded nonpersistent single sandbox plan; no caller-supplied commands or credentials; not wired to allocation"
     }
   }
 }

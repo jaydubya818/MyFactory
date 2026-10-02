@@ -42,5 +42,8 @@
   "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4",
   "databaseResourceId": "store_Z5va0qHQwe9Ok4LH",
   "privateArtifactStoreId": "store_kZ9n2mzEmqmKX7bZ",
-  "authorization": "Dedicated development/staging resources reasonably required for deterministic qualification approved; production and paid models excluded"
+  "authorization": "Dedicated development/staging resources reasonably required for deterministic qualification approved; production and paid models excluded",
+  "implementationStatus": "PARTIAL_BLOCKED_IMAGE_DISTRIBUTION",
+  "blockerEvidence": "phase-2/image-blocker.md",
+  "allocationStatus": "NOT_RUN"
 }
