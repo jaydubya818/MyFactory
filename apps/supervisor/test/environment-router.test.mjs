@@ -138,3 +138,56 @@ test('derivation requires real resource identity and evidence does not authorize
   assert.equal(derived.reasons.length, derived.requirements.capabilities.length);
   assert.equal(routeEnvironment(f.work, f.environments, f.qualifications, null, now).state, 'DENIED');
 });
+
+for (const capability of ['desktop', 'browser', 'git', 'shell']) {
+  test(`qualified advertisement of ${capability} cannot replace Work authority`, () => {
+    const f = setup(); f.work.capabilities = [capability];
+    assert.equal(route(f).state, 'SELECTED');
+    f.authority.capabilities = f.authority.capabilities.filter(c => c !== capability);
+    assert.deepEqual(route(f), { state: 'DENIED', reason: 'WORK_AUTHORITY_REQUIRED' });
+  });
+}
+
+test('additional cloud sandbox needs its own authority and qualification without changing Work', () => {
+  const f = setup(), originalWork = structuredClone(f.work);
+  const sandbox = descriptor('CLOUD', 'a-new-sandbox');
+  sandbox.provider = 'additional-resource-provider'; sandbox.runtime = 'sha256:' + 'e'.repeat(64);
+  f.environments.push(sandbox);
+  assert.equal(route(f).binding.environmentId, 'cloud'); // Advertisement is insufficient.
+  f.authority.environmentIds.push(sandbox.id);
+  assert.equal(route(f).binding.environmentId, 'cloud'); // The new identity is still unqualified.
+  f.qualifications.push({ ...f.qualifications[0], identityDigest: environmentIdentity(sandbox) });
+  const decision = route(f);
+  assert.equal(decision.binding.environmentId, sandbox.id);
+  for (let i = 0; i < f.environments.length; i++) {
+    f.environments.push(f.environments.shift());
+    f.qualifications.reverse(); f.authority.environmentIds.reverse();
+    assert.deepEqual(route(f), decision);
+  }
+  assert.deepEqual(f.work, originalWork);
+});
+
+test('adding an eligible sandbox cannot migrate an existing execution binding', () => {
+  const f = setup(), { binding } = route(f);
+  const sandbox = descriptor('CLOUD', 'a-new-sandbox');
+  f.environments.push(sandbox); f.authority.environmentIds.push(sandbox.id);
+  f.qualifications.push({ ...f.qualifications[0], identityDigest: environmentIdentity(sandbox) });
+  assert.equal(route(f).binding.environmentId, sandbox.id); // Eligible for a fresh admission only.
+  assert.deepEqual(routeEnvironment(f.work, f.environments, f.qualifications, f.authority, now, binding),
+    { state: 'BOUND', binding });
+});
+
+test('multiple owner computers retain independent resource identity and exact Work binding', () => {
+  const f = setup({ kind: 'owner-desktop', environmentId: 'owner_computer' });
+  const second = descriptor('OWNER_COMPUTER', 'second-owner-computer');
+  f.environments.push(second); f.authority.environmentIds.push(second.id);
+  f.qualifications.push({ ...f.qualifications[1], identityDigest: environmentIdentity(second) });
+  assert.equal(route(f).binding.environmentId, 'owner_computer');
+  f.environments[1].connectivity = 'OFFLINE';
+  assert.equal(route(f).state, 'WAITING_FOR_ENVIRONMENT'); // No substitution despite full eligibility.
+  const next = deriveRequirements({ ...baseWork, workId: 'work-2' },
+    { kind: 'owner-desktop', environmentId: second.id }).requirements;
+  assert.equal(routeEnvironment(next, f.environments, f.qualifications,
+    { ...f.authority, workId: next.workId }, now).binding.environmentId, second.id);
+  assert.deepEqual(Object.keys(next).sort(), Object.keys(f.work).sort());
+});

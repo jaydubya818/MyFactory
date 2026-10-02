@@ -42,6 +42,8 @@ The intended flow is MyEve → MyFactory → selected environment → harness �
 
 [Harness-neutral environments](docs/architecture/harness-neutral-environments.md) keep resource location, harness execution and optional operator surfaces separate. Existing qualified runtime is preserved; future cloud computer capability support does not enable live computer access.
 
+Additional owner computers and qualified cloud/sandbox instances use the same Work contract. Routing remains deterministic and requires per-instance qualification plus independent Work authority/Relay policy. Advertised desktop/browser/git/shell capabilities grant no permission; adding an environment cannot migrate already-bound Work. This is tested contract support; production Fabric registry/routing integration remains pending.
+
 See [qualification and limitations](docs/environment-fabric/qualification.md) and the [session-surface report](docs/environment-fabric/session-surfaces.md). Do not infer laptop independence or production availability from these unit tests.
 
 ## Producer result attestation
