@@ -65,6 +65,7 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
   const f=await fixture();await store.stop(grant.clientId,f.identity);await store.stop(grant.clientId,f.identity);
   assert.equal(await store.claim(grant.clientId,f.identity),null);
   const read=await store.read(grant.clientId,f.input.requestId);assert.equal(read.resource,null);assert.equal(read.events.filter(e=>e.type==='factory.stop_requested').length,1);
+  assert.equal((await store.finalize(grant.clientId,f.input.requestId,'CANCELLED')).status,'CANCELLED');
  });
  await t.test('delivery receipts cannot grant new authority or regress callback-before-send observation',async()=>{
   const f=await fixture(),nonce='1'.repeat(64),deployment='dpl_fixture';
@@ -95,6 +96,8 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
   await store.confirmCleanup(f.row.run_id,owner,1,'sbx_custody');await store.confirmCleanup(f.row.run_id,owner,1,'sbx_custody');
   const read=await store.read(grant.clientId,f.input.requestId);assert.equal(read.custody.artifact_sha256,receipt.sha256);assert.equal(read.resource.cleanup_confirmed,true);
   assert.equal(read.events.filter(e=>e.type==='factory.resource_destroyed').length,1);
+  assert.equal((await store.finalize(grant.clientId,f.input.requestId,'COMPLETED')).status,'CANCELLED');
+  assert.equal((await store.finalize(grant.clientId,f.input.requestId,'FAILED')).status,'CANCELLED');
   assert.equal((await spend.read(f.input.workId)).authorityState,'fenced');
   await assert.rejects(store.heartbeat(f.row.run_id,owner,1),/FENCED/);
   await assert.rejects(store.advanceResource(f.row.run_id,owner,1,'RUNNING'),/FENCED/);
@@ -102,6 +105,7 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
  });
  await t.test('database lease expiry cannot be revived; restart reconciles the same ambiguous resource',async()=>{
   const f=await fixture();const lease=await store.claim(grant.clientId,f.identity);
+  await assert.rejects(store.finalize(grant.clientId,f.input.requestId,'COMPLETED'),/NOT_QUIESCENT/);
   await query("UPDATE factory.execution_resources SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE run_id=$1",[f.row.run_id]);
   await assert.rejects(store.heartbeat(f.row.run_id,lease.lease_owner,1),/LEASE_FENCED/);
   await assert.rejects(spend.reserve({...f.binding,operationId:randomUUID(),model:'fixture-model',pricingRevision:'fixture',reservedMicrousd:100,phase:'productive'}),/lease/);
@@ -111,4 +115,10 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
   const other=await fixture();await assert.rejects(store.claim(grant.clientId,other.identity),error=>error.code==='23505');
   assert.equal((await store.read(grant.clientId,other.input.requestId)).events.filter(e=>e.type==='factory.dispatch_claimed').length,0);
  });
+ await t.test('qualification lifetime limit cannot expand with a fresh request or Work ID',async()=>{
+  const count=Number((await query('SELECT count(*) FROM factory.intake_receipts')).rows[0].count);
+  for(let i=count;i<8;i++)await fixture();
+  await assert.rejects(fixture(),/STAGING_WORK_LIMIT/);
+ });
+
 });

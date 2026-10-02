@@ -31,6 +31,7 @@ export class PostgresDispatchStore {
       const prior=(await client.query('SELECT * FROM factory.intake_receipts WHERE client_id=$1 AND request_id=$2',[grant.clientId,input?.requestId])).rows[0];
       if(prior){if(prior.input_digest!==digest(input))throw Error('PREPARATION_REPLAY_CONFLICT');return prior;}
       const request=parseCloudPrepare(input,grant,now);
+      if(Number((await client.query('SELECT count(*) FROM factory.intake_receipts WHERE client_id=$1',[grant.clientId])).rows[0].count)>=8)throw Error('STAGING_WORK_LIMIT');
       const other=(await client.query('SELECT client_id,work_generation FROM factory.intake_receipts WHERE work_id=$1',[request.workId])).rows;
       if(other.some(r=>r.client_id!==grant.clientId||r.work_generation>=request.workGeneration))throw Error('WORK_SCOPE_OR_GENERATION_CONFLICT');
       // No new generation while an earlier resource can still execute.
@@ -143,6 +144,13 @@ export class PostgresDispatchStore {
       return(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
     });
   }
+  async recoveryBinding(runId,deploymentId,nonce) {
+    if(typeof nonce!=='string'||!/^[a-f0-9]{64}$/.test(nonce))throw Error('INVALID_DELIVERY');
+    return this.transaction(async client=>{
+      const row=(await client.query('SELECT i.* FROM factory.intake_receipts i JOIN factory.delivery_intents d ON d.run_id=i.run_id WHERE i.run_id=$1 AND d.deployment_id=$2 AND d.nonce_sha256=$3',[runId,deploymentId,createHash('sha256').update(nonce).digest('hex')])).rows[0];
+      if(!row)throw Error('DELIVERY_BINDING_MISMATCH');return row;
+    });
+  }
   async advanceResource(runId,leaseOwner,generation,state,evidence={}) {
     const previous={PREPARING:'ALLOCATING',READY:'PREPARING',RUNNING:'READY',QUIESCING:'RUNNING',COLLECTING:'QUIESCING'}[state];
     if(!previous||Buffer.byteLength(canonical(evidence))>16000)throw Error('INVALID_RESOURCE_TRANSITION');
@@ -179,13 +187,61 @@ export class PostgresDispatchStore {
       if(!resource.cleanup_confirmed)await this.event(client,row,'factory.resource_destroyed',{providerName:resource.provider_name,providerSessionId});
     });
   }
+  async noteResource(runId,leaseOwner,generation,evidence) {
+    if(Buffer.byteLength(canonical(evidence))>16000)throw Error('EVIDENCE_BOUND');
+    return this.transaction(async client=>{
+      const r=await client.query('UPDATE factory.execution_resources SET evidence=evidence||$4::jsonb,updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 RETURNING run_id',[runId,leaseOwner,generation,evidence]);
+      if(!r.rowCount)throw Error('RESOURCE_EVIDENCE_MISMATCH');
+    });
+  }
+  async finalize(clientId,requestId,requestedStatus) {
+    if(!['COMPLETED','FAILED','CANCELLED'].includes(requestedStatus))throw Error('INVALID_TERMINAL_STATE');
+    return this.transaction(async(client,now)=>{
+      const row=await this.record(client,clientId,requestId);
+      const prior=(await client.query("SELECT payload FROM factory.events WHERE run_id=$1 AND type='factory.terminal'",[row.run_id])).rows[0];
+      if(prior)return prior.payload;
+      const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[row.run_id])).rows[0];
+      const stopped=(await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type='factory.stop_requested'",[row.run_id])).rowCount>0;
+      if((resource&&!resource.cleanup_confirmed)||(!resource&&!stopped))throw Error('RESOURCE_NOT_QUIESCENT');
+      const custody=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[row.run_id])).rows[0];
+      const expired=new Date(row.deadline).getTime()<=now;
+      const status=stopped?'CANCELLED':expired||resource?.evidence.failure?'FAILED':requestedStatus;
+      if(status==='CANCELLED'&&!stopped)throw Error('CANCELLATION_NOT_REQUESTED');
+      if(status==='COMPLETED'&&(!custody||resource.evidence.visibleChecksPassed!==true))throw Error('CANDIDATE_NOT_CHECKED');
+      const finishedAt=new Date(now).toISOString(),state=status==='COMPLETED'?'ready_for_review':status.toLowerCase();
+      const terminal={status,finishedAt,candidateCommit:custody?.candidate_commit??null,evidenceRef:`factory:run:${row.run_id}:cleanup`,protectedVerification:'NOT_RUN'};
+      await client.query("UPDATE factory.runs SET state=$2,record=record||$3::jsonb WHERE id=$1",[row.run_id,state,{state,finishedAt,candidateCommit:terminal.candidateCommit,failure:status==='FAILED'?(resource?.evidence.failure??(expired?'WORK_DEADLINE_EXPIRED':resource?.evidence.visibleChecksPassed===false?'VISIBLE_CHECKS_FAILED':'EXECUTION_INTERRUPTED')):null}]);
+      await client.query("UPDATE factory.work_orders SET state=$2,record=record||$3::jsonb,updated_at=clock_timestamp() WHERE id=$1",[row.work_order_id,state,{state,updatedAt:finishedAt}]);
+      await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id=$1 AND work_generation=$2",[row.work_id,row.work_generation]);
+      await this.event(client,row,'factory.terminal',terminal);return terminal;
+    });
+  }
+  async saveResult(clientId,requestId,result) {
+    return this.transaction(async client=>{
+      const row=await this.record(client,clientId,requestId);
+      const terminal=(await client.query("SELECT payload FROM factory.events WHERE run_id=$1 AND type='factory.terminal'",[row.run_id])).rows[0]?.payload;
+      if(!terminal)throw Error('RESULT_BEFORE_QUIESCENCE');
+      const manifest=JSON.parse(Buffer.from(result.encoded,'base64url').toString('utf8'));
+      if(canonical(manifest.execution)!==canonical(row.snapshot)||manifest.status!==terminal.status||manifest.completedAt!==terminal.finishedAt||(manifest.candidate?.commit??null)!==terminal.candidateCommit)throw Error('RESULT_TERMINAL_MISMATCH');
+      const prior=(await client.query("SELECT payload FROM factory.events WHERE run_id=$1 AND type='run.signed_result'",[row.run_id])).rows[0]?.payload;
+      if(prior){if(canonical(prior)!==canonical(result))throw Error('RESULT_CONFLICT');return prior;}
+      await this.event(client,row,'run.signed_result',result);return result;
+    });
+  }
+  async findRun(clientId,workOrderId,runId) {
+    return this.transaction(async client=>{
+      const row=(await client.query('SELECT request_id FROM factory.intake_receipts WHERE client_id=$1 AND work_order_id=$2 AND run_id=$3',[clientId,workOrderId,runId])).rows[0];
+      if(!row)throw Error('FACTORY_REQUEST_NOT_FOUND');return row;
+    });
+  }
   async read(clientId,requestId) {
     return this.transaction(async client=>{
       const row=await this.record(client,clientId,requestId);
       const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[row.run_id])).rows[0]??null;
       const events=(await client.query('SELECT type,payload,created_at FROM factory.events WHERE run_id=$1 ORDER BY id',[row.run_id])).rows;
       const custody=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[row.run_id])).rows[0]??null;
-      return{...row,resource,events,custody};
+      const delivery=(await client.query('SELECT state FROM factory.delivery_intents WHERE run_id=$1',[row.run_id])).rows[0]??null;
+      return{...row,resource,events,custody,delivery};
     });
   }
 }

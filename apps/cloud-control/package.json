@@ -15,5 +15,9 @@
     "@vercel/sandbox": "3.5.1",
     "diff": "8.0.4",
     "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "typescript": "6.0.3"
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "",
+  "buildCommand": "node scripts/cloud-source-identity.mjs",
   "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
   "regions": [
     "iad1"
@@ -19,11 +19,39 @@
     "api/infrastructure.mjs": {
       "maxDuration": 180
     },
+    "api/cloud-work.mjs": {
+      "maxDuration": 180,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-staging-work"
+        }
+      ]
+    },
+    "api/cloud-recovery.mjs": {
+      "maxDuration": 60,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-staging-recovery"
+        }
+      ]
+    },
+    "api/cloud.mjs": {
+      "maxDuration": 60
+    },
     "api/*.mjs": {
       "maxDuration": 30
     }
   },
   "git": {
     "deploymentEnabled": false
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/connect/v2/:path*",
+      "destination": "/api/cloud"
+    }
+  ],
+  "outputDirectory": "public"
 }

@@ -182,7 +182,7 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "09990e70440da1df3ccf022410f1461c1ff8af98efa68b3bd3f9afbf6bbb03fb",
+      "sha256": "5240b3dbabcc544da9e15f1c3d2bc08a126477842746eb046c0ecb132555af22",
       "classification": "CANONICAL_CLOUD_ADMISSION",
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired. Immutable private custody and exact-resource cleanup observations; queue receipts only authenticate wake-ups, never execution authority."
     },
@@ -190,6 +190,56 @@
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
       "authorityBoundary": "Bounded pure-data Git object and exact patch validation against admitted source/tree/path; no process execution, filesystem, network, protected-verifier verdict or publication authority.",
       "sha256": "d5927ad0b63641456ca2c3252cb65bc6f7dea6718ac97f593037ba06157bc0e9"
+    },
+    "apps/cloud-control/src/cloud-work-control.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "eaf13546fa4c9a29e0cd381be03e7dec0e022b461e6d5a2d37a1c64af83948b7"
+    },
+    "apps/cloud-control/src/cloud-queue-consumer.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "b3df9578ca5da96f544e80407854e3522b8cbb8330d6864bc83ff0a019b5d401"
+    },
+    "apps/cloud-control/src/cloud-work-result.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "c8bbd947a6e28ec2be1979d28f3d740fe1f79d3683b56b5480567faf1ba9b3eb"
+    },
+    "apps/cloud-control/src/cloud-runtime.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "5dfbc1e2b9ee776bf68711a64c9d4bf6e09d6d37dd873fcd03e458e1da439f13"
+    },
+    "apps/cloud-control/src/cloud-work-provider.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "e013c73c704eb2a116fb1296f6d594329a17a688793bddce6cb69e89ba4f65fb"
+    },
+    "apps/cloud-control/src/cloud-work-plan.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "daf0ffa29c40cbc524139f323d13434e107a26b7ab3fbf88b9aa759de74823fe"
+    },
+    "apps/cloud-control/src/cloud-work-lifecycle.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "9217296bed0d6a5dd64edcf92320db2a05d89c3c20d54f4531ebed34dd7e2416"
+    },
+    "apps/cloud-control/api/cloud-recovery.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "5f72e1e7313c90bc8a67e563ed9df018c0ad7458a933cc20601897aa627a6ed5"
+    },
+    "apps/cloud-control/api/cloud.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "115fa2328c2ac28f3e8e1a3b63f48af9bc7870f07fc37bf6698596582ec71849"
+    },
+    "apps/cloud-control/api/cloud-work.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "66fae736e34da2dba309798f9da49cf965b74b30c7673dfb89d4a1c2dd63d442"
     }
   }
 }

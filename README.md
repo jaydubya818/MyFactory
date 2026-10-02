@@ -85,3 +85,6 @@ Signed execution snapshot V2 now binds cloud image/source/policy/resource/skill 
 
 
 Cloud custody now has pure-data source/tree/patch validation and durable PostgreSQL delivery, collection and cleanup fencing. MyEve can consume a signed cloud candidate without local Git while preserving the existing publisher guard. See Phase 3 evidence; hosted Work/harness/verifier/Mac-off integration is still pending.
+
+
+The qualification-only hosted Work controller now implements private queue dispatch, exact source/worker execution, custody validation, cancellation/recovery and signed Result retention. Hosted Work qualification remains NOT_RUN. Sofie integration is blocked on explicit approval for a staging-project deployment-protection bypass; see the Phase 3 access approval document. Public cloud admission stays disabled and paid model calls remain zero.

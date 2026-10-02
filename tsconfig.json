@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.producer.json",
+  "compilerOptions": {
+    "typeRoots": ["./node_modules/@types", "./apps/cloud-control/node_modules/@types"]
+  }
+}
