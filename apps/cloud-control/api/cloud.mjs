@@ -39,6 +39,7 @@ export async function handleCloud(request,env,withRuntime=withCloudRuntime){
    return respond({error:'NOT_FOUND'},404);
   });
  }catch(error){
+  if(['CLOUD_SOURCE_NOT_GRANTED','CLOUD_CAPABILITIES_NOT_GRANTED','WRITER_BINDING_MISMATCH','WRITER_BINDING_CONFLICT','WORK_SCOPE_OR_GENERATION_CONFLICT'].includes(error.message))return respond({error:'WORK_AUTHORITY_DENIED',admission:'DISABLED'},403);
   const missing=error.message==='FACTORY_REQUEST_NOT_FOUND';
   return respond({error:missing?'NOT_FOUND':'CLOUD_WORK_UNAVAILABLE',admission:'DISABLED'},missing?404:503);
  }

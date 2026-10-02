@@ -233,8 +233,8 @@
     },
     "apps/cloud-control/api/cloud.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "115fa2328c2ac28f3e8e1a3b63f48af9bc7870f07fc37bf6698596582ec71849"
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled. Explicit 403 for exact source/capability/Work binding grant denial; deployment bypass is never application authentication.",
+      "sha256": "5731e40aef72f16b732f591113cbcf7d74835917df2ae1c29a70546cfd3588ad"
     },
     "apps/cloud-control/api/cloud-work.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",

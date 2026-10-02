@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-10-02T15:52:07.704Z",
+  "factoryProject": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4",
+  "sofieProject": "prj_XU7fJW735PtsnKoAYtGfzdnsotIB",
+  "note": "Sofie isolated staging contract qualification",
+  "factoryEnvironmentInjection": false,
+  "sofieVariable": "FACTORY_STAGING_PROTECTION_BYPASS",
+  "target": [
+    "preview"
+  ],
+  "type": "sensitive",
+  "localBypassStorage": false
+}
