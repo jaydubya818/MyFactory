@@ -27,9 +27,9 @@ try {
   const marker = (await client.query('SELECT * FROM factory.environment WHERE singleton')).rows[0];
   if (marker.project_id !== stagingProjectId || marker.environment !== 'staging') throw new Error('DATABASE_BOUNDARY_MISMATCH');
   await client.query('COMMIT');
-  console.log(JSON.stringify({ migration: '005-cloud-custody', result: 'PASS', certificateVerified: true, ownerDataCopied: false }));
+  console.log(JSON.stringify({ migration: '006-cloud-verification', result: 'PASS', certificateVerified: true, ownerDataCopied: false }));
 } catch (error) {
   await client.query('ROLLBACK').catch(() => {});
-  console.error(JSON.stringify({ migration: '005-cloud-custody', result: 'FAIL', code: error.code ?? 'MIGRATION_FAILED' }));
+  console.error(JSON.stringify({ migration: '006-cloud-verification', result: 'FAIL', code: error.code ?? 'MIGRATION_FAILED' }));
   process.exitCode = 1;
 } finally { await client.end(); }
