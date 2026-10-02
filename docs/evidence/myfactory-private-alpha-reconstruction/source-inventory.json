@@ -7,9 +7,9 @@
       "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/jobs.ts": {
-      "sha256": "5509f3f03b4842b6af747a2f12c6578c47d0dda63ba8e288e690b7e974735399",
+      "sha256": "04c3ac7a625f490a62341092569bb494bf28709bc50cc859034d63ad05f56316",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes."
     },
     "apps/supervisor/src/spend-gateway.ts": {
       "sha256": "50dd036ba5d2e1a079b4b9fb1c75238ab2b4c2ded2a9c64e4262b2babcaddb92",
@@ -22,9 +22,9 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "b891f1d66677fc8e40967bbfa16f0fcaa6faa7cb3aafe125dde2a87a909fd04d",
+      "sha256": "359cc74121ada6cf21a738ace14f5bf3b3e4e0ff85348f665592e5c721626694",
       "classification": "EXECUTOR_LIFECYCLE",
-      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved."
+      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes."
     },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",

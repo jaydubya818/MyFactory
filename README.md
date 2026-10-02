@@ -68,3 +68,5 @@ The Q37 consumer uses authenticated two-stage preparation and dispatch on the ex
 **Private-alpha OIDC runtime:** the canonical provider adapter reuses MyEve's project-scoped Vercel OIDC mechanism and pins `openai/gpt-5.4-mini` through OpenAI only. Every model operation still crosses the V2 Work ledger with UNKNOWN retention, protected completion reserve, operation limits and exact writer fencing. The Keychain path is unused. See the [provider lifecycle, qualification and limitations](docs/private-alpha/README.md), [V2 protocol](docs/factory-dispatch.md#v2-spend-and-completion-contract), and [MyEve handoff](docs/my-eve-spend-v2-handoff.md). Authentication/model eligibility does not authorize the first real Work or publication.
 
 Private-alpha Attempt 5 completion repair and complete zero-model qualification: [evidence](docs/private-alpha/completion-transition-2026-10-01/README.md). Live retry remains unapproved.
+
+Safe-integer successor no-edit failure: [captured context, productive instruction repair and zero-model qualification](docs/private-alpha/no-edit-productive-2026-10-02/README.md). Fresh successor is paused; another live execution requires approval.

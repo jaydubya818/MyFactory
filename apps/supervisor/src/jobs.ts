@@ -429,6 +429,7 @@ export class JobManager {
         signal,
         ...(active.gateway ? { gateway: { baseUrl: productiveConnection!.baseUrl, childToken: productiveConnection!.childToken } } : {}),
         productiveEndSignal: productiveConnection?.productiveEndSignal,
+        ...(context && productiveConnection?.productiveEndSignal ? {boundedProductiveContext: true as const} : {}),
         onProcessStart: (processIdentity) => {
           this.#event(workOrder.id, run.id, "agent.process_started", processIdentity);
         },

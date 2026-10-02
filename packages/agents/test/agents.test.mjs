@@ -220,3 +220,13 @@ test('owner cancellation dominates a productive boundary signal',async t=>{
  }));
  assert.equal(result.status,'cancelled');assert.equal(result.success,false);
 });
+
+
+test('host productive protocol cannot be enabled without its metered checkpoint or in completion', async t => {
+  const work = await fixture(t);
+  for (const overrides of [
+    {boundedProductiveContext:true},
+    {boundedProductiveContext:true,gateway:{baseUrl:'http://127.0.0.1:8123/v1',childToken:'a'.repeat(64)}},
+    {boundedProductiveContext:true,gateway:{baseUrl:'http://127.0.0.1:8123/v1',childToken:'a'.repeat(64)},productiveEndSignal:new AbortController().signal,sandbox:'read-only'},
+  ]) await assert.rejects(work.adapter.runCodex(options(work,'ordinary',overrides)),/Bounded productive context/);
+});
