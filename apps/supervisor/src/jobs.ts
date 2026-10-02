@@ -7,7 +7,8 @@ import type { FactoryEvent, Run, RunState, WorkOrder, WorkOrderState } from "../
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 import { verifyCandidate, verifyWorkspaceTree } from "../../../packages/verification/src/index.ts";
 import { evaluateEvidence, evidencePolicyFor, proofEvidenceReference, storeEvidence, type EvidenceBinding } from "../../../packages/verification/src/evidence.ts";
-import { collectBrowserEvidence, type BrowserJourney } from "../../../packages/verification/src/browser-evidence.ts";
+import { collectBrowserEvidence } from "../../../packages/verification/src/browser-evidence.ts";
+import { isTrustedCandidatePreview, type CandidatePreview } from "../../../packages/verification/src/candidate-preview.ts";
 import { ActionError } from "./actions.ts";
 import { snapshotCandidateTree, commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
 import { ProducerResults } from "./producer-results.ts";
@@ -38,7 +39,7 @@ export interface JobDependencies {
   commitCandidate: typeof commitCandidate;
   /** Only a trusted launcher serving the exact exported candidate may supply this preview. */
   candidatePreview?: (input: { workOrder: WorkOrder; run: Run; candidateCommit: string }) => Promise<
-    { candidateCommit: string; journey: BrowserJourney } | null>;
+    CandidatePreview | null>;
 }
 
 const defaultDependencies: JobDependencies = {
@@ -588,9 +589,14 @@ export class JobManager {
       if (workOrder.workerProfile === 'browser') {
         const preview = await this.dependencies.candidatePreview?.({ workOrder, run, candidateCommit: candidate.commit });
         if (preview) {
-          if (preview.candidateCommit !== candidate.commit) throw new Error('Browser preview is bound to another candidate');
-          const browserEvidence = await collectBrowserEvidence(this.dataDir, evidenceBinding, preview.journey, signal);
-          evidenceRefs.push(...browserEvidence.refs);
+          if (!isTrustedCandidatePreview(preview)) throw new Error('Browser preview was not materialized from exact candidate custody');
+          try {
+            if (preview.identity.candidateCommit !== candidate.commit || preview.identity.workOrderId !== workOrder.id ||
+              preview.identity.runId !== run.id || preview.identity.candidateTree !== candidate.tree)
+              throw new Error('Browser preview is bound to another candidate');
+            const browserEvidence = await collectBrowserEvidence(this.dataDir, evidenceBinding, preview.journey, signal);
+            evidenceRefs.push(...browserEvidence.refs);
+          } finally { await preview.close(); }
         }
       }
       this.#event(workOrder.id, run.id, 'run.evidence_collected', { binding: evidenceBinding,

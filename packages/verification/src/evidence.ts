@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { constants } from 'node:fs';
 import { lstat, mkdir, open, readFile, readdir, rename } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
@@ -37,14 +38,22 @@ export interface EvidenceEvaluation {
 }
 
 /** Opaque reference for a consumer Proof. Resolving bytes requires a separately authorized transport. */
-export function proofEvidenceReference(ref: EvidenceRef): string {
+export function proofEvidenceReference(ref: Omit<EvidenceRef, 'relativePath'>): string {
   return `factory-evidence:sha256:${createHash('sha256').update(JSON.stringify({
     workOrderId: ref.workOrderId, runId: ref.runId, candidateCommit: ref.candidateCommit,
     factoryVersion: ref.factoryVersion, kind: ref.kind, sha256: ref.sha256,
   })).digest('hex')}`;
 }
 
-const MAX_EVIDENCE_BYTES = 8 * 1024 * 1024;
+export const EVIDENCE_LIMITS: Record<EvidenceKind, number> = {
+  TestEvidence: 512 * 1024,
+  ScreenshotEvidence: 2 * 1024 * 1024,
+  VideoEvidence: 8 * 1024 * 1024,
+  BrowserJourneyEvidence: 256 * 1024,
+  AccessibilityEvidence: 512 * 1024,
+  PerformanceEvidence: 256 * 1024,
+  DiffEvidence: 4 * 1024 * 1024,
+};
 const sha = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 const validId = (value: string) => /^[a-zA-Z0-9_-]{1,128}$/.test(value);
 const validCommit = (value: string) => /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(value);
@@ -58,7 +67,7 @@ function assertBinding(binding: EvidenceBinding): void {
 /** The root must be the persistent Factory data directory, never a task worktree. */
 export async function storeEvidence(root: string, binding: EvidenceBinding, kind: EvidenceKind, mediaType: string, source: string, bytes: Uint8Array): Promise<EvidenceRef> {
   assertBinding(binding);
-  if (!EVIDENCE_KINDS.includes(kind) || !mediaType || !source || bytes.length > MAX_EVIDENCE_BYTES || bytes.length === 0) throw new Error('Invalid evidence artifact');
+  if (!EVIDENCE_KINDS.includes(kind) || !mediaType || !source || bytes.length > EVIDENCE_LIMITS[kind] || bytes.length === 0) throw new Error('Invalid evidence artifact');
   const id = randomUUID();
   const relativePath = join('evidence', binding.runId, `${id}-${sha(bytes)}`);
   const destination = resolve(root, relativePath);
@@ -104,7 +113,7 @@ export async function evaluateEvidence(root: string, binding: EvidenceBinding, p
   for (const ref of refs) {
     if (seen.has(ref.id) || !validId(ref.id) || !EVIDENCE_KINDS.includes(ref.kind) ||
       ref.workOrderId !== binding.workOrderId || ref.runId !== binding.runId || ref.candidateCommit !== binding.candidateCommit || ref.factoryVersion !== binding.factoryVersion ||
-      !/^[a-f0-9]{64}$/.test(ref.sha256) || !Number.isSafeInteger(ref.size) || ref.size <= 0 || ref.size > MAX_EVIDENCE_BYTES) {
+      !/^[a-f0-9]{64}$/.test(ref.sha256) || !Number.isSafeInteger(ref.size) || ref.size <= 0 || ref.size > EVIDENCE_LIMITS[ref.kind]) {
       return { status: 'INVALID', checkedRefs, missingKinds: [], reason: 'Evidence provenance or metadata mismatch' };
     }
     seen.add(ref.id);
@@ -136,4 +145,20 @@ export async function evaluateEvidence(root: string, binding: EvidenceBinding, p
   }
   const missingKinds = [...new Set(policy.requiredKinds)].filter(kind => !refs.some(ref => ref.kind === kind));
   return { status: missingKinds.length ? 'MISSING' : 'SATISFIED', checkedRefs, missingKinds, reason: missingKinds.length ? 'Required evidence was not collected' : null };
+}
+
+/** One bounded, exact artifact. Callers must authorize Work and resolve the ref from its immutable event first. */
+export async function readEvidenceArtifact(root: string, binding: EvidenceBinding, ref: EvidenceRef): Promise<Buffer> {
+  const evaluation = await evaluateEvidence(root, binding, { policyRevision: 'transport-v1', requiredKinds: [ref.kind] }, [ref]);
+  if (evaluation.status !== 'SATISFIED') throw new Error(`Evidence read denied: ${evaluation.reason}`);
+  const path = resolve(root, ref.relativePath);
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const before = await handle.stat();
+    if (!before.isFile() || before.size !== ref.size || before.size > EVIDENCE_LIMITS[ref.kind]) throw new Error('Evidence size changed');
+    const bytes = await handle.readFile();
+    const after = await handle.stat();
+    if (bytes.length !== ref.size || after.size !== ref.size || sha(bytes) !== ref.sha256) throw new Error('Evidence changed during read');
+    return bytes;
+  } finally { await handle.close(); }
 }

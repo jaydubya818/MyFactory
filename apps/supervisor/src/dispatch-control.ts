@@ -102,6 +102,9 @@ export class FactoryDispatchControl {
    this.storage.recordIntake('gateb:'+client.id,input.requestId,hash,order.id);
    this.storage.appendEvent({workOrderId:order.id,runId:null,type:'workorder.created',payload:{requestId:input.requestId,actor:'connection:'+client.id}});
    this.storage.appendEvent({workOrderId:order.id,runId:null,type:'factory.prepare_requested',payload:request});
+   if(client.ownerScope)this.storage.appendEvent({workOrderId:order.id,runId:null,type:'factory.owner_scope_bound',
+    payload:{ownerScope:client.ownerScope,repository:input.repository,workId:input.workId,
+      workGeneration:input.workGeneration,requestId:input.requestId,clientId:client.id}});
    return order;
   });
   // A replay cannot increase or reset the Work ceiling. A partially prepared

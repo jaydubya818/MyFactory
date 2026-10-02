@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { after, test } from 'node:test';
 import { collectBrowserEvidence } from '../src/browser-evidence.ts';
-import { evaluateEvidence, evidencePolicyFor, listEvidence, proofEvidenceReference, storeEvidence } from '../src/evidence.ts';
+import { isTrustedCandidatePreview, startCandidatePreview } from '../src/candidate-preview.ts';
+import { EVIDENCE_LIMITS, evaluateEvidence, evidencePolicyFor, listEvidence, proofEvidenceReference, storeEvidence } from '../src/evidence.ts';
 
 const roots = [];
 after(async () => { await Promise.all(roots.map(root => rm(root, { recursive: true, force: true }))); });
@@ -59,4 +61,39 @@ test('public and credentialed URLs are refused before launching a browser', asyn
   for (const url of ['https://example.com/', 'http://127.0.0.1:1/?token=secret', 'http://user:pass@localhost:1234/']) {
     await assert.rejects(collectBrowserEvidence(directory, binding, { url, path: '/', expectedText: ['ok'] }), /bounded local preview/);
   }
+});
+
+test('every evidence kind has an enforced individual byte ceiling', async () => {
+  const directory = await root();
+  for (const [kind, limit] of Object.entries(EVIDENCE_LIMITS)) {
+    await assert.rejects(storeEvidence(directory, binding, kind, 'application/octet-stream', 'fixture', Buffer.alloc(limit + 1)), /Invalid evidence artifact/);
+  }
+  assert.deepEqual(await listEvidence(directory, binding.runId), []);
+});
+
+test('exact committed static UI survives working-tree mutation and yields candidate-bound Playwright evidence', async () => {
+  const directory = await root();
+  const repo = join(directory, 'candidate');
+  await mkdir(repo);
+  const git = (...args) => execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' }).trim();
+  git('init', '-q'); git('config', 'user.name', 'Evidence Fixture'); git('config', 'user.email', 'fixture@example.invalid');
+  await writeFile(join(repo, 'index.html'), '<!doctype html><h1>Candidate A verified</h1>');
+  git('add', 'index.html'); git('commit', '-qm', 'Candidate A');
+  const candidateCommit = git('rev-parse', 'HEAD');
+  await writeFile(join(repo, 'index.html'), '<!doctype html><h1>Uncommitted hostile page</h1>');
+  const preview = await startCandidatePreview({ repositoryPath: repo, workOrderId: binding.workOrderId,
+    runId: binding.runId, candidateCommit, staticRoot: '.', path: '/', expectedText: ['Candidate A verified'] });
+  assert.equal(isTrustedCandidatePreview(preview), true);
+  assert.equal(isTrustedCandidatePreview({ ...preview }), false);
+  try {
+    assert.equal(preview.identity.candidateCommit, candidateCommit);
+    assert.equal(preview.identity.candidateTree, git('rev-parse', `${candidateCommit}^{tree}`));
+    const captured = await collectBrowserEvidence(directory, { ...binding, candidateCommit }, preview.journey);
+    assert.deepEqual(captured.assertions, [{ text: 'Candidate A verified', found: true }]);
+    assert.equal((await evaluateEvidence(directory, { ...binding, candidateCommit },
+      { policyRevision: 'static-ui-v1', requiredKinds: ['ScreenshotEvidence', 'BrowserJourneyEvidence'] }, captured.refs)).status, 'SATISFIED');
+    assert.equal((await evaluateEvidence(directory, { ...binding, candidateCommit: 'f'.repeat(40) },
+      { policyRevision: 'static-ui-v1', requiredKinds: ['ScreenshotEvidence', 'BrowserJourneyEvidence'] }, captured.refs)).status, 'INVALID');
+  } finally { await preview.close(); }
+  await assert.rejects(fetch(preview.journey.url));
 });

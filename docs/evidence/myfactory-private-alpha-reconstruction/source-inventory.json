@@ -1,13 +1,23 @@
 {
   "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
   "sources": {
+    "apps/supervisor/src/connections.ts": {
+      "sha256": "092ce64f61a904d28cf0d140c13794e88223179491ae06fbd3ad72ad205dcf8e",
+      "classification": "EVIDENCE_AUTHORIZATION",
+      "authorityBoundary": "Only a dedicated, owner-scoped, expiring MyEve Proof backend connection may read exact evidence; revoked and expired tokens fail closed. No browser or execution authority."
+    },
     "apps/supervisor/src/dispatch-control.ts": {
-      "sha256": "41dd1819dfab90797964749032bf0aeb1c64959e7b623f8bf8ee85f4e89d63cf",
+      "sha256": "85d96224b4c70f5cdd4d5769c00ff84d67a6808c5efccd5659418e23deebf67f",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. New owner-scope metadata is append-only beside prepared Work for evidence authorization and grants no writer or model authority."
+    },
+    "apps/supervisor/src/evidence-transport.ts": {
+      "sha256": "17b585839ff933d269250a9c68098fc14ee208f6b361a4972fa26886fc3fdf1a",
+      "classification": "EVIDENCE_TRANSPORT",
+      "authorityBoundary": "One exact Proof reference and expected owner/repository/Work/Run/candidate/FactoryVersion/kind/digest resolve one bounded artifact after signed Result readback. No path input, listing, publication or execution authority."
     },
     "apps/supervisor/src/jobs.ts": {
-      "sha256": "158af745ef6c6418f4e067ceb25e9d9ba3ff3c705f6c239db588724b9eca1f44",
+      "sha256": "10d52f578bcdcf211b347f6d54b43bcdd70d2dfdd61083ad7603091902a82ead",
       "classification": "COMPLETION_ADMISSION",
       "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. Durable Test/Diff evidence is bound to candidate and FactoryVersion and rechecked before local review; browser profile additionally requires screenshot and journey, and a missing trusted preview fails closed. Collection grants no Proof, semantic PASS, publication, budget or authority."
     },
@@ -26,6 +36,11 @@
       "classification": "EXECUTOR_LIFECYCLE",
       "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved."
     },
+    "packages/client/src/index.ts": {
+      "sha256": "f1bb64959c03e8d53b1723be45c438d7849afea84850587d24bb137690d4f17c",
+      "classification": "EVIDENCE_CONSUMER_CHECK",
+      "authorityBoundary": "MyEve backend client independently checks exact owner/Work/Run/candidate/FactoryVersion/kind/reference, byte count and SHA-256 before providing bytes to Proof. No browser exposure or PASS inference."
+    },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
       "classification": "SCHEMA_MIGRATION",
@@ -37,9 +52,9 @@
       "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars."
     },
     "apps/supervisor/src/server.ts": {
-      "sha256": "863bb5ac4b2c7e2b4896c78b169c2ef668717b3eeacff545f649bf440c3104fa",
+      "sha256": "112f3b3d6fee1e6489f9290e04f7a745ecf23caac644a8615e2f785a102b7003",
       "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model"
+      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model. Connected evidence POST is backend-authenticated, exact-reference only; Proof client Work details are owner-filtered and omit storage paths."
     },
     "apps/supervisor/src/private-alpha.ts": {
       "sha256": "446fbf9e0cf86c04055b6cf53b360755f15b2bc3ee080d074c00b1415e707eb0",
@@ -87,14 +102,19 @@
       "sha256": "2a3fed4dd9195828cad6301063def3cb78eda7ede3132ab4f7104d4055ae35c1"
     },
     "packages/verification/src/browser-evidence.ts": {
-      "sha256": "ecea4ff867a4b2a56afa57029c938e01a927e60122aa31c30fa548906d9a28b5",
+      "sha256": "a0989391c4cc4d0be7f5bec0e22883d79d18bf0629156668dbd3ae767462e0ae",
       "classification": "EVIDENCE_COLLECTION",
       "authorityBoundary": "Playwright observes only an explicitly supplied loopback preview; collection is not candidate proof or a PASS decision. Cross-origin requests and unbounded journeys are denied."
     },
     "packages/verification/src/evidence.ts": {
-      "sha256": "8ea87e72c2325efd9a09675a31408ec914aeb13f9f82212dc39402bc3f4758db",
+      "sha256": "3a7b3010e1b8e8b9da89111f6ed04d4eecae970be86106142698022506dfa836",
       "classification": "EVIDENCE_CUSTODY",
       "authorityBoundary": "Candidate-bound artifact bytes and metadata are stored in persistent Factory data and rechecked by digest before readiness. Structural satisfaction does not grant Proof, publication or independent semantic PASS."
+    },
+    "packages/verification/src/candidate-preview.ts": {
+      "sha256": "b2dc018a04055cc2bf8884d01bb540f8c95d7e6bf224f7a9fd8b982ec8253c81",
+      "classification": "STATIC_CANDIDATE_PREVIEW",
+      "authorityBoundary": "Read-only Git blob verification serves a bounded exact static candidate on loopback and closes after capture. No package install, arbitrary command, developer-provided localhost target or publication authority."
     },
     "packages/verification/src/index.ts": {
       "sha256": "70345fb107dafe795150ac9b70617ccdb92525177a3abd69c830ee02ea8df5b0",

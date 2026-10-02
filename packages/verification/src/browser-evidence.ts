@@ -53,7 +53,7 @@ export async function collectBrowserEvidence(root: string, binding: EvidenceBind
         viewport,
         capturedAt: new Date().toISOString(),
       };
-      const source = `playwright:local-preview:${origin.origin}`;
+      const source = 'playwright:local-preview';
       const refs = [
         await storeEvidence(root, binding, 'ScreenshotEvidence', 'image/png', source, screenshot),
         await storeEvidence(root, binding, 'BrowserJourneyEvidence', 'application/json', source, Buffer.from(JSON.stringify(observed))),
