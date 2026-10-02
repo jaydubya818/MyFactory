@@ -11,3 +11,14 @@ The first connection attempt timed out at five seconds before creating fixtures.
 These are storage/model-boundary qualifications. The remote Work contract, durable queue/leases, cloud harness, candidate custody, independent verifier, Result/Proof and Mac-off/P0 remain NOT_RUN. PostgreSQL tables do not themselves enable execution. The Attempt-8 publisher is unchanged.
 
 Final deterministic suite: **199 PASS, 0 FAIL, 6 gated SKIPPED** (the five prior CLI/Docker checks plus the separately run PostgreSQL gate). Producer typecheck and governance PASS. Staging migration and checksum-protected idempotent rerun PASS.
+
+
+## Hosted queue delivery
+
+CONNECTED PASS: [one delayed receipt](queue-0ba15c16-89b0-44c0-862a-4df521ce5a05.json). The submitting process exited at 07:40:09 UTC; the private hosted consumer recorded delivery at 07:40:19 UTC. A later independent read and duplicate submission returned the identical receipt. Authenticated HTTP access to the consumer returned 404. This proves a provider wake-up after the requester exits, not canonical Work recovery or the Mac-off Golden Journey.
+
+Exact SDK `@vercel/queue@0.7.0`, fixed iad1 topic, ten-second delay, 120-second retention, eight lifetime diagnostic intents. PostgreSQL owns admission and completion; queue messages hold no execution authority. Private trigger plus admitted nonce/deployment binding prevent arbitrary payload execution. Ambiguous sends remain UNKNOWN and are never resent by this diagnostic. A matching late delivery can resolve UNKNOWN. Migration 003 stores only these staging diagnostic receipts.
+
+DETERMINISTIC: full suite **204 passed, 0 failed, 6 gated skips**, [log](queue-regressions.log). Added tests cover ambiguous send/replay, duplicate and forged delivery, receipt races, HTTP authorization/staging guards and empty streamed POST handling. Initial test fixture used a token shorter than the existing minimum and correctly received 401; the fixture was corrected, without relaxing authentication.
+
+Provider references: [queue quickstart/private triggers](https://vercel.com/docs/queues/quickstart), [SDK delivery and retention contract](https://vercel.com/docs/queues/sdk). Deployment-associated delivery requires retaining the originating deployment while its admitted work is outstanding. General Work admission, cloud harness, verifier, browser-off and Mac-off/P0 remain NOT_RUN. Paid model operations and publication effects remain zero.

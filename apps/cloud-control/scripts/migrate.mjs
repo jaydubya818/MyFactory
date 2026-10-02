@@ -14,7 +14,7 @@ try {
   if (rows.some(row => row.table_schema !== 'factory')) throw new Error('DATABASE_NOT_DEDICATED');
   await client.query(await readFile(new URL('../migrations/001-staging-boundary.sql', import.meta.url), 'utf8'));
   await client.query(`CREATE TABLE IF NOT EXISTS factory.schema_migrations (version text PRIMARY KEY, sha256 text NOT NULL CHECK (sha256 ~ '^[a-f0-9]{64}$'), applied_at timestamptz NOT NULL DEFAULT now())`);
-  for (const version of ['001-staging-boundary','002-canonical-execution-ledger']) {
+  for (const version of ['001-staging-boundary','002-canonical-execution-ledger','003-queue-delivery-checks']) {
     const sql = await readFile(new URL(`../migrations/${version}.sql`, import.meta.url), 'utf8');
     const sha256 = createHash('sha256').update(sql).digest('hex');
     const prior = (await client.query('SELECT sha256 FROM factory.schema_migrations WHERE version=$1',[version])).rows[0];
@@ -27,9 +27,9 @@ try {
   const marker = (await client.query('SELECT * FROM factory.environment WHERE singleton')).rows[0];
   if (marker.project_id !== stagingProjectId || marker.environment !== 'staging') throw new Error('DATABASE_BOUNDARY_MISMATCH');
   await client.query('COMMIT');
-  console.log(JSON.stringify({ migration: '002-canonical-execution-ledger', result: 'PASS', certificateVerified: true, ownerDataCopied: false }));
+  console.log(JSON.stringify({ migration: '003-queue-delivery-checks', result: 'PASS', certificateVerified: true, ownerDataCopied: false }));
 } catch (error) {
   await client.query('ROLLBACK').catch(() => {});
-  console.error(JSON.stringify({ migration: '002-canonical-execution-ledger', result: 'FAIL', code: error.code ?? 'MIGRATION_FAILED' }));
+  console.error(JSON.stringify({ migration: '003-queue-delivery-checks', result: 'FAIL', code: error.code ?? 'MIGRATION_FAILED' }));
   process.exitCode = 1;
 } finally { await client.end(); }

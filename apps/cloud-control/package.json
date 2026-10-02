@@ -3,7 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24.15 <25" },
-  "scripts": { "test": "node --test test/*.test.mjs" },
-  "dependencies": { "@vercel/sandbox": "3.5.1", "@vercel/blob": "2.8.0", "pg": "8.23.1" }
+  "engines": {
+    "node": ">=24.15 <25"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@vercel/blob": "2.8.0",
+    "@vercel/queue": "0.7.0",
+    "@vercel/sandbox": "3.5.1",
+    "pg": "8.23.1"
+  }
 }

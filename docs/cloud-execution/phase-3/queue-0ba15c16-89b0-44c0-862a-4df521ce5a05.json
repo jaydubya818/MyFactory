@@ -1,0 +1,62 @@
+{
+  "id": "0ba15c16-89b0-44c0-862a-4df521ce5a05",
+  "deployment": {
+    "url": "https://myfactory-cloud-staging-azozoxm0r-jaydubya818.vercel.app",
+    "id": "dpl_HXNSB5qDWYsr7XDgCozwho39EFvm",
+    "target": null,
+    "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4"
+  },
+  "evidenceClass": "CONNECTED",
+  "purpose": "hosted-queue-delivery",
+  "startedAt": "2026-10-02T07:40:06.699Z",
+  "status": "PASS",
+  "modelOperations": 0,
+  "submission": {
+    "purpose": "infrastructure-queue-delivery",
+    "admission": "DISABLED",
+    "check": {
+      "id": "0ba15c16-89b0-44c0-862a-4df521ce5a05",
+      "deployment_id": "dpl_HXNSB5qDWYsr7XDgCozwho39EFvm",
+      "state": "ACCEPTED",
+      "message_id": "4r-1M1fssEIMRUKV8fNZaIU1R4ThD1vmDj8",
+      "created_at": "2026-10-02T07:40:08.568Z",
+      "expires_at": "2026-10-02T07:42:08.568Z",
+      "delivered_at": null,
+      "delivery_count": null
+    }
+  },
+  "submitReturnedAt": "2026-10-02T07:40:09.191Z",
+  "readback": {
+    "purpose": "infrastructure-queue-delivery",
+    "admission": "DISABLED",
+    "check": {
+      "id": "0ba15c16-89b0-44c0-862a-4df521ce5a05",
+      "deployment_id": "dpl_HXNSB5qDWYsr7XDgCozwho39EFvm",
+      "state": "DELIVERED",
+      "message_id": "4r-1M1fssEIMRUKV8fNZaIU1R4ThD1vmDj8",
+      "created_at": "2026-10-02T07:40:08.568Z",
+      "expires_at": "2026-10-02T07:42:08.568Z",
+      "delivered_at": "2026-10-02T07:40:19.472Z",
+      "delivery_count": 1
+    }
+  },
+  "replay": {
+    "purpose": "infrastructure-queue-delivery",
+    "admission": "DISABLED",
+    "check": {
+      "id": "0ba15c16-89b0-44c0-862a-4df521ce5a05",
+      "deployment_id": "dpl_HXNSB5qDWYsr7XDgCozwho39EFvm",
+      "state": "DELIVERED",
+      "message_id": "4r-1M1fssEIMRUKV8fNZaIU1R4ThD1vmDj8",
+      "created_at": "2026-10-02T07:40:08.568Z",
+      "expires_at": "2026-10-02T07:42:08.568Z",
+      "delivered_at": "2026-10-02T07:40:19.472Z",
+      "delivery_count": 1
+    }
+  },
+  "readAt": "2026-10-02T07:40:22.862Z",
+  "consumerHttpAccess": {
+    "authenticatedPreviewRequestStatus": 404,
+    "publicRouteAvailable": false
+  }
+}

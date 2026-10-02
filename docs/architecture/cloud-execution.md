@@ -144,3 +144,6 @@ The hosted infrastructure-only controller now qualifies exact source → six det
 ## Canonical ledger migration checkpoint
 
 [Phase 3 ledger evidence](../cloud-execution/phase-3/README.md) records a PostgreSQL implementation of the existing V2 budget/operation contract. Pure admission and accounting rules are shared with SQLite; the canonical gateway awaits asynchronous durable operations. Staging migration 002 adds only Factory execution entities and their spend ledger. This has no cloud admission or model route attached yet.
+
+
+Hosted staging queue delivery is now CONNECTED PASS ([evidence](../cloud-execution/phase-3/README.md)). A delayed private consumer recorded PostgreSQL completion after the submitting process exited; duplicate submission returned the same receipt. Queue messages are wake-ups, while PostgreSQL remains authoritative. This bounded infrastructure check does not enable Work admission or qualify canonical recovery, the cloud harness, independent verifier, or Mac-off/P0. Keep the deployment hosting any outstanding message until reconciliation completes; never interpret an expired message as proof that an execution did not occur.

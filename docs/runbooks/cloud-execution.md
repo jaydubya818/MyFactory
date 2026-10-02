@@ -78,3 +78,6 @@ The direct PostgreSQL credential is used only in the Factory controller for sess
 ### Canonical PostgreSQL ledger
 
 Migration 002 adds Factory WorkOrder/Run execution records and canonical V2 budgets/operations. The migration runner records SHA-256 checksums and rejects changed applied migrations. The environment marker remains boundary version 1; `factory.schema_migrations` tracks actual migration revisions. Never copy local/private-alpha data into these tables. PostgreSQL integration tests require explicit `FACTORY_POSTGRES_TEST=1`, use unique temporary schemas and remove fixtures. A skipped connected test is not PASS. `recoverUnknown()` is an explicit recovery operation, never a routine healthy-worker restart action.
+
+
+Hosted staging queue delivery is now CONNECTED PASS ([evidence](../cloud-execution/phase-3/README.md)). A delayed private consumer recorded PostgreSQL completion after the submitting process exited; duplicate submission returned the same receipt. Queue messages are wake-ups, while PostgreSQL remains authoritative. This bounded infrastructure check does not enable Work admission or qualify canonical recovery, the cloud harness, independent verifier, or Mac-off/P0. Keep the deployment hosting any outstanding message until reconciliation completes; never interpret an expired message as proof that an execution did not occur.

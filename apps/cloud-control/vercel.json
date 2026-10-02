@@ -7,6 +7,15 @@
     "iad1"
   ],
   "functions": {
+    "api/queue-delivery.mjs": {
+      "maxDuration": 30,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-staging-delivery-check"
+        }
+      ]
+    },
     "api/infrastructure.mjs": {
       "maxDuration": 180
     },

@@ -160,6 +160,21 @@
       "sha256": "90391e6f4571b6714d79900a6106af850ba92fd8b315018d4a030cfd36268762",
       "classification": "POSTGRES_SPEND_LEDGER",
       "authorityBoundary": "Authoritative PostgreSQL transactions serialize V2 reservations, dispatch, settlement and cancellation using shared canonical policy and database time. No worker or public endpoint authority."
+    },
+    "apps/cloud-control/src/queue-delivery.mjs": {
+      "sha256": "af8be5f41a0b18ac1c371e2685b4c09cf26a688cc1ebc34aa22814061d87fc8f",
+      "classification": "STAGING_QUEUE_QUALIFICATION",
+      "authorityBoundary": "Fixed bounded infrastructure delivery check only; staging identity and durable nonce binding, private queue trigger, no Work admission, sandbox, model, verifier or publication authority."
+    },
+    "apps/cloud-control/api/queue-check.mjs": {
+      "sha256": "23846dc130d1901dad0b7229c404bb0010648cca8427ac5a7efaa258b8679630",
+      "classification": "STAGING_QUEUE_QUALIFICATION",
+      "authorityBoundary": "Fixed bounded infrastructure delivery check only; staging identity and durable nonce binding, private queue trigger, no Work admission, sandbox, model, verifier or publication authority."
+    },
+    "apps/cloud-control/api/queue-delivery.mjs": {
+      "sha256": "e98e9f89bd6d62289d1964e1613bc9a4502aaf7ae7b7505146970c6d572f9e10",
+      "classification": "STAGING_QUEUE_QUALIFICATION",
+      "authorityBoundary": "Fixed bounded infrastructure delivery check only; staging identity and durable nonce binding, private queue trigger, no Work admission, sandbox, model, verifier or publication authority."
     }
   }
 }
