@@ -106,3 +106,11 @@ backend configuration only. Alternatively Jay can provide authenticated operator
 access through Vercel's normal sign-in path. The current approval explicitly
 limits bypass creation to the Factory project, so this distinct project-scoped
 security change has not been performed.
+
+
+## Sofie approval received; provider constraint discovered
+
+Jay approved the separate operator/test-runner bypass. That approval supersedes
+the earlier pending permission above. Configuration now encounters a different
+provider constraint: the only project bypass cannot have environment injection
+disabled. See the [provider boundary evidence and decision](sofie-operator-bypass-provider-boundary.md). Both attempted credentials are revoked.

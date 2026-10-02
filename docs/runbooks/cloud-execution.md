@@ -99,7 +99,7 @@ The qualification-only hosted Work controller now implements private queue dispa
 
 The current access-qualification controller preview is https://myfactory-cloud-staging-ao0tx133g-jaydubya818.vercel.app (`dpl_AWaRtExXPgKucMn2jHHudZe3ckDS`, source digest `a4c87222bebc47b621b95cd53e44952a57e6257521855d737a71410d3df255ab`). Application grants are independent of the deployment bypass. The [approved scope and revocation procedure](../cloud-execution/phase-3/sofie-access-approval.md) apply. Hosted boundary checks remain pending; no real model or publication is authorized.
 
-The approved Factory bypass is configured, but Sofie operator ingress is separately protected and has no bypass. Hosted access matrix is **NOT_RUN** pending that distinct security decision; [scope and evidence](../cloud-execution/phase-3/sofie-access-approval.md). Factory deterministic regressions: 224 PASS, 0 FAIL, 7 gated skips. No Work was dispatched and no paid model or publication was invoked.
+Sofie operator bypass is now approved, but Vercel rejects disabling deployment environment injection on the project’s sole bypass. Both attempted credentials are revoked; no deployment was created and no bypass remains. The hosted application matrix is **NOT_RUN**, pending a decision on this provider-required expansion beyond operator-only custody. [Evidence and scope decision](../cloud-execution/phase-3/sofie-operator-bypass-provider-boundary.md).
 
 ## Harness qualification order
 

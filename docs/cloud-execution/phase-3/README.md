@@ -1,5 +1,7 @@
 # Cloud canonical ledger migration — partial
 
+Sofie operator bypass is now approved, but Vercel rejects disabling deployment environment injection on the project’s sole bypass. Both attempted credentials are revoked; no deployment was created and no bypass remains. The hosted application matrix is **NOT_RUN**, pending a decision on this provider-required expansion beyond operator-only custody. [Evidence and scope decision](sofie-operator-bypass-provider-boundary.md).
+
 The image and hosted infrastructure lifecycle passed Phase 2. Canonical cloud Work and the existing harness have not yet been connected. Cloud admission remains DISABLED and paid model operations remain 0.
 
 The new PostgreSQL implementation uses the same `WORK_LEDGER_V2` admission, pricing, exact binding, completion-reserve, UNKNOWN and accounting functions as the existing SQLite ledger. SQLite retains its transaction mechanics; PostgreSQL uses a transaction-scoped advisory lock and database time. This small staging deployment intentionally serializes ledger transactions. The model gateway now awaits durable asynchronous reservation and dispatch before contacting any provider, and awaits settlement/UNKNOWN persistence before returning.
