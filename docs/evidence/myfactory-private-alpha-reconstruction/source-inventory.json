@@ -2,9 +2,9 @@
   "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
   "sources": {
     "apps/supervisor/src/dispatch-control.ts": {
-      "sha256": "41dd1819dfab90797964749032bf0aeb1c64959e7b623f8bf8ee85f4e89d63cf",
-      "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "sha256": "c4079b553c5c119113cc8195847880c2c8f445485528bb8f2f6478a82ad42afe",
+      "classification": "EXECUTION_PROVIDER_BOUNDARY",
+      "authorityBoundary": "Delegate preparation, start, cancellation and resource reconciliation to an explicitly injected local provider. Retain connection authorization, exact binding, transactional dispatch claim, spend ledger, UNKNOWN, terminal fencing and publication boundaries. Resource readback grants no authority."
     },
     "apps/supervisor/src/jobs.ts": {
       "sha256": "5509f3f03b4842b6af747a2f12c6578c47d0dda63ba8e288e690b7e974735399",
@@ -37,9 +37,9 @@
       "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars."
     },
     "apps/supervisor/src/server.ts": {
-      "sha256": "863bb5ac4b2c7e2b4896c78b169c2ef668717b3eeacff545f649bf440c3104fa",
-      "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model"
+      "sha256": "8b06ce400c082bee45468da419390a28eda040fa48d825de285856706ffcebf6",
+      "classification": "LOCAL_PROVIDER_WIRING",
+      "authorityBoundary": "Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback."
     },
     "apps/supervisor/src/private-alpha.ts": {
       "sha256": "446fbf9e0cf86c04055b6cf53b360755f15b2bc3ee080d074c00b1415e707eb0",
@@ -90,6 +90,16 @@
       "sha256": "70345fb107dafe795150ac9b70617ccdb92525177a3abd69c830ee02ea8df5b0",
       "classification": "PROTECTED_VERIFICATION",
       "authorityBoundary": "Separate immutable-tree pre-completion checks reuse existing offline Docker restrictions; candidate verification still requires exact commit. Tree checks are not candidate custody or acceptance."
+    },
+    "apps/supervisor/src/execution-provider.ts": {
+      "sha256": "36b12e18aa008c8204cf23624cc07416b2eda50b26763d49d4a2afb87e72b2e8",
+      "classification": "EXECUTION_PROVIDER_CONTRACT",
+      "authorityBoundary": "Typed migration seam only. Resource evidence cannot grant writer, model, verification or publication authority. Legacy Run and host gateway references are explicitly local migration limitations."
+    },
+    "apps/supervisor/src/local-execution-provider.ts": {
+      "sha256": "727738ba01b853feb93c220b7cd4529f7a8aade3e1e83fc9276cde30cfae3192",
+      "classification": "LOCAL_RESOURCE_RECONCILIATION",
+      "authorityBoundary": "Scope process and verifier observations to the exact persisted attempt. Unknown resources prevent quiescence; only dispatch control decides canonical terminal state after fencing. Keep candidate workspace required by existing publication; never claim it was destroyed."
     }
   }
 }

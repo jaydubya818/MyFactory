@@ -1,0 +1,42 @@
+{
+  "status": "OWNER_SCOPE_DECISION_PENDING",
+  "productionEnabled": false,
+  "recommendedProjectName": "myfactory-cloud-staging",
+  "preferredRegion": "iad1",
+  "isolation": "Dedicated Factory project; dedicated staging PostgreSQL and private Blob scope; no production owner database",
+  "controlPlane": "Bounded Vercel orchestration invocations backed by durable PostgreSQL queue/ledger; detached ephemeral workers",
+  "firstProbe": {
+    "mode": "DETERMINISTIC",
+    "vcpus": 1,
+    "memoryGb": 2,
+    "timeoutSeconds": 120,
+    "maxRetainedArtifactBytes": 10000000,
+    "maxSandboxes": 1,
+    "persistent": false,
+    "networkPolicy": "deny-all after authorized exact source materialization",
+    "modelOperations": 0,
+    "publication": false,
+    "estimatedComputeUsd": 0.005681,
+    "estimateExcludes": [
+      "database",
+      "control-plane",
+      "storage",
+      "transfer"
+    ],
+    "imageDigest": null
+  },
+  "spendRules": [
+    "No paid model work until separately approved live envelope",
+    "No plan upgrades or material recurring commitment without explicit approval",
+    "Confirm account pricing and final resource ceiling before provisioning"
+  ],
+  "alternative": "Explicitly isolated preview resources inside existing sofie-personal-agent project; higher shared-identity/data blast radius",
+  "notYetImplemented": [
+    "remote protocol and cloud provider adapter",
+    "PostgreSQL Factory storage/ledger",
+    "worker image",
+    "cloud protected verifier",
+    "cloud Result/Proof return",
+    "Mac-off P0"
+  ]
+}

@@ -16,6 +16,7 @@ import { JobManager, type JobDependencies } from "./jobs.ts";
 import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
 import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
+import { LocalExecutionProvider } from './local-execution-provider.ts';
 import { FactoryDispatchControl } from "./dispatch-control.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
 import { type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
@@ -215,7 +216,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
   if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
     throw new Error('Local spend fixture must target loopback only');
-  const dispatchControl=producer?new FactoryDispatchControl(storage,jobs,producer,spend,
+  const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer),producer,spend,
     options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture,!!realProvider):null;
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {

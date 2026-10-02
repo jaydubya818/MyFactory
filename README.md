@@ -1,5 +1,7 @@
 # Local Software Factory
 
+[Cloud execution migration](docs/architecture/cloud-execution.md): the local execution-provider seam is implemented and regression-tested. Cloud execution is **NOT_READY**; no laptop-independence, cloud verifier or live canary is claimed. See the [checkpoint](docs/cloud-execution/phase-1/README.md) and [runbook](docs/runbooks/cloud-execution.md).
+
 [Latest execution-capacity repair](docs/private-alpha/execution-capacity-2026-10-01/README.md): Attempt 4 is preserved as failed. The complete five-operation installed-CLI journey passes offline, including custody, protected verification, Result/Proof and final synthetic Sofie explanation. The repaired runtime is deployed; a fresh paused fifth Work requires explicit authorization. Publication remains disabled.
 
 [Private-alpha OIDC provider](docs/private-alpha/README.md): project-scoped Gateway authentication, exact-model eligibility preflight and bounded execution are implemented. The substantive first Work remains owner-gated.
