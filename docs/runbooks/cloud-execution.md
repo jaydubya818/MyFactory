@@ -62,7 +62,7 @@ Migrations are explicit operator actions, never performed on a web request: run 
 
 Preview deployments use `vercel deploy --target preview`. Verify the returned target: the CLI can promote the first deployment of a new project despite that flag. No production-target deployment may receive staging credentials. The observed first-deploy exception was removed.
 
-Image distribution currently requires an [external unblock](../cloud-execution/phase-2/image-blocker.md). Do not repeatedly retry uploads, loosen TLS, use mutable images, or advance to model execution. No sandbox has been allocated. Resume with image digest/readiness verification after configuration is repaired.
+Historical evidence: this branch originally stopped at the [image blocker](../cloud-execution/phase-2/image-blocker.md). The separate Cloud Execution owner superseded it at `faf93359a4c54daaf3e0b713a601366db02ba8d6`. Follow that owner's current qualification; do not restart uploads from this old checkpoint or weaken TLS.
 
 
 ## Environment Fabric foundation
@@ -73,4 +73,8 @@ No environment registration endpoint or CLI is shipped at this checkpoint. Do no
 
 Routing diagnostics: an absent/stale/offline/revoked or unqualified environment returns Waiting; a Work authority mismatch returns Denied; protocol mismatch cannot be overridden by a client version. Existing bound attempts require canonical reconciliation, never another call to start from a BOUND readback. Do not remove the current loopback restriction before the authenticated remote lifecycle and custody are implemented.
 
-Resume cloud work only after a usable compatible private digest-pinned worker image is available to the existing staging project. Existing image-distribution evidence is retained, not a fresh upload attempt. No TLS or trust-policy relaxation is approved. Complete registry/admission/UI integration and the remote lifecycle, then qualify real Mac-off/browser-off paths before requesting the first paid canary.
+Reconcile cloud implementation through the active Cloud Execution owner. Its image/infrastructure milestone is advanced; HEADLESS canonical Work/harness/verifier/Mac-off/P0 remain the critical path. Fabric must not replace or gate that implementation. Complete real qualification before requesting the first paid canary.
+
+## Optional operator surfaces
+
+ExecutionEnvironment → ExecutionProvider → existing harness → optional SessionSurfaceProvider. [Contract and architecture](../architecture/session-surfaces.md); [operator/security/qualification runbook](session-surfaces.md). No live adapter or Control Center action is enabled. HEADLESS requires neither cmux nor tmux. Attachment qualification cannot enable production cloud admission.

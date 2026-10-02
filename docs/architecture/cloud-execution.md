@@ -199,3 +199,9 @@ flowchart LR
 ```
 
 Hidden Git checkpoints are DEFERRED. Durable command/event/effect handling has an EXISTING_EQUIVALENT in local claims and the Attempt-8 publisher; cloud allocation reconciliation remains pending. Relay contracts and federation are unchanged. DeepAgent is NOT_QUALIFIED and is not required to unblock the existing harness. See the [qualification report](../environment-fabric/qualification.md) for explicit unrun gates.
+
+## Optional session surfaces and current cloud ownership
+
+ExecutionEnvironment → ExecutionProvider → HarnessProvider/existing harness → optional SessionSurfaceProvider. [Session architecture](session-surfaces.md) defines HEADLESS/TMUX/CMUX, exact identity/scope, capabilities and upstream review. Contract only; native adapters and Control Center actions are deferred. Session absence/failure cannot govern productive lifecycle, custody, verification or Result/Proof.
+
+The separate Cloud Execution owner at `faf93359a4c54daaf3e0b713a601366db02ba8d6` supersedes the historical image blocker and owns its hosted provider/controller. No protected checkout was edited or copied. Fabric does not gate or duplicate its existing harness → deterministic cloud execution → independent verifier → Mac-off Golden Journey sequence. That full journey remains unqualified in the reviewed checkpoint.

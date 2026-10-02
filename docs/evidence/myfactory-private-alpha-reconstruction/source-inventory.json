@@ -132,9 +132,9 @@
       "authorityBoundary": "Fixed public source, immutable staging image, bounded nonpersistent single sandbox plan; no caller-supplied commands or credentials; not wired to allocation"
     },
     "packages/contracts/src/environment.ts": {
-      "sha256": "8c6065fbcaa55a30c394bd3d176c781f940037fb5aa61293531f1e6a3e79eba5",
-      "classification": "environment-contract",
-      "authorityBoundary": "Strict nonsecret versioned descriptor; capability availability grants no Work, Relay, verification or publication authority"
+      "sha256": "0e389462dfa083e66fb5578a8a55d645fd7a532cb9e7f1dd73468c48eb3edda4",
+      "classification": "ENVIRONMENT_CONTRACT",
+      "authorityBoundary": "Strict execution-environment metadata and versioned optional session capabilities. Advertisement grants no authority; surface capabilities are not productive requirements. No provider, lifecycle or authorization wiring."
     },
     "apps/supervisor/src/environment-router.ts": {
       "sha256": "9b4a9e1615d489b23434fe10b851e3b129f46915c9c07d633fbec53d9836e488",
@@ -145,6 +145,11 @@
       "sha256": "34b70dbf50da599762a7aa6e58200dbf35bc5e8039f18e02908f06767e89752f",
       "classification": "environment-adapter-projection",
       "authorityBoundary": "Safe projections of authenticated local readback; permissions are availability, not authority; no production wiring or qualification inferred"
+    },
+    "packages/contracts/src/session-surface.ts": {
+      "sha256": "19b90b64505f4ce01bbc77326fdbecf3f951c789dd4f5c87a7bcac2540f95698",
+      "classification": "SESSION_SURFACE_CONTRACT",
+      "authorityBoundary": "Contract-only optional observation/attachment interface, strict target-free request parser and pure exact-identity/operator-scope guard. No runtime adapter, endpoint, grants, worker lifecycle, lease, custody, verifier, model or publication effects. Trusted scope still requires authenticated canonical lookup plus effect-time policy/qualification/fencing."
     }
   }
 }

@@ -1,6 +1,6 @@
 # Local Software Factory
 
-[Cloud execution migration](docs/architecture/cloud-execution.md): the local execution-provider seam is implemented and regression-tested. Dedicated staging project, database, private custody storage and an admission-disabled readiness service are provisioned; see [Phase 2 evidence](docs/cloud-execution/phase-2/README.md). Worker-image distribution is blocked by VCR lookup/upload failures. Cloud execution is **NOT_READY**; no laptop-independence, cloud verifier or live canary is claimed. See the [checkpoint](docs/cloud-execution/phase-1/README.md) and [runbook](docs/runbooks/cloud-execution.md).
+[Cloud execution migration](docs/architecture/cloud-execution.md): the local execution-provider seam is implemented and regression-tested. Dedicated staging project, database, private custody storage and an admission-disabled readiness service are provisioned; see [Phase 2 evidence](docs/cloud-execution/phase-2/README.md). The historical worker-image blocker in this branch was superseded by the separate Cloud Execution owner at `faf93359a4c54daaf3e0b713a601366db02ba8d6`; that provider/controller checkpoint is not merged here. Cloud execution is **NOT_READY**; no laptop-independence, cloud verifier or live canary is claimed. See the [checkpoint](docs/cloud-execution/phase-1/README.md) and [runbook](docs/runbooks/cloud-execution.md).
 
 [Latest execution-capacity repair](docs/private-alpha/execution-capacity-2026-10-01/README.md): Attempt 4 is preserved as failed. The complete five-operation installed-CLI journey passes offline, including custody, protected verification, Result/Proof and final synthetic Sofie explanation. The repaired runtime is deployed; a fresh paused fifth Work requires explicit authorization. Publication remains disabled.
 
@@ -18,7 +18,7 @@ The work desk now includes **Connections** and optional Linear issue creation. A
 
 ## Execution Environments
 
-Environment Fabric is **PARTIAL**. The [T3 crosswalk](docs/environment-fabric/t3-crosswalk.md), typed descriptor, capability/authority-aware routing functions and local metadata adapters are implemented and deterministically tested. They are not wired into production Work routing yet. Cloud remains blocked before sandbox allocation by the existing [immutable-image prerequisite](docs/cloud-execution/phase-2/image-blocker.md).
+Environment Fabric is **PARTIAL**. The [T3 crosswalk](docs/environment-fabric/t3-crosswalk.md), typed descriptor, capability/authority-aware routing functions and local metadata adapters are implemented and deterministically tested. They are not wired into production Work routing yet. The cloud owner has independently advanced image and staging lifecycle work; its full HEADLESS/Mac-off Golden Journey is still pending. See the [current ownership and session extension](docs/architecture/session-surfaces.md).
 
 The intended flow is MyEve → MyFactory → selected environment → harness → candidate custody → independent verifier → Result/Proof → owner-controlled effect. Relay supplies independently authorized capabilities and communication. Cloud is intended for eligible background Work; Owner Computer for explicit local resources; Local Factory for deliberate development/qualification. A technical capability is not permission to execute. DeepAgent is a replaceable harness, not the environment fabric.
 
@@ -27,9 +27,10 @@ The intended flow is MyEve → MyFactory → selected environment → harness �
 | Sofie / MyEve | PARTIAL — existing canonical behavior preserved; environment UI/consumption pending |
 | Relay | NOT_RUN — contracts unchanged; existing qualification not repeated |
 | Environment Fabric | PARTIAL — contracts/routing tests pass; durable registry and production admission pending |
+| Session surfaces | PARTIAL — optional contract/scope tests pass; HEADLESS production independence required; CMUX/TMUX adapters and Control Center actions DEFERRED |
 | Owner Computer | PARTIAL — metadata projection tests pass; real companion E2E not repeated |
 | Local Factory | PASS deterministic lifecycle regressions; environment registration not integrated |
-| Cloud Factory | NOT_QUALIFIED — image prerequisite unresolved; cloud lifecycle NOT_RUN |
+| Cloud Factory | NOT_QUALIFIED end to end — separate cloud owner has qualified infrastructure; canonical Golden Journey pending |
 | Existing Factory harness | PASS deterministic regression; live/model qualification NOT_RUN here |
 | DeepAgent | NOT_QUALIFIED |
 | Candidate custody | PASS existing deterministic local regressions; cloud NOT_RUN |
@@ -38,7 +39,7 @@ The intended flow is MyEve → MyFactory → selected environment → harness �
 | Owner publication | Existing Attempt-8 implementation preserved; production publication NOT_RUN here |
 | Agent federation | NOT_RUN; Relay contracts unchanged; no Muse/GrokBots claims |
 
-See [qualification and limitations](docs/environment-fabric/qualification.md). Do not infer laptop independence or production availability from these unit tests.
+See [qualification and limitations](docs/environment-fabric/qualification.md) and the [session-surface report](docs/environment-fabric/session-surfaces.md). Do not infer laptop independence or production availability from these unit tests.
 
 ## Producer result attestation
 

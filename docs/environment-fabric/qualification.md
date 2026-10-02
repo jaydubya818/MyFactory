@@ -2,7 +2,7 @@
 
 **Overall: PARTIAL. Not ready for a live cloud canary.**
 
-This checkpoint extends the preserved cloud work with independently implemented T3-inspired environment contracts, pure routing and metadata adapters. Production routing is not yet connected. The genuine external blocker remains the existing staging image distribution prerequisite; no image upload was retried and no TLS policy was relaxed here.
+This checkpoint extends the preserved cloud work with independently implemented T3-inspired environment contracts, pure routing and metadata adapters. Production routing is not yet connected. This records the original Fabric checkpoint. The separate Cloud Execution owner has since advanced to `faf93359a4c54daaf3e0b713a601366db02ba8d6`, superseding the image-distribution blocker. Its hosted Work/harness/verifier/Mac-off qualification remains pending. See the [current session/ownership addendum](session-surfaces.md). No cloud source is merged into this branch by the extension.
 
 ## Evidence
 
@@ -25,7 +25,7 @@ This checkpoint extends the preserved cloud work with independently implemented 
 | No silent fallback | PASS deterministic | Cloud offline/unqualified stays Waiting even when Mac/Local Factory are online |
 | OWNER_COMPUTER | PARTIAL | Three metadata adapter tests include permission/offline mapping; real companion E2E not repeated |
 | LOCAL_FACTORY | PARTIAL | Existing provider/lifecycle regressions PASS; durable environment registration/binding pending |
-| CLOUD | NOT_QUALIFIED | Immutable staging runtime absent; allocation/lifecycle NOT_RUN |
+| CLOUD | NOT_QUALIFIED end to end | Historical image blocker superseded by separate cloud owner; full canonical journey pending |
 | Remote environment protocol | PARTIAL | V1 compatibility model exists; authenticated remote command transport pending |
 | Browser reconnect / multi-client Current Truth | NOT_RUN | No browser-based environment journey executed |
 | Durable intent/effect | EXISTING_EQUIVALENT, PARTIAL cloud | Local claim/restart/publication regressions pass; cloud allocation reconciliation pending |
@@ -52,9 +52,7 @@ Release-wide counts for unauthorized environment executions, duplicate authorita
 
 ## Resume boundary
 
-An operator must restore authenticated VCR image upload or provide a compatible private Node 24 + Git linux/amd64 runtime by immutable digest in the approved staging project. Exact target and constraints are in the blocker evidence. This is an external configuration prerequisite, not a request to select a new architecture or run a paid canary.
-
-After that prerequisite: complete owner-scoped registry and production admission/Work binding; connect existing Owner Computer and Local Factory adapters without changing their authority; add environment Current Truth/UI; implement durable allocation and remote execution in the existing dedicated staging stack; move candidate custody and independent verification; run deterministic Mac-off/browser-off, P0, fault/security and cleanup qualification. Only then prepare the separate bounded paid-cloud authorization envelope. Publication defaults disabled.
+Cloud Execution remains the implementation owner for the provider, hosted controller, harness, custody and independent verifier. Consume its current explicit checkpoint; do not restart historical image-upload work or duplicate its controller. Its next critical sequence is the qualified harness → deterministic cloud execution → independent verifier → Mac-off Golden Journey → P0. Fabric retains registry/routing integration and optional session contracts. The session extension must not gate that sequence. First paid canary remains separately bounded/authorized; publication defaults disabled.
 
 MyEve canonical Mac deterministic regressions: **46 PASS, 8 gated SQL skips**; [retained MyEve evidence](https://github.com/jaydubya818/MyEveBot/blob/codex/environment-fabric/docs/environment-fabric/mac-regressions.txt). Real companion E2E remains NOT_RUN.
 

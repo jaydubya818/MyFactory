@@ -1,8 +1,12 @@
 /** Canonical execution metadata. Availability and advertisement grant no authority. */
 export const environmentTypes = ['CLOUD', 'OWNER_COMPUTER', 'LOCAL_FACTORY'] as const;
 export type EnvironmentType = typeof environmentTypes[number];
+/** Optional operator surfaces. Never add these to productive Work requirements. */
+export const sessionCapabilityNames = ['session.headless', 'session.tmux', 'session.cmux',
+  'session.interactiveAttach', 'session.browser', 'session.notifications'] as const;
 export const capabilityNames = ['filesystem', 'shell', 'git', 'repositoryExecution',
-  'backgroundExecution', 'candidateCustody', 'protectedVerification', 'screenshot', 'desktop'] as const;
+  'backgroundExecution', 'candidateCustody', 'protectedVerification', 'screenshot', 'desktop',
+  ...sessionCapabilityNames] as const;
 export type CapabilityName = typeof capabilityNames[number];
 export interface EnvironmentCapability {
   name: CapabilityName;
