@@ -1,3 +1,5 @@
+import {handleCloud} from '../api/cloud.mjs';
+import {cloudGrant} from '../src/cloud-work-plan.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
@@ -34,6 +36,28 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
   await spend.createBudget(binding,1000000,input.deadline,plan);await spend.bindAuthority(binding);
   return{input,row,identity,binding};
  }
+ await t.test('Evidence HTTP detail/read uses real PG identity lookup, durable owner binding and signed receipt',async()=>{
+  const input={protocol:CLOUD_EXECUTION_PROTOCOL,requestId:randomUUID(),workId:randomUUID(),workGeneration:1,repository:source.repository,source,deadline:new Date(Date.now()+110000).toISOString(),maxSpendUsd:1,input:{title:'Evidence',description:'Read-only evidence qualification',kind:'feature',acceptanceCriteria:['Evidence custody'],checkCommands:grant.commands,allowedPaths:grant.allowedPaths}};
+  const row=await store.prepare({...grant,clientId:cloudGrant.clientId,ownerScope:'proof-owner'},input,snapshot);
+  const bundle={commit:'d'.repeat(40),checks:[{command:'node --test',exitCode:0}],patchBase64:Buffer.from('fixture patch').toString('base64')};
+  const finishedAt=new Date().toISOString();
+  await store.transaction(async c=>{
+   await store.event(c,row,'factory.terminal',{status:'COMPLETED',candidateCommit:bundle.commit,finishedAt});
+   await store.event(c,row,'run.signed_result',{encoded:Buffer.from(JSON.stringify({status:'COMPLETED',candidate:{commit:bundle.commit},execution:row.snapshot})).toString('base64url')});
+  });
+  assert.deepEqual(await store.findRun(cloudGrant.clientId,row.work_order_id,row.run_id),{request_id:row.request_id});
+  const proofToken='a'.repeat(64),env={...process.env,FACTORY_PROOF_TOKEN:proofToken,FACTORY_PROOF_OWNER_SCOPE:'proof-owner',FACTORY_PROOF_EXPIRES_AT:new Date(Date.now()+60000).toISOString(),FACTORY_SOFIE_STAGING_TOKEN:'b'.repeat(64)};
+  const runtime=async(_env,action)=>action({store:Object.assign(store,{pool:{...isolated,query}}),provider:{readCustody:async()=>bundle},control:{}});
+  const get=new Request('https://factory.invalid/api/connect/v2/work-orders/'+row.work_order_id,{headers:{authorization:'Bearer '+proofToken}});
+  const response=await handleCloud(get,env,runtime);assert.equal(response.status,200);const refs=(await response.json()).events[0].payload.refs;assert.equal(refs.length,2);
+  for(const ref of refs){
+   const binding={ownerScope:'proof-owner',repository:source.repository,workId:input.workId,workGeneration:1,requestId:row.request_id,workOrderId:row.work_order_id,runId:row.run_id,candidateCommit:bundle.commit,factoryVersion:row.snapshot.factoryVersion,evidenceKind:ref.kind,expectedDigest:ref.sha256,evidenceReference:ref.proofReference};
+   const post=b=>new Request('https://factory.invalid/api/connect/v2/evidence/read',{method:'POST',headers:{authorization:'Bearer '+proofToken,'content-type':'application/json'},body:JSON.stringify(b)});
+   assert.equal((await handleCloud(post(binding),env,runtime)).status,200);
+   assert.equal((await handleCloud(post({...binding,ownerScope:'other'}),env,runtime)).status,404);
+   assert.equal((await handleCloud(post({...binding,workId:randomUUID()}),env,runtime)).status,404);
+  }
+ });
  await t.test('prepare replay retains canonical IDs; conflicting input and cross-client read fail',async()=>{
   const f=await fixture();assert.equal((await store.prepare(grant,f.input,snapshot)).run_id,f.row.run_id);
   await assert.rejects(store.prepare(grant,{...f.input,maxSpendUsd:0.5},snapshot),/REPLAY_CONFLICT/);
@@ -116,7 +140,7 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
   assert.equal((await store.read(grant.clientId,other.input.requestId)).events.filter(e=>e.type==='factory.dispatch_claimed').length,0);
  });
  await t.test('qualification lifetime limit cannot expand with a fresh request or Work ID',async()=>{
-  const count=Number((await query('SELECT count(*) FROM factory.intake_receipts')).rows[0].count);
+  const count=Number((await query('SELECT count(*) FROM factory.intake_receipts WHERE client_id=$1',[grant.clientId])).rows[0].count);
   for(let i=count;i<8;i++)await fixture();
   await assert.rejects(fixture(),/STAGING_WORK_LIMIT/);
  });

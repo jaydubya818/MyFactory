@@ -23,7 +23,7 @@ export async function withCloudRuntime(env,action){
   const verifierContext=row=>({clientId:row.client_id,requestId:row.request_id,store:verification,provider:verifier,readCustody:()=>provider.readCustody(row)});
   provider.verifyCandidate=row=>verifyCloudCandidate(verifierContext(row));
   provider.reconcileVerification=row=>reconcileCloudVerification(verifierContext(row));
-  const control=new CloudWorkControl({store,spend,provider,queue,signing,sourceDigest:sourceIdentity.sourceDigest,deploymentId:env.VERCEL_DEPLOYMENT_ID});
+  const control=new CloudWorkControl({store,spend,provider,queue,signing,sourceDigest:sourceIdentity.sourceDigest,deploymentId:env.VERCEL_DEPLOYMENT_ID,ownerScope:env.FACTORY_PROOF_OWNER_SCOPE});
   return await action({store,spend,provider,queue,control});
  }finally{await pool.end();}
 }

@@ -1,3 +1,4 @@
+import {proofCredential,cloudEvidence,cloudEvidenceRead} from '../src/cloud-evidence.mjs';
 import {authorized} from '../src/readiness.mjs';
 import {assertStagingEnvironment} from '../src/config.mjs';
 import {withCloudRuntime} from '../src/cloud-runtime.mjs';
@@ -7,7 +8,8 @@ import {boundedBytes} from '../src/infrastructure-provider.mjs';
 const uuid='[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}';
 export async function handleCloud(request,env,withRuntime=withCloudRuntime){
  const respond=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'private, no-store'}});
- if(!authorized(request,env.FACTORY_SOFIE_STAGING_TOKEN))return respond({error:'UNAUTHORIZED'},401);
+ const proof=proofCredential(request,env);
+ if(!proof&&!authorized(request,env.FACTORY_SOFIE_STAGING_TOKEN))return respond({error:'UNAUTHORIZED'},401);
  try{assertStagingEnvironment(env);}catch{return respond({error:'STAGING_BOUNDARY_MISMATCH'},503);}
  const url=new URL(request.url);let path=url.pathname;
  // Vercel's named rewrite capture is carried as ?path=... to this function.
@@ -21,6 +23,19 @@ export async function handleCloud(request,env,withRuntime=withCloudRuntime){
  if(!['GET','POST'].includes(request.method))return respond({error:'INVALID_REQUEST'},400);
  try{
   return await withRuntime(env,async({store,control,provider})=>{
+   const detail=new RegExp(`^/api/connect/v2/work-orders/(${uuid})$`).exec(path);
+   if(detail||path==='/api/connect/v2/evidence/read'){
+    if(!proof)return respond({error:'UNAUTHORIZED'},401);
+    if(detail&&request.method==='GET'){
+     const found=(await store.pool.query('SELECT run_id FROM factory.intake_receipts WHERE client_id=$1 AND work_order_id=$2',[cloudGrant.clientId,detail[1]])).rows[0];
+     if(!found)return respond({error:'NOT_FOUND'},404);
+     const identity=await store.findRun(cloudGrant.clientId,detail[1],found.run_id),row=await store.read(cloudGrant.clientId,identity.request_id),evidence=await cloudEvidence(row,provider,env.FACTORY_PROOF_OWNER_SCOPE);
+     return respond({events:[{runId:row.run_id,type:'run.evidence_collected',payload:{refs:evidence.map(e=>({proofReference:e.proofReference,kind:e.ref.kind,sha256:e.ref.sha256,candidateCommit:e.ref.candidateCommit,factoryVersion:e.ref.factoryVersion,workOrderId:e.ref.workOrderId,runId:e.ref.runId}))}}]});
+    }
+    if(!detail&&request.method==='POST')return respond(await cloudEvidenceRead(JSON.parse((await boundedBytes(request.body,16000)).toString('utf8')),{store,provider},env.FACTORY_PROOF_OWNER_SCOPE));
+    return respond({error:'INVALID_REQUEST'},400);
+   }
+   if(proof)return respond({error:'UNAUTHORIZED'},401);
    if(path==='/api/connect/v2/actions'&&request.method==='GET')return respond({controls:['factory.prepare','factory.dispatch','factory.observe','factory.stop'],execution:{mode:'CLOUD_DETERMINISTIC',spendEnforced:true},admission:'DISABLED',qualificationOnly:true});
    if(path==='/api/connect/v2/dispatches'&&request.method==='POST')return respond(await control.prepare(JSON.parse((await boundedBytes(request.body,32000)).toString('utf8'))));
    const dispatch=new RegExp(`^/api/connect/v2/dispatches/(${uuid})(?:/(dispatch|stop|custody))?$`).exec(path);
@@ -47,6 +62,8 @@ export async function handleCloud(request,env,withRuntime=withCloudRuntime){
    return respond({error:'NOT_FOUND'},404);
   });
  }catch(error){
+  if(error.status===409&&error.code==='waiting_for_evidence')return respond({code:error.code},409);
+  if(error.status===404)return respond({error:'NOT_FOUND'},404);
   if(['CLOUD_SOURCE_NOT_GRANTED','CLOUD_CAPABILITIES_NOT_GRANTED','WRITER_BINDING_MISMATCH','WRITER_BINDING_CONFLICT','WORK_SCOPE_OR_GENERATION_CONFLICT'].includes(error.message))return respond({error:'WORK_AUTHORITY_DENIED',admission:'DISABLED'},403);
   const missing=error.message==='FACTORY_REQUEST_NOT_FOUND';
   return respond({error:missing?'NOT_FOUND':'CLOUD_WORK_UNAVAILABLE',admission:'DISABLED'},missing?404:503);

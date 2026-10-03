@@ -49,6 +49,7 @@ export class PostgresDispatchStore {
       await client.query('INSERT INTO factory.intake_receipts(client_id,request_id,work_id,work_generation,input_digest,work_order_id,run_id,request,snapshot,deadline) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[grant.clientId,request.requestId,request.workId,request.workGeneration,digest(request),workOrderId,runId,request,snapshot,request.deadline]);
       const row=await this.record(client,grant.clientId,request.requestId);
       await this.event(client,row,'factory.prepare_requested',request);
+      if(grant.ownerScope)await this.event(client,row,'factory.owner_scope_bound',{ownerScope:grant.ownerScope,workId:request.workId,workGeneration:request.workGeneration,repository:request.repository,requestId:request.requestId});
       await this.event(client,row,'run.execution_snapshot',snapshot);
       return row;
     });

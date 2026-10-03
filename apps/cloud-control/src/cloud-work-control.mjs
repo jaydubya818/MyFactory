@@ -9,13 +9,13 @@ export {cloudHarnessSpendPlan as spendPlan} from './cloud-harness-plan.mjs';
 import {cloudHarnessSpendPlan as spendPlan} from './cloud-harness-plan.mjs';
 
 export class CloudWorkControl {
- constructor({store,spend,provider,queue,signing,sourceDigest,deploymentId}) {Object.assign(this,{store,spend,provider,queue,signing,sourceDigest,deploymentId});}
+ constructor({store,spend,provider,queue,signing,sourceDigest,deploymentId,ownerScope}) {Object.assign(this,{store,spend,provider,queue,signing,sourceDigest,deploymentId,ownerScope});}
  snapshot(request,order,run){
   const configuration=structuredClone(cloudConfiguration),configurationDigest=digest(configuration);
   return{version:2,inputTree:request.source.tree,factoryId:this.signing.factoryId,factoryVersion:digest({sourceDigest:this.sourceDigest,configurationDigest}),sourceDigest:this.sourceDigest,configurationDigest,configuration,requestId:request.requestId,requestDigest:digest(request),workOrderId:order.id,runId:run.id,attemptNumber:1,inputCommit:request.source.commit,capturedAt:run.startedAt};
  }
  async prepare(input){
-  const row=await this.store.prepare(cloudGrant,input,(...args)=>this.snapshot(...args));
+  const row=await this.store.prepare({...cloudGrant,...(this.ownerScope?{ownerScope:this.ownerScope}:{})},input,(...args)=>this.snapshot(...args));
   await this.spend.createBudget({workId:row.work_id,workGeneration:row.work_generation,requestId:row.request_id,workOrderId:row.work_order_id},Math.floor(row.request.maxSpendUsd*1000000),row.request.deadline,spendPlan);
   return this.read(row.request_id);
  }

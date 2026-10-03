@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "9ee4f1097930cc499e925dc7ebd3ab9a303c100fe38a5ed28f65aa38b974927f",
+      "sha256": "2a1c549cf2806fe0d8d1ff0db57147c686663bc1371f96c804ff4bffc568a1fb",
       "classification": "CLOUD_DISPATCH_AUTHORITY",
-      "authorityBoundary": "Canonical staging admission, writer lease, budget and cancellation preserved. Unresolved verifier blocks new productive allocation; terminal result requires verifier teardown."
+      "authorityBoundary": "Canonical staging admission, writer lease, budget and cancellation preserved. Unresolved verifier blocks new productive allocation; terminal result requires verifier teardown. Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -217,9 +217,9 @@
       "sha256": "6c70b229315db0725488ca0a97dcebb81b8035ca1892115b5c8997a330ba7e28"
     },
     "apps/cloud-control/src/cloud-work-control.mjs": {
+      "sha256": "af0f5569bd61c7313a9d74d2dcf364905489ed9723c17e1d3c6ac5bc24f3e4aa",
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "d1ae7010206a7ba8efb4eae8e46c2ffa594e8a2ea85a48d20e78a07c64ee5507"
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled. Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
     },
     "apps/cloud-control/src/cloud-queue-consumer.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -232,9 +232,9 @@
       "authorityBoundary": "Canonical signed Result separately attests independent verifier policy, immutable candidate, Work and distinct destroyed resource; hidden inputs and raw provider errors excluded. No publication/owner authority."
     },
     "apps/cloud-control/src/cloud-runtime.mjs": {
-      "sha256": "e1ec7af46211a2b8f0cbf8875dd8c72720104c45d44538cafe14c68565740802",
+      "sha256": "fd5a4edcc93cc2cf04448d7597c64cee3b362a17f8b5c97370cb8fef4817d200",
       "classification": "CLOUD_RUNTIME_COMPOSITION",
-      "authorityBoundary": "Dedicated staging controller binds canonical PostgreSQL dispatch/spend/custody with separate verifier provider; credentials remain host-side; no production admission."
+      "authorityBoundary": "Dedicated staging controller binds canonical PostgreSQL dispatch/spend/custody with separate verifier provider; credentials remain host-side; no production admission. Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
     },
     "apps/cloud-control/src/cloud-work-provider.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -257,9 +257,9 @@
       "sha256": "5f72e1e7313c90bc8a67e563ed9df018c0ad7458a933cc20601897aa627a6ed5"
     },
     "apps/cloud-control/api/cloud.mjs": {
+      "sha256": "5269192c608bd47b76ce38154392ee5196f31544e24c34b6560712704e99e897",
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled. Explicit 403 for exact source/capability/Work binding grant denial; deployment bypass is never application authentication.",
-      "sha256": "9d4ba680d03d1bf6d70965490105c93d65609573561eb89c92237c51ad13fcb3"
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled. Explicit 403 for exact source/capability/Work binding grant denial; deployment bypass is never application authentication. Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
     },
     "apps/cloud-control/api/cloud-work.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -380,6 +380,11 @@
       "sha256": "b2dc018a04055cc2bf8884d01bb540f8c95d7e6bf224f7a9fd8b982ec8253c81",
       "classification": "STATIC_CANDIDATE_PREVIEW",
       "authorityBoundary": "Read-only Git blob verification serves a bounded exact static candidate on loopback and closes after capture. No package install, arbitrary command, developer-provided localhost target or publication authority."
+    },
+    "apps/cloud-control/src/cloud-evidence.mjs": {
+      "sha256": "4bde6520dfa4030faa19bcf8bfa3544c25569b35893461adc5cba221dc5ec929",
+      "classification": "EVIDENCE_READ",
+      "authorityBoundary": " Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
     }
   }
 }

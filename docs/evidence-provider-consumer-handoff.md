@@ -17,3 +17,7 @@ The current MyEve protected implementation has `ProofOfWork.artifactRefs` and cr
 ## Qualification status
 
 MyFactory's local fixture covers exact non-UI Test/Diff evidence from candidate through durable custody, authenticated transport, independent client digest checks and a Proof-shaped reference. A separate static Git candidate fixture covers exact candidate/tree preview through Playwright Screenshot/BrowserJourney collection and durable custody. **Actual MyEve Proof storage/readback is not qualified in this branch.** The MyEve owner must add consumer tests for both journeys and retained Proof after Factory worktree cleanup before calling the end-to-end gate PASS.
+
+## Consolidation successor (2026-10-03)
+
+The assembled MyEve consumer now implements durable Test/Diff custody, signed-content checks, exact Proof references and authenticated owner/shared-Result readback. Local real-transport E2E and independent review PASS; hosted assembled-source qualification is pending. Cloud uses the accepted metadata/reference contract over existing private candidate custody, with an independent expiring read credential and durable owner event. This adds no Factory SQL migration. See the consolidation report for current release gates; preceding handoff status is historical.
