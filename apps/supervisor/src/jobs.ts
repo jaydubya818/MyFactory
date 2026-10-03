@@ -1,3 +1,4 @@
+import { repairLink, repairPrompt, ReviewRepair } from "./review-repair.ts";
 import { executionContext, implementationFeedback } from "./execution-context.ts";
 import { mkdir, readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -184,6 +185,8 @@ export class JobManager {
   }
 
   async startRun(workOrder: WorkOrder): Promise<Run> {
+    if(repairLink(this.storage,workOrder.id)||new ReviewRepair(this.storage).review(workOrder.id))
+      throw new ActionError("Reviewed candidates require a new repair Work and canonical bounded dispatch","repair_needs_you",409);
     if(this.storage.listEvents(workOrder.id).some(e=>e.type==='factory.prepare_requested'))
       throw new ActionError('Managed Factory Work requires its exact bound dispatch', 'managed_dispatch_required',409);
     return this.initialize(workOrder,false);
@@ -193,6 +196,8 @@ export class JobManager {
 
   private async initialize(workOrder: WorkOrder,prepareOnly:boolean): Promise<Run> {
     if (this.#active) throw new ActionError("Another run is already active", "concurrency_limit", 409);
+    if(repairLink(this.storage,workOrder.id)&&this.storage.listRuns(workOrder.id).length)
+      throw new ActionError("Repair Work has exactly one candidate attempt","repair_needs_you",409);
     workOrder = structuredClone(workOrder);
     this.#clearRecoveryHold(workOrder);
     const active: ActiveJob = {
@@ -408,6 +413,7 @@ export class JobManager {
           "Paid calls are scarce. Each productive process has one model response. Implement using the exposed local edit tool in that response. The host then stops the process and runs the implementation-visible repository checks deterministically. Do not spend this response requesting tests, announcing work or repeating inspection. If those checks fail, the host may provide their bounded feedback and the current source to the one remaining productive response for repair. The host alone admits completion and commits; independent protected verification remains separate.",
           `HOST_SOURCE_CONTEXT: ${context}`,
         ] : []),
+        ...repairPrompt(this.storage,workOrder.id),
         `Title: ${workOrder.title}`,
         `Request: ${workOrder.description}`,
         `Acceptance criteria: ${workOrder.acceptanceCriteria.join("; ")}`,
@@ -429,6 +435,7 @@ export class JobManager {
         signal,
         ...(active.gateway ? { gateway: { baseUrl: productiveConnection!.baseUrl, childToken: productiveConnection!.childToken } } : {}),
         productiveEndSignal: productiveConnection?.productiveEndSignal,
+        ...(context && productiveConnection?.productiveEndSignal ? {boundedProductiveContext: true as const} : {}),
         onProcessStart: (processIdentity) => {
           this.#event(workOrder.id, run.id, "agent.process_started", processIdentity);
         },

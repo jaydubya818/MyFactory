@@ -1,3 +1,4 @@
+import { claimRepairPreparation } from "./review-repair.ts";
 import {assertImplementationProgress} from './execution-context.ts';
 import {execFile} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
@@ -22,6 +23,7 @@ export interface ExecutionIdentity {
 export interface PrepareRequest {
  requestId:string;workId:string;workGeneration:number;repository:string;deadline:string;maxSpendUsd:number;
  input:unknown;
+ repairWorkOrderId?:string;
  spendContract?:{version:'WORK_LEDGER_V2';pricingRevision:string;plannedProductiveOperations:number;
   plannedCompletionOperations:number;maxPaidOperations:number;completionReserveMicrousd:number};
 }
@@ -67,7 +69,8 @@ export class FactoryDispatchControl {
  async prepare(client:FactoryClient,input:PrepareRequest){
   this.authorize(client,'factory.prepare');
   if(!input||!['deadline,input,maxSpendUsd,repository,requestId,workGeneration,workId',
-    'deadline,input,maxSpendUsd,repository,requestId,spendContract,workGeneration,workId'].includes(Object.keys(input).sort().join(','))||
+    'deadline,input,maxSpendUsd,repository,requestId,spendContract,workGeneration,workId',
+    'deadline,input,maxSpendUsd,repairWorkOrderId,repository,requestId,spendContract,workGeneration,workId'].includes(Object.keys(input).sort().join(','))||
    !uuid.test(input.requestId)||!uuid.test(input.workId)||!Number.isSafeInteger(input.workGeneration)||input.workGeneration<1||
    typeof input.repository!=='string'||!/^[-\w.]+\/[-\w.]+$/.test(input.repository)||
    !Number.isFinite(input.maxSpendUsd)||input.maxSpendUsd<0.000001||input.maxSpendUsd>20||
@@ -98,7 +101,7 @@ export class FactoryDispatchControl {
   const created=this.storage.transaction(()=>{
    const existing=this.storage.getIntake('gateb:'+client.id,input.requestId);
    if(existing){if(existing.input_digest!==hash)throw new ActionError('Preparation replay conflict','conflict',409);return null;}
-   const order=this.storage.createWorkOrder(work);
+   const order=input.repairWorkOrderId?claimRepairPreparation(this.storage,input.repairWorkOrderId,input,work):this.storage.createWorkOrder(work);
    this.storage.recordIntake('gateb:'+client.id,input.requestId,hash,order.id);
    this.storage.appendEvent({workOrderId:order.id,runId:null,type:'workorder.created',payload:{requestId:input.requestId,actor:'connection:'+client.id}});
    this.storage.appendEvent({workOrderId:order.id,runId:null,type:'factory.prepare_requested',payload:request});

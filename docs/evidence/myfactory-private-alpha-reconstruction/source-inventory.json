@@ -2,14 +2,14 @@
   "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
   "sources": {
     "apps/supervisor/src/dispatch-control.ts": {
-      "sha256": "41dd1819dfab90797964749032bf0aeb1c64959e7b623f8bf8ee85f4e89d63cf",
+      "sha256": "f7bcbd05424e5a24c107f6632d8ef42593af277a3d743ffe32119ce2740c6ef1",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
     },
     "apps/supervisor/src/jobs.ts": {
-      "sha256": "5509f3f03b4842b6af747a2f12c6578c47d0dda63ba8e288e690b7e974735399",
+      "sha256": "8eafe63348cccc9b97f81a077099df945bd140cbd4b1b4393ac9d244a426b492",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
     },
     "apps/supervisor/src/spend-gateway.ts": {
       "sha256": "50dd036ba5d2e1a079b4b9fb1c75238ab2b4c2ded2a9c64e4262b2babcaddb92",
@@ -22,9 +22,9 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "b891f1d66677fc8e40967bbfa16f0fcaa6faa7cb3aafe125dde2a87a909fd04d",
+      "sha256": "359cc74121ada6cf21a738ace14f5bf3b3e4e0ff85348f665592e5c721626694",
       "classification": "EXECUTOR_LIFECYCLE",
-      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved."
+      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes."
     },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
@@ -37,9 +37,9 @@
       "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars."
     },
     "apps/supervisor/src/server.ts": {
-      "sha256": "863bb5ac4b2c7e2b4896c78b169c2ef668717b3eeacff545f649bf440c3104fa",
+      "sha256": "edf5f9b64150ab7f08e23964a57102d7c557673740c6d7d45c9ca647b8d84bcc",
       "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model"
+      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
     },
     "apps/supervisor/src/private-alpha.ts": {
       "sha256": "446fbf9e0cf86c04055b6cf53b360755f15b2bc3ee080d074c00b1415e707eb0",
@@ -90,6 +90,31 @@
       "sha256": "70345fb107dafe795150ac9b70617ccdb92525177a3abd69c830ee02ea8df5b0",
       "classification": "PROTECTED_VERIFICATION",
       "authorityBoundary": "Separate immutable-tree pre-completion checks reuse existing offline Docker restrictions; candidate verification still requires exact commit. Tree checks are not candidate custody or acceptance."
+    },
+    "apps/supervisor/src/review-repair.ts": {
+      "sha256": "15d0bcb5b17cb07be13ebd10590682ff2b029f62c7bb8598bafefe70e40b8f60",
+      "classification": "BOUNDED_REPAIR_LIFECYCLE",
+      "authorityBoundary": " Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
+    },
+    "apps/supervisor/src/actions.ts": {
+      "sha256": "e50ebebdfe5e24004c8d32efa4a129acf5dba8fb8ddccb168c9a8a5bd681f489",
+      "classification": "BOUNDED_REPAIR_LIFECYCLE",
+      "authorityBoundary": " Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
+    },
+    "apps/supervisor/src/connections.ts": {
+      "sha256": "523b0306955944c334e24bc460265b258209c40cfe9112a1625157177232e1d9",
+      "classification": "BOUNDED_REPAIR_LIFECYCLE",
+      "authorityBoundary": " Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
+    },
+    "packages/contracts/src/index.ts": {
+      "sha256": "804176927cde853743c7f609277dc64a33aecc06c7ab1c251cfcf4a593bb1c09",
+      "classification": "BOUNDED_REPAIR_LIFECYCLE",
+      "authorityBoundary": " Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
+    },
+    "packages/contracts/src/review-repair.ts": {
+      "sha256": "3369bdca035c09dbc98778b23b49874a633063bd471838e05b9d283fa4bb46a5",
+      "classification": "BOUNDED_REPAIR_LIFECYCLE",
+      "authorityBoundary": " Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
     }
   }
 }

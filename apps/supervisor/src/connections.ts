@@ -5,7 +5,7 @@ import type { IncomingMessage } from "node:http";
 import type { WorkOrder } from "../../../packages/contracts/src/index.ts";
 import { ActionError } from "./actions.ts";
 
-export const clientActions = ["workorder.create", "workorder.note.add", "publication.request", "linear.sync", "factory.prepare", "factory.dispatch", "factory.observe", "factory.stop"] as const;
+export const clientActions = ["workorder.create", "workorder.note.add", "publication.request", "repair.propose", "linear.sync", "factory.prepare", "factory.dispatch", "factory.observe", "factory.stop"] as const;
 export interface FactoryClient {
   id: string;
   name: string;
