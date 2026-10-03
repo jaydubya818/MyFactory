@@ -1,0 +1,16 @@
+MyFactory cloud connection
+
+Check the private connection, service availability and access protections. This check does not start Work or call a model.
+
+Check cloud connection
+
+Connection checks passed. Work remains disabled.
+
+Missing application identity denied: Passed
+Invalid application identity denied: Passed
+Unauthorized Work denied: Passed
+Database: Available
+Artifact storage: Available
+Sandbox service: Available
+
+Execution still requires qualification and your authorization. Publication is disabled.

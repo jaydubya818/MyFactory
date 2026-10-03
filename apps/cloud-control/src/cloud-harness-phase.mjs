@@ -24,11 +24,11 @@ export async function installCloudHarness(sandbox){
 
 /** A single admitted productive or read-only completion process. Lifecycle,
  * checkpoints, custody and protected verification remain host responsibilities. */
-export async function runCloudHarnessPhase({sandbox,ledger,binding,phase,sequence,prompt,currentSource,deadline,recordCommand,recordEvidence}){
+export async function runCloudHarnessPhase({sandbox,ledger,binding,phase,sequence,prompt,currentSource,deadline,recordCommand,recordEvidence,modelProvider}){
  if(!['productive','completion'].includes(phase)||![1,2,3].includes(sequence)||!Number.isSafeInteger(deadline)||deadline<=Date.now()||deadline>Date.now()+180000)throw Error('HARNESS_PHASE_AUTHORITY');
  const childToken=randomBytes(32).toString('hex'),user=sandbox.asUser('factoryproducer'),root=`/home/factoryproducer/phase-${sequence}`;
  let boundary=false,finished=false;
- const gateway=new SpendGateway({ledger,binding,price:cloudHarnessPrice,childToken,phase,upstreamOrigin:'https://deterministic.factory.invalid',upstreamApiKey:'deterministic-only',upstreamFetch:deterministicHarnessResponse({phase,currentSource}),...(phase==='productive'?{productiveCheckpointAfter:sequence,onProductiveBoundary:()=>{boundary=true;}}:{})});
+ const gateway=new SpendGateway({ledger,binding,...(modelProvider??{price:cloudHarnessPrice,upstreamOrigin:'https://deterministic.factory.invalid',upstreamApiKey:'deterministic-only',upstreamFetch:deterministicHarnessResponse({phase,currentSource})}),childToken,phase,...(phase==='productive'?{productiveCheckpointAfter:sequence,onProductiveBoundary:()=>{boundary=true;}}:{})});
  await user.writeFiles([{path:root+'.json',content:JSON.stringify({childToken,deadline,phase,prompt,sequence}),mode:0o600}],{signal:AbortSignal.timeout(10000)});
  const command=await user.runCommand({cmd:'node',args:['/opt/factory-harness/apps/cloud-control/src/cloud-harness-worker.mjs',root+'.json'],cwd:'/home/factoryproducer/workspace',timeoutMs:Math.min(50000,deadline-Date.now()),detached:true,signal:AbortSignal.timeout(15000)});
  await recordCommand(command.cmdId);

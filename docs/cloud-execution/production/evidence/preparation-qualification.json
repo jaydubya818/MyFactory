@@ -1,0 +1,30 @@
+{
+  "scope": "LOCAL_PRODUCTION_CONTRACT_PREPARATION_NOT_LIVE_EXECUTION",
+  "status": "AWAITING_COMPOSED_QUALIFICATION",
+  "fullFactory": {
+    "passed": 486,
+    "failed": 0,
+    "skipped": 21
+  },
+  "connectedVerifiedTLSPostgres": {
+    "passed": 22,
+    "failed": 0,
+    "skipped": 0
+  },
+  "typecheck": "PASS",
+  "independentReview": {
+    "status": "PASS_bounded_composition_only",
+    "focusedTestsPassed": 30,
+    "findingsResolved": [
+      "invalid configured Work limits could disable ceiling",
+      "mismatched Cloud policy could omit verification"
+    ]
+  },
+  "source": {
+    "commit": "8f1d9527d480a0cb500d188874b35398b0ebcbf1",
+    "tree": "32483deb1b36516d58dee7be7ae90b927f5e8b78"
+  },
+  "productionAdmission": "DISABLED_UNCHANGED",
+  "paidModelCallsInitiated": 0,
+  "generatedPublicationEffectsInitiated": 0
+}

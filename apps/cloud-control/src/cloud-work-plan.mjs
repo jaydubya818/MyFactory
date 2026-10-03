@@ -16,14 +16,15 @@ export const deterministicSolution=`export function projectSlug(value) {
 export const cloudConfiguration=Object.freeze({model:cloudHarnessIdentity.model,executor:cloudHarnessIdentity.id,executorVersion:cloudHarnessIdentity.version,skillRevision:'none',workerProfile:'container',verificationImage:qualifiedImage,nodeVersion:'v24.19.0',platform:'linux',architecture:'x64',commands:[checkCommand],allowedPaths,timeoutMs:180000,
  cloud:{provider:'vercel-sandbox',providerVersion:'3.5.1',region:'iad1',workerImage:qualifiedImage,networkPolicy:'deny-all-after-pinned-harness-and-source-v1',toolPolicySha256:digest({allowedPaths,command:checkCommand,executor:cloudHarnessIdentity.id,packageIntegrity:cloudCodexPackage.integrity}),contextPolicySha256:digest({source:cloudSource,ownerData:false}),verificationPolicySha256:cloudVerifierPolicySha256,evidenceClass:'DETERMINISTIC',resources:{vcpus:1,memoryMb:2048,timeoutMs:180000,maxArtifactBytes:256000},skills:[]}});
 
-export const materializationScript=`
+export function sourceMaterializationScript(source){return `
 const fs=require('node:fs'),cp=require('node:child_process');
 const cwd='/home/factoryproducer/workspace';fs.mkdirSync(cwd,{mode:0o755});
 const git=args=>cp.execFileSync('git',['-c','core.hooksPath=/dev/null',...args],{cwd,encoding:'utf8',timeout:20000,maxBuffer:256000,env:{...process.env,GIT_TERMINAL_PROMPT:'0',GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_GLOBAL:'/dev/null'}}).trim();
-git(['init','-q']);git(['fetch','--depth=1',${JSON.stringify('https://github.com/'+cloudSource.repository+'.git')},${JSON.stringify(cloudSource.commit)}]);git(['checkout','--detach','FETCH_HEAD']);
-if(git(['rev-parse','HEAD'])!==${JSON.stringify(cloudSource.commit)}||git(['rev-parse','HEAD^{tree}'])!==${JSON.stringify(cloudSource.tree)}||git(['status','--porcelain']))throw Error('SOURCE_MISMATCH');
+git(['init','-q']);git(['fetch','--depth=1',${JSON.stringify('https://github.com/'+source.repository+'.git')},${JSON.stringify(source.commit)}]);git(['checkout','--detach','FETCH_HEAD']);
+if(git(['rev-parse','HEAD'])!==${JSON.stringify(source.commit)}||git(['rev-parse','HEAD^{tree}'])!==${JSON.stringify(source.tree)}||git(['status','--porcelain']))throw Error('SOURCE_MISMATCH');
 process.stdout.write(JSON.stringify({commit:git(['rev-parse','HEAD']),tree:git(['rev-parse','HEAD^{tree}'])}));
-`;
+`;}
+export const materializationScript=sourceMaterializationScript(cloudSource);
 
 // No model or caller-authored program. This fixed executor qualifies canonical
 // cloud mechanics first; it is not the Codex harness or protected verifier.

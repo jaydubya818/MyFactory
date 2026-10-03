@@ -1,7 +1,8 @@
+import {assertVerificationPolicy} from './verification-policy-binding.mjs';
 import {randomUUID} from 'node:crypto';
 import {cloudVerifierPolicy,cloudVerifierPolicySha256} from './cloud-verifier-policy.mjs';
 export class PostgresVerificationStore{
- constructor(dispatch){this.dispatch=dispatch;}
+ constructor(dispatch,{policy=cloudVerifierPolicy,policySha256=cloudVerifierPolicySha256}={}){assertVerificationPolicy(policy,policySha256);this.dispatch=dispatch;this.policy=policy;this.policySha256=policySha256;}
  async read(clientId,requestId){return this.dispatch.transaction(async client=>{const row=await this.dispatch.record(client,clientId,requestId);return(await client.query('SELECT * FROM factory.verification_resources WHERE run_id=$1',[row.run_id])).rows[0]??null;});}
  async claim(clientId,requestId){
   return this.dispatch.transaction(async(client,now)=>{
@@ -9,13 +10,13 @@ export class PostgresVerificationStore{
    if(existing)return{created:false,record:existing};
    const custody=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[row.run_id])).rows[0];
    const producer=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[row.run_id])).rows[0];
-   if(!custody||!producer?.cleanup_confirmed||producer.evidence.visibleChecksPassed!==true||producer.cancelled_at||new Date(row.deadline).getTime()<=now||!row.identity||row.snapshot.configuration?.cloud?.verificationPolicySha256!==cloudVerifierPolicySha256)throw Error('VERIFIER_ADMISSION_DENIED');
+   if(!custody||!producer?.cleanup_confirmed||producer.evidence.visibleChecksPassed!==true||producer.cancelled_at||new Date(row.deadline).getTime()<=now||!row.identity||row.snapshot.configuration?.cloud?.verificationPolicySha256!==this.policySha256)throw Error('VERIFIER_ADMISSION_DENIED');
    if((await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.stop_requested','factory.terminal')",[row.run_id])).rowCount)throw Error('VERIFIER_AUTHORITY_FENCED');
    if((await client.query('SELECT 1 FROM factory.execution_resources WHERE NOT cleanup_confirmed LIMIT 1')).rowCount)throw Error('VERIFIER_ADMISSION_DENIED');
-   const lease=randomUUID(),deadline=new Date(Math.min(now+cloudVerifierPolicy.timeoutMs,new Date(row.deadline).getTime())).toISOString();
+   const lease=randomUUID(),deadline=new Date(Math.min(now+this.policy.timeoutMs,new Date(row.deadline).getTime())).toISOString();
    if(Date.parse(deadline)<now+10000)throw Error('VERIFIER_DEADLINE');
-   const record=(await client.query(`INSERT INTO factory.verification_resources(run_id,lease_owner,lease_expires_at,deadline,provider_name,candidate_commit,candidate_tree,custody_sha256,policy_sha256,image,state) VALUES($1,$2,$3,$3,$4,$5,$6,$7,$8,$9,'ALLOCATING') RETURNING *`,[row.run_id,lease,deadline,'factory-verify-'+row.run_id,custody.candidate_commit,custody.candidate_tree,custody.artifact_sha256,cloudVerifierPolicySha256,cloudVerifierPolicy.image])).rows[0];
-   await this.dispatch.event(client,row,'verifier.claimed',{candidateCommit:custody.candidate_commit,policySha256:cloudVerifierPolicySha256,providerName:record.provider_name});return{created:true,record};
+   const record=(await client.query(`INSERT INTO factory.verification_resources(run_id,lease_owner,lease_expires_at,deadline,provider_name,candidate_commit,candidate_tree,custody_sha256,policy_sha256,image,state) VALUES($1,$2,$3,$3,$4,$5,$6,$7,$8,$9,'ALLOCATING') RETURNING *`,[row.run_id,lease,deadline,'factory-verify-'+row.run_id,custody.candidate_commit,custody.candidate_tree,custody.artifact_sha256,this.policySha256,this.policy.image])).rows[0];
+   await this.dispatch.event(client,row,'verifier.claimed',{candidateCommit:custody.candidate_commit,policySha256:this.policySha256,providerName:record.provider_name});return{created:true,record};
   });
  }
  async allocated(runId,leaseOwner,sessionId){
@@ -27,7 +28,7 @@ export class PostgresVerificationStore{
   const r=await client.query(`SELECT 1 FROM factory.verification_resources v WHERE run_id=$1 AND lease_owner=$2 AND lease_expires_at>clock_timestamp() AND deadline>clock_timestamp() AND state=$3 AND NOT cleanup_confirmed AND NOT EXISTS(SELECT 1 FROM factory.events e WHERE e.run_id=v.run_id AND e.type IN ('factory.stop_requested','factory.terminal'))`,[runId,leaseOwner,state]);if(r.rowCount!==1)throw Error('VERIFIER_LEASE_FENCED');
  });}
  async finish(runId,leaseOwner,checks){
-  const expected=cloudVerifierPolicy.checks.map(check=>check.id);
+  const expected=this.policy.checks.map(check=>check.id);
   if(!Array.isArray(checks)||checks.length!==expected.length||checks.some((c,i)=>!c||Object.keys(c).sort().join(',')!=='id,result'||c.id!==expected[i]||!['PASS','FAIL'].includes(c.result)))throw Error('VERIFIER_CHECK_BINDING');
   return this.dispatch.transaction(async client=>{
    const outcome=checks.every(c=>c.result==='PASS')?'PASS':'FAIL';
