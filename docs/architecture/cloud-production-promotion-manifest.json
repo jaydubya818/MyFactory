@@ -420,5 +420,14 @@
     "preserve revocation, fail-closed admission and cleanup evidence",
     "rollback by disabling new admission and fencing/quiescing active authority; preserve custody and spend history"
   ],
-  "schemaInventoryNote": "Source inventory only; compare immutable checksums with the target schema before any separately approved migration. This does not authorize replaying all migrations."
+  "schemaInventoryNote": "Source inventory only; compare immutable checksums with the target schema before any separately approved migration. This does not authorize replaying all migrations.",
+  "qualificationEvidenceCheckpoints": {
+    "myEve": "03a607bc5d83f0ee573b64b8a5e63ef05e6590dc",
+    "myFactory": "d558ab71e0d1a4a0c83f59eb5cf55e7f3a52446b"
+  },
+  "githubQualificationCredentials": {
+    "status": "REMOVED",
+    "remaining": 0,
+    "checkedAt": "2026-10-03T06:49:15.672Z"
+  }
 }

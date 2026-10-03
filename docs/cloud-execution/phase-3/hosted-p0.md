@@ -42,4 +42,4 @@ Runtime pins: Factory implementation `d84721cbb407db16598ee28e8f0dc5db27af6f5b`;
 
 Cloud feature development is frozen at this milestone. Production cloud admission and publication remain DISABLED. Real-model canary is NOT_RUN and requires separate authorization. DeepAgent, additional harnesses, CLOUD_COMPUTER and TMUX/CMUX remain deferred. Preserve Attempts 1–8 and incident checkpoint `0df0c37`; no history is rewritten.
 
-GitHub credential lifecycle: the two approved Environment secrets are to be removed after this evidence checkpoint is pushed. The final removal/readback record will be `hosted-p0/github-secret-revocation.json`; absence of that receipt must not be reported as completed revocation.
+GitHub credential lifecycle: **PASS**. After evidence checkpoints MyEve `03a607bc` and Factory `d558ab7` were pushed and remotely verified, both Environment secrets were deleted. Names-only readback at 2026-10-03T06:49:15.672Z returned **zero secrets**; see `hosted-p0/github-secret-revocation.json`. Staging-side credentials retain their existing lifecycle. No second hosted P0 or post-removal execution was attempted.

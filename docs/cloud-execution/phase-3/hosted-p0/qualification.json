@@ -69,7 +69,7 @@
     "producerFactoryInfrastructureCredentials": 0,
     "verifierFactoryInfrastructureCredentials": 0
   },
-  "githubCredentialRemoval": "PENDING_READBACK",
+  "githubCredentialRemoval": "PASS_ZERO_SECRETS_READBACK",
   "featureDevelopment": "FROZEN",
   "realModelCanary": "NOT_RUN_NOT_AUTHORIZED",
   "promotion": "MANIFEST_PREPARATION_ONLY"
