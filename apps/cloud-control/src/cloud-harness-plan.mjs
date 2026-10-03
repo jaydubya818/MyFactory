@@ -1,0 +1,5 @@
+// Exact existing harness version, not an alternative adapter or paid-model grant.
+export const cloudHarnessIdentity=Object.freeze({id:'myfactory-codex',version:'0.157.0',workerProfile:'container',model:'openai/gpt-5.4-mini',sessionSurface:'HEADLESS'});
+export const cloudCodexPackage=Object.freeze({url:'https://registry.npmjs.org/@openai/codex/-/codex-0.157.0-linux-x64.tgz',integrity:'sha512-3TEPslRaNmlgJST5xMJJ9ZWXW1hr4RlVEpF0tO4NULNGj4b5naWlHa6PlSRiDpnMz322aJkz0uvyyKqc37rLJQ==',maxCompressedBytes:160000000,maxUnpackedBytes:420000000});
+export const cloudHarnessPrice=Object.freeze({revision:'cloud-codex-deterministic-v1',model:cloudHarnessIdentity.model,validUntil:'2026-10-09T00:00:00.000Z',contextLimitTokens:200000,outputLimitTokens:8192,inputMicrousdPerMillion:750000,outputMicrousdPerMillion:4500000});
+export const cloudHarnessSpendPlan=Object.freeze({version:'WORK_LEDGER_V2',pricingRevision:cloudHarnessPrice.revision,model:cloudHarnessPrice.model,validUntil:cloudHarnessPrice.validUntil,perOperationReserveMicrousd:186864,plannedProductiveOperations:2,plannedCompletionOperations:1,maxPaidOperations:3,completionReserveMicrousd:186864});

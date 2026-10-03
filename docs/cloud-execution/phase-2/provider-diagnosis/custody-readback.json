@@ -1,0 +1,20 @@
+{
+  "evidenceClass": "CONNECTED",
+  "status": "PASS",
+  "attempt": "f47936ce-6fab-41b8-b3b9-2828e541a374",
+  "checkedAt": "2026-10-02T07:23:17.894Z",
+  "artifactSha256": "f49a74f86dcf9e3f60e701b5926b99f389f4cd967ddd33b437707b867e9ad039",
+  "artifactBytes": 784,
+  "privateAnonymousStatus": 403,
+  "workerAbsent": true,
+  "report": {
+    "commit": "4753ba1bbbe2ee1cd81a3583e8a8f62f2233c3d9",
+    "tree": "e190b3bf0fb6fbe4311ddb7dcc13d77cf33c99e2",
+    "node": "v24.19.0",
+    "uid": 1001,
+    "secretNames": [],
+    "testsExit": 0,
+    "stdout": "✔ rejects absent, short and incorrect operator tokens (94.924284ms)\n✔ no dependency access before authentication (6.388213ms)\n✔ denies production and another project even with valid token (8.938923ms)\n✔ healthy infrastructure cannot enable cloud Work admission (5.978329ms)\n✔ independent dependency failures are retained without raw credential errors (6.229115ms)\n✔ requires authenticated database URL and verified TLS regardless of URL flags (0.691488ms)\nℹ tests 6\nℹ suites 0\nℹ pass 6\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 375.592293\n",
+    "stderr": ""
+  }
+}

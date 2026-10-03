@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-02T17:52:32.390Z",
+  "project": "prj_XU7fJW735PtsnKoAYtGfzdnsotIB",
+  "note": "Sofie deterministic qualification runtime and operator",
+  "authorizedRuntimeInjection": true,
+  "variable": "VERCEL_AUTOMATION_BYPASS_SECRET",
+  "localStorage": false,
+  "applicationAuthority": false,
+  "publicVariable": false,
+  "qualification": "PENDING",
+  "revocationRequired": true
+}

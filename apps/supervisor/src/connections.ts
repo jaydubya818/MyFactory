@@ -5,13 +5,16 @@ import type { IncomingMessage } from "node:http";
 import type { WorkOrder } from "../../../packages/contracts/src/index.ts";
 import { ActionError } from "./actions.ts";
 
-export const clientActions = ["workorder.create", "workorder.note.add", "publication.request", "linear.sync", "factory.prepare", "factory.dispatch", "factory.observe", "factory.stop"] as const;
+export const clientActions = ["workorder.create", "workorder.note.add", "publication.request", "repair.propose", "linear.sync", "factory.prepare", "factory.dispatch", "factory.observe", "factory.stop", "evidence.read"] as const;
 export interface FactoryClient {
   id: string;
   name: string;
   tokenSha256: string;
   repositoryPaths: string[];
   actions: string[];
+  ownerScope?: string;
+  purpose?: "myeve-proof";
+  expiresAt?: string;
 }
 
 export function readClients(path: string): FactoryClient[] {
@@ -27,6 +30,10 @@ export function readClients(path: string): FactoryClient[] {
         !Array.isArray(client.repositoryPaths) || !client.repositoryPaths.length ||
         client.repositoryPaths.some((path) => typeof path !== "string" || !isAbsolute(path)) ||
         !Array.isArray(client.actions) || client.actions.some((action) => !clientActions.includes(action as typeof clientActions[number])) ||
+        (client.actions.includes("evidence.read") &&
+          (client.purpose !== "myeve-proof" || typeof client.ownerScope !== "string" ||
+            !/^[A-Za-z0-9:_-]{1,128}$/.test(client.ownerScope) ||
+            typeof client.expiresAt !== "string" || !Number.isFinite(Date.parse(client.expiresAt)))) ||
         ids.has(client.id) || hashes.has(client.tokenSha256)) {
       throw new Error("Invalid or duplicate connection configuration");
     }
@@ -44,6 +51,7 @@ export function authenticateClient(request: IncomingMessage, clients: FactoryCli
   const digest = createHash("sha256").update(token).digest();
   const client = clients.find((entry) => timingSafeEqual(digest, Buffer.from(entry.tokenSha256, "hex")));
   if (!client) throw new ActionError("Invalid connection token", "unauthorized", 401);
+  if (client.expiresAt && Date.parse(client.expiresAt) <= Date.now()) throw new ActionError("Connection expired", "unauthorized", 401);
   return client;
 }
 

@@ -1,0 +1,22 @@
+{
+  "evidenceClass": "CONNECTED",
+  "deployment": "dpl_DgB6DSiYnRhcgzPeQK8ZCABGwPZB",
+  "service": "myfactory",
+  "environment": "staging",
+  "alive": true,
+  "ready": false,
+  "admission": "DISABLED",
+  "modelOperations": 0,
+  "dependencies": {
+    "database": "AVAILABLE",
+    "artifacts": "AVAILABLE",
+    "provider": "AVAILABLE"
+  },
+  "gates": {
+    "canonicalCloudWork": "NOT_IMPLEMENTED",
+    "cloudHarness": "NOT_RUN",
+    "custody": "NOT_RUN",
+    "independentVerifier": "NOT_RUN",
+    "macOff": "NOT_RUN"
+  }
+}

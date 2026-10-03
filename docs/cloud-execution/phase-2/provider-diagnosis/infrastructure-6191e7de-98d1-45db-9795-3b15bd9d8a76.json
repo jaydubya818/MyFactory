@@ -1,0 +1,17 @@
+{
+  "id": "6191e7de-98d1-45db-9795-3b15bd9d8a76",
+  "deployment": "https://myfactory-cloud-staging-qyotgvu37-jaydubya818.vercel.app",
+  "evidenceClass": "CONNECTED",
+  "purpose": "hosted-infrastructure",
+  "startedAt": "2026-10-02T07:19:12.785Z",
+  "status": "NOT_PASS",
+  "response": {
+    "error": "BODY_NOT_ALLOWED"
+  },
+  "readback": {
+    "purpose": "deterministic-infrastructure",
+    "admission": "DISABLED",
+    "attempt": null
+  },
+  "finishedAt": "2026-10-02T07:19:15.416Z"
+}

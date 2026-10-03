@@ -1,0 +1,73 @@
+{
+  "checkedAt": "2026-10-02T19:30:37.445Z",
+  "evidenceClass": "CONNECTED",
+  "project": "prj_XU7fJW735PtsnKoAYtGfzdnsotIB",
+  "origin": "https://sofie-cloud-qualification-mp0uvn7uo-jaydubya818.vercel.app",
+  "deploymentId": "dpl_FzuueRbJuLx3ijnLovwgaZXYXCHD",
+  "results": [
+    {
+      "name": "no_bypass",
+      "status": 302,
+      "pass": true
+    },
+    {
+      "name": "bypass_only",
+      "status": 401,
+      "pass": true
+    },
+    {
+      "name": "invalid_identity",
+      "status": 401,
+      "pass": true
+    },
+    {
+      "name": "valid_operator",
+      "status": 409,
+      "pass": true
+    }
+  ],
+  "responseCredentialMatches": 0,
+  "paidModelCalls": 0,
+  "workDispatched": false,
+  "productionAdmission": "DISABLED",
+  "publication": "DISABLED",
+  "factoryMatrix": {
+    "kind": "CONNECTED",
+    "results": [
+      {
+        "name": "without_trust_identity",
+        "status": 302,
+        "pass": true
+      },
+      {
+        "name": "trust_identity_only",
+        "status": 302,
+        "pass": false
+      },
+      {
+        "name": "authorized_identity",
+        "status": 302,
+        "pass": false
+      },
+      {
+        "name": "invalid_identity",
+        "status": 302,
+        "pass": false
+      },
+      {
+        "name": "missing_work_authority",
+        "status": 302,
+        "pass": false
+      }
+    ],
+    "passed": false,
+    "cloudProductionAdmission": "DISABLED",
+    "paidModelCalls": 0,
+    "workDispatched": false
+  },
+  "factoryOidcTrustRevoked": "PASS",
+  "factoryCredentialLoadedByRunner": false,
+  "factoryRequestsMadeByRunner": 0,
+  "probePurpose": "Revocation: same Sofie backend OIDC request must fail deployment protection after trust removal",
+  "status": "PASS"
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "node scripts/cloud-source-identity.mjs",
+  "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+  "regions": [
+    "iad1"
+  ],
+  "functions": {
+    "api/queue-delivery.mjs": {
+      "maxDuration": 30,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-staging-delivery-check"
+        }
+      ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/infrastructure.mjs": {
+      "maxDuration": 180,
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/cloud-work.mjs": {
+      "maxDuration": 180,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-staging-work"
+        }
+      ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/cloud-recovery.mjs": {
+      "maxDuration": 60,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-staging-recovery"
+        }
+      ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/cloud.mjs": {
+      "maxDuration": 60,
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/*.mjs": {
+      "maxDuration": 30,
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    }
+  },
+  "git": {
+    "deploymentEnabled": false
+  },
+  "rewrites": [
+    {
+      "source": "/api/connect/v2/:path*",
+      "destination": "/api/cloud"
+    }
+  ],
+  "outputDirectory": "public"
+}

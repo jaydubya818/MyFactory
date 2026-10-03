@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-10-02T16:58:07.824Z",
+  "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4",
+  "deploymentId": "dpl_AfixwRxvsn7Yaj1ZKJSWFHG74dYv",
+  "origin": "https://myfactory-cloud-staging-o7m5zok7s-jaydubya818.vercel.app",
+  "target": null,
+  "readyState": "READY",
+  "results": [
+    {
+      "name": "bypass_only",
+      "pass": true,
+      "body": {
+        "error": "UNAUTHORIZED"
+      }
+    },
+    {
+      "name": "valid_application_identity",
+      "pass": true,
+      "body": {
+        "controls": [
+          "factory.prepare",
+          "factory.dispatch",
+          "factory.observe",
+          "factory.stop"
+        ],
+        "execution": {
+          "mode": "CLOUD_DETERMINISTIC",
+          "spendEnforced": true
+        },
+        "admission": "DISABLED",
+        "qualificationOnly": true
+      }
+    }
+  ],
+  "sourceDigest": "306dd313c1f442adc2bb4e88f2ffe662cf8581798e13f2fc5c864df03d058330",
+  "repairs": [
+    "Preserve explicit TypeScript dependencies when the provider compiles traced files to JavaScript",
+    "Normalize only the exact named Vercel route capture after application authentication"
+  ],
+  "paidModelCalls": 0,
+  "workDispatched": false
+}

@@ -1,0 +1,181 @@
+{
+  "config": {
+    "argv": [
+      "/opt/hostedtoolcache/node/24.21.0/x64/bin/node",
+      "/home/runner/work/MyEveBot/MyEveBot/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "apps/eve/test/cloud/playwright.config.ts"
+    ],
+    "configFile": "/home/runner/work/MyEveBot/MyEveBot/apps/eve/test/cloud/playwright.config.ts",
+    "rootDir": "/home/runner/work/MyEveBot/MyEveBot/apps/eve/test/cloud",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "ci": {
+        "commitHref": "https://github.com/jaydubya818/MyEveBot/commit/0502e8b14ee283ed89760139cdf63a47ed4419cc",
+        "commitHash": "0502e8b14ee283ed89760139cdf63a47ed4419cc",
+        "buildHref": "https://github.com/jaydubya818/MyEveBot/actions/runs/37103458380"
+      },
+      "gitCommit": {
+        "shortHash": "0502e8b",
+        "hash": "0502e8b14ee283ed89760139cdf63a47ed4419cc",
+        "subject": "test(cloud): qualify hosted deterministic journey attempt 5",
+        "body": "test(cloud): qualify hosted deterministic journey attempt 5\n",
+        "author": {
+          "name": "jaydubya818",
+          "email": "jaydubya818@gmail.com",
+          "time": 1791009206000
+        },
+        "committer": {
+          "name": "jaydubya818",
+          "email": "jaydubya818@gmail.com",
+          "time": 1791009206000
+        },
+        "branch": "codex/cloud-execution"
+      },
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/runner/work/MyEveBot/MyEveBot/output/playwright/cloud/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "ci": {
+            "commitHref": "https://github.com/jaydubya818/MyEveBot/commit/0502e8b14ee283ed89760139cdf63a47ed4419cc",
+            "commitHash": "0502e8b14ee283ed89760139cdf63a47ed4419cc",
+            "buildHref": "https://github.com/jaydubya818/MyEveBot/actions/runs/37103458380"
+          },
+          "gitCommit": {
+            "shortHash": "0502e8b",
+            "hash": "0502e8b14ee283ed89760139cdf63a47ed4419cc",
+            "subject": "test(cloud): qualify hosted deterministic journey attempt 5",
+            "body": "test(cloud): qualify hosted deterministic journey attempt 5\n",
+            "author": {
+              "name": "jaydubya818",
+              "email": "jaydubya818@gmail.com",
+              "time": 1791009206000
+            },
+            "committer": {
+              "name": "jaydubya818",
+              "email": "jaydubya818@gmail.com",
+              "time": 1791009206000
+            },
+            "branch": "codex/cloud-execution"
+          },
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/home/runner/work/MyEveBot/MyEveBot/apps/eve/test/cloud",
+        "testIgnore": [],
+        "testMatch": [
+          "*.spec.ts"
+        ],
+        "timeout": 420000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/home/runner/work/MyEveBot/MyEveBot/output/playwright/cloud/report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "golden-journey.spec.ts",
+      "file": "golden-journey.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "P0 real Eve → canonical CLOUD Work → browser-off → independent Proof",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 420000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 236814,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T06:34:52.504Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cloud-trace-0",
+                      "contentType": "application/zip",
+                      "path": "/home/runner/work/MyEveBot/MyEveBot/output/playwright/cloud/artifacts/golden-journey-P0-real-Eve-2f8e2-ser-off-→-independent-Proof/attachments/cloud-trace-0-e3a91f6ef6ccbe2e38c99796becf358b10630a3e.zip"
+                    },
+                    {
+                      "name": "cloud-trace-1",
+                      "contentType": "application/zip",
+                      "path": "/home/runner/work/MyEveBot/MyEveBot/output/playwright/cloud/artifacts/golden-journey-P0-real-Eve-2f8e2-ser-off-→-independent-Proof/attachments/cloud-trace-1-6cdbe51248a7c1a764cb51a056fb3ed174494619.zip"
+                    },
+                    {
+                      "name": "cloud-journey",
+                      "contentType": "application/json",
+                      "body": "ewogICJraW5kIjogIkNPTk5FQ1RFRCIsCiAgIm1vZGVsQm91bmRhcnkiOiAiREVURVJNSU5JU1RJQyIsCiAgInJldHJpZXMiOiAwLAogICJzdGFydGVkQXQiOiAiMjAyNi0xMC0wM1QwNjozNDo1Mi44MDNaIiwKICAibWFjT2ZmIjogIlJFTU9URV9SVU5ORVJfTk9fTUFDX0RFUEVOREVOQ1kiLAogICJydW5uZXIiOiAiMzcxMDM0NTgzODAiLAogICJzdGF0dXMiOiAiUEFTUyIsCiAgIndvcmtJZCI6ICJmNDJkOGE3OS03YzJlLTQzZTMtYmQ2MS0yYWUxZjJjZjJjYWIiLAogICJnZW5lcmF0aW9uIjogMiwKICAiY29tbWFuZElkIjogIjgyZDI5NGVjLTkzNDYtNDc5NC04ZTFmLWMzYTg1ZDkwYzI5NyIsCiAgImJyb3dzZXJDbG9zZWRBdCI6ICIyMDI2LTEwLTAzVDA2OjM1OjE3LjczNloiLAogICJyZWNvbm5lY3RlZEF0IjogIjIwMjYtMTAtMDNUMDY6Mzg6NDguODAzWiIsCiAgInJlc3VsdCI6IHsKICAgICJpZCI6ICJlMGFjMzYxNS01MGM3LTQzZTgtOTY0Zi01ZWZlNTYyOTExZmQiLAogICAgImNhbmRpZGF0ZSI6ICI1OGJlNWQ4YjcxNDQ0MWYxMjA0OGQ3Yzk4ZGI4YmU4Njg0NmE3OTEzIiwKICAgICJwcm9vZiI6IHsKICAgICAgIndvcmtJZCI6ICJmNDJkOGE3OS03YzJlLTQzZTMtYmQ2MS0yYWUxZjJjZjJjYWIiLAogICAgICAib3V0Y29tZSI6ICJQQVJUSUFMIiwKICAgICAgImV2aWRlbmNlIjogWwogICAgICAgIHsKICAgICAgICAgICJzdGF0ZSI6ICJQQVNTIiwKICAgICAgICAgICJwcm9kdWNlciI6ICJ0cnVzdGVkLXZlcmlmaWVyIiwKICAgICAgICAgICJzb3VyY2VSZWYiOiAibmF0aXZlLXZlcmlmaWNhdGlvbjpmNDJkOGE3OS03YzJlLTQzZTMtYmQ2MS0yYWUxZjJjZjJjYWI6NThiZTVkOGI3MTQ0NDFmMTIwNDhkN2M5OGRiOGJlODY4NDZhNzkxMzo4N2JmNjU3YS1kNWI2LTRlY2EtYjczNi0yNTBjODBlNmUyNDUiLAogICAgICAgICAgIm9ic2VydmVkQXQiOiAiMjAyNi0xMC0wM1QwNjozNjowMC4zMjdaIiwKICAgICAgICAgICJjb250ZW50SGFzaCI6ICJzaGEyNTY6MzU3NTU5MTU5OTgzYjkzMzA4Nzk2OWExYmJhMzJlY2FkMDBhOGNhMjM0YmVmZDczOTE2MTk1NDkwYzQ5OTI5MSIsCiAgICAgICAgICAiY3JpdGVyaW9uSWQiOiAiODdiZjY1N2EtZDViNi00ZWNhLWI3MzYtMjUwYzgwZTZlMjQ1IiwKICAgICAgICAgICJyZXN1bHRSZXZpc2lvbiI6ICI1OGJlNWQ4YjcxNDQ0MWYxMjA0OGQ3Yzk4ZGI4YmU4Njg0NmE3OTEzIgogICAgICAgIH0KICAgICAgXSwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDA2OjM2OjAwLjMyN1oiLAogICAgICAibGltaXRhdGlvbnMiOiBbCiAgICAgICAgIkZhY3RvcnktcHJvZHVjZWQgY2FuZGlkYXRlIGluIE15RXZlIGN1c3RvZHkgYW5kIGluZGVwZW5kZW50IGNsb3VkIHZlcmlmaWNhdGlvbiBvbmx5LiBHaXRIdWIgcHVibGljYXRpb24sIENJLCByZXZpZXcgYW5kIG93bmVyIGFjY2VwdGFuY2UgaGF2ZSBub3QgYmVlbiBlc3RhYmxpc2hlZC4iLAogICAgICAgICJBY2NvdW50aW5nIHNuYXBzaG90IGF0IDIwMjYtMTAtMDNUMDY6MzY6MDAuMzUzWjsgbGF0ZXIgZXhwbGFuYXRpb24gY2FsbHMgYXJlIHNob3duIGluIGN1cnJlbnQgam91cm5leSBhY2NvdW50aW5nLiBKb3VybmV5IG1vZGVsIHNwZW5kOiAkMC4wMDAwMDAgc2V0dGxlZCAoU29maWUgJDAuMDAwMDAwLCBGYWN0b3J5ICQwLjAwMDAwMCwgbmF0aXZlIGV4ZWN1dG9yICQwLjAwMDAwMCkuIFJlc2VydmVkL2V4cG9zZWQgJDAuMDAwMDAwLCBpbmNsdWRpbmcgVU5LTk9XTiAkMC4wMDAwMDAuIENvdmVyYWdlOiBDT01QTEVURS4gUHJvdmlkZXIgY2hhcmdlcyBvdXRzaWRlIHRoZSBtb2RlbCBsZWRnZXIgYW5kIGluZnJhc3RydWN0dXJlIGFyZSBub3QgcmVwcmVzZW50ZWQuIgogICAgICBdLAogICAgICAid29ya1ZlcnNpb24iOiAyLAogICAgICAiYXJ0aWZhY3RSZWZzIjogWwogICAgICAgICJmYWN0b3J5LWNhbmRpZGF0ZTo0ZTAyZGFjOC00MmZlLTQzMTUtOGZjMi1iMTA3M2E1OGM3MDU6c2hhMjU2OjYwMTNhYTVjOGZlMjVjNDk0ODZiMmExYmVhOTg1NWVmNjY4ZGUwMjU4YWMyMGYyOWI5M2Y4ZWY3YjRhMzAwODEiLAogICAgICAgICJmYWN0b3J5LXJlY2VpcHQ6NGUwMmRhYzgtNDJmZS00MzE1LThmYzItYjEwNzNhNThjNzA1IiwKICAgICAgICAiZmFjdG9yeS12ZXJzaW9uOmRhN2I1MWE1NmE2Mjk4MGVlOGY5NmEwMjliMWE2MGZjODRmNDk1ZmQ3ODk3NDM4ZmJiNzRlZGUzYTBlMTYxZmUiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJwcm90ZWN0ZWQtZXZpZGVuY2U6c2hhMjU2OjI3MGI5Y2RjZTFkNDQxZDExMDgyMWQ3NGQ2ZTQ3Y2U5YjhiODZkMTlhZDUyNDg1ZGFiM2U1ZTJmM2I0MTZjMDIiLAogICAgICAgICJjaGFuZ2VkLXNvdXJjZTpmaXh0dXJlcy9jbG91ZC13b3JrL3Byb2plY3Qtc2x1Zy9zbHVnLm1qcyIKICAgICAgXSwKICAgICAgInJlc3VsdFJldmlzaW9uIjogIjU4YmU1ZDhiNzE0NDQxZjEyMDQ4ZDdjOThkYjhiZTg2ODQ2YTc5MTMiLAogICAgICAiY29udHJhY3RWZXJzaW9uIjogMiwKICAgICAgImNyaXRlcmlhVmVyc2lvbiI6IDEsCiAgICAgICJtb2RlbEFjY291bnRpbmciOiB7CiAgICAgICAgInVuaXQiOiAibWljcm9VU0QiLAogICAgICAgICJjb3ZlcmFnZSI6ICJDT01QTEVURSIsCiAgICAgICAgImN1cnJlbmN5IjogIlVTRCIsCiAgICAgICAgIm9ic2VydmVkQXQiOiAiMjAyNi0xMC0wM1QwNjozNjowMC4zNTNaIiwKICAgICAgICAic29maWVNaWNyb3VzZCI6IDAsCiAgICAgICAgIm5hdGl2ZU1pY3JvdXNkIjogMCwKICAgICAgICAiZXh0ZXJuYWxDaGFyZ2VzIjogIk5PVF9SRVBSRVNFTlRFRCIsCiAgICAgICAgImZhY3RvcnlNaWNyb3VzZCI6IDAsCiAgICAgICAgInNldHRsZWRNaWNyb3VzZCI6IDAsCiAgICAgICAgInJlc2VydmVkTWljcm91c2QiOiAwLAogICAgICAgICJ1bmtub3duRXhwb3N1cmVNaWNyb3VzZCI6IDAKICAgICAgfQogICAgfQogIH0sCiAgImV2aWRlbmNlRXJyb3JzIjogW10KfQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "69331a4bd2edf8e0a016-2c0b4da6036c4fed21ba",
+          "file": "golden-journey.spec.ts",
+          "line": 12,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-03T06:34:52.000Z",
+    "duration": 237704.111,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

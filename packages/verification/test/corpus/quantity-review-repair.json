@@ -1,0 +1,49 @@
+{
+  "case": "quantity-numeric-range-escape-review-repair",
+  "sourceCorpus": "quantity-safe-integer.json",
+  "candidateA": "1253fcbd5a4e11d72f8ee43c7025b0729d9fa298",
+  "treeA": "ddcb301db219a744fe741d745f85a97da8a3cd22",
+  "history": {
+    "implementationVisible": "11/11 PASS",
+    "protectedVerification": "11/11 PASS",
+    "ci": "PASS",
+    "independentReview": "FAIL",
+    "pr": 2,
+    "ownerAcceptance": "NOT_RUN"
+  },
+  "classification": "numeric precision / range boundary escaped implementation-visible and protected verification and was caught by downstream independent review",
+  "publicClarification": "Owner approved integers 1 through Number.MAX_SAFE_INTEGER inclusive; exact compact JSON plus one LF, exit 0, empty stderr. This is an explicit product decision, not an inferred verifier requirement.",
+  "finding": {
+    "id": "numeric-range",
+    "category": "contract",
+    "severity": "high",
+    "path": "quantity.mjs",
+    "evidence": {
+      "visibility": "PUBLIC",
+      "reference": "c58339bd4d44bf0d4312c37d7077cfc6a2ce916e691b0236e054140d9d055f49",
+      "summary": "Number conversion rounds unsafe integer input and cannot preserve arbitrary integer precision. Enforce the owner-approved public safe-integer range."
+    }
+  },
+  "requiredLifecycle": [
+    "immutable Candidate A",
+    "independent review findings",
+    "owner-approved bounded repair Work",
+    "new Candidate B from A source",
+    "fresh public checks",
+    "read-only completion",
+    "exact checked tree committed",
+    "signed custody",
+    "protected verification",
+    "CI if published",
+    "independent review",
+    "owner decision remains separate"
+  ],
+  "forbidden": [
+    "mutate Candidate A",
+    "reuse Candidate A PASS for B",
+    "leak protected holdouts",
+    "grant authority from findings",
+    "automatically merge or deploy"
+  ],
+  "syntheticOnly": true
+}

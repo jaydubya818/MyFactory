@@ -1,0 +1,167 @@
+✔ same exact authorized identity can be resolved again without mutating Current Truth (1.716542ms)
+✖ session scope guard denies cross-Work request (0.437791ms)
+✖ session scope guard denies cross-Work grant (0.076833ms)
+✔ session scope guard denies cross-owner (0.136625ms)
+✔ session scope guard denies cross-business (0.060041ms)
+✖ session scope guard denies cross-environment (0.064042ms)
+✖ session scope guard denies other execution (0.061584ms)
+✖ session scope guard denies other attempt (0.058375ms)
+✖ session scope guard denies stale Work generation (0.062041ms)
+✖ session scope guard denies stale execution generation (0.099709ms)
+✔ session scope guard denies expired scope (0.062ms)
+✔ session scope guard denies invalid expiry (0.058833ms)
+✔ session scope guard denies revoked scope (0.04425ms)
+✔ session scope guard denies missing operator (0.038416ms)
+✔ session scope guard denies terminal execution (0.054458ms)
+✔ session scope guard denies verifier attachment (0.076542ms)
+✔ session scope guard denies ungranted surface (0.64575ms)
+✔ session request rejects host selection (0.079833ms)
+✔ session request rejects native session selection (0.060542ms)
+✔ session request rejects credential (0.051541ms)
+✔ session request rejects command (0.041708ms)
+✔ session request rejects owner chosen by caller (0.033458ms)
+✔ session request rejects nested path (0.033125ms)
+✔ session request rejects shell text (0.036667ms)
+✔ session request rejects HEADLESS interactive request (0.0415ms)
+✔ session request rejects unknown surface (0.063792ms)
+✔ session request rejects unknown version (0.058792ms)
+✔ session request rejects missing field (0.045375ms)
+✔ session request rejects fractional generation (0.046041ms)
+✔ session request rejects zero generation (0.035333ms)
+✔ surface capabilities negotiate through the existing descriptor without granting execution (1.042917ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 24
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 130.492833
+
+✖ failing tests:
+
+test at apps/supervisor/test/session-surface.test.mjs:44:4
+✖ session scope guard denies cross-Work request (0.437791ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///private/tmp/environment-fabric-myfactory/apps/supervisor/test/session-surface.test.mjs:45:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SESSION_ATTACHMENT_DENIED/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at apps/supervisor/test/session-surface.test.mjs:44:4
+✖ session scope guard denies cross-Work grant (0.076833ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///private/tmp/environment-fabric-myfactory/apps/supervisor/test/session-surface.test.mjs:45:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SESSION_ATTACHMENT_DENIED/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at apps/supervisor/test/session-surface.test.mjs:44:4
+✖ session scope guard denies cross-environment (0.064042ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///private/tmp/environment-fabric-myfactory/apps/supervisor/test/session-surface.test.mjs:45:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SESSION_ATTACHMENT_DENIED/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at apps/supervisor/test/session-surface.test.mjs:44:4
+✖ session scope guard denies other execution (0.061584ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///private/tmp/environment-fabric-myfactory/apps/supervisor/test/session-surface.test.mjs:45:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SESSION_ATTACHMENT_DENIED/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at apps/supervisor/test/session-surface.test.mjs:44:4
+✖ session scope guard denies other attempt (0.058375ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///private/tmp/environment-fabric-myfactory/apps/supervisor/test/session-surface.test.mjs:45:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SESSION_ATTACHMENT_DENIED/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at apps/supervisor/test/session-surface.test.mjs:44:4
+✖ session scope guard denies stale Work generation (0.062041ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///private/tmp/environment-fabric-myfactory/apps/supervisor/test/session-surface.test.mjs:45:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SESSION_ATTACHMENT_DENIED/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at apps/supervisor/test/session-surface.test.mjs:44:4
+✖ session scope guard denies stale execution generation (0.099709ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///private/tmp/environment-fabric-myfactory/apps/supervisor/test/session-surface.test.mjs:45:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SESSION_ATTACHMENT_DENIED/,
+    operator: 'throws',
+    diff: 'simple'
+  }

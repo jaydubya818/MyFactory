@@ -1,0 +1,24 @@
+{
+  "evidenceClass": "DETERMINISTIC",
+  "status": "PASS",
+  "fabricSourceCommit": "9983ccfcc6881b090e3d11bc575d1af1e710195e",
+  "canonicalSessionContractSha256": "19b90b64505f4ce01bbc77326fdbecf3f951c789dd4f5c87a7bcac2540f95698",
+  "canonicalContractUnmodified": true,
+  "sessionSurface": "HEADLESS",
+  "terminalAdaptersEnabled": false,
+  "tests": {
+    "pass": 255,
+    "fail": 0,
+    "skipped": 7
+  },
+  "typecheck": "PASS",
+  "producerGovernance": "PASS",
+  "hostedDeployment": "NOT_DEPLOYED",
+  "hostedAccessMatrix": "NOT_RUN",
+  "cloudHarness": "NOT_RUN",
+  "independentCloudVerifier": "NOT_RUN",
+  "macOff": "NOT_RUN",
+  "paidModelCalls": 0,
+  "publication": "DISABLED",
+  "productionAdmission": "DISABLED"
+}

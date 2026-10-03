@@ -83,7 +83,15 @@ test("process start callback is awaited before event processing", async (t) => {
     onProcessStart: async (info) => {
       processInfo = info;
       order.push("process-start");
-      await new Promise((resolve) => setTimeout(resolve, 30));
+      // Hold persistence until this fast child has actually exited. A fixed
+      // sleep can miss the lost-output race on slower development machines.
+      let exited = false;
+      for (let i = 0; i < 200; i++) {
+        try { process.kill(info.pid, 0); }
+        catch (error) { if (error.code === 'ESRCH') { exited = true; break; } throw error; }
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+      assert.equal(exited, true, 'fixture must exit before the start receipt settles');
       persisted = true;
     },
     onEvent: (event) => {
@@ -219,4 +227,23 @@ test('owner cancellation dominates a productive boundary signal',async t=>{
   productiveEndSignal:boundary.signal,signal:owner.signal,onProcessStart:()=>{setTimeout(()=>{boundary.abort();owner.abort();},100);}
  }));
  assert.equal(result.status,'cancelled');assert.equal(result.success,false);
+});
+
+
+test('host productive protocol cannot be enabled without its metered checkpoint or in completion', async t => {
+  const work = await fixture(t);
+  for (const overrides of [
+    {boundedProductiveContext:true},
+    {boundedProductiveContext:true,gateway:{baseUrl:'http://127.0.0.1:8123/v1',childToken:'a'.repeat(64)}},
+    {boundedProductiveContext:true,gateway:{baseUrl:'http://127.0.0.1:8123/v1',childToken:'a'.repeat(64)},productiveEndSignal:new AbortController().signal,sandbox:'read-only'},
+  ]) await assert.rejects(work.adapter.runCodex(options(work,'ordinary',overrides)),/Bounded productive context/);
+});
+
+test('explicit container adapter reports its execution profile without changing local defaults',async t=>{
+ const work=await fixture(t),binaryPath=join(work.workspacePath,'..','fake-codex.mjs');
+ const adapter=createCodexAdapter(binaryPath,'container');
+ assert.equal((await adapter.preflightCodex()).workerProfile,'container');
+ const result=await adapter.runCodex(options(work,'bounded container fixture'));
+ assert.equal(result.workerProfile,'container');assert.equal(result.status,'completed');
+ assert.throws(()=>createCodexAdapter(binaryPath,'unqualified'),/Unsupported/);
 });

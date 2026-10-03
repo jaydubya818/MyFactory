@@ -1,0 +1,32 @@
+name: Environment Fabric
+on:
+  push:
+    branches: [main, codex/environment-fabric]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  deterministic:
+    name: Factory contracts and regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.18.1
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      # Existing local verification deliberately uses --pull=never at execution.
+      # Provision its current image before tests; this is not the cloud runtime.
+      - run: docker pull node:22-bookworm
+      # EvidenceProvider static-preview tests require the locked Playwright browser.
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: npm test
+      - run: npm run check:producer-governance
+      - run: npm run typecheck:producer
+      - run: npm run typecheck
+      - run: npm run build

@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["apps/supervisor/src/**/*.ts", "packages/client/src/index.ts", "packages/hosted-routing/src/result.ts"]
+  "include": ["apps/supervisor/src/**/*.ts", "packages/client/src/index.ts", "packages/hosted-routing/src/result.ts", "packages/contracts/src/session-surface.ts"]
 }

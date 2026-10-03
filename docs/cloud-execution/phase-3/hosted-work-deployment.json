@@ -1,0 +1,15 @@
+{
+  "deploymentId": "dpl_A8powfX1GhrGTw3uoDFeoUjmDa2j",
+  "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4",
+  "url": "https://myfactory-cloud-staging-3afxwqiap-jaydubya818.vercel.app",
+  "target": null,
+  "readyState": "READY",
+  "sourceDigest": "4d5d746d9cb6b2d3ea8239c7bd94d3dabb4a9d449ef476cbca6571419cc46e19",
+  "unauthenticatedStatus": 302,
+  "newProtectionBypassCreated": false,
+  "canonicalCloudWork": "NOT_RUN",
+  "independentVerifier": "NOT_RUN",
+  "macOff": "NOT_RUN",
+  "paidModelOperations": 0,
+  "publicationEffects": 0
+}

@@ -1,0 +1,30 @@
+{
+  "files": [
+    {
+      "path": "artifacts/golden-journey-P0-real-Eve-2f8e2-ser-off-\u2192-independent-Proof/attachments/cloud-trace-0-e3a91f6ef6ccbe2e38c99796becf358b10630a3e.zip",
+      "sha256": "f5717ebc288747f016505ba95b3c18d02dcfe6876a60d349b0f798d5e62454c9",
+      "bytes": 4993745
+    },
+    {
+      "path": "artifacts/golden-journey-P0-real-Eve-2f8e2-ser-off-\u2192-independent-Proof/attachments/cloud-trace-1-6cdbe51248a7c1a764cb51a056fb3ed174494619.zip",
+      "sha256": "135151106d9541ad8e0cad3c31ab518170c745176879714facc29891adab9093",
+      "bytes": 179726
+    },
+    {
+      "path": "report.json",
+      "sha256": "297b9e5a02157c71ff0e5176adf5c86cffdee9891e7463e01ea6d93c92497dd2",
+      "bytes": 11126
+    },
+    {
+      "path": "runner.json",
+      "sha256": "674a3a659dfc6be59f1a1ef3fa3013324914f8cccfbe9f6a76873e8a5cdd1a9e",
+      "bytes": 960
+    },
+    {
+      "path": "scan-pass.json",
+      "sha256": "783b173fb8eec97c19a27521573cd90ff71aaae2533a2cba68b777e558748e43",
+      "bytes": 17
+    }
+  ],
+  "workflowLogSha256": "e14a955f245bbd6f38f99a168dda5c5923e7363df71cc74e0c970752a0a8b707"
+}

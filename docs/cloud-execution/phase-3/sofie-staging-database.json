@@ -1,0 +1,55 @@
+{
+  "status": "CREATED",
+  "name": "sofie-cloud-qualification-db",
+  "observedAt": "2026-10-02T07:50:30.250Z",
+  "ownerDataCopied": false,
+  "outputKeys": [
+    "resource",
+    "integration",
+    "product",
+    "installation",
+    "billingPlan",
+    "dashboardUrl",
+    "ssoUrl",
+    "project",
+    "environments",
+    "envPulled",
+    "guideCommand",
+    "warnings"
+  ],
+  "metadata": {},
+  "resource": {
+    "keys": [
+      "id",
+      "ownerId",
+      "createdAt",
+      "updatedAt",
+      "type",
+      "name",
+      "billingState",
+      "projectsMetadata",
+      "usageQuotaExceeded",
+      "status",
+      "ownership",
+      "capabilities",
+      "metadata",
+      "secrets",
+      "externalResourceId",
+      "externalResourceStatus",
+      "product",
+      "billingPlan",
+      "totalConnectedProjects"
+    ],
+    "id": "store_fOPC5aF0CPD0FfOW",
+    "name": "sofie-cloud-qualification-db",
+    "type": "integration",
+    "externalResourceId": "calm-recipe-29472969"
+  },
+  "connection": {
+    "projectId": "prj_XU7fJW735PtsnKoAYtGfzdnsotIB",
+    "environments": [
+      "preview"
+    ],
+    "status": "CONNECTED"
+  }
+}

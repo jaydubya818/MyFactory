@@ -1,0 +1,31 @@
+Vercel CLI 62.1.0
+Deploying myfactory-cloud-staging
+Uploading [--------------------] (0.0B/4.1KB)
+Uploading [=========-----------] (2.0KB/4.1KB)
+Uploading [===============-----] (3.2KB/4.1KB)
+Uploading [====================] (4.1KB/4.1KB)
+  Inspect         https://vercel.com/jaydubya818/myfactory-cloud-staging/ACSbMAFVC8cXcW739NHWT7HThCgD
+  Preview         https://myfactory-cloud-staging-bzjeq01nj-jaydubya818.vercel.app
+Building…
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 4 cores, 8 GB
+Retrieving list of deployment files...
+Downloading 543 deployment files...
+Restored build cache from previous deployment (HXNSB5qDWYsr7XDgCozwho39EFvm)
+Running "vercel build"
+Vercel CLI 62.1.0
+Running "install" command: `npm ci --ignore-scripts --no-audit --no-fund`...
+added 70 packages in 2s
+{
+  "status": "error",
+  "reason": "deploy_failed",
+  "message": "No Output Directory named \"public\" found after the Build completed. Update vercel.json#outputDirectory to ensure the correct output directory is generated.",
+  "next": [
+    {
+      "command": "vercel deploy --scope team_p8z8exJRTGfOPk1GC9vUOpv3",
+      "when": "retry deploy"
+    }
+  ]
+}
+Error: No Output Directory named "public" found after the Build completed. Update vercel.json#outputDirectory to ensure the correct output directory is generated.

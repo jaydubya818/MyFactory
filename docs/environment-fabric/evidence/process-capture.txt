@@ -1,0 +1,23 @@
+✔ preflight checks only version and login status (326.299916ms)
+✔ run keeps prompt literal and returns only event-backed completion (155.884083ms)
+✔ gateway run isolates child auth and pins the Responses provider to loopback (165.20975ms)
+✔ process start callback is awaited before event processing (148.310125ms)
+✔ process start persistence failure terminates the process group and returns failed (2.511042ms)
+✔ exit zero with persuasive final prose but no turn.completed is failure (161.56625ms)
+✔ turn.completed with nonzero exit is failure (159.779209ms)
+✔ malformed JSONL prevents success (159.940083ms)
+✔ timeout and abort stop the process group (3170.283792ms)
+✔ artifacts may not be written inside the task workspace (1.1895ms)
+✔ Attempt 3: exact provider-qualified model reaches the executor as one literal argument (210.357709ms)
+✔ unsafe or ambiguous model references never launch an executor (1.249375ms)
+✔ canonical model references preserve qualified and legacy identity with bounded length (0.084917ms)
+✔ host productive boundary yields a quiescent process without claiming a completed model turn (103.260375ms)
+✔ owner cancellation dominates a productive boundary signal (106.302125ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4976.457209

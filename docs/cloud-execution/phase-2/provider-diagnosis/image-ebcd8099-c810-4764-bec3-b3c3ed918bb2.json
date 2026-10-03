@@ -1,0 +1,58 @@
+{
+  "attempt": "ebcd8099-c810-4764-bec3-b3c3ed918bb2",
+  "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+  "evidenceClass": "CONNECTED",
+  "purpose": "image-qualification",
+  "status": "PASS",
+  "startedAt": "2026-10-02T07:12:02.449Z",
+  "observations": [
+    {
+      "tools": {
+        "node": "v24.19.0",
+        "arch": "x64",
+        "platform": "linux",
+        "uid": 1001,
+        "git": "git version 2.53.0",
+        "sudoExit": 1,
+        "credentialNames": [],
+        "ownerFilesystem": false,
+        "repoPresent": false,
+        "credentialFiles": []
+      }
+    },
+    {
+      "ca": {
+        "status": 200,
+        "tlsAuthorized": true
+      }
+    },
+    {
+      "network": {
+        "blocked": [
+          [
+            "https://github.com",
+            true
+          ],
+          [
+            "http://169.254.169.254/latest/meta-data/",
+            true
+          ]
+        ]
+      }
+    },
+    {
+      "isolation": {
+        "previousFilePresent": false
+      }
+    }
+  ],
+  "sandboxes": [
+    "factory-image-ebcd8099-c810-4764-bec3-b3c3ed918bb2-a",
+    "factory-image-ebcd8099-c810-4764-bec3-b3c3ed918bb2-b"
+  ],
+  "cleanup": [
+    "factory-image-ebcd8099-c810-4764-bec3-b3c3ed918bb2-a",
+    "factory-image-ebcd8099-c810-4764-bec3-b3c3ed918bb2-b"
+  ],
+  "finishedAt": "2026-10-02T07:12:16.575Z"
+}

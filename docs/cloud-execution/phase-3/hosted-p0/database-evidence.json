@@ -1,0 +1,717 @@
+{
+  "kind": "CONNECTED",
+  "modelBoundary": "DETERMINISTIC",
+  "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+  "checkedAt": "2026-10-03T06:42:31.452Z",
+  "factory": {
+    "intake": [
+      {
+        "request_id": "c7f224e0-f233-4da1-942f-b9c6bec42aea",
+        "work_id": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+        "work_generation": 2,
+        "run_id": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+        "work_order_id": "094c61d5-37ca-4b97-9215-eccd23e08b6b",
+        "created_at": "2026-10-03T06:35:20.533Z",
+        "deadline": "2026-10-03T06:38:18.661Z",
+        "factory_version": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+        "attempt_number": "1"
+      }
+    ],
+    "producer": [
+      {
+        "run_id": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+        "provider_session_id": "sbx_t1ycbO8rQp6EcxVouFgjK7BLOqaf",
+        "state": "DESTROYED",
+        "lease_generation": 1,
+        "allocation_unknown": false,
+        "cleanup_confirmed": true,
+        "evidence": {
+          "source": {
+            "tree": "1084844b1454165358e51248afe8676f96daf17c",
+            "commit": "5cd13fa1f307a0c0f42f6317d966bb3179ad77c9",
+            "harness": {
+              "uid": 0,
+              "bytes": 285340072,
+              "version": "codex-cli 0.157.0",
+              "integrity": "sha512-3TEPslRaNmlgJST5xMJJ9ZWXW1hr4RlVEpF0tO4NULNGj4b5naWlHa6PlSRiDpnMz322aJkz0uvyyKqc37rLJQ=="
+            }
+          },
+          "executor": "myfactory-codex",
+          "commandId": "cmd_f11bef2025c145e68d7727b4e18e",
+          "quiescence": {
+            "uid": 1001,
+            "signal": "SIGKILL",
+            "artifactBytes": 5317
+          },
+          "sessionSurface": "HEADLESS",
+          "modelOperations": 2,
+          "harnessObservations": [
+            {
+              "harnessObservation": {
+                "phase": "productive",
+                "status": "yielded",
+                "sequence": 1,
+                "diagnostics": []
+              }
+            },
+            {
+              "harnessPhase": {
+                "phase": "productive",
+                "status": "yielded",
+                "sequence": 1,
+                "startedAt": "2026-10-03T06:35:31.250Z",
+                "finishedAt": "2026-10-03T06:35:32.657Z"
+              }
+            },
+            {
+              "checkpoint": {
+                "step": 1,
+                "tree": "54b52827d3c96b97be575e603cca465380962d13",
+                "passed": true,
+                "sha256": "b11bbcc1f510aa0a5408fe3db0a414b8dc86b60c56038fe103878b13557e0adc"
+              }
+            },
+            {
+              "harnessObservation": {
+                "phase": "completion",
+                "status": "completed",
+                "sequence": 3,
+                "diagnostics": []
+              }
+            },
+            {
+              "harnessCompletion": {
+                "phase": "completion",
+                "status": "completed",
+                "sequence": 3,
+                "startedAt": "2026-10-03T06:35:34.228Z",
+                "finishedAt": "2026-10-03T06:35:39.903Z"
+              }
+            }
+          ],
+          "paidModelOperations": 0,
+          "visibleChecksPassed": true,
+          "protectedVerification": "NOT_RUN"
+        },
+        "created_at": "2026-10-03T06:35:22.993Z",
+        "updated_at": "2026-10-03T06:35:44.389Z"
+      }
+    ],
+    "verifier": [
+      {
+        "run_id": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+        "provider_session_id": "sbx_MErRWMnXZwCm5oSClamAOS3lfs2b",
+        "candidate_commit": "58be5d8b714441f12048d7c98db8be86846a7913",
+        "candidate_tree": "54b52827d3c96b97be575e603cca465380962d13",
+        "custody_sha256": "b11bbcc1f510aa0a5408fe3db0a414b8dc86b60c56038fe103878b13557e0adc",
+        "policy_sha256": "cefd6a4a154dbbfb11855bfef215b1da6e5e6ed9e2a03264403043aa29d0c781",
+        "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+        "state": "DESTROYED",
+        "outcome": "PASS",
+        "checks": [
+          {
+            "id": "trim-and-case",
+            "result": "PASS"
+          },
+          {
+            "id": "repeated-space",
+            "result": "PASS"
+          },
+          {
+            "id": "digits-and-hyphens",
+            "result": "PASS"
+          },
+          {
+            "id": "tab-newline",
+            "result": "PASS"
+          },
+          {
+            "id": "blank",
+            "result": "PASS"
+          },
+          {
+            "id": "empty",
+            "result": "PASS"
+          },
+          {
+            "id": "punctuation",
+            "result": "PASS"
+          },
+          {
+            "id": "unicode",
+            "result": "PASS"
+          },
+          {
+            "id": "number",
+            "result": "PASS"
+          },
+          {
+            "id": "null",
+            "result": "PASS"
+          }
+        ],
+        "cleanup_confirmed": true,
+        "failure": null,
+        "created_at": "2026-10-03T06:35:44.434Z",
+        "updated_at": "2026-10-03T06:35:49.977Z"
+      }
+    ],
+    "custody": [
+      {
+        "run_id": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+        "candidate_commit": "58be5d8b714441f12048d7c98db8be86846a7913",
+        "candidate_tree": "54b52827d3c96b97be575e603cca465380962d13",
+        "artifact_sha256": "b11bbcc1f510aa0a5408fe3db0a414b8dc86b60c56038fe103878b13557e0adc",
+        "artifact_bytes": 5317,
+        "collected_at": "2026-10-03T06:35:41.044Z"
+      }
+    ],
+    "events": [
+      {
+        "type": "factory.prepare_requested",
+        "created_at": "2026-10-03T06:35:20.533Z",
+        "payload": {
+          "input": {
+            "kind": "feature",
+            "title": "Implement project slug validation",
+            "description": "Implement projectSlug: trim and lowercase project names, replace whitespace runs with hyphens, preserve ASCII letters, digits and hyphens, and reject empty, non-string or unsafe input.",
+            "allowedPaths": [
+              "fixtures/cloud-work/project-slug/slug.mjs"
+            ],
+            "checkCommands": [
+              "node --test fixtures/cloud-work/project-slug/slug.test.mjs"
+            ],
+            "acceptanceCriteria": [
+              "Project slug normalization and invalid-input rejection pass the visible tests and independent protected checks."
+            ]
+          },
+          "source": {
+            "tree": "1084844b1454165358e51248afe8676f96daf17c",
+            "commit": "5cd13fa1f307a0c0f42f6317d966bb3179ad77c9",
+            "repository": "jaydubya818/MyFactory"
+          },
+          "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+          "deadline": "2026-10-03T06:38:18.661Z",
+          "protocol": "MYFACTORY_EXECUTION_V2",
+          "requestId": "c7f224e0-f233-4da1-942f-b9c6bec42aea",
+          "repository": "jaydubya818/MyFactory",
+          "maxSpendUsd": 1,
+          "workGeneration": 2
+        }
+      },
+      {
+        "type": "run.execution_snapshot",
+        "created_at": "2026-10-03T06:35:20.533Z",
+        "payload": {
+          "runId": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+          "version": 2,
+          "factoryId": "myfactory-cloud-staging",
+          "inputTree": "1084844b1454165358e51248afe8676f96daf17c",
+          "requestId": "c7f224e0-f233-4da1-942f-b9c6bec42aea",
+          "capturedAt": "2026-10-03T06:35:20.551Z",
+          "inputCommit": "5cd13fa1f307a0c0f42f6317d966bb3179ad77c9",
+          "workOrderId": "094c61d5-37ca-4b97-9215-eccd23e08b6b",
+          "sourceDigest": "c58c41f72194d069b056c12874e91f9114b0da30cc2ce1958461dabb90d06cb7",
+          "attemptNumber": 1,
+          "configuration": {
+            "cloud": {
+              "region": "iad1",
+              "skills": [],
+              "provider": "vercel-sandbox",
+              "resources": {
+                "vcpus": 1,
+                "memoryMb": 2048,
+                "timeoutMs": 180000,
+                "maxArtifactBytes": 256000
+              },
+              "workerImage": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+              "evidenceClass": "DETERMINISTIC",
+              "networkPolicy": "deny-all-after-pinned-harness-and-source-v1",
+              "providerVersion": "3.5.1",
+              "toolPolicySha256": "75660090a97158e06a75f5d86b64365672185ca55aa28af2d90631aa25627d14",
+              "contextPolicySha256": "62bb5d323dd4976d08356f5eb8e2ffc8953c5a2766952f5abda09003e284648c",
+              "verificationPolicySha256": "cefd6a4a154dbbfb11855bfef215b1da6e5e6ed9e2a03264403043aa29d0c781"
+            },
+            "model": "openai/gpt-5.4-mini",
+            "commands": [
+              "node --test fixtures/cloud-work/project-slug/slug.test.mjs"
+            ],
+            "executor": "myfactory-codex",
+            "platform": "linux",
+            "timeoutMs": 180000,
+            "nodeVersion": "v24.19.0",
+            "allowedPaths": [
+              "fixtures/cloud-work/project-slug/slug.mjs"
+            ],
+            "architecture": "x64",
+            "skillRevision": "none",
+            "workerProfile": "container",
+            "executorVersion": "0.157.0",
+            "verificationImage": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1"
+          },
+          "requestDigest": "d1c571aaa05835cf63b01a9762c90de8d5478b0dfc59fb67dc6bb838f3c1d483",
+          "factoryVersion": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+          "configurationDigest": "53d369bde86efba2d4a5f3efdd7659fc04b6f7943716f5cc7f034da1d56aae2e"
+        }
+      },
+      {
+        "type": "factory.writer_bound",
+        "created_at": "2026-10-03T06:35:22.993Z",
+        "payload": {
+          "runId": "dad4a1fb-0a68-4280-a010-0834ed95a6db",
+          "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+          "baseSha": "5cd13fa1f307a0c0f42f6317d966bb3179ad77c9",
+          "deadline": "2026-10-03T06:38:18.661Z",
+          "factoryId": "myfactory-cloud-staging",
+          "requestId": "c7f224e0-f233-4da1-942f-b9c6bec42aea",
+          "repository": "jaydubya818/MyFactory",
+          "remoteRunId": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+          "workOrderId": "094c61d5-37ca-4b97-9215-eccd23e08b6b",
+          "allowedPaths": [
+            "fixtures/cloud-work/project-slug/slug.mjs"
+          ],
+          "factoryVersion": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+          "workGeneration": 2,
+          "dispatchIdentity": "1d2a5d1c-7d2f-4b44-8783-ec2f3a76a28d",
+          "writerGeneration": 1
+        }
+      },
+      {
+        "type": "factory.dispatch_claimed",
+        "created_at": "2026-10-03T06:35:22.993Z",
+        "payload": {
+          "generation": "2",
+          "factoryVersion": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe"
+        }
+      },
+      {
+        "type": "factory.resource_advanced",
+        "created_at": "2026-10-03T06:35:23.436Z",
+        "payload": {
+          "state": "PREPARING"
+        }
+      },
+      {
+        "type": "factory.resource_advanced",
+        "created_at": "2026-10-03T06:35:30.526Z",
+        "payload": {
+          "state": "READY"
+        }
+      },
+      {
+        "type": "factory.resource_advanced",
+        "created_at": "2026-10-03T06:35:30.550Z",
+        "payload": {
+          "state": "RUNNING"
+        }
+      },
+      {
+        "type": "factory.resource_advanced",
+        "created_at": "2026-10-03T06:35:40.648Z",
+        "payload": {
+          "state": "QUIESCING"
+        }
+      },
+      {
+        "type": "factory.resource_advanced",
+        "created_at": "2026-10-03T06:35:40.768Z",
+        "payload": {
+          "state": "COLLECTING"
+        }
+      },
+      {
+        "type": "factory.resource_destroyed",
+        "created_at": "2026-10-03T06:35:44.381Z",
+        "payload": {
+          "providerName": "factory-run-eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+          "providerSessionId": "sbx_t1ycbO8rQp6EcxVouFgjK7BLOqaf"
+        }
+      },
+      {
+        "type": "verifier.claimed",
+        "created_at": "2026-10-03T06:35:44.418Z",
+        "payload": {
+          "policySha256": "cefd6a4a154dbbfb11855bfef215b1da6e5e6ed9e2a03264403043aa29d0c781",
+          "providerName": "factory-verify-eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+          "candidateCommit": "58be5d8b714441f12048d7c98db8be86846a7913"
+        }
+      },
+      {
+        "type": "factory.terminal",
+        "created_at": "2026-10-03T06:35:49.990Z",
+        "payload": {
+          "status": "COMPLETED",
+          "finishedAt": "2026-10-03T06:35:49.992Z",
+          "evidenceRef": "factory:run:eb8610d4-e06a-4f6d-a1d3-c6774e541953:cleanup",
+          "candidateCommit": "58be5d8b714441f12048d7c98db8be86846a7913",
+          "protectedVerification": "PASS"
+        }
+      },
+      {
+        "type": "run.signed_result",
+        "created_at": "2026-10-03T06:35:50.102Z",
+        "payload": {
+          "retained": true
+        }
+      }
+    ],
+    "operations": [
+      {
+        "operation_id": "bfae104c-1a22-40e7-a5e5-7cdea16b0527",
+        "work_generation": 2,
+        "run_id": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+        "model": "openai/gpt-5.4-mini",
+        "state": "settled",
+        "phase": "productive",
+        "actual_microusd": "0",
+        "usage_json": "{\"input_tokens\":0,\"output_tokens\":0}",
+        "created_at": "2026-10-03T06:35:31.534Z",
+        "updated_at": "2026-10-03T06:35:31.604Z"
+      },
+      {
+        "operation_id": "c14be2f9-48fa-4405-a1f9-e853440f264b",
+        "work_generation": 2,
+        "run_id": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+        "model": "openai/gpt-5.4-mini",
+        "state": "settled",
+        "phase": "completion",
+        "actual_microusd": "0",
+        "usage_json": "{\"input_tokens\":0,\"output_tokens\":0}",
+        "created_at": "2026-10-03T06:35:34.489Z",
+        "updated_at": "2026-10-03T06:35:34.553Z"
+      }
+    ],
+    "budget": [
+      {
+        "work_generation": 2,
+        "model": "openai/gpt-5.4-mini",
+        "authority_state": "fenced",
+        "phase": "completion",
+        "ceiling_microusd": "1000000",
+        "max_paid_operations": 3,
+        "authority_factory_version": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe"
+      }
+    ],
+    "delivery": [
+      {
+        "run_id": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+        "state": "DELIVERED",
+        "created_at": "2026-10-03T06:35:21.372Z",
+        "delivered_at": "2026-10-03T06:35:22.952Z"
+      }
+    ]
+  },
+  "sofie": {
+    "work": [
+      {
+        "id": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+        "version": 2,
+        "generation": 2,
+        "control": "agent",
+        "lifecycle": "active",
+        "repository": "jaydubya818/MyFactory",
+        "scope_id": "cloud-qualification-owner",
+        "created_at": "2026-10-03T06:35:14.073Z",
+        "updated_at": "2026-10-03T06:35:16.893Z"
+      }
+    ],
+    "events": [
+      {
+        "version": 1,
+        "kind": "created",
+        "created_at": "2026-10-03T06:35:14.073Z"
+      },
+      {
+        "version": 2,
+        "kind": "resume",
+        "created_at": "2026-10-03T06:35:16.893Z"
+      }
+    ],
+    "routing": [
+      {
+        "work_version": 2,
+        "selected_route": "MYFACTORY",
+        "status": "ADMITTED",
+        "environment": {
+          "binding": {
+            "environmentId": "myfactory-cloud-staging",
+            "policyVersion": "environment-routing-v1",
+            "factoryVersion": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+            "identityDigest": "09cee6b0f544db66a1cb91eaca6912cd61a0d80daaf568d87bd0eb6422883602",
+            "environmentType": "CLOUD",
+            "protocolVersion": 1,
+            "requirementsDigest": "ddcf26a39418b19c84bd906c3dc0e8865a65b6b21761bed843c2f34fd1c4d5ab"
+          },
+          "reasons": [
+            {
+              "resource": "repository",
+              "capability": "filesystem"
+            },
+            {
+              "resource": "repository",
+              "capability": "shell"
+            },
+            {
+              "resource": "repository",
+              "capability": "git"
+            },
+            {
+              "resource": "repository",
+              "capability": "repositoryExecution"
+            },
+            {
+              "resource": "repository",
+              "capability": "candidateCustody"
+            },
+            {
+              "resource": "repository",
+              "capability": "protectedVerification"
+            },
+            {
+              "resource": "repository",
+              "capability": "backgroundExecution"
+            }
+          ],
+          "requirements": {
+            "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+            "ownerId": "cloud-qualification-owner",
+            "businessId": null,
+            "generation": 2,
+            "repository": "jaydubya818/MyFactory",
+            "capabilities": [
+              "filesystem",
+              "shell",
+              "git",
+              "repositoryExecution",
+              "candidateCustody",
+              "protectedVerification",
+              "backgroundExecution"
+            ],
+            "environmentId": null,
+            "environmentType": "CLOUD"
+          },
+          "evidenceClass": "DETERMINISTIC",
+          "sessionSurface": "HEADLESS",
+          "productionAdmission": "DISABLED",
+          "qualificationEvidenceRef": "MyFactory:d84721c:bounded deterministic qualification; hosted gates pending"
+        },
+        "factory_observation": {
+          "observedAt": "2026-10-03T06:36:00.371Z",
+          "state": "COMPLETED",
+          "verification": "PARTIAL",
+          "resultId": "e0ac3615-50c7-43e8-964f-5efe562911fd",
+          "spend": {
+            "unit": "microUSD",
+            "phase": "completion",
+            "status": "KNOWN",
+            "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+            "currency": "USD",
+            "deadline": "2026-10-03T06:38:18.661Z",
+            "cancelled": false,
+            "requestId": "c7f224e0-f233-4da1-942f-b9c6bec42aea",
+            "operations": [
+              {
+                "model": "openai/gpt-5.4-mini",
+                "phase": "productive",
+                "runId": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+                "state": "settled",
+                "usage": {
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+                "requestId": "c7f224e0-f233-4da1-942f-b9c6bec42aea",
+                "operationId": "bfae104c-1a22-40e7-a5e5-7cdea16b0527",
+                "workOrderId": "094c61d5-37ca-4b97-9215-eccd23e08b6b",
+                "actualMicrousd": 0,
+                "factoryVersion": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+                "workGeneration": 2,
+                "pricingRevision": "cloud-codex-deterministic-v1",
+                "dispatchIdentity": "1d2a5d1c-7d2f-4b44-8783-ec2f3a76a28d",
+                "reservedMicrousd": 186864,
+                "providerRequestId": "deterministic-ecc609b3-adc9-4144-95ea-e3ef639b842e"
+              },
+              {
+                "model": "openai/gpt-5.4-mini",
+                "phase": "completion",
+                "runId": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+                "state": "settled",
+                "usage": {
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+                "requestId": "c7f224e0-f233-4da1-942f-b9c6bec42aea",
+                "operationId": "c14be2f9-48fa-4405-a1f9-e853440f264b",
+                "workOrderId": "094c61d5-37ca-4b97-9215-eccd23e08b6b",
+                "actualMicrousd": 0,
+                "factoryVersion": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+                "workGeneration": 2,
+                "pricingRevision": "cloud-codex-deterministic-v1",
+                "dispatchIdentity": "1d2a5d1c-7d2f-4b44-8783-ec2f3a76a28d",
+                "reservedMicrousd": 186864,
+                "providerRequestId": "deterministic-a2e2dc97-bc25-4df5-b7e3-50bfaa6da78c"
+              }
+            ],
+            "workOrderId": "094c61d5-37ca-4b97-9215-eccd23e08b6b",
+            "authorityState": "fenced",
+            "workGeneration": 2,
+            "ceilingMicrousd": 1000000,
+            "contractVersion": "WORK_LEDGER_V2",
+            "pricingRevision": "cloud-codex-deterministic-v1",
+            "settledMicrousd": 0,
+            "pricingQualified": true,
+            "retainedMicrousd": 0,
+            "availableMicrousd": 1000000,
+            "maxPaidOperations": 3,
+            "accountingComplete": true,
+            "paidOperationsUsed": 2,
+            "unknownExposureMicrousd": 0,
+            "completionOperationsUsed": 1,
+            "completionReserveMicrousd": 186864,
+            "perOperationReserveMicrousd": 186864,
+            "plannedCompletionOperations": 1,
+            "plannedProductiveOperations": 2,
+            "completionOperationSlotsRemaining": 0,
+            "completionReserveRemainingMicrousd": 186864,
+            "productiveAllowanceRemainingMicrousd": 813136
+          }
+        }
+      }
+    ],
+    "runs": [
+      {
+        "id": "dad4a1fb-0a68-4280-a010-0834ed95a6db",
+        "route": "MYFACTORY",
+        "status": "COMPLETED",
+        "writer_generation": "1",
+        "fenced_at": "2026-10-03T06:35:59.889Z",
+        "quiescence": {
+          "runId": "dad4a1fb-0a68-4280-a010-0834ed95a6db",
+          "state": "COMPLETED",
+          "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+          "baseSha": "5cd13fa1f307a0c0f42f6317d966bb3179ad77c9",
+          "deadline": "2026-10-03T06:38:18.661Z",
+          "factoryId": "myfactory-cloud-staging",
+          "quiescent": true,
+          "requestId": "c7f224e0-f233-4da1-942f-b9c6bec42aea",
+          "repository": "jaydubya818/MyFactory",
+          "evidenceRef": "factory:run:eb8610d4-e06a-4f6d-a1d3-c6774e541953:cleanup",
+          "remoteRunId": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+          "workOrderId": "094c61d5-37ca-4b97-9215-eccd23e08b6b",
+          "allowedPaths": [
+            "fixtures/cloud-work/project-slug/slug.mjs"
+          ],
+          "factoryVersion": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+          "workGeneration": 2,
+          "dispatchIdentity": "1d2a5d1c-7d2f-4b44-8783-ec2f3a76a28d",
+          "writerGeneration": 1
+        },
+        "updated_at": "2026-10-03T06:35:59.889Z"
+      }
+    ],
+    "receipts": [
+      {
+        "id": "4e02dac8-42fe-4315-8fc2-b1073a58c705",
+        "request_id": "1d2a5d1c-7d2f-4b44-8783-ec2f3a76a28d",
+        "state": "ADMITTED",
+        "reason": null,
+        "history": [
+          {
+            "state": "RECEIVED"
+          },
+          {
+            "at": "2026-10-03T06:36:00.000539+00:00",
+            "state": "AUTHENTICATED",
+            "reason": null
+          },
+          {
+            "at": "2026-10-03T06:36:00.007063+00:00",
+            "state": "ATTESTED",
+            "reason": null
+          },
+          {
+            "at": "2026-10-03T06:36:00.013382+00:00",
+            "state": "INTEGRITY_VERIFIED",
+            "reason": null
+          },
+          {
+            "at": "2026-10-03T06:36:00.022623+00:00",
+            "state": "ADMITTED",
+            "reason": null
+          }
+        ],
+        "envelope_digest": "80d614d81657fc3fc9314ccc6032f22d302033096c222c9f21a71c8242f00c7e",
+        "received_at": "2026-10-03T06:35:59.973Z",
+        "work_generation": "2",
+        "run_id": "eb8610d4-e06a-4f6d-a1d3-c6774e541953",
+        "factory_version": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+        "admitted_at": "2026-10-03T06:36:00.020Z"
+      }
+    ],
+    "results": [
+      {
+        "id": "e0ac3615-50c7-43e8-964f-5efe562911fd",
+        "candidate_sha": "58be5d8b714441f12048d7c98db8be86846a7913",
+        "work_version": 2,
+        "work_generation": 2,
+        "proof": {
+          "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+          "outcome": "PARTIAL",
+          "evidence": [
+            {
+              "state": "PASS",
+              "producer": "trusted-verifier",
+              "sourceRef": "native-verification:f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab:58be5d8b714441f12048d7c98db8be86846a7913:87bf657a-d5b6-4eca-b736-250c80e6e245",
+              "observedAt": "2026-10-03T06:36:00.327Z",
+              "contentHash": "sha256:357559159983b933087969a1bba32ecad00a8ca234befd73916195490c499291",
+              "criterionId": "87bf657a-d5b6-4eca-b736-250c80e6e245",
+              "resultRevision": "58be5d8b714441f12048d7c98db8be86846a7913"
+            }
+          ],
+          "createdAt": "2026-10-03T06:36:00.327Z",
+          "limitations": [
+            "Factory-produced candidate in MyEve custody and independent cloud verification only. GitHub publication, CI, review and owner acceptance have not been established.",
+            "Accounting snapshot at 2026-10-03T06:36:00.353Z; later explanation calls are shown in current journey accounting. Journey model spend: $0.000000 settled (Sofie $0.000000, Factory $0.000000, native executor $0.000000). Reserved/exposed $0.000000, including UNKNOWN $0.000000. Coverage: COMPLETE. Provider charges outside the model ledger and infrastructure are not represented."
+          ],
+          "workVersion": 2,
+          "artifactRefs": [
+            "factory-candidate:4e02dac8-42fe-4315-8fc2-b1073a58c705:sha256:6013aa5c8fe25c49486b2a1bea9855ef668de0258ac20f29b93f8ef7b4a30081",
+            "factory-receipt:4e02dac8-42fe-4315-8fc2-b1073a58c705",
+            "factory-version:da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+            "changed-source:fixtures/cloud-work/project-slug/slug.mjs"
+          ],
+          "resultRevision": "58be5d8b714441f12048d7c98db8be86846a7913",
+          "contractVersion": 2,
+          "criteriaVersion": 1,
+          "modelAccounting": {
+            "unit": "microUSD",
+            "coverage": "COMPLETE",
+            "currency": "USD",
+            "observedAt": "2026-10-03T06:36:00.353Z",
+            "sofieMicrousd": 0,
+            "nativeMicrousd": 0,
+            "externalCharges": "NOT_REPRESENTED",
+            "factoryMicrousd": 0,
+            "settledMicrousd": 0,
+            "reservedMicrousd": 0,
+            "unknownExposureMicrousd": 0
+          }
+        },
+        "created_at": "2026-10-03T06:36:00.357Z"
+      }
+    ],
+    "conflicts": [],
+    "publications": []
+  }
+}

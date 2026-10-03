@@ -1,0 +1,32 @@
+{
+  "recordedAt": "2026-10-02T16:06:30.536974+00:00",
+  "factoryFabricStartingSha": "fc8c26f4fb8190d938247a855b2bc7711bf3c677",
+  "canonicalMain": {
+    "MyFactory": "c0b4c1155a6a98f91375163443938042e6a0be10",
+    "MyEve": "d75091eb333a531fa91ed9d39e273948aa9d0eaf",
+    "Relay": "a61f0ef697b02cf22da72ff2904c584d7faa026a"
+  },
+  "cloudOwnerReviewedSha": "faf93359a4c54daaf3e0b713a601366db02ba8d6",
+  "cmux": {
+    "repository": "https://github.com/manaflow-ai/cmux",
+    "reviewedSha": "23d3e8835d9b74bc6859af0e8d5f7ffffe9e27bd",
+    "sourceMarketingVersion": "0.64.25",
+    "runtimeQualification": "NOT_RUN"
+  },
+  "tmux": {
+    "installedVersion": "3.6a",
+    "manualSha256": "6903664073d73ae13d764216917932a4d5a212ce6b8e836297a58b3bf58c78ca",
+    "runtimeQualification": "NOT_RUN"
+  },
+  "attachmentRequestVersion": 1,
+  "capabilityVersion": 1,
+  "runtimeAdaptersEnabled": [],
+  "fullFactoryRegression": {
+    "passed": 274,
+    "failed": 0,
+    "skipped": 5
+  },
+  "headlessGoldenJourney": "NOT_RUN",
+  "paidModelCalls": 0,
+  "publicationEffects": 0
+}

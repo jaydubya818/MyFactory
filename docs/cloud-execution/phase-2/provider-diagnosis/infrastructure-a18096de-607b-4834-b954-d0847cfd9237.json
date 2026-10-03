@@ -1,0 +1,61 @@
+{
+  "id": "a18096de-607b-4834-b954-d0847cfd9237",
+  "deployment": "https://myfactory-cloud-staging-4iixdoaoh-jaydubya818.vercel.app",
+  "evidenceClass": "CONNECTED",
+  "purpose": "hosted-infrastructure",
+  "startedAt": "2026-10-02T07:20:00.749Z",
+  "status": "NOT_PASS",
+  "response": {
+    "purpose": "deterministic-infrastructure",
+    "admission": "DISABLED",
+    "attempt": {
+      "id": "a18096de-607b-4834-b954-d0847cfd9237",
+      "purpose": "deterministic-infrastructure",
+      "source_sha": "4753ba1bbbe2ee1cd81a3583e8a8f62f2233c3d9",
+      "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+      "provider_name": "factory-infra-a18096de-607b-4834-b954-d0847cfd9237",
+      "state": "DESTROYED",
+      "allocation_started_at": "2026-10-02T07:20:02.326Z",
+      "deadline": "2026-10-02T07:22:02.326Z",
+      "provider_session_id": "sbx_lvTVskAMb4sOueBDp7qVhTeACwtv",
+      "command_id": "cmd_e2fdfcab2e8443a39735a25913b7",
+      "artifact_sha256": null,
+      "artifact_path": null,
+      "cleanup_confirmed": true,
+      "evidence": {
+        "code": "ARTIFACT_MISSING",
+        "stage": "EXECUTION",
+        "outcome": "UNKNOWN",
+        "modelOperations": 0
+      },
+      "updated_at": "2026-10-02T07:20:06.362Z"
+    }
+  },
+  "readback": {
+    "purpose": "deterministic-infrastructure",
+    "admission": "DISABLED",
+    "attempt": {
+      "id": "a18096de-607b-4834-b954-d0847cfd9237",
+      "purpose": "deterministic-infrastructure",
+      "source_sha": "4753ba1bbbe2ee1cd81a3583e8a8f62f2233c3d9",
+      "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+      "provider_name": "factory-infra-a18096de-607b-4834-b954-d0847cfd9237",
+      "state": "DESTROYED",
+      "allocation_started_at": "2026-10-02T07:20:02.326Z",
+      "deadline": "2026-10-02T07:22:02.326Z",
+      "provider_session_id": "sbx_lvTVskAMb4sOueBDp7qVhTeACwtv",
+      "command_id": "cmd_e2fdfcab2e8443a39735a25913b7",
+      "artifact_sha256": null,
+      "artifact_path": null,
+      "cleanup_confirmed": true,
+      "evidence": {
+        "code": "ARTIFACT_MISSING",
+        "stage": "EXECUTION",
+        "outcome": "UNKNOWN",
+        "modelOperations": 0
+      },
+      "updated_at": "2026-10-02T07:20:06.362Z"
+    }
+  },
+  "finishedAt": "2026-10-02T07:20:07.623Z"
+}

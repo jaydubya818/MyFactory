@@ -1,0 +1,50 @@
+{
+  "status": "DEDICATED_STAGING_APPROVED",
+  "productionEnabled": false,
+  "recommendedProjectName": "myfactory-cloud-staging",
+  "preferredRegion": "iad1",
+  "isolation": "Dedicated Factory project; dedicated staging PostgreSQL and private Blob scope; no production owner database",
+  "controlPlane": "Bounded Vercel orchestration invocations backed by durable PostgreSQL queue/ledger; detached ephemeral workers",
+  "firstProbe": {
+    "mode": "DETERMINISTIC",
+    "vcpus": 1,
+    "memoryGb": 2,
+    "timeoutSeconds": 120,
+    "maxRetainedArtifactBytes": 256000,
+    "maxSandboxes": 1,
+    "persistent": false,
+    "networkPolicy": "deny-all after authorized exact source materialization",
+    "modelOperations": 0,
+    "publication": false,
+    "estimatedComputeUsd": 0.005681,
+    "estimateExcludes": [
+      "database",
+      "control-plane",
+      "storage",
+      "transfer"
+    ],
+    "imageDigest": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+    "maxTotalAttempts": 8
+  },
+  "spendRules": [
+    "No paid model work until separately approved live envelope",
+    "No plan upgrades or material recurring commitment without explicit approval",
+    "Confirm account pricing and final resource ceiling before provisioning"
+  ],
+  "alternative": "Shared Sofie preview resources explicitly rejected by owner",
+  "notYetImplemented": [
+    "remote protocol and cloud provider adapter",
+    "PostgreSQL Factory storage/ledger",
+    "cloud protected verifier",
+    "cloud Result/Proof return",
+    "Mac-off P0"
+  ],
+  "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4",
+  "databaseResourceId": "store_Z5va0qHQwe9Ok4LH",
+  "privateArtifactStoreId": "store_kZ9n2mzEmqmKX7bZ",
+  "authorization": "Dedicated development/staging resources reasonably required for deterministic qualification approved; production and paid models excluded",
+  "implementationStatus": "PARTIAL_HOSTED_INFRASTRUCTURE_PASS",
+  "blockerEvidence": "phase-2/image-blocker.md",
+  "allocationStatus": "CONNECTED_INFRASTRUCTURE_PASS",
+  "imageQualification": "phase-2/provider-diagnosis/image-ebcd8099-c810-4764-bec3-b3c3ed918bb2.json"
+}

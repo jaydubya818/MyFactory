@@ -1,0 +1,32 @@
+{
+  "status": "PARTIAL_BLOCKED_IMAGE_DISTRIBUTION",
+  "evidence": {
+    "DETERMINISTIC": {
+      "pass": 187,
+      "fail": 0,
+      "skipped": 5,
+      "governanceRuntimeSources": 26
+    },
+    "CONNECTED": {
+      "migration": "PASS",
+      "verifiedTls": "PASS",
+      "hostedDatabase": "PASS",
+      "hostedPrivateStore": "PASS",
+      "hostedSandboxApiRead": "PASS",
+      "imageBuildLocal": "PASS",
+      "imageDistribution": "FAIL",
+      "sandboxAllocation": "NOT_RUN",
+      "macOffGoldenJourney": "NOT_RUN"
+    },
+    "LIVE": {
+      "modelCanary": "NOT_RUN",
+      "modelOperations": 0
+    }
+  },
+  "cloudAdmission": "DISABLED",
+  "existingProductionServicesChanged": false,
+  "historicalWorkResumed": false,
+  "publisherModified": false,
+  "blocker": "No usable immutable worker image: managed references return 404; Docker and independent host registry uploads fail TLS",
+  "details": "image-blocker.md"
+}

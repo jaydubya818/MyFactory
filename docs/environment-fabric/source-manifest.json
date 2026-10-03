@@ -1,0 +1,47 @@
+{
+  "recordedAt": "2026-10-02T07:12:10.773678+00:00",
+  "canonicalStartingSHAs": {
+    "MyEve": "2b22e387c053ba0631efc27c2e8f8a99fff1055e",
+    "Relay": "a61f0ef697b02cf22da72ff2904c584d7faa026a",
+    "MyFactory": "c0b4c1155a6a98f91375163443938042e6a0be10"
+  },
+  "preservedCloudCheckpoints": {
+    "MyFactory": "7a69c472f05d540f490a41e33014b978f1165e82",
+    "MyEve": "125bd01"
+  },
+  "t3Code": "99e08526e5ec84f294940cba5929841518c52fec",
+  "environmentProtocolVersion": 1,
+  "capabilitySchemaVersion": 1,
+  "routingPolicy": "environment-routing-v1",
+  "promotedFactoryVersion": null,
+  "qualifiedCloudRuntimeDigest": null,
+  "migrationsAdded": [],
+  "harness": "existing Codex harness with fast-child output capture race repair; no promoted FactoryVersion",
+  "verificationPolicy": "existing policy unchanged; cloud verifier NOT_RUN",
+  "tests": {
+    "tests": 248,
+    "pass": 243,
+    "fail": 0,
+    "skipped": 5
+  },
+  "newBoundaryTests": 56,
+  "productionRoutingIntegrated": false,
+  "cloudAdmission": "DISABLED",
+  "paidModelOperationsThisMission": 0,
+  "externalPublicationEffectsThisMission": 0,
+  "MyEveMacRegressions": {
+    "pass": 46,
+    "skipped": 8,
+    "realCompanion": "NOT_RUN"
+  },
+  "reconciledCanonicalSHAs": {
+    "MyEve": "d75091eb333a531fa91ed9d39e273948aa9d0eaf",
+    "Relay": "a61f0ef697b02cf22da72ff2904c584d7faa026a",
+    "MyFactory": "c0b4c1155a6a98f91375163443938042e6a0be10"
+  },
+  "firstRemoteCheckpoints": {
+    "MyFactory": "b9b71cfc4d82c22b51abca5abb87329eeb41efb7",
+    "MyEve": "6367274c0f1465fe0a4145e40f678968fffb209f"
+  },
+  "reconciledMyEveFeatureSHA": "314036c36b94b1ccbc5f6f343ce922be26098b7e"
+}

@@ -1,0 +1,7 @@
+{
+  "factoryId": "myfactory-cloud-staging",
+  "keyId": "staging-cloud-v1",
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAkSZ7JgQ5FzYcMlfLiuXEG7l1le7n9cF9QOfg0HiGgBg=\n-----END PUBLIC KEY-----\n",
+  "activeFrom": "2026-10-02T08:34:52.681Z",
+  "notAfter": "2026-11-01T00:00:00.000Z"
+}

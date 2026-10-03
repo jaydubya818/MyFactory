@@ -28,14 +28,15 @@ async function fixture(t, reply, ceiling = 4000, options = {}) {
     {version:'WORK_LEDGER_V2',pricingRevision:price.revision,model:price.model,validUntil:price.validUntil,perOperationReserveMicrousd:1200,
       plannedProductiveOperations:2,plannedCompletionOperations:1,maxPaidOperations:3,completionReserveMicrousd:1200});
   ledger.bindAuthority(binding);
-  const gateway = new SpendGateway({ ledger, binding, price, upstreamOrigin: `http://127.0.0.1:${upstream.address().port}`,
-    upstreamApiKey: 'provider-secret', childToken: 'a'.repeat(64),phase:'productive',...options });
+  const {ledgerWrapper,...gatewayOptions}=options;
+  const gateway = new SpendGateway({ ledger:ledgerWrapper?ledgerWrapper(ledger):ledger, binding, price, upstreamOrigin: `http://127.0.0.1:${upstream.address().port}`,
+    upstreamApiKey: 'provider-secret', childToken: 'a'.repeat(64),phase:'productive',...gatewayOptions });
   const base = await gateway.listen();
   const call = (body = { model: 'fixture-model', input: 'hello' }, token = 'a'.repeat(64)) =>
     fetch(base + '/responses', { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify(body) });
   t.after(async () => { await gateway.close(); await new Promise(resolve => upstream.close(resolve)); ledger.close(); storage.close(); rmSync(dir, { recursive: true, force: true }); });
-  return { ledger, binding, price, call, get calls() { return calls; } };
+  return { ledger, binding, price, call, gateway, get calls() { return calls; } };
 }
 
 function complete(req, res) {
@@ -203,4 +204,54 @@ test('Attempt 5: exhausted productive loop yields to host exactly once without s
  await f.call();assert.equal(boundaries,1);assert.equal(f.calls,2);
  const budget=f.ledger.read(f.binding.workId);assert.equal(budget.phase,'productive');
  assert.equal(budget.completionOperationsUsed,0);assert.equal(budget.completionReserveRemainingMicrousd,1200);
+});
+
+
+test('asynchronous durable reservation and dispatch complete before the provider is contacted',async t=>{
+  let release,entered;
+  const held=new Promise(resolve=>{release=resolve;});
+  const seen=new Promise(resolve=>{entered=resolve;});
+  const f=await fixture(t,complete,4000,{ledgerWrapper:ledger=>Object.fromEntries(['read','reserve','markDispatched','settle','markUnknown','assertCompletionEligible'].map(name=>[name,async(...args)=>{
+    if(name==='markDispatched'){entered();await held;}
+    return ledger[name](...args);
+  }]))});
+  const pending=f.call();await seen;
+  assert.equal(f.calls,0);assert.equal(f.ledger.read(f.binding.workId).operations[0].state,'reserved');
+  release();assert.equal((await pending).status,200);assert.equal(f.calls,1);
+  assert.equal(f.ledger.read(f.binding.workId).operations[0].state,'settled');
+});
+
+test('asynchronous dispatch rejection cannot contact provider and retains UNKNOWN reservation',async t=>{
+  const f=await fixture(t,complete,4000,{ledgerWrapper:ledger=>Object.fromEntries(['read','reserve','markDispatched','settle','markUnknown','assertCompletionEligible'].map(name=>[name,async(...args)=>{
+    if(name==='markDispatched')throw Error('database unavailable after reserve');
+    return ledger[name](...args);
+  }]))});
+  assert.equal((await f.call()).status,409);assert.equal(f.calls,0);
+  assert.equal(f.ledger.read(f.binding.workId).status,'UNKNOWN');
+});
+
+
+test('hosted Fetch adapter retains canonical reservation, usage and no-fallback boundaries',async t=>{
+ let requests=0;
+ const f=await fixture(t,()=>assert.fail('real network provider must not be contacted'),4000,{upstreamFetch:async(url,options)=>{
+  requests++;assert.equal(new URL(url).pathname,'/v1/responses');assert.equal(options.redirect,'error');
+  const state=f.ledger.read(f.binding.workId);assert.equal(state.operations.at(-1).state,'dispatched');
+  return Response.json({id:'hosted-fixture-1',status:'completed',usage:{input_tokens:10,output_tokens:10}},{headers:{'x-request-id':'hosted-fixture-1'}});
+ }});
+ const call=(path='/v1/responses',token='a'.repeat(64))=>f.gateway.fetch(new Request('https://gateway.example'+path,{method:'POST',headers:{authorization:'Bearer '+token},body:JSON.stringify({model:'fixture-model',input:'hello'})}));
+ assert.equal((await call('/v1/responses?fallback=1')).status,404);
+ assert.equal((await call('/v1/responses','é'.repeat(64))).status,401);
+ assert.equal(requests,0);
+ assert.equal((await call()).status,200);
+ assert.equal(requests,1);assert.equal(f.calls,0);
+ assert.equal(f.ledger.read(f.binding.workId).operations[0].actualMicrousd,30);
+});
+
+test('hosted Fetch transport failure is UNKNOWN and never retried',async t=>{
+ let calls=0;
+ const f=await fixture(t,()=>assert.fail('no fallback'),4000,{upstreamFetch:async()=>{calls++;throw Error('simulated uncertain transport');}});
+ const call=()=>f.gateway.fetch(new Request('https://gateway.example/v1/responses',{method:'POST',headers:{authorization:'Bearer '+'a'.repeat(64)},body:JSON.stringify({model:'fixture-model',input:'hello'})}));
+ assert.equal((await call()).status,503);assert.equal(calls,1);
+ assert.equal(f.ledger.read(f.binding.workId).unknownExposureMicrousd,1200);
+ assert.equal((await call()).status,409);assert.equal(calls,1);
 });

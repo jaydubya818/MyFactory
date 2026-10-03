@@ -1,0 +1,98 @@
+{
+  "status": "NOT_READY",
+  "phase": "Local execution-provider seam",
+  "phaseStatus": "PARTIAL",
+  "canonical": {
+    "MyEve": "2b22e387c053ba0631efc27c2e8f8a99fff1055e",
+    "Relay": "a61f0ef697b02cf22da72ff2904c584d7faa026a",
+    "MyFactory": "c0b4c1155a6a98f91375163443938042e6a0be10"
+  },
+  "featureBranch": "codex/cloud-execution",
+  "featureRevision": "Commit containing this report; exact commit and remote parity recorded in MyEve handoff",
+  "cloudProvider": "Vercel Sandbox proposed; NOT_QUALIFIED",
+  "controlPlaneLocation": "Local; dedicated cloud staging proposed",
+  "runtimeImageDigest": null,
+  "defaultHarness": "Existing Codex CLI, LOCAL qualification only",
+  "DeepAgent": "NOT_QUALIFIED",
+  "deterministic": {
+    "baseline": {
+      "passed": 170,
+      "failed": 0,
+      "skipped": 5
+    },
+    "final": {
+      "passed": 179,
+      "failed": 0,
+      "skipped": 5
+    },
+    "newProviderCases": 9,
+    "commands": [
+      "npm test",
+      "npm run typecheck:producer",
+      "npm run check:producer-governance",
+      "npm run typecheck",
+      "npm run build"
+    ],
+    "status": "PASS"
+  },
+  "connected": {
+    "environment": "LOCAL macOS + installed Codex CLI + offline Docker + synthetic localhost Responses",
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "command": "FACTORY_INSTALLED_CLI=1 FACTORY_TEST_CODEX_CLI=1 node --test apps/supervisor/test/implementation-loop.test.mjs apps/supervisor/test/spend-codex-cli.test.mjs",
+    "status": "PASS",
+    "dockerVersion": "29.7.2",
+    "dockerImageDigest": "sha256:363e1587494626837fa7f9a23bdb453d13b0ff3c67c705c2805cfc69c2d2fad7",
+    "cloudQualification": false
+  },
+  "live": {
+    "realModelRoute": "NOT_RUN",
+    "cloudGoldenJourney": "NOT_RUN",
+    "realModelOperations": 0,
+    "candidatePublications": 0
+  },
+  "gates": {
+    "cloudSandbox": "NOT_RUN",
+    "durableCloudQueue": "NOT_RUN",
+    "cloudLeaseFencing": "NOT_RUN",
+    "cloudCandidateCustody": "NOT_RUN",
+    "cloudVerifier": "NOT_RUN",
+    "cloudResult": "NOT_RUN",
+    "cloudProof": "NOT_RUN",
+    "macOffDeterministicGoldenJourney": "NOT_RUN",
+    "browserOff": "NOT_RUN",
+    "cloudControlPlaneRestart": "NOT_RUN",
+    "cloudCancellation": "NOT_RUN",
+    "cloudWorkerDeath": "NOT_RUN",
+    "p0Playwright": "NOT_RUN",
+    "mobile390": "NOT_RUN",
+    "accessibility": "NOT_RUN",
+    "cloudSecurity": "NOT_RUN"
+  },
+  "counters": {
+    "crossWorkDisclosure": "NOT_MEASURED",
+    "crossOwnerDisclosure": "NOT_MEASURED",
+    "secretDisclosure": "NOT_MEASURED",
+    "duplicateAuthoritativeCloudExecution": "NOT_MEASURED",
+    "unauthorizedCloudPublication": "NOT_MEASURED",
+    "falseReady": "NOT_MEASURED",
+    "localExecutionDependenciesForCloudWork": "NOT_MEASURED"
+  },
+  "runtimeSourceHashes": {
+    "apps/supervisor/src/execution-provider.ts": "36b12e18aa008c8204cf23624cc07416b2eda50b26763d49d4a2afb87e72b2e8",
+    "apps/supervisor/src/local-execution-provider.ts": "727738ba01b853feb93c220b7cd4529f7a8aade3e1e83fc9276cde30cfae3192",
+    "apps/supervisor/src/dispatch-control.ts": "c4079b553c5c119113cc8195847880c2c8f445485528bb8f2f6478a82ad42afe",
+    "apps/supervisor/src/server.ts": "8b06ce400c082bee45468da419390a28eda040fa48d825de285856706ffcebf6",
+    "apps/supervisor/test/execution-provider.test.mjs": "6e3bda9da6c5a8953758e7f4d8d5ee6f179e44f86b28400bc0c39cc09d9e57e0",
+    "apps/supervisor/test/spend-review-regressions.test.mjs": "cefe1bfee04f9c48a8b8bddf2db42c7730fef5e5dbbc29ad1c019bc639705456"
+  },
+  "limitations": [
+    "Phase 1 retains local Run paths, synchronous SQLite and gateway callbacks.",
+    "Local candidate workspace retention is intentional; teardown does not claim destruction.",
+    "MyEve, Relay, production resources and old worktrees unchanged.",
+    "Canonical Attempt-8 publisher source was reconciled from MyEve 2b22e38; cloud hosting/identity remains unqualified.",
+    "Staging service/data scope decision required before remote integration/provisioning."
+  ],
+  "initialMyEveCanonical": "1bd482e1b6de1e4ca52f130b3c23724589c4859b"
+}

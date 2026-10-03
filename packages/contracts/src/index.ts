@@ -181,6 +181,7 @@ export interface WorkOrderDetail {
   publicationRequests: PublicationRequest[];
   publicationApprovals: PublicationApproval[];
   linearLink?: LinearLink | null;
+  reviewRepair?: {status:string;rootWorkOrderId:string;tipWorkOrderId:string;rounds:number;allocatedOperations:number;allocatedMicrousd:number;automaticRepair:boolean;ownerAcceptance:string;merge:string;deployment:string};
 }
 
 export interface LinearLink {

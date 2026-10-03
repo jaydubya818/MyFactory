@@ -1,0 +1,37 @@
+{
+  "name": "factory-image-diagnostic-a3a2a77f-8d36-4da3-902d-4be15fc2dd79",
+  "image": "vercel/sandbox/node:24",
+  "purpose": "image-resolution-only-NOT-qualification",
+  "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4",
+  "startedAt": "2026-10-02T07:10:26.692Z",
+  "allocation": "ALLOCATED",
+  "cleanup": "ABSENT_CONFIRMED",
+  "events": [
+    {
+      "method": "POST",
+      "path": "/api/v3/sandboxes",
+      "status": 200,
+      "requestId": "sfo1:sfo1:sfo1:iad1::pk8fs-1790925027009-ca8713f3beb4"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/sandboxes/sessions/sbx_cZ28bZaIQskMg8Egs9tq1GPzDliR/stop",
+      "status": 200,
+      "requestId": "sfo1:sfo1:sfo1:iad1::mdzhg-1790925027325-2f27609e0c44"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/sandboxes/factory-image-diagnostic-a3a2a77f-8d36-4da3-902d-4be15fc2dd79",
+      "status": 200,
+      "requestId": "sfo1:sfo1:sfo1:iad1::sdmvj-1790925028595-ca0c8a01371e"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/sandboxes/factory-image-diagnostic-a3a2a77f-8d36-4da3-902d-4be15fc2dd79",
+      "status": 404,
+      "requestId": "sfo1:sfo1:sfo1:iad1::xvgkv-1790925028897-77582fe3f7a2"
+    }
+  ],
+  "resolvedImage": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+  "finishedAt": "2026-10-02T07:10:29.024Z"
+}

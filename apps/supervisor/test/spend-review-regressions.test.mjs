@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import {openStorage} from '../../../packages/storage/src/index.ts';
 import {SpendLedger} from '../../../packages/storage/src/spend.ts';
 import {FactoryDispatchControl} from '../src/dispatch-control.ts';
+import {LocalExecutionProvider} from '../src/local-execution-provider.ts';
 import {JobManager} from '../src/jobs.ts';
 
 function setup(t){
@@ -19,7 +20,7 @@ function setup(t){
     maxPaidOperations:4,completionReserveMicrousd:2400};
   const client={id:'review',repositoryPaths:[dir],actions:['factory.observe']};
   const jobs={activeRun:()=>false},producer={snapshot:()=>({})};
-  const control=new FactoryDispatchControl(storage,jobs,producer,ledger);
+  const control=new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer),producer,ledger);
   function attempt(workId,generation,requestId,{bind=true}={}){
     const order=storage.createWorkOrder({title:'Review fixture',description:'No paid provider',kind:'feature',
       repositoryPath:dir,baseRef:'a'.repeat(40),acceptanceCriteria:['test'],reproductionCommand:null,

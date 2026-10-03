@@ -1,0 +1,73 @@
+Vercel CLI 62.1.0
+Deploying myfactory-cloud-staging
+Uploading [--------------------] (0.0B/132.4KB)
+Uploading [======--------------] (40.2KB/132.4KB)
+Uploading [==========----------] (70.4KB/132.4KB)
+Uploading [================----] (110.1KB/132.4KB)
+Uploading [====================] (132.4KB/132.4KB)
+  Inspect         https://vercel.com/jaydubya818/myfactory-cloud-staging/A8powfX1GhrGTw3uoDFeoUjmDa2j
+  Preview         https://myfactory-cloud-staging-3afxwqiap-jaydubya818.vercel.app
+Building…
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 4 cores, 8 GB
+Retrieving list of deployment files...
+Downloading 552 deployment files...
+Restored build cache from previous deployment (9szapvmA64pfeD44hw2RbLksaj3s)
+Running "vercel build"
+Vercel CLI 62.1.0
+Running "install" command: `npm ci --ignore-scripts --no-audit --no-fund`...
+added 73 packages in 2s
+{"version":1,"sourceDigest":"4d5d746d9cb6b2d3ea8239c7bd94d3dabb4a9d449ef476cbca6571419cc46e19"}
+Installing dependencies...
+up to date in 2s
+10 packages are looking for funding
+run `npm fund` for details
+Using TypeScript 6.0.3 (local user-provided)
+Using TypeScript 6.0.3 (local user-provided)
+Using TypeScript 6.0.3 (local user-provided)
+Build Completed in /vercel/output [23s]
+Deploying outputs...
+[2K[1A[2K[G  Preview         https://myfactory-cloud-staging-3afxwqiap-jaydubya818.vercel.app
+Completing…
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_A8powfX1GhrGTw3uoDFeoUjmDa2j",
+    "url": "https://myfactory-cloud-staging-3afxwqiap-jaydubya818.vercel.app",
+    "productionUrl": null,
+    "inspectorUrl": "https://vercel.com/jaydubya818/myfactory-cloud-staging/A8powfX1GhrGTw3uoDFeoUjmDa2j",
+    "readyState": "READY",
+    "target": null,
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_A8powfX1GhrGTw3uoDFeoUjmDa2j",
+    "buildMachine": {
+      "cores": 4,
+      "memory": 8192,
+      "machine": "standard",
+      "selectionType": "fixed",
+      "selectionSource": "plan-default"
+    },
+    "deploymentProtection": [
+      "vercel_authentication"
+    ]
+  },
+  "message": "Deployment myfactory-cloud-staging-3afxwqiap-jaydubya818.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel git connect --scope team_p8z8exJRTGfOPk1GC9vUOpv3",
+      "when": "Automatically deploy changes on every push"
+    },
+    {
+      "command": "vercel curl https://myfactory-cloud-staging-3afxwqiap-jaydubya818.vercel.app",
+      "when": "Verify deployment, including when Deployment Protection is enabled"
+    },
+    {
+      "command": "vercel inspect myfactory-cloud-staging-3afxwqiap-jaydubya818.vercel.app --scope team_p8z8exJRTGfOPk1GC9vUOpv3",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod --scope team_p8z8exJRTGfOPk1GC9vUOpv3",
+      "when": "Promote to production"
+    }
+  ]
+}

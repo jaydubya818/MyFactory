@@ -1,0 +1,22 @@
+{
+  "status": "CREATED",
+  "id": "prj_XU7fJW735PtsnKoAYtGfzdnsotIB",
+  "name": "sofie-cloud-qualification",
+  "rootDirectory": "apps/eve",
+  "framework": "nextjs",
+  "nodeVersion": "24.x",
+  "gitLinked": false,
+  "ownerDataCopied": false,
+  "priorRequests": [
+    {
+      "endpoint": "/v11/projects",
+      "status": "FAILED_CAUSE_NOT_CAPTURED",
+      "reconciliation": "GET project name returned 404 before corrected v10 request"
+    },
+    {
+      "endpoint": "/v10/projects",
+      "status": 400,
+      "reason": "nodeVersion is not accepted at project creation"
+    }
+  ]
+}

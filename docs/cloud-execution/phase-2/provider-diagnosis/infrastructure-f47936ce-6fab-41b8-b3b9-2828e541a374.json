@@ -1,0 +1,87 @@
+{
+  "id": "f47936ce-6fab-41b8-b3b9-2828e541a374",
+  "deployment": "https://myfactory-cloud-staging-jhhd74zgx-jaydubya818.vercel.app",
+  "evidenceClass": "CONNECTED",
+  "purpose": "hosted-infrastructure",
+  "startedAt": "2026-10-02T07:22:45.810Z",
+  "status": "PASS",
+  "response": {
+    "purpose": "deterministic-infrastructure",
+    "admission": "DISABLED",
+    "attempt": {
+      "id": "f47936ce-6fab-41b8-b3b9-2828e541a374",
+      "purpose": "deterministic-infrastructure",
+      "source_sha": "4753ba1bbbe2ee1cd81a3583e8a8f62f2233c3d9",
+      "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+      "provider_name": "factory-infra-f47936ce-6fab-41b8-b3b9-2828e541a374",
+      "state": "DESTROYED",
+      "allocation_started_at": "2026-10-02T07:22:47.105Z",
+      "deadline": "2026-10-02T07:24:47.105Z",
+      "provider_session_id": "sbx_xNnw8QVWV7GXtrG6ldowqCdbDzdH",
+      "command_id": "cmd_0a8a69b871e54c1b9de6d4cb3e9b",
+      "artifact_sha256": "f49a74f86dcf9e3f60e701b5926b99f389f4cd967ddd33b437707b867e9ad039",
+      "artifact_path": "factory/staging/infrastructure/f47936ce-6fab-41b8-b3b9-2828e541a374/f49a74f86dcf9e3f60e701b5926b99f389f4cd967ddd33b437707b867e9ad039.json",
+      "cleanup_confirmed": true,
+      "evidence": {
+        "stage": "COLLECTED",
+        "outcome": "PASS",
+        "artifactBytes": 784,
+        "modelOperations": 0
+      },
+      "updated_at": "2026-10-02T07:22:53.269Z"
+    }
+  },
+  "readback": {
+    "purpose": "deterministic-infrastructure",
+    "admission": "DISABLED",
+    "attempt": {
+      "id": "f47936ce-6fab-41b8-b3b9-2828e541a374",
+      "purpose": "deterministic-infrastructure",
+      "source_sha": "4753ba1bbbe2ee1cd81a3583e8a8f62f2233c3d9",
+      "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+      "provider_name": "factory-infra-f47936ce-6fab-41b8-b3b9-2828e541a374",
+      "state": "DESTROYED",
+      "allocation_started_at": "2026-10-02T07:22:47.105Z",
+      "deadline": "2026-10-02T07:24:47.105Z",
+      "provider_session_id": "sbx_xNnw8QVWV7GXtrG6ldowqCdbDzdH",
+      "command_id": "cmd_0a8a69b871e54c1b9de6d4cb3e9b",
+      "artifact_sha256": "f49a74f86dcf9e3f60e701b5926b99f389f4cd967ddd33b437707b867e9ad039",
+      "artifact_path": "factory/staging/infrastructure/f47936ce-6fab-41b8-b3b9-2828e541a374/f49a74f86dcf9e3f60e701b5926b99f389f4cd967ddd33b437707b867e9ad039.json",
+      "cleanup_confirmed": true,
+      "evidence": {
+        "stage": "COLLECTED",
+        "outcome": "PASS",
+        "artifactBytes": 784,
+        "modelOperations": 0
+      },
+      "updated_at": "2026-10-02T07:22:53.269Z"
+    }
+  },
+  "replay": {
+    "purpose": "deterministic-infrastructure",
+    "admission": "DISABLED",
+    "attempt": {
+      "id": "f47936ce-6fab-41b8-b3b9-2828e541a374",
+      "purpose": "deterministic-infrastructure",
+      "source_sha": "4753ba1bbbe2ee1cd81a3583e8a8f62f2233c3d9",
+      "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+      "provider_name": "factory-infra-f47936ce-6fab-41b8-b3b9-2828e541a374",
+      "state": "DESTROYED",
+      "allocation_started_at": "2026-10-02T07:22:47.105Z",
+      "deadline": "2026-10-02T07:24:47.105Z",
+      "provider_session_id": "sbx_xNnw8QVWV7GXtrG6ldowqCdbDzdH",
+      "command_id": "cmd_0a8a69b871e54c1b9de6d4cb3e9b",
+      "artifact_sha256": "f49a74f86dcf9e3f60e701b5926b99f389f4cd967ddd33b437707b867e9ad039",
+      "artifact_path": "factory/staging/infrastructure/f47936ce-6fab-41b8-b3b9-2828e541a374/f49a74f86dcf9e3f60e701b5926b99f389f4cd967ddd33b437707b867e9ad039.json",
+      "cleanup_confirmed": true,
+      "evidence": {
+        "stage": "COLLECTED",
+        "outcome": "PASS",
+        "artifactBytes": 784,
+        "modelOperations": 0
+      },
+      "updated_at": "2026-10-02T07:22:53.269Z"
+    }
+  },
+  "finishedAt": "2026-10-02T07:22:55.706Z"
+}

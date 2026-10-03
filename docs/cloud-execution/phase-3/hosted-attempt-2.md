@@ -1,0 +1,7 @@
+# Hosted deterministic attempt 2
+
+FAILED during pinned harness installation, before model operations. Sofie 074894f7 admitted generation 4 of the original natural-browser Work. Request a913a7c1-12cf-4b6a-bad2-0cde377bb92a, Factory run b90d7f84-4c5e-4f0e-98ee-8165d9ab834b. Producer state DESTROYED with cleanup confirmed. No verifier, candidate or model operation. The browser closed before failure; this proves hosted allocation/cleanup only, not the Golden Journey.
+
+Investigation independently downloaded the exact public npm archive and verified its existing SHA-512 integrity: 150316314 compressed bytes. Codex 0.157.0-linux-x64 places the executable at package/vendor/x86_64-unknown-linux-musl/bin/codex, alongside bin/codex-code-mode-host and codex-resources/bwrap. The installer incorrectly expected codex/codex. The repair retains the exact archive/version/integrity and extracts the pinned vendor subtree with its companions. No additional tool capability or network authority is granted. Safe allowlisted installer failure codes replace discarded diagnostics; arbitrary provider error text is never retained.
+
+Three deterministic installer regressions cover real layout, missing/legacy/malicious layout, version mismatch and diagnostic redaction. Hosted requalification remains pending. Paid models 0, production admission/publication DISABLED. Previous failed attempts and checkpoint 0df0c37 remain preserved.

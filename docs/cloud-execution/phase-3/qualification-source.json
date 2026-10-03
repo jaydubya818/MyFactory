@@ -1,0 +1,15 @@
+{
+  "repository": "jaydubya818/MyFactory",
+  "branch": "codex/cloud-qualification-source",
+  "commit": "5cd13fa1f307a0c0f42f6317d966bb3179ad77c9",
+  "tree": "1084844b1454165358e51248afe8676f96daf17c",
+  "files": [
+    "fixtures/cloud-work/project-slug/README.md",
+    "fixtures/cloud-work/project-slug/slug.mjs",
+    "fixtures/cloud-work/project-slug/slug.test.mjs"
+  ],
+  "purpose": "DETERMINISTIC_CLOUD_QUALIFICATION_ONLY",
+  "sourceCheckpoint": "63227f33f1e05c8490086edeb7866686eee4714a",
+  "remoteVerified": true,
+  "ownerDataCopied": false
+}

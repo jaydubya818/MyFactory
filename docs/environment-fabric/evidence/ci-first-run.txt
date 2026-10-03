@@ -1,0 +1,456 @@
+Factory contracts and regressions	Run npm test	﻿2026-10-02T07:17:36.9776333Z ##[group]Run npm test
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:36.9776648Z [36;1mnpm test[0m
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:36.9846620Z shell: /usr/bin/bash -e {0}
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:36.9847136Z ##[endgroup]
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.0894854Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.0895933Z > sellerfi-local-factory@0.1.0 test
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.0896719Z > npm run test --workspaces --if-present
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.0897106Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.2197310Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.2198125Z > @factory/cloud-control@0.1.0 test
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.2198779Z > node --test test/*.test.mjs
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.2199110Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3108231Z ✔ allocation refuses mutable images, wrong registry scope and unbounded time (1.322023ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3121772Z ✔ allocation pins exact source and grants no worker credentials, ports, persistence or failover (0.92335ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3606246Z ✔ rejects absent, short and incorrect operator tokens (23.96141ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3645310Z ✔ no dependency access before authentication (2.130379ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3647223Z ✔ denies production and another project even with valid token (1.832544ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3675472Z ✔ healthy infrastructure cannot enable cloud Work admission (1.371625ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3677561Z ✔ independent dependency failures are retained without raw credential errors (0.416256ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3705715Z ✔ requires authenticated database URL and verified TLS regardless of URL flags (0.517905ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3765009Z ℹ tests 8
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3766161Z ℹ suites 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3766966Z ℹ pass 8
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3767691Z ℹ fail 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3771213Z ℹ cancelled 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3772112Z ℹ skipped 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3772831Z ℹ todo 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3773616Z ℹ duration_ms 120.593762
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3821032Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3821610Z > @factory/supervisor@0.1.0 test
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3822581Z > node --test test/*.test.mjs
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.3823113Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.9557757Z ✔ agent note changes durable UI data but cannot grant publication approval (66.595258ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.9607532Z ✔ candidate, evidence, and policy changes invalidate an approved draft request (48.22023ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.9662310Z ✔ human approval requires a fresh device-owner confirmation (32.088421ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.9664393Z ✔ an exact approved candidate records one draft PR and repeated calls stay local (39.193005ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.9665955Z ✔ a changed candidate blocks draft publication before the adapter is called (26.156039ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.9695228Z ✔ an uncertain draft outcome only reconciles remote state on retry (35.570778ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:37.9696555Z ✔ app builder creates a durable WorkOrder linked to a versioned scaffold (28.894884ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:38.1386940Z ✔ connected app intake is scoped, idempotent across restart, and uses the shared audit records (171.40891ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:38.1850599Z ✔ connections cannot escape repository/action scope, impersonate humans, or survive revocation (82.167045ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:38.6703182Z ✔ prepare binds actual attempt before any execution; response-loss/restart replay never redispatches (635.590468ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:38.8723334Z ✔ wrong token, replay mutation, incomplete binding and changed FactoryVersion cannot start work (229.512825ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:38.9937168Z ✔ stop before dispatch creates a durable terminal fence rejecting delayed execution after restart (112.009126ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:39.1474505Z ✔ running stop stays STOPPING until the actual adapter call settles (146.605012ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:39.2636497Z ✔ default paid dispatch denies even with valid binding and injected dependencies (118.854142ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:39.9425325Z ✔ producer deadline aborts execution without a MyEve polling loop (692.031416ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:40.3375999Z ✖ connected START routes each synthetic model call through exact Work spend gateway (379.824624ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:40.6319313Z ✔ completion prerequisite/finalization fails closed: no changes (195.651266ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:40.8795954Z ✔ completion prerequisite/finalization fails closed: outside scope (345.939827ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.2069529Z ✖ completion prerequisite/finalization fails closed: failed checks (325.859491ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.5505488Z ✖ completion prerequisite/finalization fails closed: completion failure (345.667789ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.7739752Z ✖ completion prerequisite/finalization fails closed: completion mutation (292.751903ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8046244Z ✔ Owner Computer capabilities track permissions independently and omit local roots (2.310735ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8063448Z ✔ offline, revoked, stale and absent heartbeat never advertise an online Mac (2.123686ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8083207Z ✔ Local Factory health cannot qualify background or protected verification authority (1.865766ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8085077Z ✔ descriptor rejects credential field (3.663325ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8086227Z ✔ descriptor rejects unknown capability (0.453926ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8087389Z ✔ descriptor rejects duplicate capability (0.309537ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8092100Z ✔ descriptor rejects negative capacity (0.284429ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8098131Z ✔ descriptor rejects fractional heartbeat (0.246199ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8099334Z ✔ descriptor rejects NaN heartbeat (0.269553ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8100446Z ✔ descriptor rejects reversed protocol (0.825007ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8106693Z ✔ descriptor rejects missing version pin (0.201535ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8125047Z ✔ descriptor rejects mutable cloud runtime (0.856987ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8155078Z ✔ descriptor rejects wrong schema (0.36496ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8157856Z ✔ descriptor rejects unknown environment (0.240669ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8180634Z ✔ descriptor rejects control characters (0.178032ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8182125Z ✔ descriptor parsing is defensive and missing capabilities stay absent (1.627713ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8190027Z ✔ routing matrix: repository with both online (2.682558ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8201261Z ✔ routing matrix: repository with Mac offline (1.131287ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8235735Z ✔ routing matrix: Mac file (0.922158ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8236666Z ✔ routing matrix: offline Mac file (0.729539ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8237679Z ✔ routing matrix: offline cloud never falls back (2.086276ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8238721Z ✔ routing matrix: explicit local qualification (0.695927ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8239631Z ✔ cloud fails closed: offline (1.195998ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8240490Z ✔ cloud fails closed: stale heartbeat (0.579259ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8241383Z ✔ cloud fails closed: future heartbeat (0.717456ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8242293Z ✔ cloud fails closed: capacity exhausted (0.634843ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8243238Z ✔ cloud fails closed: environment revoked (0.639561ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8244555Z ✔ cloud fails closed: protocol mismatch (0.619404ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8245641Z ✔ cloud fails closed: missing capability (1.572189ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8246797Z ✔ cloud fails closed: wrong capability version (0.601681ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8247951Z ✔ cloud fails closed: capability unavailable (1.09471ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8249170Z ✔ cloud fails closed: advertisement without qualification (0.569942ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8250373Z ✔ cloud fails closed: unqualified FactoryVersion (0.730832ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8251407Z ✔ cloud fails closed: runtime drift (0.593616ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8252429Z ✔ cloud fails closed: provider drift (0.539946ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8253438Z ✔ cloud fails closed: qualification expired (0.719671ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8254877Z ✔ cloud fails closed: qualification revoked (0.723487ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8256090Z ✔ cloud fails closed: qualification not yet valid (0.942586ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8257377Z ✔ cloud fails closed: qualification lacks required capability (0.673976ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8258574Z ✔ cloud fails closed: conflicting qualification (0.564632ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8259652Z ✔ cloud fails closed: environment wrong owner (0.491465ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8260729Z ✔ cloud fails closed: environment wrong business (0.460688ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8262200Z ✔ cloud fails closed: environment not authorized (0.501304ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8263444Z ✔ authority mismatch denies owner (0.350203ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8264963Z ✔ authority mismatch denies business (0.361123ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8265891Z ✔ authority mismatch denies Work (0.302854ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8266815Z ✔ authority mismatch denies generation (0.833974ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8267749Z ✔ authority mismatch denies expiry (0.667344ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8268640Z ✔ authority mismatch denies invalid expiry (0.408331ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8269535Z ✔ authority mismatch denies repository (0.376241ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8270408Z ✔ authority mismatch denies capability (0.797285ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8271610Z ✔ Mac resource pins the device; permission loss never routes desktop elsewhere (1.874924ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8273106Z ✔ selection is deterministic across ordering and duplicate identity is rejected (1.332202ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8274791Z ✔ bound Work survives environment removal as readback, never new admission (0.698592ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8276360Z ✔ safe read model omits scope/version internals and reflects stale/downgraded state (0.557919ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8277905Z ✔ derivation requires real resource identity and evidence does not authorize execution (0.559242ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8279638Z ✔ Attempt 4 inspection is deterministic zero-call context with missing target explicitly represented (150.989825ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8281813Z ✔ untracked credentials are not context; symlinks, changed HEAD and oversized source fail closed (240.316628ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8283625Z ✔ implementation feedback is bounded data from visible checks, never arbitrary logs (38.869003ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8286058Z ✔ prepare does not start, and start retains the canonical atomic claim and gateway (23.614765ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8287945Z ✔ a live productive or completion group prevents quiescence and artifact collection (32.490239ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8289760Z ✔ unavailable verifier stays unresolved; read never changes business state (25.433596ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8291399Z ✔ malformed PID and foreign live supervisor never establish absence (25.849319ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8292909Z ✔ cancel requests stop without claiming the running executor has terminated (113.713917ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8294616Z ✔ cross-attempt inputs fail before resource operations (23.150247ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8296121Z ✔ a prior attempt cannot contribute resources or settlement to the current attempt (27.81043ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8297784Z ✔ local teardown honestly retains candidate workspace required by legacy publication (25.248798ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8310535Z ✔ readiness failure cannot expose provider errors or start work (21.572351ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8311989Z ✔ supervisor commits only a scoped source change and records exact identity (141.97032ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8313328Z ✔ supervisor rejects out-of-scope and symlink changes (61.672819ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8314838Z ✔ supervisor rejects an agent-created commit even if the worktree is clean (54.403307ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8316438Z ✔ completion tree pins only authorized changes; no commit until successful host finalization (204.177281ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8318045Z ✔ fresh publication pushes only the reviewed commit and creates one draft PR (4.303248ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8319388Z ✔ existing exact draft PR reconciles without another remote mutation (1.82886ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8320878Z ✔ unknown prior outcome uses read-only reconciliation and holds a branch without a PR (0.777048ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8322436Z ✔ read-only reconciliation works after the local workspace is gone or base moves (0.450239ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8323904Z ✔ a moved base or occupied WorkOrder branch blocks all mutations (2.606467ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8325471Z ✔ a ready or closed PR cannot be mistaken for the approved draft (0.926667ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8330757Z ✔ lost push or PR response is reconciled from exact remote state (1.67419ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8332805Z ✔ an unconfirmed create remains uncertain and reconcileOnly never retries it (0.807785ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8334846Z ✔ invalid or changed local candidates never contact GitHub (0.716765ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8345754Z ✔ hosted request reaches shared actions, survives lost receipt/restart, and rejects revocation and forgery (42.831719ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8375470Z ﹣ Attempt 6 deterministic checkpoint: correct-first (1.456574ms) # SKIP
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8399637Z ﹣ Attempt 6 deterministic checkpoint: repairable (0.154779ms) # SKIP
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8400811Z ﹣ Attempt 6 deterministic checkpoint: still-bad (0.201967ms) # SKIP
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8402021Z ﹣ Attempt 6 deterministic checkpoint: outside-scope (0.181247ms) # SKIP
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8403339Z ✔ default host Codex cannot start a paid operation without a Work spend gateway (40.635134ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8405450Z ✔ wrong baseline failure text blocks Codex before implementation (52.307274ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8406965Z ✔ post-fix reproduction failure blocks ready for review despite another passing check (42.192087ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8408523Z ✔ cancel during worktree creation removes the workspace and frees the active slot (32.447753ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8409945Z ✔ pausing dispatch while a start resolves its workspace prevents a new run (28.424197ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8411319Z ✔ restart holds an untracked worker and preserves completed history (42.169558ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8412685Z ✔ restart allows retry after the recorded host process group is absent (27.257423ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8414422Z ✔ manual and automatic Linear creation save durable links without duplicate issues (66.308271ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8416140Z ✔ lost remote response reconciles the saved UUID after restart and keeps local creation successful (29.091006ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8417907Z ✔ GraphQL errors are not success, secrets are not recorded, and interrupted sync is recoverable (44.037867ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8419644Z ✔ existing OAuth connection refreshes authorization and binds sync to the recovered workspace (102.559798ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8421173Z ✔ OAuth failures never expose provider credentials in the action error (1.002147ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8422682Z ✔ preflight uses authenticated read-only endpoints and returns only bounded safe metadata (36.808929ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8424657Z ✔ denial, absent or unknown eligibility, wrong provider, missing tools and rate changes fail closed (5.994348ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8426212Z ✔ OIDC pins configuration and never falls back to the Keychain reader (2.32989ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8444753Z ✔ scoped SDK identity is acquired once, verified, refreshed before expiry, and reacquired on restart (1.904328ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8446790Z ✔ wrong project, owner, audience, issuer, environment, expiry or signature fail closed without token disclosure (2.480051ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8448956Z ✔ OIDC requests remain admitted, limited and completion-reserved; local tool search does not create extra operations (141.211544ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8450979Z ▶ gateway denial, transport loss, missing usage and credential echoes retain UNKNOWN without retries or disclosure
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8452075Z   ✔ denied (36.038218ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8452573Z   ✔ throw (41.509576ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8453065Z   ✔ unknown (42.64146ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8453549Z   ✔ echo (32.849566ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8455265Z ✔ gateway denial, transport loss, missing usage and credential echoes retain UNKNOWN without retries or disclosure (155.064011ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8457019Z ✔ cancellation denies OIDC model dispatch without a paid operation (24.036453ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8458473Z ✔ real startup cannot borrow synthetic workers, fixtures, or authority overrides (3.190283ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8459954Z ✔ real startup requires provisioned signing before attempting credential access (0.686229ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8461448Z ✔ provider configuration rejects inline secrets and oversized model bounds (0.460207ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:41.8463404Z ✔ live preparation rejects expanded Work authority before touching persistence or provider (2.11499ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:42.0143590Z ✔ Gateway model identity survives signed candidate provenance without normalization (241.85638ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:42.0145881Z ✔ golden producer admission captures actual F1 and returns independently verifiable C1/E1/E2 bytes (381.803134ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:43.0126943Z ✔ immutable snapshot rejects wrong version and preserves the original (340.670026ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:43.4304463Z ✔ wrong request, WorkOrder, attempt, producer and expected version fail correlation (1101.023376ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:43.6186407Z ✔ changed candidate, artifact, evidence and manifest bytes are rejected (180.677206ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:43.8581805Z ✔ duplicate delivery and conflicting operation are distinguishable (200.830319ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:44.1963867Z ✔ candidate or check-log mutation before freezing prevents signing (395.458307ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:44.2887981Z ✔ unknown timeout produces UNKNOWN with no fabricated terminal receipt (78.45738ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:44.5178867Z ✔ unresolved baseline and candidate verification remain UNKNOWN with retry held (238.739587ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:44.6469414Z ✔ cancellation is STOPPING until terminal and retains original version (82.77823ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:44.6473058Z ✔ legacy attempts cannot be relabeled with current Factory configuration (49.281001ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:44.8372333Z ✔ key rotation preserves historical verification but denies retired/revoked current admission (182.988423ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:45.0316192Z ✔ unexpected authority fields and unsupported protocol are rejected even by a valid signer (181.149105ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:45.3897731Z ✔ valid producer signing a different configuration cannot satisfy the expected F1 (207.297751ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:45.6698430Z ✔ scoped authenticated endpoint and client read only the exact attempt, including after restart (426.504994ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:45.7634797Z ✔ revoked current signing configuration denies capture before a worker starts (96.917055ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:45.9801136Z ✔ separate processes serialize immutable attempt records without duplicate or replacement (285.038185ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:45.9995548Z ✔ explicit pinned config loads only a synthetic injected secret (2.113217ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:45.9997095Z ✔ missing, inaccessible and malformed Keychain values fail closed without disclosure (0.936895ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:45.9998597Z ✔ endpoint, model, secret ref, expiry and mode cannot silently fall back (0.392792ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:45.9999406Z ✔ explicit real-provider config reaches only the synthetic metered boundary (87.83926ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:47.1602290Z ✔ shared create action persists its WorkOrder and event across a restart (174.429905ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:47.1604530Z ✔ state-changing actions require a local origin and session token (107.498884ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:47.1605918Z ✔ a shared loopback token cannot authorize a human-only action (64.445103ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:47.1607338Z ✔ restart holds an in-flight draft outcome for read-only reconciliation (936.68317ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:47.1608793Z ✔ agent endpoint creates scoped work and can pause but cannot resume dispatch (47.406508ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:47.1610225Z ✔ app builder endpoint creates a linked scaffold without claiming verification (40.376667ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:47.1611730Z ✔ explicit local preview serves generated UI and its action API, then stops truthfully (3787.129077ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:47.1718641Z ✔ manual signals are deduplicated and releases stay empty until recorded (26.048665ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1178963Z ﹣ installed Codex CLI reaches only the metered loopback Responses boundary (1.160102ms) # SKIP
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1180664Z ✔ request is reserved before provider and settles only authoritative usage (691.846633ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1182020Z ✔ UNKNOWN denies a second paid call despite remaining Work headroom (388.106954ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1183316Z ✔ cancelled Work and expired pricing deny before provider (25.527167ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1185535Z ✔ concurrent requests cannot exceed the productive operation slot limit (45.012863ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1187524Z ✔ streaming completion carries authoritative usage; missing completion stays UNKNOWN (28.069432ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1195672Z ✔ missing, stale, or fractional pricing fails closed (1.279724ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1197217Z ✔ client tool search is metered as part of its model request and hosted search is denied (49.161217ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1198665Z ✔ separately charged hosted tools are denied before reservation (25.832703ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1199855Z ✔ Attempt 4: exhausted productive calls are a local terminal denial, not a provider 503 (39.869526ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1200806Z ✔ Attempt 4 reconnaissance cannot spend the final productive slot without actual implementation (50.58797ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1201797Z ✔ real upstream 503 retains UNKNOWN exposure and repeated local requests never retry upstream (46.220458ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1202769Z ✔ Attempt 5: exhausted productive loop yields to host exactly once without spending completion (51.064732ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1203656Z ✔ historical terminal READ never fences a newer active Work generation (35.213133ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1205034Z ✔ a live completion process blocks terminal resource reconciliation (38.025858ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1205936Z ✔ restart holds a live completion process even when productive pid is absent (44.469942ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1206430Z ℹ tests 180
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1206647Z ℹ suites 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1206858Z ℹ pass 171
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1207062Z ℹ fail 4
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1207269Z ℹ cancelled 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1207487Z ℹ skipped 5
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1207694Z ℹ todo 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1207934Z ℹ duration_ms 13704.903187
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1210106Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1210379Z ✖ failing tests:
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1210606Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1210943Z test at test/dispatch-control.test.mjs:71:1
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1212144Z ✖ connected START routes each synthetic model call through exact Work spend gateway (379.824624ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1213249Z   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1213918Z   + actual - expected
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1214536Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1214729Z   + 'FAILED'
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1214931Z   - 'COMPLETED'
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1215154Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1215753Z       at TestContext.<anonymous> (file:///home/runner/work/MyFactory/MyFactory/apps/supervisor/test/dispatch-control.test.mjs:101:9)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1216600Z       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1217134Z       at async Test.run (node:internal/test_runner/test:1332:7)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1217652Z       at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1218072Z     generatedMessage: true,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1218320Z     code: 'ERR_ASSERTION',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1218552Z     actual: 'FAILED',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1218781Z     expected: 'COMPLETED',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1219031Z     operator: 'strictEqual',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1219271Z     diff: 'simple'
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1219469Z   }
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1219571Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1219749Z test at test/dispatch-control.test.mjs:111:2
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1220361Z ✖ completion prerequisite/finalization fails closed: failed checks (325.859491ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1220942Z   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1221309Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1221487Z   1 !== 2
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1221665Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1222235Z       at TestContext.<anonymous> (file:///home/runner/work/MyFactory/MyFactory/apps/supervisor/test/dispatch-control.test.mjs:129:74)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1223017Z       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1223543Z       at async Test.run (node:internal/test_runner/test:1332:7)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1224421Z       at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1225221Z     generatedMessage: true,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1225611Z     code: 'ERR_ASSERTION',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1225846Z     actual: 1,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1226048Z     expected: 2,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1226262Z     operator: 'strictEqual',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1226496Z     diff: 'simple'
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1226692Z   }
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1226797Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1226976Z test at test/dispatch-control.test.mjs:111:2
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1227625Z ✖ completion prerequisite/finalization fails closed: completion failure (345.667789ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1228214Z   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1228617Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1228811Z   0 !== 1
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1228994Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1229606Z       at TestContext.<anonymous> (file:///home/runner/work/MyFactory/MyFactory/apps/supervisor/test/dispatch-control.test.mjs:127:10)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1230505Z       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1231080Z       at async Test.run (node:internal/test_runner/test:1332:7)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1231622Z       at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1232080Z     generatedMessage: true,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1232346Z     code: 'ERR_ASSERTION',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1232591Z     actual: 0,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1232814Z     expected: 1,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1233047Z     operator: 'strictEqual',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1233303Z     diff: 'simple'
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1233501Z   }
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1233624Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1233815Z test at test/dispatch-control.test.mjs:111:2
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1235345Z ✖ completion prerequisite/finalization fails closed: completion mutation (292.751903ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1236013Z   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1236411Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1236606Z   0 !== 1
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1236816Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1237436Z       at TestContext.<anonymous> (file:///home/runner/work/MyFactory/MyFactory/apps/supervisor/test/dispatch-control.test.mjs:127:10)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1238297Z       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1238872Z       at async Test.run (node:internal/test_runner/test:1332:7)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1239421Z       at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1239884Z     generatedMessage: true,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1240151Z     code: 'ERR_ASSERTION',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1240413Z     actual: 0,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1240625Z     expected: 1,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1240858Z     operator: 'strictEqual',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1241112Z     diff: 'simple'
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1241330Z   }
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1292645Z npm error Lifecycle script `test` failed with error:
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1293641Z npm error code 1
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1295566Z npm error path /home/runner/work/MyFactory/MyFactory/apps/supervisor
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1296689Z npm error workspace @factory/supervisor@0.1.0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1297873Z npm error location /home/runner/work/MyFactory/MyFactory/apps/supervisor
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1298689Z npm error command failed
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1301130Z npm error command sh -c node --test test/*.test.mjs
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1301808Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1310428Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1310742Z > @factory/agents@0.1.0 test
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1311108Z > node --test test/agents.test.mjs
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.1311311Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.3426391Z ✔ preflight checks only version and login status (83.194675ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.3809500Z ✔ run keeps prompt literal and returns only event-backed completion (39.364566ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.4147085Z ✔ gateway run isolates child auth and pins the Responses provider to loopback (33.517152ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.4514742Z ✖ process start callback is awaited before event processing (35.754068ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.4570729Z ✔ process start persistence failure terminates the process group and returns failed (6.879269ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.4931704Z ✔ exit zero with persuasive final prose but no turn.completed is failure (35.852812ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.5273788Z ✔ turn.completed with nonzero exit is failure (34.192078ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:51.5627812Z ✔ malformed JSONL prevents success (35.13481ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:54.7349269Z ✔ timeout and abort stop the process group (3171.888956ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:54.7369058Z ✔ artifacts may not be written inside the task workspace (2.403224ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:54.7720921Z ✔ Attempt 3: exact provider-qualified model reaches the executor as one literal argument (34.913508ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:54.7747613Z ✔ unsafe or ambiguous model references never launch an executor (2.63613ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:54.7749322Z ✔ canonical model references preserve qualified and legacy identity with bounded length (0.194682ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:54.8827774Z ✔ host productive boundary yields a quiescent process without claiming a completed model turn (107.638941ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:54.9916045Z ✔ owner cancellation dominates a productive boundary signal (108.642266ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0015686Z ℹ tests 15
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0016220Z ℹ suites 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0016559Z ℹ pass 14
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0016770Z ℹ fail 1
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0016984Z ℹ cancelled 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0017207Z ℹ skipped 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0017420Z ℹ todo 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0017660Z ℹ duration_ms 3838.578188
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0026804Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0035078Z ✖ failing tests:
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0035371Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0035646Z test at test/agents.test.mjs:77:1
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0036454Z ✖ process start callback is awaited before event processing (35.754068ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0037026Z   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0037415Z   + actual - expected
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0037635Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0037816Z   + 'failed'
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0038012Z   - 'completed'
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0038237Z   
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0038786Z       at TestContext.<anonymous> (file:///home/runner/work/MyFactory/MyFactory/packages/agents/test/agents.test.mjs:94:10)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0039475Z       at async Test.run (node:internal/test_runner/test:1332:7)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0040007Z       at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0040445Z     generatedMessage: true,
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0040694Z     code: 'ERR_ASSERTION',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0040928Z     actual: 'failed',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0041156Z     expected: 'completed',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0041394Z     operator: 'strictEqual',
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0041631Z     diff: 'simple'
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0041863Z   }
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0086787Z npm error Lifecycle script `test` failed with error:
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0087474Z npm error code 1
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0089370Z npm error path /home/runner/work/MyFactory/MyFactory/packages/agents
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0090245Z npm error workspace @factory/agents@0.1.0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0091195Z npm error location /home/runner/work/MyFactory/MyFactory/packages/agents
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0091980Z npm error command failed
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0093445Z npm error command sh -c node --test test/agents.test.mjs
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0093738Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0099424Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0099736Z > @factory/app-builder@0.1.0 test
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0100222Z > node --test test/*.test.mjs
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.0120649Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.1940024Z ✔ lists the bundled starter without creating an app (2.548737ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.1941761Z ✔ instantiates a versioned feedback hub and hashes the final generated files (11.536818ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.1943680Z ✔ refuses overwrite, path traversal, and a symlinked task directory (6.339417ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.2197054Z ✔ preview refuses modified or extra scaffold files before install (24.920084ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.2198861Z ✔ preview checks the manifest digest before running commands (4.96597ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.2205567Z ✔ preview does not launch when its durable request event cannot be recorded (5.888057ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.2322465Z ✔ offline install has a clean environment and source is rechecked afterward (16.231458ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3319487Z ✔ a server that exits at readiness never leaves a running preview (106.857588ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3408666Z ℹ tests 8
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3409271Z ℹ suites 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3409651Z ℹ pass 8
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3410064Z ℹ fail 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3410454Z ℹ cancelled 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3410848Z ℹ skipped 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3411076Z ℹ todo 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3411317Z ℹ duration_ms 299.634229
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3470319Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3470767Z > @factory/hosted-routing@0.1.0 test
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3471324Z > node --test test/*.test.mjs
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.3471630Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4399720Z ✔ signed intake binds caller, repository, team, issue and expiry (3.941041ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4401123Z ✔ only the local host key can produce an accepted receipt (2.243849ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4402688Z ✔ lost provider response is reconciled without a duplicate and changed requests conflict (2.16925ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4404705Z ✔ remote intake cannot introduce arbitrary execution fields or escape paths (0.225681ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4406248Z ✔ Linear blank-line serialization preserves signed requests and receipts (0.808496ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4407527Z ✔ oversized envelopes fail before an external issue is created (0.431684ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4494317Z ℹ tests 6
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4494818Z ℹ suites 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4495239Z ℹ pass 6
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4495920Z ℹ fail 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4496342Z ℹ cancelled 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4496797Z ℹ skipped 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4497206Z ℹ todo 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4497644Z ℹ duration_ms 71.782255
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4549510Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4549846Z > @factory/storage@0.1.0 test
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4550350Z > node --test test/*.test.mjs
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.4550632Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:55.8552245Z ✔ synchronized processes cannot oversubscribe last productive dollars or slot (205.090262ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.1475364Z ✔ UNKNOWN and cancellation races deny subsequent provider dispatch (299.256207ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.2689124Z ✔ synchronized completion processes cannot exceed final reserve or slot (124.981372ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7688706Z ✔ actual writer deaths preserve slots, dollars, UNKNOWN, completion and settlement (519.888358ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7780401Z ✔ V2 rejects a plan that cannot fund all productive and completion calls (34.533403ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7782071Z ✔ UNKNOWN is a hard Work-level stop across restart, attempt and model changes (31.777466ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7783854Z ✔ productive calls cannot take completion reserve and host-only completion transition fences old phase (50.310176ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7785523Z ✔ paid operation slots persist across process restart and exact replay cannot dispatch twice (34.538519ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7787274Z ✔ reservation, UNKNOWN, cancellation and authority are checked again at paid dispatch (24.014421ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7788433Z ✔ concurrent ledger connections share the last operation slot (31.846947ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7789211Z ✔ legacy V1 Work budget has no paid admission (27.39316ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7790538Z ✔ process loss retains slot and dollars before dispatch, after dispatch, and in completion (55.814213ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7791914Z ✔ two completion operations cannot race past protected completion slots or dollars (36.46988ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7793361Z ✔ wrong authority, old generation, wrong pricing and phase cannot start paid operation (34.684189ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7794604Z ✔ expired pinned pricing is denied at the ledger even after an earlier reservation (17.975151ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7795630Z ✔ Attempt 5 completion eligibility rejects UNKNOWN, stale generation, fenced writer and used completion (31.278246ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7796531Z ✔ records survive close and reopen with contract shaped JSON and status (34.541517ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7797687Z ✔ migrates an existing v1 WorkOrder and preserves the new failure oracle (25.364415ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7798564Z ✔ events retain append order and nested payload after restart (30.876778ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7799367Z ✔ separate connections serialize attempt allocation and reject bad foreign keys (85.054696ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7800031Z ✔ a state change and audit event roll back together (22.474355ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7800733Z ✔ signal ingestion is idempotent by source identity and preserves its WorkOrder link (29.692994ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7801522Z ✔ release records retain artifact and prior known-good identity across restart (36.9676ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7802431Z ✔ external actions are uniquely tied to an exact publication request and destination (37.267118ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7803468Z ✔ v4 external actions migrate with null publication binding (19.113311ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7803871Z ℹ tests 25
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7804521Z ℹ suites 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7804766Z ℹ pass 25
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7804984Z ℹ fail 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7805201Z ℹ cancelled 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7805417Z ℹ skipped 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7805620Z ℹ todo 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7805863Z ℹ duration_ms 1292.778952
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7852379Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7852724Z > @factory/verification@0.1.0 test
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7853172Z > node --test test/verification.test.mjs
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:56.7853384Z 
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.0819868Z ▶ verifies the exact commit in a read-only, offline container and records honest outcomes
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.0824819Z   ✔ each check keeps its commit, tree, log, and isolated Docker arguments (118.182371ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.1543043Z   ✔ git diff --check validates the candidate commit without requiring .git in the source export (90.414979ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.1752799Z   ✔ archive attributes that omit committed content block verification (31.032799ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.1754619Z   ✔ missing repositories produce unavailable evidence and image options are rejected (1.498582ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2483456Z   ✔ abort stops an active check and records remaining checks as unavailable (70.21143ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2486109Z ✔ verifies the exact commit in a read-only, offline container and records honest outcomes (337.874423ms)
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2592810Z ℹ tests 6
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2593265Z ℹ suites 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2593589Z ℹ pass 6
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2594186Z ℹ fail 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2594613Z ℹ cancelled 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2596342Z ℹ skipped 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2596727Z ℹ todo 0
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2597155Z ℹ duration_ms 444.122481
+Factory contracts and regressions	Run npm test	2026-10-02T07:17:57.2772179Z ##[error]Process completed with exit code 1.

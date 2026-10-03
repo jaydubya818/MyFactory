@@ -1,0 +1,12 @@
+{
+  "evidenceClass": "CONNECTED",
+  "test": "different-project-preview-denied",
+  "projectId": "prj_c1A5rBofOJ9KrSjZ055g1rajYTWe",
+  "environment": "preview",
+  "status": 302,
+  "denied": true,
+  "paidModelCalls": 0,
+  "applicationCredentials": 0,
+  "deploymentId": "dpl_Hbai2nhauBDiF8ThWMbEN7sENgzC",
+  "trustState": "Sofie preview trust restored before this deployment"
+}

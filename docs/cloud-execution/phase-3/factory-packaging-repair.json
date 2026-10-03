@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-02T16:53:31.365Z",
+  "projectId": "prj_IRXTY6HOzS2q9wRPdabsJnmddzl4",
+  "deploymentId": "dpl_6cP6jgSQ27BDohkxitLZNhnVY57j",
+  "origin": "https://myfactory-cloud-staging-57cbt6z67-jaydubya818.vercel.app",
+  "target": null,
+  "readyState": "READY",
+  "results": [
+    {
+      "name": "bypass_only",
+      "pass": true,
+      "body": {
+        "error": "UNAUTHORIZED"
+      }
+    },
+    {
+      "name": "valid_application_identity",
+      "pass": false,
+      "body": {
+        "error": "INVALID_REQUEST"
+      }
+    }
+  ]
+}

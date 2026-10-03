@@ -1,0 +1,15 @@
+▶ CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing
+  ✔ identical V2 accounting through checkpoint, repair allowance and completion (13649.418958ms)
+  ✔ two connections racing for the last productive slot admit exactly one (4054.040208ms)
+  ✔ UNKNOWN persists across connection restart and generation changes (6131.928833ms)
+  ✔ cancel after reservation prevents dispatch, and stale writers cannot spend (3647.935792ms)
+  ✔ database time denies expired pricing and recovery keeps unsettled exposure (3903.009958ms)
+✔ CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing (32419.257625ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 32650.292875

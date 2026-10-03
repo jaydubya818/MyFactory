@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generateKeyPairSync} from 'node:crypto';
+import {generateKeyPairSync,randomUUID} from 'node:crypto';
 import {execFileSync,spawn} from 'node:child_process';
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -10,6 +10,7 @@ import {JobManager} from '../src/jobs.ts';
 import {ProducerResults,saveRunRecord,SNAPSHOT_EVENT,RESULT_EVENT,readRunRecord} from '../src/producer-results.ts';
 import {canonical,digest,sha256,verifyResult,signResult,compareResults} from '../../../packages/hosted-routing/src/result.ts';
 import {FactoryClient} from '../../../packages/client/src/index.ts';
+import {EVIDENCE_LIMITS} from '../../../packages/verification/src/evidence.ts';
 
 function signer(keyId='key-1') {
   const pair=generateKeyPairSync('ed25519');
@@ -213,6 +214,73 @@ test('scoped authenticated endpoint and client read only the exact attempt, incl
     assert.deepEqual((await new FactoryClient({origin,token}).getRunResult(f.order.id,f.run.id)).result,f.result);
     assert.equal(f.storage.listRuns(f.order.id).length,1);
   }finally{if(host)await host.close();}
+});
+test('one exact Proof evidence reference crosses the authenticated Work boundary and rejects scope substitutions', async t => {
+  const {createSupervisor}=await import('../src/server.ts');
+  const f=await golden(t), token='d'.repeat(64), ownerScope='owner:test', workId=randomUUID();
+  const repository='fixture/golden', workGeneration=1;
+  f.storage.appendEvent({workOrderId:f.order.id,runId:null,type:'factory.prepare_requested',payload:{
+    requestId:f.snapshot.requestId,workId,workGeneration,repository,input:{repositoryPath:f.repo}}});
+  f.storage.appendEvent({workOrderId:f.order.id,runId:null,type:'factory.owner_scope_bound',payload:{
+    ownerScope,workId,workGeneration,repository,requestId:f.snapshot.requestId,clientId:'preparer'}});
+  const refs=f.storage.listEvents(f.order.id).find(e=>e.runId===f.run.id&&e.type==='run.evidence_collected').payload.refs;
+  assert.deepEqual(refs.map(ref=>ref.kind),['TestEvidence','DiffEvidence']);
+  const client={id:'proof',name:'MyEve Proof fixture',tokenSha256:sha256(token),repositoryPaths:[f.repo],
+    actions:['evidence.read'],ownerScope,purpose:'myeve-proof',expiresAt:new Date(Date.now()+60000).toISOString()};
+  const config=join(f.dir,'connections.json');
+  const configure=value=>writeFileSync(config,JSON.stringify({clients:value}));configure([client]);
+  let host=createSupervisor({dataDir:f.dir,resultSigning:f.signing,linear:{}});
+  await new Promise(resolve=>host.server.listen(0,'127.0.0.1',resolve));
+  t.after(()=>host.close());
+  let origin=`http://127.0.0.1:${host.server.address().port}`;
+  const path='/api/connect/v1/evidence/read';
+  const request=ref=>({ownerScope,repository,workId,workGeneration,requestId:f.snapshot.requestId,
+    workOrderId:f.order.id,runId:f.run.id,candidateCommit:f.storage.getRun(f.run.id).candidateCommit,
+    factoryVersion:f.snapshot.factoryVersion,evidenceReference:ref.proofReference,expectedDigest:ref.sha256,evidenceKind:ref.kind});
+  const post=(body,authorization=token)=>fetch(origin+path,{method:'POST',headers:{Authorization:`Bearer ${authorization}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const proof=new FactoryClient({origin,token});
+  const detail=await proof.getWorkOrder(f.order.id);
+  const advertised=detail.events.find(event=>event.type==='run.evidence_collected').payload.refs;
+  assert.deepEqual(advertised.map(ref=>ref.proofReference),refs.map(ref=>ref.proofReference));
+  assert.equal(JSON.stringify(detail).includes('relativePath'),false);
+  assert.equal(JSON.stringify(detail).includes('/evidence/'),false);
+  const localDetail=await (await fetch(origin+`/api/work-orders/${f.order.id}`)).text();
+  assert.equal(localDetail.includes('relativePath'),false);
+  assert.equal(localDetail.includes(ownerScope),false);
+  for(const ref of refs){
+    const read=await proof.readEvidence(request(ref));
+    assert.equal(read.proofReference,ref.proofReference);
+    assert.equal(sha256(read.bytes),ref.sha256);
+    assert.equal(read.bytes.length,ref.size);
+  }
+  await host.close();
+  host=createSupervisor({dataDir:f.dir,resultSigning:f.signing,linear:{}});
+  await new Promise(resolve=>host.server.listen(0,'127.0.0.1',resolve));
+  origin=`http://127.0.0.1:${host.server.address().port}`;
+  assert.equal(sha256((await new FactoryClient({origin,token}).readEvidence(request(refs[0]))).bytes),refs[0].sha256);
+  const evidenceFile=join(f.dir,refs[0].relativePath),original=readFileSync(evidenceFile);
+  writeFileSync(evidenceFile,Buffer.alloc(EVIDENCE_LIMITS.TestEvidence+1));
+  assert.equal((await post(request(refs[0]))).status,409);
+  writeFileSync(evidenceFile,original);
+  const valid=request(refs[0]);
+  const substitutions=[{ownerScope:'owner:other'},{repository:'fixture/other'},{workId:randomUUID()},
+    {workGeneration:2},{workOrderId:randomUUID()},{runId:randomUUID()},
+    {candidateCommit:'f'.repeat(40)},{factoryVersion:'f'.repeat(64)},
+    {evidenceReference:`factory-evidence:sha256:${'f'.repeat(64)}`},{expectedDigest:'f'.repeat(64)},
+    {evidenceKind:'VideoEvidence'},{evidenceKind:'UnknownEvidence'},
+    {path:'../../etc/passwd'}];
+  for(const change of substitutions){const response=await post({...valid,...change});assert.notEqual(response.status,200,JSON.stringify(change));
+    assert.equal((await response.text()).includes('Synthetic check'),false);}
+  assert.equal((await post(valid,'e'.repeat(64))).status,401);
+  assert.equal((await fetch(origin+path,{headers:{Authorization:`Bearer ${token}`}})).status,405);
+  assert.equal((await post({...valid,evidenceReference:'../../etc/passwd'})).status,400);
+  configure([{...client,ownerScope:'owner:other'}]);assert.notEqual((await post(valid)).status,200);
+  assert.equal((await fetch(origin+`/api/connect/v1/work-orders/${f.order.id}`,{headers:{Authorization:`Bearer ${token}`}})).status,404);
+  assert.deepEqual((await (await fetch(origin+'/api/connect/v1/work-orders',{headers:{Authorization:`Bearer ${token}`}})).json()).workOrders,[]);
+  configure([{...client,repositoryPaths:[f.dir]}]);assert.notEqual((await post(valid)).status,200);
+  configure([{...client,expiresAt:new Date(Date.now()-1000).toISOString()}]);assert.equal((await post(valid)).status,401);
+  configure([]);assert.equal((await post(valid)).status,401);
+  assert.ok(EVIDENCE_LIMITS.DiffEvidence<=4*1024*1024);
 });
 test('revoked current signing configuration denies capture before a worker starts',async t=>{
   const signing=signer();signing.keys[0].revokedAt=new Date().toISOString();

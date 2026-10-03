@@ -1,0 +1,13 @@
+✔ Attempt 6 deterministic checkpoint: correct-first (1899.7075ms)
+✔ Attempt 6 deterministic checkpoint: repairable (2434.758666ms)
+✔ Attempt 6 deterministic checkpoint: still-bad (1436.098708ms)
+✔ Attempt 6 deterministic checkpoint: outside-scope (414.0335ms)
+✔ installed Codex CLI reaches only the metered loopback Responses boundary (626.558667ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6415.327917
