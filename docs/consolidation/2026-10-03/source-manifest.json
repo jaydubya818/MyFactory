@@ -1,5 +1,5 @@
 {
-  "status": "ASSEMBLED_OFFLINE_QUALIFIED_REVIEW_PENDING",
+  "status": "SOURCE_CONSOLIDATION_REVIEW_PASS_LOCAL_QUALIFICATION_PASS",
   "canonicalBase": "c0b4c1155a6a98f91375163443938042e6a0be10",
   "inputs": {
     "privateAlpha": "5d435c3bcf6e1dc500e51bf34053a595fcf2f9b9",
@@ -22,7 +22,12 @@
     "tlsMigration": "PASS through 006",
     "types": "PASS",
     "governance": "PASS 76 reviewed runtime sources",
-    "build": "PASS"
+    "build": "PASS",
+    "installedHarness": {
+      "passed": 18,
+      "realProviderCalls": 0
+    },
+    "freshClone": "PASS447/20 gated; exact qualification source retained"
   },
   "limits": [
     "Frozen Cloud hosted PASS applies only to its original pinned runtime.",
@@ -30,5 +35,11 @@
     "MyEve EvidenceProvider Proof consumer remains pending.",
     "Production admission/publication and paid model operations remain disabled.",
     "Source composition requires new exact FactoryVersion/configuration identity; old runtime identity must not be rebound."
-  ]
+  ],
+  "qualificationSourceAncestor": "5cd13fa1f307a0c0f42f6317d966bb3179ad77c9",
+  "independentReview": {
+    "verdict": "PASS for source consolidation and canonical merge",
+    "reviewedSha": "0fbc881d1dcac99f87f1e5992baeafac565afa7a",
+    "productionApproval": false
+  }
 }
