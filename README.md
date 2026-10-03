@@ -10,6 +10,8 @@ The dedicated Sofie runtime/operator bypass is now explicitly approved and its h
 
 [Cloud execution migration](docs/architecture/cloud-execution.md): the local execution-provider seam is implemented and regression-tested. Dedicated staging project, database, private custody storage and an admission-disabled readiness service are provisioned; see [Phase 2 evidence](docs/cloud-execution/phase-2/README.md). The provider-native Node 24 image is digest-pinned and has passed connected image qualification; hosted exact-source deterministic execution, private artifact custody and teardown also pass. The canonical PostgreSQL operation ledger passes connected parity/concurrency checks; the cloud Work lifecycle remains pending. Cloud execution is **NOT_READY**; no laptop-independence, cloud verifier or live canary is claimed. See the [checkpoint](docs/cloud-execution/phase-1/README.md) and [runbook](docs/runbooks/cloud-execution.md).
 
+[Cloud execution migration](docs/architecture/cloud-execution.md): the local execution-provider seam is implemented and regression-tested. Dedicated staging project, database, private custody storage and an admission-disabled readiness service are provisioned; see [Phase 2 evidence](docs/cloud-execution/phase-2/README.md). The historical worker-image blocker in this branch was superseded by the separate Cloud Execution owner at `faf93359a4c54daaf3e0b713a601366db02ba8d6`; that provider/controller checkpoint is not merged here. Cloud execution is **NOT_READY**; no laptop-independence, cloud verifier or live canary is claimed. See the [checkpoint](docs/cloud-execution/phase-1/README.md) and [runbook](docs/runbooks/cloud-execution.md).
+
 [Latest execution-capacity repair](docs/private-alpha/execution-capacity-2026-10-01/README.md): Attempt 4 is preserved as failed. The complete five-operation installed-CLI journey passes offline, including custody, protected verification, Result/Proof and final synthetic Sofie explanation. The repaired runtime is deployed; a fresh paused fifth Work requires explicit authorization. Publication remains disabled.
 
 [Private-alpha OIDC provider](docs/private-alpha/README.md): project-scoped Gateway authentication, exact-model eligibility preflight and bounded execution are implemented. The substantive first Work remains owner-gated.
@@ -23,6 +25,36 @@ A supervised local workflow for turning a selected WorkOrder into a reviewable c
 This is an implementation in progress. The local path and Feedback Hub preview run; a real target repository and issue are still needed to qualify the first end-to-end GitHub draft PR.
 
 The work desk now includes **Connections** and optional Linear issue creation. Approved sibling app backends can create WorkOrders, read evidence records, and add notes through scoped shared actions. These integrations are inactive until configured. See [app connections and Linear setup](docs/connections.md) for host settings, client registration, retry behavior, and current limits.
+
+## Execution Environments
+
+Environment Fabric is **PARTIAL**. The [T3 crosswalk](docs/environment-fabric/t3-crosswalk.md), typed descriptor, capability/authority-aware routing functions and local metadata adapters are implemented and deterministically tested. They are not wired into production Work routing yet. The cloud owner has independently advanced image and staging lifecycle work; its full HEADLESS/Mac-off Golden Journey is still pending. See the [current ownership and session extension](docs/architecture/session-surfaces.md).
+
+The intended flow is MyEve → MyFactory → selected environment → harness → candidate custody → independent verifier → Result/Proof → owner-controlled effect. Relay supplies independently authorized capabilities and communication. Cloud is intended for eligible background Work; Owner Computer for explicit local resources; Local Factory for deliberate development/qualification. A technical capability is not permission to execute. DeepAgent is a replaceable harness, not the environment fabric.
+
+| Capability | Status in this checkpoint |
+| --- | --- |
+| Sofie / MyEve | PARTIAL — existing canonical behavior preserved; environment UI/consumption pending |
+| Relay | NOT_RUN — contracts unchanged; existing qualification not repeated |
+| Environment Fabric | PARTIAL — contracts/routing tests pass; durable registry and production admission pending |
+| Future CLOUD_COMPUTER | DEFERRED / NOT_QUALIFIED — optional CLOUD capabilities in contract only; no agent-role or harness binding |
+| Session surfaces | PARTIAL — optional contract/scope tests pass; HEADLESS production independence required; CMUX/TMUX adapters and Control Center actions DEFERRED |
+| Owner Computer | PARTIAL — metadata projection tests pass; real companion E2E not repeated |
+| Local Factory | PASS deterministic lifecycle regressions; environment registration not integrated |
+| Cloud Factory | NOT_QUALIFIED end to end — separate cloud owner has qualified infrastructure; canonical Golden Journey pending |
+| Existing Factory harness | PASS deterministic regression; live/model qualification NOT_RUN here |
+| DeepAgent | NOT_QUALIFIED |
+| Candidate custody | PASS existing deterministic local regressions; cloud NOT_RUN |
+| Independent verifier | PASS existing deterministic local regressions; cloud NOT_RUN |
+| Background Work | NOT_QUALIFIED for CLOUD; Mac-off/browser-off NOT_RUN |
+| Owner publication | Existing Attempt-8 implementation preserved; production publication NOT_RUN here |
+| Agent federation | NOT_RUN; Relay contracts unchanged; no Muse/GrokBots claims |
+
+[Harness-neutral environments](docs/architecture/harness-neutral-environments.md) keep resource location, harness execution and optional operator surfaces separate. Existing qualified runtime is preserved; future cloud computer capability support does not enable live computer access.
+
+Additional owner computers and qualified cloud/sandbox instances use the same Work contract. Routing remains deterministic and requires per-instance qualification plus independent Work authority/Relay policy. Advertised desktop/browser/git/shell capabilities grant no permission; adding an environment cannot migrate already-bound Work. This is tested contract support; production Fabric registry/routing integration remains pending.
+
+See [qualification and limitations](docs/environment-fabric/qualification.md) and the [session-surface report](docs/environment-fabric/session-surfaces.md). Do not infer laptop independence or production availability from these unit tests.
 
 ## Producer result attestation
 

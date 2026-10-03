@@ -183,3 +183,76 @@ These contract changes do not qualify the hosted harness or Mac-off journey.
 The existing Codex adapter is now wired into the dedicated cloud worker through the canonical SpendGateway/PostgreSQL ledger, with integrity-pinned installation, bounded SDK transport, host checkpoints, read-only completion and exact-tree custody. [Implementation and evidence limits](../cloud-execution/phase-3/cloud-harness-implementation.md): 119 local tests PASS, six gated skips; hosted harness and independent verifier remain NOT_RUN. This does not enable production, paid models or publication.
 
 Independent cloud verification is now implemented behind the qualification boundary, including Factory-owned leases/custody, separate sandbox identity, cancellation/cleanup fencing and signed canonical Result evidence. [Implementation and validation limits](../cloud-execution/phase-3/independent-verifier.md). Hosted verification and the full Golden Journey remain NOT_RUN.
+
+Dedicated staging resources and hosted admission-disabled readiness are established; [Phase 2 evidence](../cloud-execution/phase-2/README.md) separates those connected checks from unrun Work lifecycle gates. Immutable image distribution is externally blocked: managed images return 404 and both daemon/host VCR uploads fail TLS. [Unblock requirements](../cloud-execution/phase-2/image-blocker.md). No cloud allocation, harness or Mac-off result is claimed.
+
+
+## Execution Environment Fabric — foundation checkpoint
+
+The [T3 review/crosswalk](../environment-fabric/t3-crosswalk.md) pins upstream and all three canonical starting revisions. This branch preserves the existing cloud work. The new `@factory/contracts/environment` export validates V1 descriptors, bounded protocol ranges and a closed typed capability vocabulary. `environment-router.ts` separates trusted qualification, scoped Work authority, heartbeat/capacity and advertisement. `environment-adapters.ts` projects Owner Computer permissions and Local Factory capabilities without credentials or local paths. The local lifecycle provider now uses the accurate `LOCAL_FACTORY` discriminator; no lifecycle behavior or saved historical record is rewritten.
+
+**Implemented boundary:** pure derivation/selection/projections with deterministic tests. **Not yet integrated:** durable environment registration/qualification storage, authenticated registry API, Work admission binding, MyEve consumption, owner UI, remote cloud lifecycle and P0 automation. The existing local dispatch path remains intact; the new router does not authorize or redirect production execution. No descriptor automatically becomes QUALIFIED. No new FactoryVersion is promoted.
+
+Selection is deterministic by environment identity after explicit type/resource, owner/business, authority, exact qualified runtime/provider/FactoryVersion, supported protocol/capability version, fresh heartbeat and capacity filters. Missing compatible cloud returns Waiting for cloud execution; owner-local resources remain tied to their paired device. A previously pinned binding returns BOUND readback, not a new admission; canonical attempt reconciliation must decide recovery. Revocation/expiry denies new selection, while active attempt effects remain governed by existing writer/lease controls. No automatic failover.
+
+Current canonical Work uses `awaiting_environment`, `planning`/`implementing`, `verifying`, `ready_for_review`/`awaiting_approval`, plus terminal/interrupted states. The proposed route's WAITING_FOR_ENVIRONMENT must map to the existing waiting state during integration, not introduce a second Work state machine. Worker terminal state does not mean Result failure after custody. Browser refresh must reconstruct canonical Work and immutable evidence rather than replaying a start command.
+
+### A — system ownership (integration target)
+
+```mermaid
+flowchart TD
+  Owner --> MyEve[MyEve / Sofie: Work and owner decisions]
+  MyEve --> Factory[MyFactory: admission and production]
+  Factory --> Router[Environment Router]
+  Router --> Environments[Cloud / Owner Computer / Local Factory]
+  Relay[Relay: governed identity, capabilities and communication] -. scoped grants .-> MyEve
+  Relay -. scoped grants .-> Environments
+```
+
+### B — environment capabilities (qualification required)
+
+```mermaid
+flowchart LR
+  Cloud[CLOUD] --> Software[Repository / shell / Git / background]
+  Mac[OWNER_COMPUTER] --> Local[Explicit local files / shell / screenshot / desktop]
+  Factory[LOCAL_FACTORY] --> Development[Repository / shell / Git / local qualification]
+  Software --> Qualified[Separate exact-version qualification]
+  Local --> Qualified
+  Development --> Qualified
+```
+
+### C — software Work (cloud path not yet qualified)
+
+```mermaid
+flowchart LR
+  Work --> Environment --> Harness --> Candidate --> Custody
+  Custody --> Verifier[Independent protected verifier]
+  Verifier --> Result[Canonical Result and Proof]
+  Result --> Decision[Owner decision]
+  Decision --> Publisher[Existing Attempt-8 publisher]
+```
+
+### D — authority layers
+
+```mermaid
+flowchart LR
+  Capability[Technical capability] --> Match[Requirements match]
+  Grant[Work and Relay authority] --> Admission[Canonical execution admission]
+  Match --> Admission
+  Qualification[Trusted qualification] --> Admission
+  Admission --> Attempt[Bounded pinned attempt]
+  Attempt --> Verification[Independent verification]
+  Verification --> Approval[Separate owner effect approval]
+```
+
+Hidden Git checkpoints are DEFERRED. Durable command/event/effect handling has an EXISTING_EQUIVALENT in local claims and the Attempt-8 publisher; cloud allocation reconciliation remains pending. Relay contracts and federation are unchanged. DeepAgent is NOT_QUALIFIED and is not required to unblock the existing harness. See the [qualification report](../environment-fabric/qualification.md) for explicit unrun gates.
+
+## Optional session surfaces and current cloud ownership
+
+ExecutionEnvironment → ExecutionProvider → HarnessProvider/existing harness → optional SessionSurfaceProvider. [Session architecture](session-surfaces.md) defines HEADLESS/TMUX/CMUX, exact identity/scope, capabilities and upstream review. Contract only; native adapters and Control Center actions are deferred. Session absence/failure cannot govern productive lifecycle, custody, verification or Result/Proof.
+
+The separate Cloud Execution owner at `faf93359a4c54daaf3e0b713a601366db02ba8d6` supersedes the historical image blocker and owns its hosted provider/controller. No protected checkout was edited or copied. Fabric does not gate or duplicate its existing harness → deterministic cloud execution → independent verifier → Mac-off Golden Journey sequence. That full journey remains unqualified in the reviewed checkpoint.
+
+## Harness neutrality and future cloud computer capabilities
+
+[Harness-neutral environment contract](harness-neutral-environments.md): environment determines where, harness determines how, and optional session surface determines operator observation/attachment. CLOUD_COMPUTER is a future qualified CLOUD capability profile, not a new environment type or agent identity. Browser/desktop/screenshot/appInteraction are independently optional. Specialist names never select an environment. Runtime computer access remains deferred behind the active cloud owner's HEADLESS/Mac-off milestone.

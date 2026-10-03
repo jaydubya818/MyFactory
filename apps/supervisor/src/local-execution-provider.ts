@@ -47,7 +47,7 @@ const defaultProbe: LocalResourceProbe = {
  */
 export class LocalExecutionProvider implements ExecutionProvider {
   readonly id = 'local-execution-v1';
-  readonly environment = 'LOCAL_COMPUTER' as const;
+  readonly environment = 'LOCAL_FACTORY' as const;
   private readonly storage: FactoryStorage;
   private readonly jobs: JobManager;
   private readonly producer: ProducerResults;

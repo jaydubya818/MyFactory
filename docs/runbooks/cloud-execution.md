@@ -134,3 +134,24 @@ Independent cloud verification is now implemented behind the qualification bound
 Pinned harness packaging: 0.157.0 uses vendor/bin/codex and companion resources; install the integrity-pinned vendor subtree. Hosted attempt 2 failed on the old layout and was destroyed; see phase-3/hosted-attempt-2.md. Installer failures must retain only allowlisted codes, never raw provider stderr.
 
 Private custody readback must check bounded decoded stream bytes and SHA-256, not SDK Content-Length metadata. Hosted attempt 3 proved the existing harness phases but failed readback; no independent verification or Golden Journey claim is justified. Preserve its ledger and uploaded unaccepted artifact as evidence.
+
+Historical evidence: this branch originally stopped at the [image blocker](../cloud-execution/phase-2/image-blocker.md). The separate Cloud Execution owner superseded it at `faf93359a4c54daaf3e0b713a601366db02ba8d6`. Follow that owner's current qualification; do not restart uploads from this old checkpoint or weaken TLS.
+
+
+## Environment Fabric foundation
+
+Run `node --test apps/supervisor/test/environment-*.test.mjs` for the descriptor, capability, routing and metadata-adapter boundary; run the complete `npm test` suite to protect local lifecycle semantics. The new CI workflow runs these through the normal suite and checks governance, types and build. Branch-protection enforcement is not established by a workflow file and remains a release gate.
+
+No environment registration endpoint or CLI is shipped at this checkpoint. Do not construct production qualification records from worker assertions. Future registration must authenticate an operator, bind exact owner/business and identity, and audit registration/revocation. Qualification must pin the provider/runtime/FactoryVersion tuple and capability evidence independently of advertisement. The local device table remains authoritative for Sofie Local pairing and permission heartbeat; do not invent a second device identity database.
+
+Routing diagnostics: an absent/stale/offline/revoked or unqualified environment returns Waiting; a Work authority mismatch returns Denied; protocol mismatch cannot be overridden by a client version. Existing bound attempts require canonical reconciliation, never another call to start from a BOUND readback. Do not remove the current loopback restriction before the authenticated remote lifecycle and custody are implemented.
+
+Reconcile cloud implementation through the active Cloud Execution owner. Its image/infrastructure milestone is advanced; HEADLESS canonical Work/harness/verifier/Mac-off/P0 remain the critical path. Fabric must not replace or gate that implementation. Complete real qualification before requesting the first paid canary.
+
+## Optional operator surfaces
+
+ExecutionEnvironment → ExecutionProvider → existing harness → optional SessionSurfaceProvider. [Contract and architecture](../architecture/session-surfaces.md); [operator/security/qualification runbook](session-surfaces.md). No live adapter or Control Center action is enabled. HEADLESS requires neither cmux nor tmux. Attachment qualification cannot enable production cloud admission.
+
+## Future cloud computer qualification
+
+Follow the [harness-neutral capability boundary](../architecture/harness-neutral-environments.md). No browser/desktop runtime is provisioned by the new vocabulary. Keep the currently qualified harness and HEADLESS critical path. Later qualify each browser/desktop/screenshot/appInteraction capability independently with Work-scoped authority, tool/action restrictions, cross-owner isolation, revocation and teardown. Never route by specialist name, advertise all computer capabilities merely because an environment is CLOUD, or treat session.browser as browser execution authority.

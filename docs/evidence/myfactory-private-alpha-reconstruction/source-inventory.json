@@ -4,17 +4,17 @@
     "apps/supervisor/src/dispatch-control.ts": {
       "sha256": "4e656d6ba5af09eb37cf07842e9c67ba4c201e8cd9664ae742107be95e4a82de",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Delegate preparation, start, cancellation and resource reconciliation to an explicitly injected local provider. Retain connection authorization, exact binding, transactional dispatch claim, spend ledger, UNKNOWN, terminal fencing and publication boundaries. Resource readback grants no authority."
+      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Delegate preparation, start, cancellation and resource reconciliation to an explicitly injected local provider. Retain connection authorization, exact binding, transactional dispatch claim, spend ledger, UNKNOWN, terminal fencing and publication boundaries. Resource readback grants no authority. Fabric boundary: Delegate preparation, start, cancellation and resource reconciliation to an explicitly injected local provider. Retain connection authorization, exact binding, transactional dispatch claim, spend ledger, UNKNOWN, terminal fencing and publication boundaries. Resource readback grants no authority."
     },
     "apps/supervisor/src/jobs.ts": {
       "sha256": "8eafe63348cccc9b97f81a077099df945bd140cbd4b1b4393ac9d244a426b492",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Fabric boundary: Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/spend-gateway.ts": {
       "sha256": "ed4da172aa6e0d1cfa4a291afcdcbc0326dd97be112deda9dcfc50081fbe09f3",
       "classification": "PAID_BOUNDARY",
-      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Consolidated boundary: Share exact paid boundary across Node HTTP and hosted Fetch adapters; await durable accounting, retain UNKNOWN and no fallback. Deterministic upstream injection is trusted server configuration, never client data. Constant-time hashed credentials reject multibyte input safely."
+      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Consolidated boundary: Share exact paid boundary across Node HTTP and hosted Fetch adapters; await durable accounting, retain UNKNOWN and no fallback. Deterministic upstream injection is trusted server configuration, never client data. Constant-time hashed credentials reject multibyte input safely. Fabric boundary: Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/real-provider.ts": {
       "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
@@ -22,9 +22,9 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "473e71dd39c693efb2c179b5e9b122f62fefd3864a7145ba6d370ffcf2f4ff34",
+      "sha256": "6880955b97a104db9564260b280bc012a6a95e77b2181a7597a2f1dea098c3f2",
       "classification": "EXECUTOR_LIFECYCLE",
-      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Consolidated boundary: Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Explicit container profile preserves the same process/sandbox/credential behavior and default Mac compatibility."
+      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Consolidated boundary: Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Explicit container profile preserves the same process/sandbox/credential behavior and default Mac compatibility. Fabric boundary: Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved.; output capture subscribes before asynchronous start persistence, but event interpretation awaits the durable start receipt; callback failure still fails closed"
     },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
@@ -34,12 +34,12 @@
     "packages/storage/src/spend.ts": {
       "sha256": "4850fee81922f9a0b02822a309cf96da3476aae1f109a85bf0aaa35da7c50143",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Retain SQLite transactions and all historical V2 semantics while using shared pure validation/accounting functions."
+      "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Retain SQLite transactions and all historical V2 semantics while using shared pure validation/accounting functions. Fabric boundary: Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars."
     },
     "apps/supervisor/src/server.ts": {
       "sha256": "48b6b2864778f4528d47df1e9c5f49961372aa985e70adf96e268c4fb1735b03",
       "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback."
+      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback. Fabric boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback."
     },
     "apps/supervisor/src/private-alpha.ts": {
       "sha256": "446fbf9e0cf86c04055b6cf53b360755f15b2bc3ee080d074c00b1415e707eb0",
@@ -73,7 +73,7 @@
     },
     "packages/hosted-routing/src/result.ts": {
       "classification": "NOT_APPLICABLE",
-      "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory. Consolidated boundary: Strict legacy snapshot V1 unchanged. Optional cloud-only independent verification is signature-bound, exact-shaped, candidate/policy/resource/chronology checked, and grants no readiness or publication by itself.",
+      "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory. Consolidated boundary: Strict legacy snapshot V1 unchanged. Optional cloud-only independent verification is signature-bound, exact-shaped, candidate/policy/resource/chronology checked, and grants no readiness or publication by itself. Fabric boundary: Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory.",
       "sha256": "9f3ad70fad6310d9c46f9393db03e63c9af9a79b7ee0d55412916a6870209369"
     },
     "apps/supervisor/src/git.ts": {
@@ -117,14 +117,14 @@
       "authorityBoundary": " Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
     },
     "apps/supervisor/src/execution-provider.ts": {
-      "sha256": "36b12e18aa008c8204cf23624cc07416b2eda50b26763d49d4a2afb87e72b2e8",
+      "sha256": "60027acba1399b05ba2637dc7dab64e1be3ab68842167b7229d4cf43f9e4af3b",
       "classification": "EXECUTION_PROVIDER_CONTRACT",
-      "authorityBoundary": "Typed migration seam only. Resource evidence cannot grant writer, model, verification or publication authority. Legacy Run and host gateway references are explicitly local migration limitations."
+      "authorityBoundary": "Typed migration seam only. Resource evidence cannot grant writer, model, verification or publication authority. Legacy Run and host gateway references are explicitly local migration limitations. Fabric boundary: Reuse existing lifecycle seam; canonical environment names keep local Factory separate from owner computer; no new execution authority Document the harness-neutral interface; concrete currently qualified local harness and all lifecycle behavior remain unchanged."
     },
     "apps/supervisor/src/local-execution-provider.ts": {
-      "sha256": "727738ba01b853feb93c220b7cd4529f7a8aade3e1e83fc9276cde30cfae3192",
+      "sha256": "c17cd911577d14c2d93cee57f139f3e0cf726111657260e36afc2d18341370f3",
       "classification": "LOCAL_RESOURCE_RECONCILIATION",
-      "authorityBoundary": "Scope process and verifier observations to the exact persisted attempt. Unknown resources prevent quiescence; only dispatch control decides canonical terminal state after fencing. Keep candidate workspace required by existing publication; never claim it was destroyed."
+      "authorityBoundary": "Scope process and verifier observations to the exact persisted attempt. Unknown resources prevent quiescence; only dispatch control decides canonical terminal state after fencing. Keep candidate workspace required by existing publication; never claim it was destroyed. Fabric boundary: Only internal environment discriminator changes to LOCAL_FACTORY; all prepare/start/cancel/custody behavior retained"
     },
     "apps/cloud-control/src/dependencies.mjs": {
       "sha256": "85e769d564f9cdcc3d9caf40a3f9fb492baf7d30ee48f577ddc83375a87568c6",
@@ -134,7 +134,7 @@
     "apps/cloud-control/src/config.mjs": {
       "sha256": "ee97f22cae6821e1b183b5919e3152d1b774b910e2ff2242e12488a9f898bfa8",
       "classification": "STAGING_BOUNDARY",
-      "authorityBoundary": "Require exact dedicated staging preview identity and certificate-verified password-authenticated PostgreSQL. Bound database wake-up connection to 15 seconds and statements to 5 seconds."
+      "authorityBoundary": "Require exact dedicated staging preview identity and certificate-verified password-authenticated PostgreSQL. Bound database wake-up connection to 15 seconds and statements to 5 seconds. Fabric boundary: Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
     },
     "apps/cloud-control/src/readiness.mjs": {
       "sha256": "d99426407f5870c06dd016ad4c161951a8094ef5b1c7af80d7e5b6f5d9f4ff2e",
@@ -154,7 +154,7 @@
     "apps/cloud-control/src/infrastructure-plan.mjs": {
       "sha256": "3e5ffdae46115ccdd110b7c0871f8e1e5e5e8245151d79b9c7f9746996241351",
       "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
-      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority. Fabric boundary: Fixed public source, immutable staging image, bounded nonpersistent single sandbox plan; no caller-supplied commands or credentials; not wired to allocation"
     },
     "apps/cloud-control/src/infrastructure-store.mjs": {
       "sha256": "f5865e1efa63157fab54914566d61aedcf66f417e3abfd7f858ce1b3111d3425",
@@ -269,7 +269,7 @@
     "packages/contracts/src/session-surface.ts": {
       "sha256": "19b90b64505f4ce01bbc77326fdbecf3f951c789dd4f5c87a7bcac2540f95698",
       "classification": "OPTIONAL_SESSION_SURFACE_CONTRACT",
-      "authorityBoundary": "Exact Environment Fabric contract from 9983ccfcc6881b090e3d11bc575d1af1e710195e; pure scope parser/guard and optional observation/attachment types. No adapters/endpoints or new Work authority. Full authority/lease/qualification checks remain required at any future effect."
+      "authorityBoundary": "Exact Environment Fabric contract from 9983ccfcc6881b090e3d11bc575d1af1e710195e; pure scope parser/guard and optional observation/attachment types. No adapters/endpoints or new Work authority. Full authority/lease/qualification checks remain required at any future effect. Fabric boundary: Contract-only optional observation/attachment interface, strict target-free request parser and pure exact-identity/operator-scope guard. No runtime adapter, endpoint, grants, worker lifecycle, lease, custody, verifier, model or publication effects. Trusted scope still requires authenticated canonical lookup plus effect-time policy/qualification/fencing."
     },
     "apps/cloud-control/src/session-surface-policy.ts": {
       "sha256": "3edb7f4139e53f7306084d9fd14bb2d17474a3e68359e5aebe95031a45d695da",
@@ -340,6 +340,21 @@
       "sha256": "cfa2da724a8d5c6a9beb681c2be371c983e3ff2748f79b71d2504a2b493ceba9",
       "classification": "CLOUD_PROTECTED_VERIFICATION",
       "authorityBoundary": "Factory-only verification custody and leases serialize with canonical dispatch. Cancellation/deadline fence verdicts; one resource per Run; unknown allocation retains slot until reconciled."
+    },
+    "packages/contracts/src/environment.ts": {
+      "sha256": "1844f841db35c591b227dec0a6486c91badbbed2fb2135d6895723f0e69bc8ae",
+      "classification": "ENVIRONMENT_CONTRACT",
+      "authorityBoundary": "Strict execution-environment metadata and versioned optional session capabilities. Advertisement grants no authority; surface capabilities are not productive requirements. No provider, lifecycle or authorization wiring. Harness-neutral metadata; browser/appInteraction and existing desktop/screenshot are independently qualified optional capabilities, never a CLOUD_COMPUTER environment type or agent identity."
+    },
+    "apps/supervisor/src/environment-router.ts": {
+      "sha256": "ceda26ac688371aa3acf71d134f1ca0e62a02bf71e3f2f4411953b86be2f1c8c",
+      "classification": "environment-routing",
+      "authorityBoundary": "Pure selection requires independent scoped Work authority and exact qualified identity; no effects or production registration; pinned readback is BOUND, never new admission Explicitly project canonical Work identity/resource fields so incidental agent or harness metadata cannot enter requirements. Existing resource policy, qualification, grants, no-fallback and binding behavior preserved."
+    },
+    "apps/supervisor/src/environment-adapters.ts": {
+      "sha256": "34b70dbf50da599762a7aa6e58200dbf35bc5e8039f18e02908f06767e89752f",
+      "classification": "environment-adapter-projection",
+      "authorityBoundary": "Safe projections of authenticated local readback; permissions are availability, not authority; no production wiring or qualification inferred"
     }
   }
 }

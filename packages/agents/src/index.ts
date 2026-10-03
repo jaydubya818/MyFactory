@@ -254,14 +254,19 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
   if(options.productiveEndSignal?.aborted) stop("productive_end");
 
   let processStartError: string | null = null;
-  if (child.pid && options.onProcessStart) {
-    try {
-      await options.onProcessStart({ pid: child.pid, startedAt, workspacePath });
-    } catch (error) {
-      processStartError = `Codex process start handler failed: ${error instanceof Error ? error.message : String(error)}`;
-      stop("process_start_failed");
+  // Attach output consumers without awaiting durable start persistence. Node
+  // may otherwise drain an exited child's unread pipes before we subscribe.
+  // Event interpretation still waits for the receipt below.
+  const processStarted = (async () => {
+    if (child.pid && options.onProcessStart) {
+      try {
+        await options.onProcessStart({ pid: child.pid, startedAt, workspacePath });
+      } catch (error) {
+        processStartError = `Codex process start handler failed: ${error instanceof Error ? error.message : String(error)}`;
+        stop("process_start_failed");
+      }
     }
-  }
+  })();
 
   let threadId: string | null = null;
   let usage: Record<string, number> | null = null;
@@ -270,6 +275,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
   let outputError: string | null = null;
 
   const processLine = async (lineBuffer: Buffer): Promise<void> => {
+    await processStarted;
     if (outputError || processStartError) return;
     if (lineBuffer.length > MAX_EVENT_LINE_BYTES) {
       outputError = "Codex JSONL event exceeded 1 MiB";
@@ -360,6 +366,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
   let exit: { code: number | null; signal: string | null } = { code: null, signal: null };
   try {
     const captures = await Promise.allSettled([
+      processStarted,
       captureEvents().catch((error) => { stop("invalid_output"); throw error; }),
       captureStderr().catch((error) => { stop("invalid_output"); throw error; }),
     ]);

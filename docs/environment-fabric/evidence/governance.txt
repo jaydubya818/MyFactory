@@ -1,0 +1,5 @@
+
+> sellerfi-local-factory@0.1.0 check:producer-governance
+> node scripts/check-producer-governance.mjs
+
+Reconstruction producer governance PASS: 29 reviewed changed runtime sources; UNKNOWN=0
