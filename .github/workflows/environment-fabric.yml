@@ -23,6 +23,8 @@ jobs:
       # Existing local verification deliberately uses --pull=never at execution.
       # Provision its current image before tests; this is not the cloud runtime.
       - run: docker pull node:22-bookworm
+      # EvidenceProvider static-preview tests require the locked Playwright browser.
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
       - run: npm test
       - run: npm run check:producer-governance
       - run: npm run typecheck:producer
