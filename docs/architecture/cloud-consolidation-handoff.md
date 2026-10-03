@@ -1,0 +1,13 @@
+# Cloud Consolidation handoff
+
+Status: **DETERMINISTIC CLOUD GOLDEN JOURNEY PASS; CLOUD FEATURE DEVELOPMENT FROZEN.** No further staging feature cycle is authorized by this handoff. The single hosted P0 is run 37103458380; its runtime/test pins, scoped safety counts and evidence are in the hosted P0 report.
+
+Preserve the dedicated architecture: MyEve/Sofie is the owner-facing Work client; MyFactory owns execution, leases, private custody, signed evidence and verification state. Producer and verifier are separate ephemeral boundaries. Sofie backend alone uses the exact PREVIEW→PREVIEW OIDC trust, with independent Factory app/Work authorization. The GitHub driver holds no Factory credentials. It has no worker, verifier, repository-write, Relay or model authority.
+
+The qualified product hook exists on the dedicated Sofie preview: normal synthetic-owner login → real `/eve/v1/session` browser request using the bounded project-slug corpus → canonical paused Work → ordinary owner Resume → canonical command queue and EnvironmentRouter → CLOUD → Result/Proof. Product may consume this composition within its existing staging authority; it must not fabricate browser events, bypass Work admission, or add a parallel execution path. This is not a general-purpose model fixture or authorization to enable production. Selected-Work autonomous tool invocation beyond the tested owner-Resume journey and live natural-language generalization remain unqualified. The archived Product thread has not been unarchived or messaged.
+
+Consolidate code/schema/FactoryVersion/image/policies/qualified configuration only. Never promote staging Work, candidates, evidence databases, synthetic owners, credentials or protected verifier data into production state. Keep the existing Attempt-8 publisher and historical regressions. HEADLESS remains default; harness-neutral contracts and qualified tuple pins remain mandatory with no fallback. Defer all additional harnesses and session surfaces.
+
+The accompanying Production Promotion Manifest is a review artifact, not deployment approval. Production/private-alpha services remain untouched. The first real-model canary and any production rollout require their existing separate authorization gates. Provision no production resources from this handoff.
+
+Final evidence checkpoints are recorded in the final response and Git branch heads. Runtime pins are immutable in the manifest; later documentation-only commits do not retroactively change the qualified deployments. Both temporary GitHub Environment secrets have been removed, with zero-secret readback retained in the hosted P0 revocation receipt. The staging-side Sofie credential retains its separate approved lifecycle.

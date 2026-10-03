@@ -1,0 +1,23 @@
+Vercel CLI 62.1.0
+Deploying myfactory-cloud-staging
+Uploading [--------------------] (0.0B/501.1KB)
+Uploading [=====---------------] (126.3KB/501.1KB)
+Uploading [==========----------] (251.1KB/501.1KB)
+Uploading [===============-----] (378.5KB/501.1KB)
+Uploading [====================] (501.1KB/501.1KB)
+  Inspect         https://vercel.com/jaydubya818/myfactory-cloud-staging/4JjjK9sviUZn6kFHURb2fHW5XaTD
+  Preview         https://myfactory-cloud-staging-i42byua5s-jaydubya818.vercel.app
+Building…
+Building…
+{
+  "status": "error",
+  "reason": "deploy_failed",
+  "message": "The pattern \"api/cloud-work.mjs\" defined in `functions` doesn't match any Serverless Functions inside the `api` directory.",
+  "next": [
+    {
+      "command": "vercel deploy --scope team_p8z8exJRTGfOPk1GC9vUOpv3",
+      "when": "retry deploy"
+    }
+  ]
+}
+Error: The pattern "api/cloud-work.mjs" defined in `functions` doesn't match any Serverless Functions inside the `api` directory.

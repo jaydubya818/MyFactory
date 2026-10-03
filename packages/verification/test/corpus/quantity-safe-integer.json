@@ -1,0 +1,107 @@
+{
+  "incident": "numeric precision / range boundary escaped implementation-visible and protected verification and was caught by downstream independent review",
+  "candidate": "1253fcbd5a4e11d72f8ee43c7025b0729d9fa298",
+  "source": "import { readFileSync } from 'node:fs';\n\nconst input = readFileSync(0, 'utf8').trim();\nconst isPositiveInteger = /^[1-9]\\d*$/.test(input);\n\nconst output = isPositiveInteger\n  ? { quantity: Number(input) }\n  : { error: 'invalid_quantity' };\n\nprocess.stdout.write(JSON.stringify(output) + '\\n');\n",
+  "publicContract": {
+    "version": 1,
+    "decision": "Owner-approved safe integer range, 2026-10-02",
+    "minimum": "1",
+    "maximum": "9007199254740991",
+    "numericRepresentation": "JavaScript safe integer",
+    "serialization": "compact-json",
+    "terminalNewline": "LF",
+    "exitCode": 0,
+    "stderr": "empty",
+    "cases": [
+      {
+        "id": "minimum",
+        "input": "1",
+        "stdout": "{\"quantity\":1}\n"
+      },
+      {
+        "id": "safe-maximum",
+        "input": "9007199254740991",
+        "stdout": "{\"quantity\":9007199254740991}\n"
+      },
+      {
+        "id": "below-maximum",
+        "input": "9007199254740990",
+        "stdout": "{\"quantity\":9007199254740990}\n"
+      },
+      {
+        "id": "maximum-plus-one",
+        "input": "9007199254740992",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "precision-loss",
+        "input": "9007199254740993",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "very-large",
+        "input": "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "zero",
+        "input": "0",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "negative",
+        "input": "-7",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "decimal",
+        "input": "1.5",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "malformed",
+        "input": "abc",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "blank",
+        "input": "",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "newline",
+        "input": "42\n",
+        "stdout": "{\"quantity\":42}\n"
+      },
+      {
+        "id": "surrounding-whitespace",
+        "input": " \t9007199254740991\r\n",
+        "stdout": "{\"quantity\":9007199254740991}\n"
+      },
+      {
+        "id": "trimmed-invalid",
+        "input": " \t9007199254740992\r\n",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "infinity",
+        "input": "Infinity",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      },
+      {
+        "id": "exponent",
+        "input": "1e3",
+        "stdout": "{\"error\":\"invalid_quantity\"}\n"
+      }
+    ]
+  },
+  "visibleTest": "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\nimport {readFileSync,existsSync} from 'node:fs';\nimport {spawnSync} from 'node:child_process';\nimport {fileURLToPath} from 'node:url';\nconst contract=JSON.parse(readFileSync(new URL('./quantity-contract.json',import.meta.url),'utf8'));\nconst output=JSON.parse(readFileSync(new URL('./output-contract.json',import.meta.url),'utf8'));\nassert.deepEqual(output,{version:1,serialization:'compact-json',terminalNewline:'LF',exitCode:0,stderr:'empty'});\nassert.equal(contract.minimum,'1');assert.equal(contract.maximum,'9007199254740991');\nconst script=fileURLToPath(new URL('../quantity.mjs',import.meta.url));\ntest('quantity.mjs exists',()=>assert.ok(existsSync(script)));\nfor(const c of contract.cases)test(c.id,()=>{\n const r=spawnSync(process.execPath,[script],{input:c.input,encoding:'utf8',timeout:5000,maxBuffer:65536});\n assert.equal(r.error,undefined);assert.equal(r.status,0);assert.equal(r.stderr,'');assert.equal(r.stdout,c.stdout);\n assert.equal(r.stdout,JSON.stringify(JSON.parse(r.stdout))+'\\n');\n});\n",
+  "outputContract": {
+    "version": 1,
+    "serialization": "compact-json",
+    "terminalNewline": "LF",
+    "exitCode": 0,
+    "stderr": "empty"
+  },
+  "positiveControl": "import {readFileSync} from 'node:fs';\nconst text=readFileSync(0,'utf8').trim();\nconst n=/^[1-9][0-9]*$/.test(text)?BigInt(text):0n;\nprocess.stdout.write(JSON.stringify(n>0n&&n<=9007199254740991n?{quantity:Number(n)}:{error:'invalid_quantity'})+'\\n');\n"
+}

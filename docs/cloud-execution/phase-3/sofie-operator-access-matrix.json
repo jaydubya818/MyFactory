@@ -1,0 +1,35 @@
+{
+  "checkedAt": "2026-10-02T16:35:37.979Z",
+  "evidenceClass": "CONNECTED",
+  "status": "BLOCKED_PROVIDER_SECURITY_SCOPE",
+  "authorization": "Dedicated Sofie operator/test-runner bypass approved; application runtime injection not explicitly authorized",
+  "providerHttpStatus": 400,
+  "providerMessage": "One bypass must be the VERCEL_AUTOMATION_BYPASS_SECRET Environment Variable set on deployments.",
+  "attempts": [
+    "sofie-operator-access-attempt-1.json",
+    "sofie-operator-access-attempt-2.json"
+  ],
+  "noBypass": {
+    "status": 302,
+    "result": "PASS"
+  },
+  "revokedCredential": {
+    "status": 302,
+    "result": "PASS"
+  },
+  "revocationMetadataConfirmed": true,
+  "activeSofieBypasses": 0,
+  "deploymentCreated": false,
+  "applicationMatrix": "NOT_RUN",
+  "factoryAccessMatrix": "NOT_RUN",
+  "fullRevocationJourney": "PARTIAL: configuration failed before successful authenticated access",
+  "credentialContainmentScan": "NOT_RUN",
+  "cloudHarness": "NOT_RUN",
+  "independentVerifier": "NOT_RUN",
+  "macOff": "NOT_RUN",
+  "browserOff": "NOT_RUN",
+  "p0Playwright": "NOT_RUN",
+  "paidModelCalls": 0,
+  "productionAdmission": "DISABLED",
+  "publication": "DISABLED"
+}

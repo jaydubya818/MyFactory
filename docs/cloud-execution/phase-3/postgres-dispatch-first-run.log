@@ -1,0 +1,92 @@
+▶ CONNECTED canonical cloud dispatch admission, concurrency, cancellation and leases
+  ✔ prepare replay retains canonical IDs; conflicting input and cross-client read fail (3667.16375ms)
+  ✖ two dispatchers claim once; cancelled late allocation remains recorded without replacement (3539.500625ms)
+  ✖ stop before queue delivery creates a durable tombstone and prevents any resource allocation (4222.145209ms)
+  ✖ database lease expiry cannot be revived; restart reconciles the same ambiguous resource (2728.8805ms)
+✖ CONNECTED canonical cloud dispatch admission, concurrency, cancellation and leases (15401.048417ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 1
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15541.912584
+
+✖ failing tests:
+
+test at apps/cloud-control/test/postgres-dispatch.test.mjs:41:10
+✖ two dispatchers claim once; cancelled late allocation remains recorded without replacement (3539.500625ms)
+  error: duplicate key value violates unique constraint "execution_resources_pkey"
+      at /private/tmp/myfactory-cloud-execution-20261002/node_modules/pg/lib/client.js:694:17
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/src/postgres-dispatch.mjs:71:7
+      at async PostgresDispatchStore.transaction (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/src/postgres-dispatch.mjs:16:20)
+      at async Promise.all (index 1)
+      at async TestContext.<anonymous> (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/test/postgres-dispatch.test.mjs:43:17)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async TestContext.<anonymous> (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/test/postgres-dispatch.test.mjs:41:2)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    length: 300,
+    severity: 'ERROR',
+    code: '23505',
+    detail: 'Key (run_id)=(41036aa2-8f3c-4651-84fc-2106118cf5c3) already exists.',
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: 'factory_test_b74b99388960455abb4ad92c764f602c',
+    table: 'execution_resources',
+    column: undefined,
+    dataType: undefined,
+    constraint: 'execution_resources_pkey',
+    file: 'nbtinsert.c',
+    line: '667',
+    routine: '_bt_check_unique'
+  }
+
+test at apps/cloud-control/test/postgres-dispatch.test.mjs:56:10
+✖ stop before queue delivery creates a durable tombstone and prevents any resource allocation (4222.145209ms)
+  Error: Post-cancel or expired paid start denied
+      at assertSpendBinding (file:///private/tmp/myfactory-cloud-execution-20261002/packages/storage/src/spend-policy.ts:72:64)
+      at file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/src/postgres-dispatch.mjs:68:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async PostgresDispatchStore.transaction (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/src/postgres-dispatch.mjs:16:20)
+      at async TestContext.<anonymous> (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/test/postgres-dispatch.test.mjs:58:16)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async TestContext.<anonymous> (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/test/postgres-dispatch.test.mjs:56:2)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)
+
+test at apps/cloud-control/test/postgres-dispatch.test.mjs:61:10
+✖ database lease expiry cannot be revived; restart reconciles the same ambiguous resource (2728.8805ms)
+  error: duplicate key value violates unique constraint "factory_one_unresolved_resource"
+      at /private/tmp/myfactory-cloud-execution-20261002/node_modules/pg/lib/client.js:694:17
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/src/postgres-dispatch.mjs:71:7
+      at async PostgresDispatchStore.transaction (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/src/postgres-dispatch.mjs:16:20)
+      at async TestContext.<anonymous> (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/test/postgres-dispatch.test.mjs:62:39)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async TestContext.<anonymous> (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/test/postgres-dispatch.test.mjs:61:2)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    length: 279,
+    severity: 'ERROR',
+    code: '23505',
+    detail: 'Key ((true))=(t) already exists.',
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: 'factory_test_b74b99388960455abb4ad92c764f602c',
+    table: 'execution_resources',
+    column: undefined,
+    dataType: undefined,
+    constraint: 'factory_one_unresolved_resource',
+    file: 'nbtinsert.c',
+    line: '667',
+    routine: '_bt_check_unique'
+  }

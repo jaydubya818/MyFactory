@@ -1,0 +1,21 @@
+▶ CONNECTED canonical cloud dispatch admission, concurrency, cancellation and leases
+  ✔ prepare replay retains canonical IDs; conflicting input and cross-client read fail (5301.770541ms)
+  ✔ two dispatchers claim once; cancelled late allocation remains recorded without replacement (13584.070084ms)
+  ✔ stop before queue delivery creates a durable tombstone and prevents any resource allocation (5921.933375ms)
+  ✔ database lease expiry cannot be revived; restart reconciles the same ambiguous resource (11707.301542ms)
+✔ CONNECTED canonical cloud dispatch admission, concurrency, cancellation and leases (37699.915416ms)
+▶ CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing
+  ✔ identical V2 accounting through checkpoint, repair allowance and completion (20503.141709ms)
+  ✔ two connections racing for the last productive slot admit exactly one (6129.396667ms)
+  ✔ UNKNOWN persists across connection restart and generation changes (9692.230125ms)
+  ✔ cancel after reservation prevents dispatch, and stale writers cannot spend (3839.809959ms)
+  ✔ database time denies expired pricing and recovery keeps unsettled exposure (4088.99075ms)
+✔ CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing (45247.47675ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 45385.931417

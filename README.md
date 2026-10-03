@@ -1,4 +1,20 @@
+> Production installation successor: [exact production boundary and explicit migration procedure](docs/consolidation/2026-10-03/production-installation.md). Infrastructure readiness is separate from Work admission; paid production execution remains disabled and unqualified.
+
+> Current assembly status: [final private-alpha convergence](docs/consolidation/2026-10-03/README.md). Older checkpoint notes retain historical evidence limits; production promotion remains separately gated.
+
+> **Current: DETERMINISTIC CLOUD GOLDEN JOURNEY PASS.** [Hosted P0 evidence](docs/cloud-execution/phase-3/hosted-p0.md). Zero local dependencies, paid model calls and production effects. Cloud feature development FROZEN; production admission/publication DISABLED. Older checkpoint statuses below are historical.
+
+> Current connected evidence: [hosted deterministic attempt 4](docs/cloud-execution/phase-3/hosted-attempt-4.md) passes the existing cloud harness, private custody, independent verifier and cleanup. Fresh browser recovery passes; the local P0 first run failed on timeout. Mac-off/hosted-runner P0 remain NOT_RUN. Paid models 0; production/publication DISABLED.
+
 # Local Software Factory
+
+**Current staging status — 2026-10-02:** Exact Sofie preview → Factory preview Trusted Sources OIDC is enabled. Connected infrastructure/application access, different-project preview denial, and remove/restore revocation checks PASS. No static Factory bypass exists. Authorized productive Work, hosted harness, independent verifier and Mac-off/P0 remain NOT_RUN. [OIDC evidence and limits](docs/cloud-execution/phase-3/trusted-sources-oidc.md). Preserve the [credential-custody incident](docs/cloud-execution/phase-3/factory-bypass-custody-incident.md) and checkpoint `0df0c37`; historical status entries below do not supersede this status. Paid models: 0; production admission/publication: DISABLED.
+
+The dedicated Sofie runtime/operator bypass is now explicitly approved and its hosted access matrix is **PASS**, including independent Factory auth and Work-scope denial. Build/client/HTML and observed log scans pass. The credential was then revoked and protection reverified; zero Sofie bypasses remain. [Access evidence and continuation](docs/cloud-execution/phase-3/sofie-runtime-access.md). Canonical cloud harness, verifier, Mac-off and P0 remain NOT_RUN; paid calls are zero.
+
+[Cloud execution migration](docs/architecture/cloud-execution.md): the local execution-provider seam is implemented and regression-tested. Dedicated staging project, database, private custody storage and an admission-disabled readiness service are provisioned; see [Phase 2 evidence](docs/cloud-execution/phase-2/README.md). The provider-native Node 24 image is digest-pinned and has passed connected image qualification; hosted exact-source deterministic execution, private artifact custody and teardown also pass. The canonical PostgreSQL operation ledger passes connected parity/concurrency checks; the cloud Work lifecycle remains pending. Cloud execution is **NOT_READY**; no laptop-independence, cloud verifier or live canary is claimed. See the [checkpoint](docs/cloud-execution/phase-1/README.md) and [runbook](docs/runbooks/cloud-execution.md).
+
+[Cloud execution migration](docs/architecture/cloud-execution.md): the local execution-provider seam is implemented and regression-tested. Dedicated staging project, database, private custody storage and an admission-disabled readiness service are provisioned; see [Phase 2 evidence](docs/cloud-execution/phase-2/README.md). The historical worker-image blocker in this branch was superseded by the separate Cloud Execution owner at `faf93359a4c54daaf3e0b713a601366db02ba8d6`; that provider/controller checkpoint is not merged here. Cloud execution is **NOT_READY**; no laptop-independence, cloud verifier or live canary is claimed. See the [checkpoint](docs/cloud-execution/phase-1/README.md) and [runbook](docs/runbooks/cloud-execution.md).
 
 [Latest execution-capacity repair](docs/private-alpha/execution-capacity-2026-10-01/README.md): Attempt 4 is preserved as failed. The complete five-operation installed-CLI journey passes offline, including custody, protected verification, Result/Proof and final synthetic Sofie explanation. The repaired runtime is deployed; a fresh paused fifth Work requires explicit authorization. Publication remains disabled.
 
@@ -14,9 +30,41 @@ This is an implementation in progress. The local path and Feedback Hub preview r
 
 The work desk now includes **Connections** and optional Linear issue creation. Approved sibling app backends can create WorkOrders, read evidence records, and add notes through scoped shared actions. These integrations are inactive until configured. See [app connections and Linear setup](docs/connections.md) for host settings, client registration, retry behavior, and current limits.
 
+## Execution Environments
+
+Environment Fabric is **PARTIAL**. The [T3 crosswalk](docs/environment-fabric/t3-crosswalk.md), typed descriptor, capability/authority-aware routing functions and local metadata adapters are implemented and deterministically tested. They are not wired into production Work routing yet. The cloud owner has independently advanced image and staging lifecycle work; its full HEADLESS/Mac-off Golden Journey is still pending. See the [current ownership and session extension](docs/architecture/session-surfaces.md).
+
+The intended flow is MyEve → MyFactory → selected environment → harness → candidate custody → independent verifier → Result/Proof → owner-controlled effect. Relay supplies independently authorized capabilities and communication. Cloud is intended for eligible background Work; Owner Computer for explicit local resources; Local Factory for deliberate development/qualification. A technical capability is not permission to execute. DeepAgent is a replaceable harness, not the environment fabric.
+
+| Capability | Status in this checkpoint |
+| --- | --- |
+| Sofie / MyEve | PARTIAL — existing canonical behavior preserved; environment UI/consumption pending |
+| Relay | NOT_RUN — contracts unchanged; existing qualification not repeated |
+| Environment Fabric | PARTIAL — contracts/routing tests pass; durable registry and production admission pending |
+| Future CLOUD_COMPUTER | DEFERRED / NOT_QUALIFIED — optional CLOUD capabilities in contract only; no agent-role or harness binding |
+| Session surfaces | PARTIAL — optional contract/scope tests pass; HEADLESS production independence required; CMUX/TMUX adapters and Control Center actions DEFERRED |
+| Owner Computer | PARTIAL — metadata projection tests pass; real companion E2E not repeated |
+| Local Factory | PASS deterministic lifecycle regressions; environment registration not integrated |
+| Cloud Factory | NOT_QUALIFIED end to end — separate cloud owner has qualified infrastructure; canonical Golden Journey pending |
+| Existing Factory harness | PASS deterministic regression; live/model qualification NOT_RUN here |
+| DeepAgent | NOT_QUALIFIED |
+| Candidate custody | PASS existing deterministic local regressions; cloud NOT_RUN |
+| Independent verifier | PASS existing deterministic local regressions; cloud NOT_RUN |
+| Background Work | NOT_QUALIFIED for CLOUD; Mac-off/browser-off NOT_RUN |
+| Owner publication | Existing Attempt-8 implementation preserved; production publication NOT_RUN here |
+| Agent federation | NOT_RUN; Relay contracts unchanged; no Muse/GrokBots claims |
+
+[Harness-neutral environments](docs/architecture/harness-neutral-environments.md) keep resource location, harness execution and optional operator surfaces separate. Existing qualified runtime is preserved; future cloud computer capability support does not enable live computer access.
+
+Additional owner computers and qualified cloud/sandbox instances use the same Work contract. Routing remains deterministic and requires per-instance qualification plus independent Work authority/Relay policy. Advertised desktop/browser/git/shell capabilities grant no permission; adding an environment cannot migrate already-bound Work. This is tested contract support; production Fabric registry/routing integration remains pending.
+
+See [qualification and limitations](docs/environment-fabric/qualification.md) and the [session-surface report](docs/environment-fabric/session-surfaces.md). Do not infer laptop independence or production availability from these unit tests.
+
 ## Producer result attestation
 
 The opt-in [result protocol](docs/producer-result-protocol.md) captures an immutable, content-derived FactoryVersion when an attempt is admitted. Terminal results bind the saved request/WorkOrder/attempt, actual Git candidate objects and patch, check evidence, and returned artifact bytes in one signed manifest. It reuses the existing Ed25519 receipt primitive with a versioned result domain and retained key identities. Exact-attempt readback supports replay and restart without redispatch; unknown or stopping attempts produce no terminal receipt.
+
+The [evidence provider extension](docs/evidence-provider-extension.md) adds durable typed records, exact-reference authenticated transport for a scoped MyEve Proof backend, and bounded Playwright capture from a verified static Git candidate. MyEve Proof admission and dynamic-app candidate preview remain separate gates; collection and transport never establish PASS.
 
 This is **local synthetic producer qualification**, documented in the [Q37 evidence dossier](docs/evidence/q37-producer-attestation/REPORT.md). Receipts grant no consumer writer, publication, approval, budget or Ready authority. **MyEve Gate C consumer integration and Gate B writer handoff are not implemented here; live Q37 Factory execution is NOT_RUN.** No production keys are created or changed automatically.
 
@@ -68,3 +116,51 @@ The Q37 consumer uses authenticated two-stage preparation and dispatch on the ex
 **Private-alpha OIDC runtime:** the canonical provider adapter reuses MyEve's project-scoped Vercel OIDC mechanism and pins `openai/gpt-5.4-mini` through OpenAI only. Every model operation still crosses the V2 Work ledger with UNKNOWN retention, protected completion reserve, operation limits and exact writer fencing. The Keychain path is unused. See the [provider lifecycle, qualification and limitations](docs/private-alpha/README.md), [V2 protocol](docs/factory-dispatch.md#v2-spend-and-completion-contract), and [MyEve handoff](docs/my-eve-spend-v2-handoff.md). Authentication/model eligibility does not authorize the first real Work or publication.
 
 Private-alpha Attempt 5 completion repair and complete zero-model qualification: [evidence](docs/private-alpha/completion-transition-2026-10-01/README.md). Live retry remains unapproved.
+
+Safe-integer successor no-edit failure: [captured context, productive instruction repair and zero-model qualification](docs/private-alpha/no-edit-productive-2026-10-02/README.md). Fresh successor is paused; another live execution requires approval.
+
+[Bounded review → repair → reverify](docs/review-repair.md) preserves each reviewed candidate and creates a separately approved repair Work with fixed chain limits and fresh verification. Automatic repair, merge and deployment remain disabled.
+
+
+Hosted staging queue delivery is now CONNECTED PASS ([evidence](docs/cloud-execution/phase-3/README.md)). A delayed private consumer recorded PostgreSQL completion after the submitting process exited; duplicate submission returned the same receipt. Queue messages are wake-ups, while PostgreSQL remains authoritative. This bounded infrastructure check does not enable Work admission or qualify canonical recovery, the cloud harness, independent verifier, or Mac-off/P0. Keep the deployment hosting any outstanding message until reconciliation completes; never interpret an expired message as proof that an execution did not occur.
+
+
+Canonical cloud admission/storage now has connected PostgreSQL evidence for exact source grants, duplicate dispatch, cancellation, late allocation receipts and lease expiry. Model reservation/dispatch requires a live running cloud lease by default. These controls are not yet wired to public Work admission. See the Phase 3 evidence for tests and remaining gates.
+
+
+The canonical model gateway now supports hosted Fetch requests with deterministic upstream injection behind its existing accounting boundary. Sofie cloud qualification has a separate empty owner-side database and isolated web project, avoiding the existing preview's shared database binding. Factory state/custody remains in dedicated MyFactory staging. These are implementation checkpoints; cloud admission, harness, verifier and Mac-off/P0 remain unqualified.
+
+
+Signed execution snapshot V2 now binds cloud image/source/policy/resource/skill pins and the evidence class, with a shared cross-repository signed test vector. Legacy V1 stays strict. See Phase 3 evidence; this does not enable cloud admission or establish Mac-off qualification.
+
+
+Cloud custody now has pure-data source/tree/patch validation and durable PostgreSQL delivery, collection and cleanup fencing. MyEve can consume a signed cloud candidate without local Git while preserving the existing publisher guard. See Phase 3 evidence; hosted Work/harness/verifier/Mac-off integration is still pending.
+
+
+The qualification-only hosted Work controller now implements private queue dispatch, exact source/worker execution, custody validation, cancellation/recovery and signed Result retention. Hosted Work qualification remains NOT_RUN. The dedicated staging-project deployment-protection bypass is now explicitly approved and configured only in Sofie sensitive preview backend configuration; Factory environment injection is disabled. Hosted application-boundary qualification is pending; see the Phase 3 access approval document. Public cloud admission stays disabled and paid model calls remain zero.
+
+The approved Factory bypass is configured, but Sofie operator ingress is separately protected and has no bypass. Hosted access matrix is **NOT_RUN** pending that distinct security decision; [scope and evidence](docs/cloud-execution/phase-3/sofie-access-approval.md). Factory deterministic regressions: 224 PASS, 0 FAIL, 7 gated skips. No Work was dispatched and no paid model or publication was invoked.
+
+Cloud execution remains [harness-neutral](docs/architecture/harness-provider.md).
+The current MyFactory/Codex harness is first: deterministic cloud execution →
+independent verifier → Mac-off/P0 → separately approved real cloud canary.
+DeepAgent, Claude Code, OpenCode and other adapters are deferred until their turn
+in qualification; none is implied qualified. FactoryVersion pins the complete
+environment/provider/harness/version/model/tools/skills/verification tuple.
+
+The [harness addendum](docs/architecture/harness-provider.md) now consumes Fabric's canonical optional
+SessionSurface contract. HEADLESS remains mandatory; TMUX/CMUX are deferred
+operator conveniences, with no role in productive lifetime or recovery.
+Qualification evidence must include loaded skill hashes. Differential reports
+use the same corpus/environment/model and report success, independent
+verification rate, repair rate, operations, latency, cost and cleanup/recovery.
+These contract changes do not qualify the hosted harness or Mac-off journey.
+
+
+The existing Codex adapter is now wired into the dedicated cloud worker through the canonical SpendGateway/PostgreSQL ledger, with integrity-pinned installation, bounded SDK transport, host checkpoints, read-only completion and exact-tree custody. [Implementation and evidence limits](docs/cloud-execution/phase-3/cloud-harness-implementation.md): 119 local tests PASS, six gated skips; hosted harness and independent verifier remain NOT_RUN. This does not enable production, paid models or publication.
+
+Independent cloud verification is now implemented behind the qualification boundary, including Factory-owned leases/custody, separate sandbox identity, cancellation/cleanup fencing and signed canonical Result evidence. [Implementation and validation limits](docs/cloud-execution/phase-3/independent-verifier.md). Hosted verification and the full Golden Journey remain NOT_RUN.
+
+Cloud staging: canonical hosted admission and producer allocation reached; [attempt 2](docs/cloud-execution/phase-3/hosted-attempt-2.md) failed on the pinned harness archive layout, with cleanup confirmed and zero model operations. Installer repair is under deterministic regression; Golden Journey remains NOT_RUN.
+
+[Hosted attempt 3](docs/cloud-execution/phase-3/hosted-attempt-3.md): existing harness productive/checkpoint/read-only completion observed in CLOUD, two deterministic operations and zero paid calls. Private custody readback failed; sandbox destroyed. Independent verifier and Golden Journey remain NOT_RUN.

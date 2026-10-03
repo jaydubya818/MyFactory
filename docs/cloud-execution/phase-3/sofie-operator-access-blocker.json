@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-02T16:07:29.069Z",
+  "status": "BLOCKED_BEFORE_MATRIX",
+  "factoryBypass": "CONFIGURED_SOFIE_BACKEND_ONLY",
+  "sofieProject": "prj_XU7fJW735PtsnKoAYtGfzdnsotIB",
+  "sofieProtection": "all_except_custom_domains",
+  "sofieBypassCount": 0,
+  "operatorHttp": "Protected by Vercel Authentication",
+  "browserCheck": "ERR_BLOCKED_BY_CLIENT",
+  "matrix": "NOT_RUN",
+  "newSofieBypassCreated": false,
+  "cloudWork": "NOT_RUN",
+  "modelCalls": 0
+}

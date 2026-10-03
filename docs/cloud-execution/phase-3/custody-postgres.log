@@ -1,0 +1,16 @@
+▶ CONNECTED canonical cloud dispatch admission, concurrency, cancellation and leases
+  ✔ prepare replay retains canonical IDs; conflicting input and cross-client read fail (3679.563583ms)
+  ✔ two dispatchers claim once; cancelled late allocation remains recorded without replacement (10085.250333ms)
+  ✔ stop before queue delivery creates a durable tombstone and prevents any resource allocation (4549.555625ms)
+  ✔ delivery receipts cannot grant new authority or regress callback-before-send observation (7702.557166ms)
+  ✔ private custody is immutable, survives cancel/cleanup and never revives execution (13504.51225ms)
+  ✔ database lease expiry cannot be revived; restart reconciles the same ambiguous resource (9084.801042ms)
+✔ CONNECTED canonical cloud dispatch admission, concurrency, cancellation and leases (50706.591958ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 50849.455417

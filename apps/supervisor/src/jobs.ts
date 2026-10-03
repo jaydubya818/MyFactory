@@ -1,3 +1,4 @@
+import { repairLink, repairPrompt, ReviewRepair } from "./review-repair.ts";
 import { executionContext, implementationFeedback } from "./execution-context.ts";
 import { mkdir, readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -6,6 +7,9 @@ import { preflightCodex, runCodex } from "../../../packages/agents/src/index.ts"
 import type { FactoryEvent, Run, RunState, WorkOrder, WorkOrderState } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
 import { verifyCandidate, verifyWorkspaceTree } from "../../../packages/verification/src/index.ts";
+import { evaluateEvidence, evidencePolicyFor, proofEvidenceReference, storeEvidence, type EvidenceBinding } from "../../../packages/verification/src/evidence.ts";
+import { collectBrowserEvidence } from "../../../packages/verification/src/browser-evidence.ts";
+import { isTrustedCandidatePreview, type CandidatePreview } from "../../../packages/verification/src/candidate-preview.ts";
 import { ActionError } from "./actions.ts";
 import { snapshotCandidateTree, commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
 import { ProducerResults } from "./producer-results.ts";
@@ -34,6 +38,9 @@ export interface JobDependencies {
   createTaskWorktree: typeof createTaskWorktree;
   removeTaskWorktree: typeof removeTaskWorktree;
   commitCandidate: typeof commitCandidate;
+  /** Only a trusted launcher serving the exact exported candidate may supply this preview. */
+  candidatePreview?: (input: { workOrder: WorkOrder; run: Run; candidateCommit: string }) => Promise<
+    CandidatePreview | null>;
 }
 
 const defaultDependencies: JobDependencies = {
@@ -184,6 +191,8 @@ export class JobManager {
   }
 
   async startRun(workOrder: WorkOrder): Promise<Run> {
+    if(repairLink(this.storage,workOrder.id)||new ReviewRepair(this.storage).review(workOrder.id))
+      throw new ActionError("Reviewed candidates require a new repair Work and canonical bounded dispatch","repair_needs_you",409);
     if(this.storage.listEvents(workOrder.id).some(e=>e.type==='factory.prepare_requested'))
       throw new ActionError('Managed Factory Work requires its exact bound dispatch', 'managed_dispatch_required',409);
     return this.initialize(workOrder,false);
@@ -193,6 +202,8 @@ export class JobManager {
 
   private async initialize(workOrder: WorkOrder,prepareOnly:boolean): Promise<Run> {
     if (this.#active) throw new ActionError("Another run is already active", "concurrency_limit", 409);
+    if(repairLink(this.storage,workOrder.id)&&this.storage.listRuns(workOrder.id).length)
+      throw new ActionError("Repair Work has exactly one candidate attempt","repair_needs_you",409);
     workOrder = structuredClone(workOrder);
     this.#clearRecoveryHold(workOrder);
     const active: ActiveJob = {
@@ -408,6 +419,7 @@ export class JobManager {
           "Paid calls are scarce. Each productive process has one model response. Implement using the exposed local edit tool in that response. The host then stops the process and runs the implementation-visible repository checks deterministically. Do not spend this response requesting tests, announcing work or repeating inspection. If those checks fail, the host may provide their bounded feedback and the current source to the one remaining productive response for repair. The host alone admits completion and commits; independent protected verification remains separate.",
           `HOST_SOURCE_CONTEXT: ${context}`,
         ] : []),
+        ...repairPrompt(this.storage,workOrder.id),
         `Title: ${workOrder.title}`,
         `Request: ${workOrder.description}`,
         `Acceptance criteria: ${workOrder.acceptanceCriteria.join("; ")}`,
@@ -429,6 +441,7 @@ export class JobManager {
         signal,
         ...(active.gateway ? { gateway: { baseUrl: productiveConnection!.baseUrl, childToken: productiveConnection!.childToken } } : {}),
         productiveEndSignal: productiveConnection?.productiveEndSignal,
+        ...(context && productiveConnection?.productiveEndSignal ? {boundedProductiveContext: true as const} : {}),
         onProcessStart: (processIdentity) => {
           this.#event(workOrder.id, run.id, "agent.process_started", processIdentity);
         },
@@ -566,6 +579,39 @@ export class JobManager {
           candidateCommit: storedCheck.candidateCommit,
         });
       }
+      const evidenceBinding: EvidenceBinding = {
+        workOrderId: workOrder.id, runId: run.id, candidateCommit: candidate.commit,
+        factoryVersion: snapshot?.factoryVersion ?? createHash('sha256').update(JSON.stringify({
+          workerProfile: workOrder.workerProfile, commands: verificationCommands, allowedPaths: workOrder.allowedPaths,
+        })).digest('hex'),
+      };
+      const testEvidence = await storeEvidence(this.dataDir, evidenceBinding, 'TestEvidence', 'application/json',
+        'factory-protected-verifier', Buffer.from(JSON.stringify(verification.checks.map(check => ({
+          command: check.command, status: check.status, exitCode: check.exitCode,
+          candidateCommit: check.candidateCommit,
+        })))));
+      const diffEvidence = await storeEvidence(this.dataDir, evidenceBinding, 'DiffEvidence', 'text/x-diff',
+        'factory-candidate-diff', await readFile(candidate.diffPath));
+      const evidenceRefs = [testEvidence, diffEvidence];
+      if (workOrder.workerProfile === 'browser') {
+        const preview = await this.dependencies.candidatePreview?.({ workOrder, run, candidateCommit: candidate.commit });
+        if (preview) {
+          if (!isTrustedCandidatePreview(preview)) throw new Error('Browser preview was not materialized from exact candidate custody');
+          try {
+            if (preview.identity.candidateCommit !== candidate.commit || preview.identity.workOrderId !== workOrder.id ||
+              preview.identity.runId !== run.id || preview.identity.candidateTree !== candidate.tree)
+              throw new Error('Browser preview is bound to another candidate');
+            const browserEvidence = await collectBrowserEvidence(this.dataDir, evidenceBinding, preview.journey, signal);
+            evidenceRefs.push(...browserEvidence.refs);
+          } finally { await preview.close(); }
+        }
+      }
+      this.#event(workOrder.id, run.id, 'run.evidence_collected', { binding: evidenceBinding,
+        refs: evidenceRefs.map(ref => ({ ...ref, proofReference: proofEvidenceReference(ref) })) });
+      const evidenceEvaluation = await evaluateEvidence(this.dataDir, evidenceBinding,
+        evidencePolicyFor(workOrder.workerProfile), evidenceRefs);
+      this.#event(workOrder.id, run.id, 'run.evidence_evaluated', { ...evidenceEvaluation });
+      if (evidenceEvaluation.status !== 'SATISFIED') throw new Error(`Candidate evidence ${evidenceEvaluation.status}: ${evidenceEvaluation.reason}`);
       if (signal.aborted) throw new Error("Run interrupted during verification");
       if (verification.checks.length === 0 || verification.checks.some((check) => check.status !== "passed")) {
         const unavailable = verification.checks.length === 0 ||

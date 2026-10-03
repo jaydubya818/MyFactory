@@ -1,0 +1,96 @@
+{
+  "attempt": 3,
+  "kind": "CONNECTED",
+  "phase": "canonical productive start",
+  "workId": "2a9444d1-0845-4a25-8258-f70323559d80",
+  "deployment": "dpl_C6sXJN3n36R52LxqMkhW8gfZibsy",
+  "startedAt": "2026-10-02T23:38:41.298Z",
+  "paidModelOperations": 0,
+  "pause": {
+    "status": 200,
+    "body": {
+      "work": {
+        "id": "2a9444d1-0845-4a25-8258-f70323559d80",
+        "scopeId": "cloud-qualification-owner",
+        "title": "Implement project slug validation",
+        "objective": "Implement projectSlug: trim and lowercase project names, replace whitespace runs with hyphens, preserve ASCII letters, digits and hyphens, and reject empty, non-string or unsafe input.",
+        "repository": "jaydubya818/MyFactory",
+        "lifecycle": "active",
+        "control": "paused",
+        "version": 5,
+        "generation": 5,
+        "criteriaVersion": 1,
+        "criteria": [
+          {
+            "id": "87bf657a-d5b6-4eca-b736-250c80e6e245",
+            "method": "test",
+            "statement": "Project slug normalization and invalid-input rejection pass the visible tests and independent protected checks."
+          }
+        ],
+        "maxCostUsd": 1,
+        "maxDurationSeconds": 180,
+        "createdAt": "2026-10-02T20:58:34.062Z",
+        "updatedAt": "2026-10-02T23:38:46.764Z"
+      },
+      "admission": null
+    }
+  },
+  "before": "Skip to content\nMyEve / Sofie\nOur business\nToday\nAsk Sofie\nWork\nInbox\nNeeds You\nApprovals\nFiles\nResults\nMemory\nKnowledge\nCapsules\nTeam\nApps\nComputer\nSearch\n\u2318K\nYOUR OUTCOMES, IN FOCUS\nWork\n\nGoals, decisions, evidence, and progress in one place.\n\nRefresh\nNew Goal\n\nPrivate alpha integration \u00b7 Local execution only \u00b7 Live Relay unavailable\n\nWork control saved. Review current admission before proceeding.\n\nImplement project slug validation\n\nImplement projectSlug: trim and lowercase project names, replace whitespace runs with hyphens, preserve ASCII letters, digits and hyphens, and reject empty, non-string or unsafe input.\n\nControl: paused \u00b7 active\n\nRevision 5 \u00b7 jaydubya818/MyFactory\n\nGeneration 5. Creating Work does not authorize execution.\n\nStart MyFactory\nRefresh MyFactory\nStop MyFactory\nTake over MyFactory\nResume Work\nCheck admission\nProject slug normalization and invalid-input rejection pass the visible tests and independent protected checks.\nMemory used for this Work\nNo retained Results\nVerified outputs and their evidence will appear here.",
+  "resume": {
+    "status": 200,
+    "body": {
+      "work": {
+        "id": "2a9444d1-0845-4a25-8258-f70323559d80",
+        "scopeId": "cloud-qualification-owner",
+        "title": "Implement project slug validation",
+        "objective": "Implement projectSlug: trim and lowercase project names, replace whitespace runs with hyphens, preserve ASCII letters, digits and hyphens, and reject empty, non-string or unsafe input.",
+        "repository": "jaydubya818/MyFactory",
+        "lifecycle": "active",
+        "control": "agent",
+        "version": 6,
+        "generation": 6,
+        "criteriaVersion": 1,
+        "criteria": [
+          {
+            "id": "87bf657a-d5b6-4eca-b736-250c80e6e245",
+            "method": "test",
+            "statement": "Project slug normalization and invalid-input rejection pass the visible tests and independent protected checks."
+          }
+        ],
+        "maxCostUsd": 1,
+        "maxDurationSeconds": 180,
+        "createdAt": "2026-10-02T20:58:34.062Z",
+        "updatedAt": "2026-10-02T23:38:47.815Z"
+      },
+      "admission": {
+        "status": "QUEUED",
+        "reason": "Canonical Factory admission queued; no execution authority granted.",
+        "receipt": {
+          "state": "QUEUED",
+          "command": {
+            "id": "6c59ac0d-c884-4789-a469-afeb10de77d6",
+            "status": "pending",
+            "operation": "start"
+          },
+          "executionGranted": false
+        }
+      }
+    }
+  },
+  "start": {
+    "status": 202,
+    "body": {
+      "result": {
+        "state": "QUEUED",
+        "command": {
+          "id": "6c59ac0d-c884-4789-a469-afeb10de77d6",
+          "status": "pending",
+          "operation": "start"
+        },
+        "executionGranted": false
+      }
+    }
+  },
+  "status": "QUEUED",
+  "browserClosedAt": "2026-10-02T23:38:49.066Z"
+}

@@ -1,0 +1,46 @@
+The push refers to repository [vcr.vercel.com/jaydubya818/myfactory-cloud-staging/factory-worker]
+eaac70c68abd: Waiting
+7b2de2423ebd: Waiting
+81578410df16: Waiting
+de9e8d0a0071: Waiting
+de9e8d0a0071: Waiting
+eaac70c68abd: Waiting
+7b2de2423ebd: Waiting
+81578410df16: Waiting
+de9e8d0a0071: Waiting
+eaac70c68abd: Waiting
+7b2de2423ebd: Waiting
+81578410df16: Waiting
+de9e8d0a0071: Waiting
+eaac70c68abd: Waiting
+7b2de2423ebd: Layer already exists
+81578410df16: Waiting
+7f25c0042239: Waiting
+de9e8d0a0071: Waiting
+eaac70c68abd: Layer already exists
+240de4f9ec20: Waiting
+81578410df16: Layer already exists
+7f25c0042239: Waiting
+4cc81be23c06: Waiting
+496e07b192ff: Waiting
+240de4f9ec20: Waiting
+7f25c0042239: Waiting
+4cc81be23c06: Waiting
+496e07b192ff: Waiting
+de9e8d0a0071: Waiting
+4cc81be23c06: Layer already exists
+496e07b192ff: Waiting
+de9e8d0a0071: Waiting
+8d2167280bed: Waiting
+240de4f9ec20: Waiting
+7f25c0042239: Waiting
+240de4f9ec20: Waiting
+7f25c0042239: Layer already exists
+496e07b192ff: Waiting
+de9e8d0a0071: Waiting
+8d2167280bed: Waiting
+496e07b192ff: Waiting
+8d2167280bed: Layer already exists
+240de4f9ec20: Layer already exists
+496e07b192ff: Layer already exists
+failed to copy: failed to do request: Put "https://vcr.vercel.com/v2/jaydubya818/myfactory-cloud-staging/factory-worker/blobs/uploads/fa59f477e48270f64293ba61ddede48f0b5e9808?digest=sha256%3Ade9e8d0a007171cac57d643a3982902d45431cd860400eea55e18df75fc0b12a": write tcp 192.168.65.3:58430->192.168.65.1:3128: use of closed network connection

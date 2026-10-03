@@ -16,13 +16,21 @@ export function canonical(value: unknown): string {
 }
 export function sha256(bytes: string | Uint8Array): string { return createHash('sha256').update(bytes).digest('hex'); }
 export function digest(value: unknown): string { return sha256(canonical(value)); }
+export interface CloudExecutionConfiguration {
+  provider: 'vercel-sandbox'; providerVersion: string; region: 'iad1'; workerImage: string;
+  networkPolicy: string; toolPolicySha256: string; contextPolicySha256: string; verificationPolicySha256: string;
+  evidenceClass: 'DETERMINISTIC' | 'LIVE';
+  resources: { vcpus: number; memoryMb: number; timeoutMs: number; maxArtifactBytes: number };
+  skills: { name: string; sha256: string; capabilities: string[] }[];
+}
 export interface ExecutionConfiguration {
   model: string; executor: string; executorVersion: string; skillRevision: string;
   workerProfile: string; verificationImage: string; nodeVersion: string; platform: string; architecture: string;
   commands: string[]; allowedPaths: string[]; timeoutMs: number;
+  cloud?: CloudExecutionConfiguration;
 }
 export interface ExecutionSnapshot {
-  version: 1; factoryId: string; factoryVersion: string; sourceDigest: string;
+  version: 1 | 2; inputTree?: string; factoryId: string; factoryVersion: string; sourceDigest: string;
   configurationDigest: string; configuration: ExecutionConfiguration;
   requestId: string; requestDigest: string; workOrderId: string; runId: string;
   attemptNumber: number; inputCommit: string; capturedAt: string;
@@ -36,6 +44,14 @@ export interface ResultEvidence {
   status: 'passed' | 'failed' | 'skipped' | 'unavailable'; exitCode: number | null;
   startedAt: string; finishedAt: string; logArtifactId: string;
 }
+export interface CloudVerificationEvidence {
+  version: 1; kind: 'INDEPENDENT_CLOUD_VERIFICATION'; runId: string;
+  workId: string; workGeneration: number; candidateCommit: string; candidateTree: string;
+  custodySha256: string; policySha256: string; image: string;
+  providerSessionId: string | null; producerSessionId: string; cleanupConfirmed: true;
+  outcome: 'PASS' | 'FAIL' | 'UNKNOWN'; checks: {id:string; result:'PASS'|'FAIL'}[];
+  startedAt: string; finishedAt: string;
+}
 export interface ResultManifest {
   protocol: typeof RESULT_PROTOCOL; keyId: string; producer: string; operationId: string;
   execution: ExecutionSnapshot; status: 'COMPLETED' | 'FAILED' | 'CANCELLED';
@@ -43,6 +59,7 @@ export interface ResultManifest {
     commitArtifactId: string; treeArtifactId: string; patchArtifactId: string } | null;
   evidence: ResultEvidence[]; artifacts: ResultArtifact[]; evidenceDigest: string; artifactDigest: string;
   completedAt: string; issuedAt: string;
+  verification?: CloudVerificationEvidence;
 }
 export interface SignedResult {
   protocol: typeof RESULT_PROTOCOL; encoded: string; signature: string; manifestDigest: string;
@@ -65,23 +82,48 @@ function time(value: unknown): asserts value is string { text(value); requireVal
 function hash(value: unknown): asserts value is string { requireValue(typeof value === 'string' && /^[a-f0-9]{64}$/.test(value), 'Invalid digest'); }
 function gitHash(value: unknown): asserts value is string { requireValue(typeof value === 'string' && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(value), 'Invalid Git identity'); }
 
+function validateCloudConfiguration(c: Record<string,unknown>): void {
+  requireValue(c.workerProfile==='container'&&c.platform==='linux'&&c.architecture==='x64', 'Cloud runtime mismatch');
+  const cloud=c.cloud;
+  exact(cloud,['provider','providerVersion','region','workerImage','networkPolicy','toolPolicySha256','contextPolicySha256','verificationPolicySha256','evidenceClass','resources','skills']);
+  requireValue(cloud.provider==='vercel-sandbox'&&cloud.region==='iad1', 'Unqualified cloud provider');
+  text(cloud.providerVersion);text(cloud.networkPolicy);
+  const immutable=(value:unknown)=>typeof value==='string'&&/^[a-zA-Z0-9./:_-]+@sha256:[a-f0-9]{64}$/.test(value);
+  requireValue(immutable(cloud.workerImage)&&immutable(c.verificationImage), 'Immutable cloud image required');
+  for(const key of ['toolPolicySha256','contextPolicySha256','verificationPolicySha256'])hash(cloud[key]);
+  requireValue(['DETERMINISTIC','LIVE'].includes(String(cloud.evidenceClass)), 'Cloud evidence class required');
+  exact(cloud.resources,['vcpus','memoryMb','timeoutMs','maxArtifactBytes']);
+  for(const value of Object.values(cloud.resources))requireValue(Number.isSafeInteger(value)&&Number(value)>0, 'Bounded cloud resource required');
+  requireValue(cloud.resources.vcpus===1&&Number(cloud.resources.memoryMb)<=2048&&Number(cloud.resources.timeoutMs)<=600000&&cloud.resources.timeoutMs===c.timeoutMs&&Number(cloud.resources.maxArtifactBytes)<=MAX_RESULT_BYTES, 'Cloud envelope exceeded');
+  requireValue(Array.isArray(cloud.skills)&&cloud.skills.length<=20, 'Bounded cloud skills required');
+  const names=new Set();
+  for(const skill of cloud.skills){
+    exact(skill,['name','sha256','capabilities']);text(skill.name);hash(skill.sha256);
+    requireValue(!names.has(skill.name),'Duplicate cloud skill');names.add(skill.name);
+    requireValue(Array.isArray(skill.capabilities)&&skill.capabilities.length<=20,'Bounded skill capabilities required');skill.capabilities.forEach(text);
+  }
+}
+
 export function validateManifest(value: unknown): asserts value is ResultManifest {
-  exact(value, ['protocol','keyId','producer','operationId','execution','status','candidate','evidence','artifacts','evidenceDigest','artifactDigest','completedAt','issuedAt']);
+  const hasVerification=!!value&&typeof value==='object'&&Object.hasOwn(value,'verification');
+  exact(value, ['protocol','keyId','producer','operationId','execution','status','candidate','evidence','artifacts','evidenceDigest','artifactDigest','completedAt','issuedAt',...(hasVerification?['verification']:[])]);
   requireValue(value.protocol === RESULT_PROTOCOL, 'Unknown result protocol');
   text(value.keyId); text(value.producer); hash(value.operationId); hash(value.evidenceDigest); hash(value.artifactDigest);
   time(value.completedAt); time(value.issuedAt);
   requireValue(Date.parse(value.completedAt) <= Date.parse(value.issuedAt), 'Completion after issuance');
   requireValue(['COMPLETED','FAILED','CANCELLED'].includes(String(value.status)), 'Nonterminal result');
   const e = value.execution;
-  exact(e, ['version','factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','capturedAt']);
-  requireValue(e.version === 1 && e.factoryId === value.producer, 'Producer mismatch');
+  exact(e, ['version','factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','capturedAt',...((e as Record<string,unknown>)?.version===2?['inputTree']:[])]);
+  requireValue((e.version === 1 || e.version === 2) && e.factoryId === value.producer, 'Producer mismatch');
+  if(e.version===2)gitHash(e.inputTree);
   for (const key of ['factoryId','requestId','workOrderId','runId']) text(e[key]);
   for (const key of ['factoryVersion','sourceDigest','configurationDigest','requestDigest']) hash(e[key]);
   gitHash(e.inputCommit); time(e.capturedAt);
   requireValue(Number.isSafeInteger(e.attemptNumber) && Number(e.attemptNumber) > 0, 'Invalid attempt');
   requireValue(Date.parse(e.capturedAt) <= Date.parse(value.completedAt), 'Completion before admission');
   const c = e.configuration;
-  exact(c, ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture','commands','allowedPaths','timeoutMs']);
+  exact(c, ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture','commands','allowedPaths','timeoutMs',...(e.version===2?['cloud']:[])]);
+  if(e.version===2)validateCloudConfiguration(c);
   for (const key of ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture']) text(c[key]);
   requireValue(isModelReference(c.model), 'Invalid canonical model reference');
   for (const key of ['commands','allowedPaths']) {
@@ -131,6 +173,25 @@ export function validateManifest(value: unknown): asserts value is ResultManifes
   if (value.status === 'COMPLETED') {
     requireValue(value.candidate !== null && value.evidence.length > 0 && value.evidence.every(c => c.status === 'passed'), 'Incomplete success');
     requireValue(canonical(value.evidence.map(c => c.command)) === canonical(c.commands), 'Missing required checks');
+  }
+  if(hasVerification){
+    requireValue(e.version===2&&value.candidate!==null,'Cloud verification requires a cloud candidate');
+    const candidate=value.candidate as Record<string,unknown>,cloud=c.cloud as Record<string,unknown>;
+    const v=value.verification;
+    exact(v,['version','kind','runId','workId','workGeneration','candidateCommit','candidateTree','custodySha256','policySha256','image','providerSessionId','producerSessionId','cleanupConfirmed','outcome','checks','startedAt','finishedAt']);
+    requireValue(v.version===1&&v.kind==='INDEPENDENT_CLOUD_VERIFICATION'&&v.runId===e.runId,'Verifier provenance mismatch');
+    text(v.workId);requireValue(Number.isSafeInteger(v.workGeneration)&&Number(v.workGeneration)>0,'Verifier Work generation');
+    requireValue(v.candidateCommit===candidate.commit&&v.candidateTree===candidate.tree,'Verifier candidate mismatch');
+    hash(v.custodySha256);hash(v.policySha256);
+    requireValue(v.policySha256===cloud.verificationPolicySha256&&v.image===c.verificationImage,'Verifier policy mismatch');
+    requireValue(v.cleanupConfirmed===true&&/^sbx_[A-Za-z0-9_-]+$/.test(String(v.producerSessionId)),'Verifier cleanup binding');
+    requireValue(v.providerSessionId!==v.producerSessionId&&(v.providerSessionId===null||/^sbx_[A-Za-z0-9_-]+$/.test(String(v.providerSessionId))),'Verifier isolation mismatch');
+    requireValue(['PASS','FAIL','UNKNOWN'].includes(String(v.outcome))&&Array.isArray(v.checks)&&v.checks.length<=20,'Verifier outcome');
+    const ids=new Set();
+    for(const check of v.checks){exact(check,['id','result']);text(check.id);requireValue(!ids.has(check.id)&&['PASS','FAIL'].includes(String(check.result)),'Verifier check');ids.add(check.id);}
+    requireValue(v.outcome==='UNKNOWN'||(v.providerSessionId!==null&&v.checks.length>0&&((v.outcome==='PASS')===v.checks.every(check=>check.result==='PASS'))),'Contradictory verifier outcome');
+    time(v.startedAt);time(v.finishedAt);
+    requireValue(Date.parse(v.startedAt)>=Date.parse(e.capturedAt)&&Date.parse(v.startedAt)<=Date.parse(v.finishedAt)&&Date.parse(v.finishedAt)<=Date.parse(value.completedAt),'Verifier chronology mismatch');
   }
   requireValue(digest(value.evidence) === value.evidenceDigest && digest(value.artifacts) === value.artifactDigest, 'Manifest digest mismatch');
 }

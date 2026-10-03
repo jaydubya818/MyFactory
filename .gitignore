@@ -9,3 +9,4 @@ data/
 *.log
 !docs/evidence/**/*.log
 .DS_Store
+.vercel

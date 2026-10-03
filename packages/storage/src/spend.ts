@@ -1,72 +1,6 @@
-import { isModelReference } from '../../contracts/src/model-reference.ts';
 import { DatabaseSync } from 'node:sqlite';
-
-export type SpendPhase = 'productive' | 'completion';
-export interface SpendPlan {
-  version: 'WORK_LEDGER_V2';
-  pricingRevision: string;
-  model: string;
-  validUntil: string;
-  perOperationReserveMicrousd: number;
-  plannedProductiveOperations: number;
-  plannedCompletionOperations: number;
-  maxPaidOperations: number;
-  completionReserveMicrousd: number;
-}
-export interface SpendBinding {
-  workId: string; workGeneration: number; dispatchIdentity: string;
-  requestId: string; workOrderId: string; factoryVersion: string; runId: string;
-}
-export interface SpendReservation extends SpendBinding {
-  operationId: string; model: string; pricingRevision: string;
-  reservedMicrousd: number; phase: SpendPhase;
-}
-export interface SpendOperation extends SpendReservation {
-  actualMicrousd: number | null; providerRequestId: string | null;
-  usage: Record<string, number> | null;
-  state: 'reserved' | 'dispatched' | 'unknown' | 'settled';
-}
-type OperationRow = {
-  operation_id: string; work_id: string; work_generation: number;
-  dispatch_identity: string; request_id: string; work_order_id: string;
-  factory_version: string; run_id: string; model: string; pricing_revision: string;
-  reserved_microusd: number; actual_microusd: number | null;
-  provider_request_id: string | null; usage_json: string | null;
-  state: SpendOperation['state']; phase: SpendPhase;
-};
-type BudgetRow = {
-  work_generation: number; request_id: string; work_order_id: string;
-  ceiling_microusd: number; deadline: string; cancelled_at: string | null;
-  contract_version: string; pricing_revision: string | null; model: string | null; pricing_valid_until: string | null;
-  per_operation_reserve_microusd: number; planned_productive_operations: number;
-  planned_completion_operations: number; max_paid_operations: number;
-  completion_reserve_microusd: number; authority_dispatch_identity: string | null;
-  authority_factory_version: string | null; authority_run_id: string | null;
-  authority_state: string; phase: SpendPhase;
-};
-function nonempty(value: string, label: string): void {
-  if (typeof value !== 'string' || value.length === 0 || value.length > 256 || value.includes('\0'))
-    throw new TypeError(`${label} must be a bounded nonempty string`);
-}
-function positive(value: number, label: string): void {
-  if (!Number.isSafeInteger(value) || value <= 0) throw new RangeError(`${label} must be a positive safe integer`);
-}
-function map(row: OperationRow): SpendOperation {
-  return { operationId: row.operation_id, workId: row.work_id, workGeneration: row.work_generation,
-    dispatchIdentity: row.dispatch_identity, requestId: row.request_id,
-    workOrderId: row.work_order_id, factoryVersion: row.factory_version,
-    runId: row.run_id, model: row.model, pricingRevision: row.pricing_revision,
-    reservedMicrousd: row.reserved_microusd, actualMicrousd: row.actual_microusd,
-    providerRequestId: row.provider_request_id,
-    usage: row.usage_json ? JSON.parse(row.usage_json) as Record<string, number> : null,
-    state: row.state, phase: row.phase };
-}
-function exposure(op: SpendOperation): number { return op.state === 'settled' ? op.actualMicrousd! : op.reservedMicrousd; }
-function sameAttempt(op: SpendOperation, binding: SpendBinding): boolean {
-  return op.workGeneration === binding.workGeneration && op.dispatchIdentity === binding.dispatchIdentity &&
-    op.requestId === binding.requestId && op.workOrderId === binding.workOrderId &&
-    op.factoryVersion === binding.factoryVersion && op.runId === binding.runId;
-}
+import { nonempty, positive, map, sameAttempt, assertSpendBinding, assertReservation, assertCompletionOperations, validateBudget, assertBindAuthority, matchesCurrent, spendSummary, type OperationRow, type BudgetRow, type SpendPhase, type SpendPlan, type SpendBinding, type SpendReservation, type SpendOperation } from './spend-policy.ts';
+export type { SpendPhase, SpendPlan, SpendBinding, SpendReservation, SpendOperation } from './spend-policy.ts';
 
 /** SQLite BEGIN IMMEDIATE serializes every Work paid admission across processes. */
 export class SpendLedger {
@@ -93,24 +27,7 @@ export class SpendLedger {
   createBudget(binding: Pick<SpendBinding, 'workId' | 'workGeneration' | 'requestId' | 'workOrderId'>,
     ceilingMicrousd: number, deadline: string, plan?: SpendPlan): void {
     const { workId, workGeneration, requestId, workOrderId } = binding;
-    nonempty(workId, 'workId'); positive(workGeneration, 'workGeneration');
-    nonempty(requestId, 'requestId'); nonempty(workOrderId, 'workOrderId');
-    positive(ceilingMicrousd, 'ceilingMicrousd');
-    if (!Number.isFinite(Date.parse(deadline)) || Date.parse(deadline) <= Date.now()) throw new Error('Spend deadline must be in the future');
-    if (plan) {
-      if (plan.version !== 'WORK_LEDGER_V2') throw new Error('Unsupported spend contract');
-      nonempty(plan.pricingRevision, 'pricingRevision');
-      if (!isModelReference(plan.model)) throw new Error('Invalid canonical model reference');
-      if (!Number.isFinite(Date.parse(plan.validUntil)) || Date.parse(plan.validUntil) <= Date.now()) throw new Error('Qualified pricing has expired');
-      for (const name of ['perOperationReserveMicrousd', 'plannedProductiveOperations',
-        'plannedCompletionOperations', 'maxPaidOperations', 'completionReserveMicrousd'] as const) positive(plan[name], name);
-      if (plan.maxPaidOperations !== plan.plannedProductiveOperations + plan.plannedCompletionOperations ||
-        !Number.isSafeInteger(plan.plannedProductiveOperations * plan.perOperationReserveMicrousd) ||
-        !Number.isSafeInteger(plan.plannedCompletionOperations * plan.perOperationReserveMicrousd) ||
-        plan.plannedCompletionOperations * plan.perOperationReserveMicrousd > plan.completionReserveMicrousd ||
-        plan.plannedProductiveOperations * plan.perOperationReserveMicrousd > ceilingMicrousd - plan.completionReserveMicrousd)
-        throw new Error('Complete conservative paid operation plan exceeds Work ceiling or protected completion reserve');
-    }
+    validateBudget(binding, ceilingMicrousd, deadline, plan);
     this.#write(() => {
       const previous = this.#budget(workId);
       if (previous) {
@@ -152,13 +69,7 @@ export class SpendLedger {
     for (const [key, value] of Object.entries(binding)) key === 'workGeneration' ? positive(value as number, key) : nonempty(value as string, key);
     this.#write(() => {
       const b = this.#budget(binding.workId);
-      if (!b || b.contract_version !== 'WORK_LEDGER_V2' || b.cancelled_at || Date.parse(b.deadline) <= Date.now() ||
-        !b.pricing_valid_until || Date.parse(b.pricing_valid_until) <= Date.now() ||
-        b.work_generation !== binding.workGeneration || b.request_id !== binding.requestId || b.work_order_id !== binding.workOrderId ||
-        b.authority_state === 'fenced') throw new Error('Active exact Work authority required');
-      if (b.authority_dispatch_identity && (b.authority_dispatch_identity !== binding.dispatchIdentity ||
-        b.authority_factory_version !== binding.factoryVersion || b.authority_run_id !== binding.runId))
-        throw new Error('Work paid authority conflict');
+      assertBindAuthority(b, binding);
       this.#db.prepare(`UPDATE work_spend_budgets SET authority_dispatch_identity = ?, authority_factory_version = ?,
         authority_run_id = ?, authority_state = 'active' WHERE work_id = ?`)
         .run(binding.dispatchIdentity, binding.factoryVersion, binding.runId, binding.workId);
@@ -166,14 +77,9 @@ export class SpendLedger {
   }
   assertCompletionEligible(binding: SpendBinding): void {
       const b = this.#budget(binding.workId);
-      this.#admitBinding(b, binding, 'productive');
+      assertSpendBinding(b, binding, 'productive');
       const operations = this.#operations(binding.workId);
-      if (!operations.some(op => sameAttempt(op, binding) && op.phase === 'productive' && op.state === 'settled'))
-        throw new Error('Productive paid operation missing before completion');
-      if (operations.some(op => op.state !== 'settled'))
-        throw new Error('Outstanding paid operation blocks completion transition');
-      if (operations.some(op => op.phase === 'completion'))
-        throw new Error('Completion already consumed');
+      assertCompletionOperations(operations, binding);
   }
   beginCompletion(binding: SpendBinding): void {
     this.#write(() => {
@@ -183,24 +89,18 @@ export class SpendLedger {
   }
   assertCompleted(binding: SpendBinding): void {
     this.#write(() => {
-      this.#admitBinding(this.#budget(binding.workId), binding, 'completion');
+      assertSpendBinding(this.#budget(binding.workId), binding, 'completion');
       const operations = this.#operations(binding.workId);
       if (!operations.some(op => sameAttempt(op, binding) && op.phase === 'completion' && op.state === 'settled') ||
         operations.some(op => op.state !== 'settled'))
         throw new Error('Mandatory completion spend and accounting are not settled');
     });
   }
-  #matchesCurrent(b: BudgetRow, binding: SpendBinding): boolean {
-    return b.work_generation === binding.workGeneration && b.request_id === binding.requestId &&
-      b.work_order_id === binding.workOrderId &&
-      (!b.authority_dispatch_identity || (b.authority_dispatch_identity === binding.dispatchIdentity &&
-        b.authority_factory_version === binding.factoryVersion && b.authority_run_id === binding.runId));
-  }
   fenceAuthority(binding: SpendBinding): boolean {
     return this.#write(() => {
       const b = this.#budget(binding.workId);
       if (!b) throw new Error('Work budget missing');
-      if (!this.#matchesCurrent(b, binding)) return false;
+      if (!matchesCurrent(b, binding)) return false;
       this.#db.prepare("UPDATE work_spend_budgets SET authority_state = 'fenced' WHERE work_id = ?")
         .run(binding.workId);
       return true;
@@ -209,7 +109,7 @@ export class SpendLedger {
   cancelBound(binding: SpendBinding): void {
     this.#write(() => {
       const b = this.#budget(binding.workId);
-      if (!b || !this.#matchesCurrent(b, binding)) throw new Error('Stale Work authority cannot cancel current budget');
+      if (!b || !matchesCurrent(b, binding)) throw new Error('Stale Work authority cannot cancel current budget');
       this.#db.prepare("UPDATE work_spend_budgets SET cancelled_at = COALESCE(cancelled_at, ?), authority_state = 'fenced' WHERE work_id = ?")
         .run(new Date().toISOString(), binding.workId);
     });
@@ -225,17 +125,6 @@ export class SpendLedger {
     const row = this.#db.prepare('SELECT * FROM work_spend_operations WHERE operation_id = ?').get(operationId) as OperationRow | undefined;
     return row ? map(row) : null;
   }
-  #admitBinding(b: BudgetRow | undefined, input: SpendBinding, phase: SpendPhase): asserts b is BudgetRow {
-    if (!b || b.contract_version !== 'WORK_LEDGER_V2') throw new Error('V2 Work budget required for paid execution');
-    if (b.cancelled_at || Date.parse(b.deadline) <= Date.now()) throw new Error('Post-cancel or expired paid start denied');
-    if (!b.pricing_valid_until || Date.parse(b.pricing_valid_until) <= Date.now()) throw new Error('Pinned pricing expired before paid start');
-    if (b.work_generation !== input.workGeneration || b.request_id !== input.requestId ||
-      b.work_order_id !== input.workOrderId) throw new Error('Spend binding differs from active Work generation');
-    if (b.authority_state !== 'active' || b.authority_dispatch_identity !== input.dispatchIdentity ||
-      b.authority_factory_version !== input.factoryVersion || b.authority_run_id !== input.runId)
-      throw new Error('Active exact Factory writer authority required');
-    if (b.phase !== phase) throw new Error('Paid phase is not host authorized');
-  }
   reserve(input: SpendReservation): SpendOperation {
     for (const [label, value] of Object.entries(input)) {
       if (label === 'workGeneration' || label === 'reservedMicrousd') positive(value as number, label);
@@ -245,23 +134,8 @@ export class SpendLedger {
     return this.#write(() => {
       if (this.getOperation(input.operationId)) throw new Error('Spend operation already exists; replay cannot redispatch');
       const budget = this.#budget(input.workId);
-      this.#admitBinding(budget, input, input.phase);
-      if (budget.model !== input.model || budget.pricing_revision !== input.pricingRevision ||
-        input.reservedMicrousd !== budget.per_operation_reserve_microusd)
-        throw new Error('Pinned pricing or conservative reservation mismatch');
-      const ops = this.#operations(input.workId);
-      if (ops.some(op => op.state === 'unknown')) throw new Error('UNKNOWN exposure blocks all new paid operations');
-      if (ops.length >= budget.max_paid_operations ||
-        ops.filter(op => op.phase === input.phase).length >=
-          (input.phase === 'productive' ? budget.planned_productive_operations : budget.planned_completion_operations))
-        throw new Error('Work paid operation limit reached');
-      const total = ops.reduce((n, op) => n + exposure(op), 0);
-      const phaseExposure = ops.filter(op => op.phase === input.phase).reduce((n, op) => n + exposure(op), 0);
-      const phaseCap = input.phase === 'productive'
-        ? budget.ceiling_microusd - budget.completion_reserve_microusd : budget.completion_reserve_microusd;
-      if (!Number.isSafeInteger(total) || !Number.isSafeInteger(phaseExposure) ||
-        input.reservedMicrousd > budget.ceiling_microusd - total || input.reservedMicrousd > phaseCap - phaseExposure)
-        throw new Error('Hard Work ceiling or protected completion reserve exceeded');
+      assertSpendBinding(budget, input, input.phase);
+      assertReservation(budget, this.#operations(input.workId), input);
       const now = new Date().toISOString();
       this.#db.prepare(`INSERT INTO work_spend_operations (operation_id, work_id, work_generation, dispatch_identity,
         request_id, work_order_id, factory_version, run_id, model, pricing_revision, reserved_microusd,
@@ -278,7 +152,7 @@ export class SpendLedger {
       const op = this.getOperation(operationId);
       if (!op || op.state !== 'reserved') throw new Error('Only a fresh reservation can cross the paid boundary');
       const b = this.#budget(op.workId);
-      this.#admitBinding(b, op, op.phase);
+      assertSpendBinding(b, op, op.phase);
       if (b.model !== op.model || b.pricing_revision !== op.pricingRevision ||
         b.per_operation_reserve_microusd !== op.reservedMicrousd) throw new Error('Pricing changed before dispatch');
       if (this.#operations(op.workId).some(other => other.operationId !== operationId && other.state === 'unknown'))
@@ -331,32 +205,7 @@ export class SpendLedger {
       const budget = this.#budget(workId);
       if (!budget) { this.#db.exec('COMMIT'); return null; }
       const operations = this.#operations(workId);
-      const settledMicrousd = operations.reduce((n, op) => n + (op.actualMicrousd ?? 0), 0);
-      const retainedMicrousd = operations.reduce((n, op) => n + (op.state === 'settled' ? 0 : op.reservedMicrousd), 0);
-      const unknownExposureMicrousd = operations.reduce((n, op) => n + (op.state === 'unknown' ? op.reservedMicrousd : 0), 0);
-      const completionOperations = operations.filter(op => op.phase === 'completion');
-      const completionExposure = completionOperations.reduce((n, op) => n + exposure(op), 0);
-      const completionReserveRemainingMicrousd = Math.max(0, budget.completion_reserve_microusd - completionExposure);
-      const productiveExposure = operations.filter(op => op.phase === 'productive').reduce((n, op) => n + exposure(op), 0);
-      const result = { status: (unknownExposureMicrousd > 0 ? 'UNKNOWN' : 'KNOWN') as 'UNKNOWN' | 'KNOWN',
-        currency: 'USD' as const, unit: 'microUSD' as const, workId,
-        workGeneration: budget.work_generation, requestId: budget.request_id, workOrderId: budget.work_order_id,
-        deadline: budget.deadline, ceilingMicrousd: budget.ceiling_microusd,
-        settledMicrousd, retainedMicrousd, availableMicrousd: budget.ceiling_microusd - settledMicrousd - retainedMicrousd,
-        unknownExposureMicrousd,
-        productiveAllowanceRemainingMicrousd: Math.max(0, budget.ceiling_microusd - budget.completion_reserve_microusd - productiveExposure),
-        completionReserveMicrousd: budget.completion_reserve_microusd, completionReserveRemainingMicrousd,
-        paidOperationsUsed: operations.length, maxPaidOperations: budget.max_paid_operations,
-        plannedProductiveOperations: budget.planned_productive_operations,
-        plannedCompletionOperations: budget.planned_completion_operations,
-        completionOperationsUsed: completionOperations.length,
-        completionOperationSlotsRemaining: Math.max(0, budget.planned_completion_operations - completionOperations.length),
-        perOperationReserveMicrousd: budget.per_operation_reserve_microusd,
-        contractVersion: budget.contract_version, pricingRevision: budget.pricing_revision,
-        pricingQualified: budget.contract_version === 'WORK_LEDGER_V2' && !!budget.pricing_revision &&
-          !!budget.pricing_valid_until && Date.parse(budget.pricing_valid_until) > Date.now(),
-        authorityState: budget.authority_state, accountingComplete: operations.every(op => op.state === 'settled'),
-        phase: budget.phase, cancelled: budget.cancelled_at !== null, operations };
+      const result = spendSummary(workId, budget, operations);
       this.#db.exec('COMMIT');
       return result;
     } catch (error) { this.#db.exec('ROLLBACK'); throw error; }

@@ -1,0 +1,28 @@
+✖ CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing (5004.054709ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5179.885625
+
+✖ failing tests:
+
+test at apps/cloud-control/test/postgres-spend.test.mjs:13:1
+✖ CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing (5004.054709ms)
+  Error: Connection terminated due to connection timeout
+      at /private/tmp/myfactory-cloud-execution-20261002/node_modules/pg-pool/index.js:45:11
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///private/tmp/myfactory-cloud-execution-20261002/apps/cloud-control/test/postgres-spend.test.mjs:16:17)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    [cause]: Error: Connection terminated unexpectedly
+        at Connection.<anonymous> (/private/tmp/myfactory-cloud-execution-20261002/node_modules/pg/lib/client.js:204:73)
+        at Object.onceWrapper (node:events:630:28)
+        at Connection.emit (node:events:509:28)
+        at Socket.<anonymous> (/private/tmp/myfactory-cloud-execution-20261002/node_modules/pg/lib/connection.js:64:12)
+        at Socket.emit (node:events:521:24)
+        at TCP.<anonymous> (node:net:351:12)
+  }

@@ -1,0 +1,9 @@
+{
+  "evidenceClass": "CONNECTED",
+  "checkedAt": "2026-10-02T19:31:27.961Z",
+  "case": "local-runner-without-factory-infrastructure-credentials",
+  "status": 302,
+  "denied": true,
+  "factoryCredentials": 0,
+  "paidModelCalls": 0
+}

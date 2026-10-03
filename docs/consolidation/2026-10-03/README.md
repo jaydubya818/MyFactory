@@ -1,0 +1,15 @@
+# Final private-alpha convergence — 2026-10-03
+
+The frozen Cloud, Fabric, private-alpha and EvidenceProvider tips are ancestors of this candidate. Exact pins, unchanged Cloud migration hashes and qualification results are in [source-manifest.json](source-manifest.json). MyEve owns the cross-repository report on its `codex/final-alpha-convergence` branch.
+
+All unique accepted source remains reachable. Preserve local review-repair authority and independent evidence custody alongside the Cloud lifecycle. No migration was edited; the production schema was not changed. Disposable verified-TLS PostgreSQL migration and 21 concurrency/recovery/verifier tests pass. Full unit suites: 447 PASS, 20 gated skips; producer/workspace types, governance and build PASS.
+
+The frozen Cloud journey established zero local runtime dependencies. Physical Mac power state was not independently observed. Its qualification does not transfer to a newly composed FactoryVersion. Recompute and qualify source/configuration/runtime identities before activation; never rebind historical Works or candidates. This source assembly does not enable production admission, publication, paid model operations, optional session adapters or dynamic browser execution.
+
+EvidenceProvider transport is retained and locally qualified. Actual MyEve durable Proof ingestion/readback remains a separate incomplete consumer gate. Collection or transport is not protected-verifier PASS. General Groups/Routines remain under their original release limits. Independent read-only review passed for source consolidation/canonical merge at `0fbc881d1dcac99f87f1e5992baeafac565afa7a`; canonical/promotion steps remain gated.
+
+Fresh-clone qualification initially exposed the detached exact Cloud source commit. Its three blobs already matched this tree. A normal unrelated-history merge retains `5cd13fa1f307a0c0f42f6317d966bb3179ad77c9` as an ancestor without changing the assembled tree; the fresh-clone suite now passes447 cases/20 gated skips. Separately,18 installed-harness cases pass with isolated credentials and synthetic loopback providers only. The composed MyEve/Factory local journey passes26 checks including protected Docker verification and immutable Result/Proof. Full evidence is retained in MyEve `docs/consolidation/2026-10-03/evidence`. No paid model calls or production effects were initiated.
+
+## EvidenceProvider consumer compatibility
+
+Cloud now projects the accepted TestEvidence/DiffEvidence contract from existing private candidate custody. A separate expiring Proof credential cannot dispatch Work, and a durable owner-binding event is required. No Factory migration was added. The actual HTTP endpoints passed disposable TLS PostgreSQL qualification (22 tests across the Cloud persistence suite). MyEve now retains independently checked bytes and canonical Proof references. Independent source review PASS; assembled hosted qualification remains pending.
