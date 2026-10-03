@@ -1,0 +1,424 @@
+{
+  "status": "PREPARED_NOT_APPROVED_FOR_PRODUCTION",
+  "cloudFeatureDevelopment": "FROZEN",
+  "qualification": "DETERMINISTIC_CLOUD_GOLDEN_JOURNEY_PASS",
+  "evidenceRun": "https://github.com/jaydubya818/MyEveBot/actions/runs/37103458380",
+  "qualifiedRuntime": {
+    "factorySource": "d84721cbb407db16598ee28e8f0dc5db27af6f5b",
+    "sofieApplicationSource": "074894f7080912dad667c2b0c98ec3db4cd75bce",
+    "hostedTestSource": "0502e8b14ee283ed89760139cdf63a47ed4419cc",
+    "factoryDeployment": "dpl_7T6LLm4VfhwiJUwHE7T5dtd3vwJM",
+    "sofieDeployment": "dpl_2PY8W7Apit5pXD22kUaCy2iD14N3",
+    "factoryVersion": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+    "sourceDigest": "c58c41f72194d069b056c12874e91f9114b0da30cc2ce1958461dabb90d06cb7",
+    "configurationDigest": "53d369bde86efba2d4a5f3efdd7659fc04b6f7943716f5cc7f034da1d56aae2e",
+    "configuration": {
+      "cloud": {
+        "region": "iad1",
+        "skills": [],
+        "provider": "vercel-sandbox",
+        "resources": {
+          "vcpus": 1,
+          "memoryMb": 2048,
+          "timeoutMs": 180000,
+          "maxArtifactBytes": 256000
+        },
+        "workerImage": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+        "evidenceClass": "DETERMINISTIC",
+        "networkPolicy": "deny-all-after-pinned-harness-and-source-v1",
+        "providerVersion": "3.5.1",
+        "toolPolicySha256": "75660090a97158e06a75f5d86b64365672185ca55aa28af2d90631aa25627d14",
+        "contextPolicySha256": "62bb5d323dd4976d08356f5eb8e2ffc8953c5a2766952f5abda09003e284648c",
+        "verificationPolicySha256": "cefd6a4a154dbbfb11855bfef215b1da6e5e6ed9e2a03264403043aa29d0c781"
+      },
+      "model": "openai/gpt-5.4-mini",
+      "commands": [
+        "node --test fixtures/cloud-work/project-slug/slug.test.mjs"
+      ],
+      "executor": "myfactory-codex",
+      "platform": "linux",
+      "timeoutMs": 180000,
+      "nodeVersion": "v24.19.0",
+      "allowedPaths": [
+        "fixtures/cloud-work/project-slug/slug.mjs"
+      ],
+      "architecture": "x64",
+      "skillRevision": "none",
+      "workerProfile": "container",
+      "executorVersion": "0.157.0",
+      "verificationImage": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1"
+    },
+    "environment": "CLOUD",
+    "sessionSurface": "HEADLESS"
+  },
+  "promotableAssets": [
+    "reviewed code",
+    "reviewed schema/migrations",
+    "FactoryVersion derivation",
+    "digest-pinned producer/verifier images",
+    "policies",
+    "qualified configuration structure"
+  ],
+  "neverPromote": [
+    "staging databases or rows",
+    "staging Work/candidates",
+    "synthetic owner data",
+    "staging credentials or identity grants",
+    "staging private artifacts/evidence as production state"
+  ],
+  "productionAdmission": "DISABLED",
+  "publication": "DISABLED",
+  "productionResourceMutations": 0,
+  "paidModelCalls": 0,
+  "nextAuthorizationGates": [
+    "bounded real-model cloud canary with current model pricing and explicit effect envelope",
+    "separate production architecture/resource/configuration review",
+    "fresh production identity/application/Work admission qualification"
+  ],
+  "remainingReleaseQualifications": [
+    "real model behavior and pricing",
+    "a different natural objective after initial canary",
+    "repair/multifile generalization",
+    "connected cancellation/restart/outage/race gates as required by the broader release plan",
+    "ordinary-owner product copy and production composition"
+  ],
+  "schemaInventory": {
+    "factory": [
+      {
+        "path": "apps/cloud-control/migrations/001-staging-boundary.sql",
+        "sha256": "4751e6bde0996a22a73d5b744ce5278cf759db4b31763f2e9d42967da59c52b1"
+      },
+      {
+        "path": "apps/cloud-control/migrations/002-canonical-execution-ledger.sql",
+        "sha256": "ea9d30c2160e5f00a0d5d4af924469864221e196bc4fbbadd0576bac65b72e60"
+      },
+      {
+        "path": "apps/cloud-control/migrations/003-queue-delivery-checks.sql",
+        "sha256": "eb6bd0ada8e37e8d3d7c91107d26e9629696330e78be7b2a89d5e3df4560cc2c"
+      },
+      {
+        "path": "apps/cloud-control/migrations/004-canonical-dispatch.sql",
+        "sha256": "c2ed9044d9699365ed145d7d383671d498b3f92b5eb596b41cbbd6e15c3911a9"
+      },
+      {
+        "path": "apps/cloud-control/migrations/005-cloud-custody.sql",
+        "sha256": "38275af8636715cab933f7cbbc0c8d312b446bcc66ef2c30e694e1086af235e9"
+      },
+      {
+        "path": "apps/cloud-control/migrations/006-cloud-verification.sql",
+        "sha256": "2a4755cbbd06a32c75f8dbf09adabe3287e553f94b505f66c83ee81c365e3978"
+      }
+    ],
+    "sofie": [
+      {
+        "path": "apps/eve/migrations/0001_runtime_core.sql",
+        "sha256": "c073affaeeee6ed3f9076d0b8befe79f7d0b8373685ee4e4b0ffc50158c1a591"
+      },
+      {
+        "path": "apps/eve/migrations/0002_trustworthy_delegation.sql",
+        "sha256": "ff54635f7be5ddb786d61ea6918554089710cd46a5fe2ff32a0f1f29ca6be22d"
+      },
+      {
+        "path": "apps/eve/migrations/0003_goal_operating_system.sql",
+        "sha256": "f893b5849eed817727823c8749414b93212727334470c6d7c9fa7ff63ea9a9a3"
+      },
+      {
+        "path": "apps/eve/migrations/0004_skill_control_plane.sql",
+        "sha256": "5aaa7abda2b51bd01ef3d1b3c7fbddc722823cd0c86491ffb6f3bc17d2db70d1"
+      },
+      {
+        "path": "apps/eve/migrations/0005_skill_evals_and_outcomes.sql",
+        "sha256": "3e121a5ddbc8d96fe874c48c0bd771e810061881fadfae2206cf75a92aa28ca4"
+      },
+      {
+        "path": "apps/eve/migrations/0006_outcomes_and_review_loop.sql",
+        "sha256": "e2f38f5c4c00714967e559162d5077ff1e95f2afaf1941dc9b5c1eccd5f41957"
+      },
+      {
+        "path": "apps/eve/migrations/0007_proactive_review_delivery.sql",
+        "sha256": "f58e7b307fa48617bd25d4ee27b47f53c91d2737ba228a2d1ec110b41172e02e"
+      },
+      {
+        "path": "apps/eve/migrations/0008_persistent_agents.sql",
+        "sha256": "12a11b5d6b7d17ca63f69a88c1b1402fea715df5608dc8c185723f04c40b18e1"
+      },
+      {
+        "path": "apps/eve/migrations/0009_scoped_memory_context.sql",
+        "sha256": "f5a7a72b2b2740939c5026cee63fe0630d9548b46bddb08579f05d75dbbb73ef"
+      },
+      {
+        "path": "apps/eve/migrations/0010_agent_computer_runtime.sql",
+        "sha256": "793fe423d9b6d149ab95293e5f9a3ad03316f37ca444abdacd2e7a968a566550"
+      },
+      {
+        "path": "apps/eve/migrations/0011_knowledge_provenance_core.sql",
+        "sha256": "6814a006398afc3116ec7dd66ea541095d0a8aa7dd52ff9f006a5b8f9123db0b"
+      },
+      {
+        "path": "apps/eve/migrations/0012_role_run_attribution.sql",
+        "sha256": "b01414f2cf519e5041af79f02b0a18ea636d26994e21b60e4b723ed44a200213"
+      },
+      {
+        "path": "apps/eve/migrations/0013_colleague_first_execution.sql",
+        "sha256": "5e60a2f830734975c5585f7df3d49267b10a541cb751b4f284e0122b24133f36"
+      },
+      {
+        "path": "apps/eve/migrations/0014_persistent_browser_profiles.sql",
+        "sha256": "16d97a4cc4bcc88680c8af5a1860e7f79cf1d762523db78dba66a1e350731716"
+      },
+      {
+        "path": "apps/eve/migrations/0015_phone_safety_controls.sql",
+        "sha256": "71eac1e130da97386f069df18f8cd960c1c84d9d3564d2dacc65f31f80beb399"
+      },
+      {
+        "path": "apps/eve/migrations/0016_owner_data_operations.sql",
+        "sha256": "7106ee769bc1d6ec2c683e2fb5f7a55babf9157c12c89671258d135885ec1b49"
+      },
+      {
+        "path": "apps/eve/migrations/0017_owner_file_inventory.sql",
+        "sha256": "fa2e6e980737f4f287213deae3963a7ac37d2b1debc14a66a1025ad82cf97e34"
+      },
+      {
+        "path": "apps/eve/migrations/0018_owner_knowledge_control.sql",
+        "sha256": "775ff88476a964c4f4a6e1d0c1d0091e067380a426813e5eb8bc9a30351a9e40"
+      },
+      {
+        "path": "apps/eve/migrations/0019_agent_control_center.sql",
+        "sha256": "cb4fa7220678020c9bb93afe3dbf9246d809d694146edbb4669a67505ac86a98"
+      },
+      {
+        "path": "apps/eve/migrations/0020_canonical_approval_requests.sql",
+        "sha256": "beebe4d1f44f95ef3d236d13964cd00d7c308182d591634953e4cc2c2dd94323"
+      },
+      {
+        "path": "apps/eve/migrations/0021_computer_control_leases.sql",
+        "sha256": "3b587c8eb5294c2815ff6d7126adff290a9f4238afb5e83a15d4bd5e21ee8ab8"
+      },
+      {
+        "path": "apps/eve/migrations/0022_live_computer_provider.sql",
+        "sha256": "34b92ecbda5c4359517ba0895f3beedb9af6dc44ff2bd3bcfe4e38e1b3400237"
+      },
+      {
+        "path": "apps/eve/migrations/0023_execution_reliability.sql",
+        "sha256": "d305f1746a01828eb1816800eb68e10037f9f894128a286dc8e4ed41d14fc8b5"
+      },
+      {
+        "path": "apps/eve/migrations/0024_routine_owner_review.sql",
+        "sha256": "318424d227a0de64114e892d035baf6d967c8b084e140c5fc0786b4288fd128b"
+      },
+      {
+        "path": "apps/eve/migrations/0025_action_executor_enforcement.sql",
+        "sha256": "d63540cdb2cb652bff747bab8b41cc20def079052f405484370d2d0cd9183cf6"
+      },
+      {
+        "path": "apps/eve/migrations/0026_action_recovery_qualification.sql",
+        "sha256": "9b3cd379b75e83a508fa6ef889a25ecee8a18a55620a7bf33889cc87a4b870ca"
+      },
+      {
+        "path": "apps/eve/migrations/0027_relay_federation.sql",
+        "sha256": "2ea6d67e5e327eeaff02b2ef6ef5d537f27a0d71bee247c361e15b491f114bd7"
+      },
+      {
+        "path": "apps/eve/migrations/0028_routine_pending_send.sql",
+        "sha256": "e091f18401fa7907d16c7b1a4dea361eae2d2e64d830391674f574d0f55aa377"
+      },
+      {
+        "path": "apps/eve/migrations/0029_routine_admission.sql",
+        "sha256": "61c6911338e8cdfe6dba0429925c034df0accf09221a44d84dae5744c2aaf254"
+      },
+      {
+        "path": "apps/eve/migrations/0030_action_binding_reconciliation.sql",
+        "sha256": "43d49e112514067c6e1297b3eea4d912c6c94269ecad6c60179b98295448c74e"
+      },
+      {
+        "path": "apps/eve/migrations/0031_computer_template_lifecycle.sql",
+        "sha256": "0f8b07eb4767d54e3d169cea3bb2cbe2c043875ee78425a245312f678c86b7f5"
+      },
+      {
+        "path": "apps/eve/migrations/0032_computer_resource_lifecycles.sql",
+        "sha256": "e8716fa7242e08e6000e20f3f3c3cd6da464acc0636462ab68162ecdf224514b"
+      },
+      {
+        "path": "apps/eve/migrations/0033_final_lineage_bridge.sql",
+        "sha256": "d36de193a45cbdbef411315c131a05251aa5285ad64eca5a7eb056497e96712d"
+      },
+      {
+        "path": "apps/eve/migrations/0034_conversation_runs.sql",
+        "sha256": "cd119cf9aba81295acb6c0b556c3186ad80f9b51e41dd961608552de0b84b3bb"
+      },
+      {
+        "path": "apps/eve/migrations/0035_peer_permissions.sql",
+        "sha256": "d4f3e2ec1b1c158e01a095dc18e37727224db8245b8dc872a7775c0c02447d4f"
+      },
+      {
+        "path": "apps/eve/migrations/0036_owner_channel_handoff.sql",
+        "sha256": "18f1e055de75f0d95814ddb6a7133b9525b9c81db5db63008e1389900c278fc3"
+      },
+      {
+        "path": "apps/eve/migrations/0037_owner_model_reservations.sql",
+        "sha256": "53da8ad67e4584947c31bdc2d615f31be7b9792ff6367bfc25d299a26fc9a6db"
+      },
+      {
+        "path": "apps/eve/migrations/0038_owner_qualification_budget.sql",
+        "sha256": "f9859dbf7de00e31b6881da5fe099477cea8efc66cf5d136ef30a8e97426f66b"
+      },
+      {
+        "path": "apps/eve/migrations/0039_engineering_work.sql",
+        "sha256": "4c089e7a4000ce753e4f455046d0e2bdd56b771ed4cef7cc5366a65a20c7cd76"
+      },
+      {
+        "path": "apps/eve/migrations/0040_app_settings.sql",
+        "sha256": "492b321e56a2c19202b3cdfb94dcd17a40f80f56500b4a1c40557645be7aad4a"
+      },
+      {
+        "path": "apps/eve/migrations/0041_engineering_execution.sql",
+        "sha256": "decf1dc5b13c9c6a1eadae86c6fafe973377b87f1370d311fd01f7e1760ebefd"
+      },
+      {
+        "path": "apps/eve/migrations/0042_engineering_routing.sql",
+        "sha256": "980a59e0b01a71dacbfd126d9544e1021bdef3493006cfe34538a5cfe6f40266"
+      },
+      {
+        "path": "apps/eve/migrations/0043_engineering_route_admission.sql",
+        "sha256": "ef585670dda760ea89b7b390f4ad818ef7b4c80f2ab8eea2b0217603488ea04a"
+      },
+      {
+        "path": "apps/eve/migrations/0044_engineering_knowledge.sql",
+        "sha256": "957f75bac9889eeee808f5659ff8eeafdfadf2071364bccd5cd38a4d48f8ff16"
+      },
+      {
+        "path": "apps/eve/migrations/0045_relay_reply_claims.sql",
+        "sha256": "383dd7e2a31162f857d2a5ca7e82a6395b392acad26fa784cc52d5143ea97560"
+      },
+      {
+        "path": "apps/eve/migrations/0046_engineering_learning_drafts.sql",
+        "sha256": "376ccaebf2c98665f469f99782bff5f6d8c1a03a923c2be55b1acafbc35e8085"
+      },
+      {
+        "path": "apps/eve/migrations/0047_engineering_direct.sql",
+        "sha256": "fdc71b86cf5066b6a8c0559aed2e9e0fde0b5824ceb7520a0fc07a12e008f7c9"
+      },
+      {
+        "path": "apps/eve/migrations/0048_engineering_direct_verification.sql",
+        "sha256": "a0d859dfbf229594b53fc7f7fc425a87bc5f359ccbf10205012df3261134e751"
+      },
+      {
+        "path": "apps/eve/migrations/0049_telegram_owner_receipts.sql",
+        "sha256": "015e4a42093b51e368ae6ebf5b63c112205c699d78d6e672956b2dd14f0ca756"
+      },
+      {
+        "path": "apps/eve/migrations/0050_engineering_native_runtime.sql",
+        "sha256": "f6b7f44703973a262a8dc905dfbdad6209f4a9849074756e1fe8cd07ca0a0acf"
+      },
+      {
+        "path": "apps/eve/migrations/0051_engineering_conversation_budget.sql",
+        "sha256": "49806249a1b105cda3724372d9bc9b6afd66d1292e5c461eccbb31581a094fce"
+      },
+      {
+        "path": "apps/eve/migrations/0052_work_model_ledger.sql",
+        "sha256": "a6958d75de012f257c5a4378cd2828b422806f776bc9462689077a93dd9fe106"
+      },
+      {
+        "path": "apps/eve/migrations/0053_native_completion_contract.sql",
+        "sha256": "1f3fd2316758e547608fb4e23480105d1ce3a1dcb93a04a4c5be69841f2c5a53"
+      },
+      {
+        "path": "apps/eve/migrations/0054_factory_result_receipts.sql",
+        "sha256": "722f6b24052f53cda67da755011438ceacf65aa0dfc0579d5afde998f64a6634"
+      },
+      {
+        "path": "apps/eve/migrations/0055_engineering_factory_results.sql",
+        "sha256": "a431db228036cc6fd07128db861c99ee4add2de6afe43f1ec5a4c32b83df2141"
+      },
+      {
+        "path": "apps/eve/migrations/0056_factory_writer_handoff.sql",
+        "sha256": "dc4a908d6f3abd665824cb249459df850a92ff7c4346fded461a2061ba72b2bc"
+      },
+      {
+        "path": "apps/eve/migrations/0057_factory_preparation_intent.sql",
+        "sha256": "787b26a37700c890d0cee38ab47bb2b5e51c24cd70a28568f98d7d009072f057"
+      },
+      {
+        "path": "apps/eve/migrations/0062_relay_message_delegations.sql",
+        "sha256": "8f330807acfdf2fc4243764ec43bb4bd89733ded0d93cc76e30e00c92b7ab0fb"
+      },
+      {
+        "path": "apps/eve/migrations/0063_beta_product_plane.sql",
+        "sha256": "7bf51ee8e346d1025e9f0d643d18e43decdfa3db1dfd9bf7d2421aa1db324b92"
+      },
+      {
+        "path": "apps/eve/migrations/0064_beta_result_fencing.sql",
+        "sha256": "0fdd8fd43fa0b6c8390efaba8855268eb35344112a7c076100962e04a972ec30"
+      },
+      {
+        "path": "apps/eve/migrations/0065_beta_result_supersession.sql",
+        "sha256": "4c9b70bfc4a2a188e30b3dfe94fe4c616d238a582421cac9fe8340f56a653fa6"
+      },
+      {
+        "path": "apps/eve/migrations/0066_beta_canonical_continuation.sql",
+        "sha256": "232c9de49698217e52c63bd0085c33217d4b689905ed16e38fcc53c6f660109b"
+      },
+      {
+        "path": "apps/eve/migrations/0067_capsule_canonical_memory.sql",
+        "sha256": "a7aab4758afb81882a5e376c8ef22ec6888261a1b5bebeba6f27524eace8a06a"
+      },
+      {
+        "path": "apps/eve/migrations/0068_published_main_lineage_bridge.sql",
+        "sha256": "831c71b876de6a17eb91b0af9de9b20227f608d13887fe38330e44efc39dc7a3"
+      },
+      {
+        "path": "apps/eve/migrations/0069_business_scopes.sql",
+        "sha256": "6528b8f1b6844a368299a601d99b25c36caa4407d4b3a3e0dcd2fd356a845436"
+      },
+      {
+        "path": "apps/eve/migrations/0070_business_authority_fencing.sql",
+        "sha256": "0f7d853b2c517601281b42209553f49e6dbf55adf521518aae0ccec263ae243b"
+      },
+      {
+        "path": "apps/eve/migrations/0071_business_producer_fencing.sql",
+        "sha256": "b8c28515984ee34ba05b9eab5fb14c51ae844279cacdc714b75981fb147edc78"
+      },
+      {
+        "path": "apps/eve/migrations/0072_factory_worker_commands.sql",
+        "sha256": "a3ac05eac32650148782699aa6dad238af4ac472f544c8c0ba331bbdd2a4df11"
+      },
+      {
+        "path": "apps/eve/migrations/0073_beta_runtime_role_switch.sql",
+        "sha256": "a8714c08164d611a0e7fd7f9770bb1c417b5e4172b7dc8efd8bf877b960ad289"
+      },
+      {
+        "path": "apps/eve/migrations/0074_alpha_conversation_budget.sql",
+        "sha256": "b4da0bb04f2618e322cf41e622c3104ab2a918aaf96091fd857a5cfdc6eac870"
+      },
+      {
+        "path": "apps/eve/migrations/0075_local_computer.sql",
+        "sha256": "3cee4796d21b9f9720c7999d29a89ce39736be1ce3c64fb00851dcce932918ff"
+      },
+      {
+        "path": "apps/eve/migrations/0076_completed_chat_tasks.sql",
+        "sha256": "00ab83380cf49459635852cfe7ce2c612ffe13fdab2b5587ebdf9193356ff9d2"
+      },
+      {
+        "path": "apps/eve/migrations/0077_computer_revocation.sql",
+        "sha256": "d0e35f71e0f1283df3ed294d3265a96c05e014e56629aa43ff97a4495f9094d4"
+      },
+      {
+        "path": "apps/eve/migrations/0078_owner_task_lifecycle.sql",
+        "sha256": "d8f2fc91ecfd5fd75de47ce783c1f5d37b8e67e7233b446c274b40f55c7036f8"
+      },
+      {
+        "path": "apps/eve/migrations/0079_candidate_publication.sql",
+        "sha256": "9f4ec52876bb6a6beae8e67f954c93d2a201f383a19ad30704ce1dfa659978b5"
+      }
+    ]
+  },
+  "rolloutPolicy": [
+    "create fresh production authority/data/storage only after approval",
+    "rebind exact workload trust to approved production identities; never broaden existing preview trust",
+    "start admission disabled, low concurrency and no warm pool",
+    "no staging state import",
+    "preserve revocation, fail-closed admission and cleanup evidence",
+    "rollback by disabling new admission and fencing/quiescing active authority; preserve custody and spend history"
+  ],
+  "schemaInventoryNote": "Source inventory only; compare immutable checksums with the target schema before any separately approved migration. This does not authorize replaying all migrations."
+}

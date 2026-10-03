@@ -1,3 +1,5 @@
+> **Current: DETERMINISTIC CLOUD GOLDEN JOURNEY PASS.** [Hosted P0 evidence](../cloud-execution/phase-3/hosted-p0.md). Zero local dependencies, paid model calls and production effects. Cloud feature development FROZEN; production admission/publication DISABLED. Older checkpoint statuses below are historical.
+
 # Cloud execution: laptop-independent MyFactory
 
 **Current staging status — 2026-10-02:** Exact Sofie preview → Factory preview Trusted Sources OIDC is enabled. Connected infrastructure/application access, different-project preview denial, and remove/restore revocation checks PASS. No static Factory bypass exists. Authorized productive Work, hosted harness, independent verifier and Mac-off/P0 remain NOT_RUN. [OIDC evidence and limits](../cloud-execution/phase-3/trusted-sources-oidc.md). Preserve the [credential-custody incident](../cloud-execution/phase-3/factory-bypass-custody-incident.md) and checkpoint `0df0c37`; historical status entries below do not supersede this status. Paid models: 0; production admission/publication: DISABLED.

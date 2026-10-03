@@ -1,0 +1,72 @@
+{
+  "kind": "CONNECTED",
+  "modelBoundary": "DETERMINISTIC",
+  "retries": 0,
+  "startedAt": "2026-10-03T06:34:52.803Z",
+  "macOff": "REMOTE_RUNNER_NO_MAC_DEPENDENCY",
+  "runner": "37103458380",
+  "status": "PASS",
+  "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+  "generation": 2,
+  "commandId": "82d294ec-9346-4794-8e1f-c3a85d90c297",
+  "browserClosedAt": "2026-10-03T06:35:17.736Z",
+  "reconnectedAt": "2026-10-03T06:38:48.803Z",
+  "result": {
+    "id": "e0ac3615-50c7-43e8-964f-5efe562911fd",
+    "candidate": "58be5d8b714441f12048d7c98db8be86846a7913",
+    "proof": {
+      "workId": "f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab",
+      "outcome": "PARTIAL",
+      "evidence": [
+        {
+          "state": "PASS",
+          "producer": "trusted-verifier",
+          "sourceRef": "native-verification:f42d8a79-7c2e-43e3-bd61-2ae1f2cf2cab:58be5d8b714441f12048d7c98db8be86846a7913:87bf657a-d5b6-4eca-b736-250c80e6e245",
+          "observedAt": "2026-10-03T06:36:00.327Z",
+          "contentHash": "sha256:357559159983b933087969a1bba32ecad00a8ca234befd73916195490c499291",
+          "criterionId": "87bf657a-d5b6-4eca-b736-250c80e6e245",
+          "resultRevision": "58be5d8b714441f12048d7c98db8be86846a7913"
+        }
+      ],
+      "createdAt": "2026-10-03T06:36:00.327Z",
+      "limitations": [
+        "Factory-produced candidate in MyEve custody and independent cloud verification only. GitHub publication, CI, review and owner acceptance have not been established.",
+        "Accounting snapshot at 2026-10-03T06:36:00.353Z; later explanation calls are shown in current journey accounting. Journey model spend: $0.000000 settled (Sofie $0.000000, Factory $0.000000, native executor $0.000000). Reserved/exposed $0.000000, including UNKNOWN $0.000000. Coverage: COMPLETE. Provider charges outside the model ledger and infrastructure are not represented."
+      ],
+      "workVersion": 2,
+      "artifactRefs": [
+        "factory-candidate:4e02dac8-42fe-4315-8fc2-b1073a58c705:sha256:6013aa5c8fe25c49486b2a1bea9855ef668de0258ac20f29b93f8ef7b4a30081",
+        "factory-receipt:4e02dac8-42fe-4315-8fc2-b1073a58c705",
+        "factory-version:da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "protected-evidence:sha256:270b9cdce1d441d110821d74d6e47ce9b8b86d19ad52485dab3e5e2f3b416c02",
+        "changed-source:fixtures/cloud-work/project-slug/slug.mjs"
+      ],
+      "resultRevision": "58be5d8b714441f12048d7c98db8be86846a7913",
+      "contractVersion": 2,
+      "criteriaVersion": 1,
+      "modelAccounting": {
+        "unit": "microUSD",
+        "coverage": "COMPLETE",
+        "currency": "USD",
+        "observedAt": "2026-10-03T06:36:00.353Z",
+        "sofieMicrousd": 0,
+        "nativeMicrousd": 0,
+        "externalCharges": "NOT_REPRESENTED",
+        "factoryMicrousd": 0,
+        "settledMicrousd": 0,
+        "reservedMicrousd": 0,
+        "unknownExposureMicrousd": 0
+      }
+    }
+  },
+  "evidenceErrors": []
+}
