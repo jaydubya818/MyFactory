@@ -147,9 +147,9 @@
       "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
     },
     "apps/cloud-control/api/readiness.mjs": {
-      "sha256": "28363ad4bf96e44e158d79dadffdd5b254ed48650997ac63c0384a18dbba1b83",
-      "classification": "cloud-staging-foundation",
-      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+      "sha256": "f21220b6a2d0e4fea35e3fb499ea5b3940f8dc666feac7469f6814729f438ebb",
+      "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
+      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
     },
     "apps/cloud-control/src/infrastructure-plan.mjs": {
       "sha256": "3e5ffdae46115ccdd110b7c0871f8e1e5e5e8245151d79b9c7f9746996241351",
@@ -257,9 +257,9 @@
       "sha256": "5f72e1e7313c90bc8a67e563ed9df018c0ad7458a933cc20601897aa627a6ed5"
     },
     "apps/cloud-control/api/cloud.mjs": {
-      "sha256": "5269192c608bd47b76ce38154392ee5196f31544e24c34b6560712704e99e897",
-      "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled. Explicit 403 for exact source/capability/Work binding grant denial; deployment bypass is never application authentication. Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
+      "sha256": "8a01343afc5c2076b9e48d14cef842f05fa93c0faf49eed68dbf4bb9e0175224",
+      "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
+      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
     },
     "apps/cloud-control/api/cloud-work.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -385,6 +385,31 @@
       "sha256": "4bde6520dfa4030faa19bcf8bfa3544c25569b35893461adc5cba221dc5ec929",
       "classification": "EVIDENCE_READ",
       "authorityBoundary": " Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
+    },
+    "apps/cloud-control/src/production-installation.mjs": {
+      "sha256": "bef595323bc46ca58ee2d04366c0a0637af9fbb3d1797942fb105af312dc94fc",
+      "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
+      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
+    },
+    "apps/cloud-control/src/production-database.mjs": {
+      "sha256": "1ec6ba4c4b06a677f942e4ba8bd9f6af1c0fdfd47ae274ae643b3e15e9c4bdcb",
+      "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
+      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
+    },
+    "apps/cloud-control/src/production-readiness.mjs": {
+      "sha256": "ece3905d63932c1481e45991dfa88e42ea1e5b55245da9d18e1f434a29807ed9",
+      "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
+      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
+    },
+    "apps/cloud-control/src/production-control.mjs": {
+      "sha256": "fc2a8b009d5326f7476bd19ab56e88ad8c19129e610e221163651907b4cd945e",
+      "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
+      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
+    },
+    "apps/cloud-control/src/production-identity.mjs": {
+      "sha256": "b93eee8e81744e507f7b01bbf66e945f1e6c22c86d2f1ac4c453cc4a3b251a5d",
+      "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
+      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
     }
   }
 }

@@ -7,7 +7,7 @@ const request=(path,method='GET',body,authorization=token)=>new Request('https:/
 test('cloud Work API authenticates before touching any dependency and rejects production project/environment',async()=>{
  let accesses=0;const runtime=async()=>{accesses++;throw Error('UNEXPECTED');};
  assert.equal((await handleCloud(request('/api/connect/v2/actions','GET',null,'wrong'),env,runtime)).status,401);
- assert.equal((await handleCloud(request('/api/connect/v2/actions'),{...env,VERCEL_ENV:'production'},runtime)).status,503);
+ assert.equal((await handleCloud(request('/api/connect/v2/actions'),{...env,VERCEL_ENV:'production'},runtime)).status,401);
  assert.equal((await handleCloud(request('/api/connect/v2/actions'),{...env,VERCEL_PROJECT_ID:'sofie'},runtime)).status,503);assert.equal(accesses,0);
 });
 test('qualification controls retain disabled admission and cannot call arbitrary methods or routes',async()=>{

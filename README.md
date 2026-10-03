@@ -1,3 +1,5 @@
+> Production installation successor: [exact production boundary and explicit migration procedure](docs/consolidation/2026-10-03/production-installation.md). Infrastructure readiness is separate from Work admission; paid production execution remains disabled and unqualified.
+
 > Current assembly status: [final private-alpha convergence](docs/consolidation/2026-10-03/README.md). Older checkpoint notes retain historical evidence limits; production promotion remains separately gated.
 
 > **Current: DETERMINISTIC CLOUD GOLDEN JOURNEY PASS.** [Hosted P0 evidence](docs/cloud-execution/phase-3/hosted-p0.md). Zero local dependencies, paid model calls and production effects. Cloud feature development FROZEN; production admission/publication DISABLED. Older checkpoint statuses below are historical.

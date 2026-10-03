@@ -5,8 +5,10 @@ import {withCloudRuntime} from '../src/cloud-runtime.mjs';
 import {cloudGrant} from '../src/cloud-work-plan.mjs';
 import {reconcileCloudWork} from '../src/cloud-work-lifecycle.mjs';
 import {boundedBytes} from '../src/infrastructure-provider.mjs';
+import {handleProductionControl} from '../src/production-control.mjs';
 const uuid='[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}';
 export async function handleCloud(request,env,withRuntime=withCloudRuntime){
+ if(env.VERCEL_ENV==='production'||env.FACTORY_PRODUCTION_INSTALLATION)return handleProductionControl(request,env);
  const respond=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'private, no-store'}});
  const proof=proofCredential(request,env);
  if(!proof&&!authorized(request,env.FACTORY_SOFIE_STAGING_TOKEN))return respond({error:'UNAUTHORIZED'},401);

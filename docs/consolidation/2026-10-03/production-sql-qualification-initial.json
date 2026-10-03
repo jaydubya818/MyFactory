@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "scope": "Exact generated one-time SQL, except disposable owner value, on task-owned verified-TLS PostgreSQL",
+  "migrationCount": 7,
+  "firstApply": "PASS",
+  "repeatRejected": "PASS",
+  "ownerLiteralEscaping": "PASS",
+  "authoritativeWorkRows": 0,
+  "paidCalls": 0,
+  "productionDatabaseMutations": 0,
+  "sqlSha256": "b8dd9712e65492122ad482753d6c44d237103832d35ee5564d28efb1347d2d11"
+}
