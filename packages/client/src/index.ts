@@ -1,5 +1,16 @@
 import type { CreateWorkOrderInput, FactoryEvent, LinearLink, PublicationRequest, WorkOrder, WorkOrderDetail } from "../../contracts/src/index.ts";
 import type { SignedResult } from "../../hosted-routing/src/result.ts";
+import { createHash } from "node:crypto";
+import { EVIDENCE_KINDS, EVIDENCE_LIMITS, proofEvidenceReference } from "../../verification/src/evidence.ts";
+import type { EvidenceReadRequest, EvidenceTransportScope, TransportEvidenceMetadata } from "../../../apps/supervisor/src/evidence-transport.ts";
+
+export class FactoryClientHttpError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+  constructor(message: string, status: number, code: string | null) {
+    super(message); this.status = status; this.code = code;
+  }
+}
 
 /** Backend client for approved apps on the same host. Never put the token in browser code. */
 export class FactoryClient {
@@ -24,8 +35,8 @@ export class FactoryClient {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(40_000),
     });
-    const data = await response.json() as T & { error?: string };
-    if (!response.ok) throw new Error(data.error ?? `Factory request failed (${response.status})`);
+    const data = await response.json() as T & { error?: string; code?: string };
+    if (!response.ok) throw new FactoryClientHttpError(data.error ?? `Factory request failed (${response.status})`, response.status, data.code ?? null);
     return data;
   }
 
@@ -47,6 +58,27 @@ export class FactoryClient {
     result: SignedResult | null;
   }> {
     return this.#request(`work-orders/${encodeURIComponent(workOrderId)}/runs/${encodeURIComponent(runId)}/result`);
+  }
+
+  /** The backend verifies exact bytes before handing a reference to MyEve Proof. */
+  async readEvidence(input: EvidenceReadRequest): Promise<{ ref: TransportEvidenceMetadata; proofReference: string; bytes: Buffer }> {
+    const response = await this.#request<{ scope: EvidenceTransportScope; ref: TransportEvidenceMetadata; proofReference: string; base64: string }>('evidence/read', input);
+    const ref = response.ref;
+    if (!response.scope || response.scope.ownerScope !== input.ownerScope ||
+      response.scope.repository !== input.repository || response.scope.workId !== input.workId ||
+      response.scope.workGeneration !== input.workGeneration || response.scope.requestId !== input.requestId ||
+      !ref || ref.workOrderId !== input.workOrderId || ref.runId !== input.runId ||
+      ref.candidateCommit !== input.candidateCommit || ref.factoryVersion !== input.factoryVersion ||
+      ref.kind !== input.evidenceKind || !EVIDENCE_KINDS.includes(ref.kind) || ref.sha256 !== input.expectedDigest ||
+      response.proofReference !== input.evidenceReference || proofEvidenceReference(ref) !== input.evidenceReference ||
+      !Number.isSafeInteger(ref.size) || ref.size <= 0 || ref.size > EVIDENCE_LIMITS[ref.kind] ||
+      typeof response.base64 !== 'string' || response.base64.length > Math.ceil(EVIDENCE_LIMITS[ref.kind] / 3) * 4 + 4)
+      throw new Error('Factory evidence binding mismatch');
+    const bytes = Buffer.from(response.base64, 'base64');
+    if (bytes.length !== ref.size || bytes.toString('base64') !== response.base64 ||
+      createHash('sha256').update(bytes).digest('hex') !== ref.sha256)
+      throw new Error('Factory evidence digest mismatch');
+    return { ref, proofReference: response.proofReference, bytes };
   }
 
   createWorkOrder(input: CreateWorkOrderInput & { idempotencyKey: string }): Promise<WorkOrder> {

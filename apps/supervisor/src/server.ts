@@ -22,6 +22,7 @@ import { FactoryDispatchControl } from "./dispatch-control.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
 import { type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
+import { readBoundEvidence } from "./evidence-transport.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
 const confirmApprovalScript = fileURLToPath(new URL("../native/confirm-approval.swift", import.meta.url));
@@ -193,6 +194,9 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   spend.recoverUnknown();
   const connectionsPath = resolve(dataDir, "connections.json");
   const subscribers = new Map<string, Set<ServerResponse>>();
+  const publicEvent = (event: FactoryEvent): FactoryEvent => event.type === 'run.evidence_collected'
+    ? { ...event, payload: { available: true, count: Array.isArray(event.payload.refs) ? event.payload.refs.length : 0 } }
+    : event.type === 'factory.owner_scope_bound' ? { ...event, payload: { bound: true } } : event;
 
   const notify = (event: FactoryEvent) => {
     const listeners = subscribers.get(event.workOrderId);
@@ -204,7 +208,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
         continue;
       }
       try {
-        response.write(`id: ${event.id}\ndata: ${JSON.stringify(event)}\n\n`);
+        response.write(`id: ${event.id}\ndata: ${JSON.stringify(publicEvent(event))}\n\n`);
       } catch {
         response.destroy();
         listeners.delete(response);
@@ -271,14 +275,34 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   };
   const hostedIntake = process.env.FACTORY_HOSTED_INTAKE === "true" ? new HostedIntake(context, linear, dataDir) : null;
 
-  function workOrderDetail(id: string): WorkOrderDetail | null {
+  function workOrderDetail(id: string, includeEvidenceRefs = false): WorkOrderDetail | null {
     const workOrder = storage.getWorkOrder(id);
     if (!workOrder) return null;
     const runs = storage.listRuns(id);
     return { workOrder, runs, checks: runs.flatMap((run) => storage.listChecks(run.id)),
-      events: storage.listEvents(id), externalActions: storage.listExternalActions(id),
+      events: storage.listEvents(id).map(event => includeEvidenceRefs ? event : publicEvent(event)),
+      externalActions: storage.listExternalActions(id),
       publicationRequests: storage.listPublicationRequests(id), publicationApprovals: storage.listPublicationApprovals(id),
       linearLink: storage.getLinearLink(id), reviewRepair: reviewRepair.view(id) };
+  }
+  function proofClientOwnsWork(client: ReturnType<typeof readClients>[number], workOrderId: string): boolean {
+    if (client.purpose !== 'myeve-proof') return true;
+    const bindings = storage.listEvents(workOrderId).filter(event => event.type === 'factory.owner_scope_bound');
+    return bindings.length === 1 && bindings[0].payload.ownerScope === client.ownerScope;
+  }
+  function connectedDetailFor(client: ReturnType<typeof readClients>[number], id: string): WorkOrderDetail | null {
+    const detail = workOrderDetail(id, client.purpose === 'myeve-proof' && proofClientOwnsWork(client, id));
+    if (!detail) return null;
+    return { ...detail, events: detail.events.map(event => event.type === 'factory.owner_scope_bound' && client.purpose !== 'myeve-proof'
+      ? { ...event, payload: { redacted: true } }
+      : event.type === 'run.evidence_collected'
+      ? { ...event, payload: client.purpose === 'myeve-proof' && proofClientOwnsWork(client, id)
+        ? { binding: event.payload.binding, refs: Array.isArray(event.payload.refs)
+          ? event.payload.refs.map((ref: Record<string, unknown>) => ({ proofReference: ref.proofReference,
+            kind: ref.kind, sha256: ref.sha256, candidateCommit: ref.candidateCommit,
+            factoryVersion: ref.factoryVersion, workOrderId: ref.workOrderId, runId: ref.runId })) : [] }
+        : { redacted: true } }
+      : event) };
   }
 
   const server = createServer(async (request, response) => {
@@ -294,6 +318,10 @@ export function createSupervisor(options: SupervisorOptions = {}) {
 
       if (pathname.startsWith("/api/connect/v1/")) {
         const client = authenticateClient(request, readClients(connectionsPath));
+        if (pathname === '/api/connect/v1/evidence/read') {
+          if (request.method !== 'POST') return json(response, 405, { error: 'Method not allowed' });
+          return json(response, 200, await readBoundEvidence(client, await requestBody(request), storage, producer, dataDir));
+        }
         const controlRoute=/^\/api\/connect\/v1\/dispatches(?:\/([a-f0-9-]{36})(?:\/(dispatch|stop))?)?$/.exec(pathname);
         if(controlRoute){
           if(!dispatchControl)return json(response,503,{error:'Producer result signing is required'});
@@ -311,7 +339,8 @@ export function createSupervisor(options: SupervisorOptions = {}) {
         if (request.method === "GET" && resultRoute) {
           const order = storage.getWorkOrder(resultRoute[1]);
           const run = storage.getRun(resultRoute[2]);
-          if (!order || !run || run.workOrderId !== order.id || !canAccessRepository(client, order.repositoryPath)) {
+          if (!order || !run || run.workOrderId !== order.id || !canAccessRepository(client, order.repositoryPath) ||
+              !proofClientOwnsWork(client, order.id)) {
             return json(response, 404, { error: "Attempt not found" });
           }
           if (!producer) return json(response, 503, { error: "Producer result attestation is not configured" });
@@ -321,13 +350,15 @@ export function createSupervisor(options: SupervisorOptions = {}) {
           return json(response, 200, { client: client.id, actions: client.actions.map((name) => actionRegistry[name as keyof typeof actionRegistry]).filter(Boolean), controls:client.actions.filter(name=>name.startsWith("factory.")), execution:dispatchControl?.executionAvailability()??{mode:"DISABLED",spendEnforced:false} });
         }
         if (request.method === "GET" && pathname === "/api/connect/v1/work-orders") {
-          return json(response, 200, { workOrders: storage.listWorkOrders().filter((order) => canAccessRepository(client, order.repositoryPath)) });
+          return json(response, 200, { workOrders: storage.listWorkOrders().filter((order) =>
+            canAccessRepository(client, order.repositoryPath) && proofClientOwnsWork(client, order.id)) });
         }
         const connectedDetail = /^\/api\/connect\/v1\/work-orders\/([0-9a-f-]{36})$/.exec(pathname);
         if (request.method === "GET" && connectedDetail) {
           const order = storage.getWorkOrder(connectedDetail[1]);
-          if (!order || !canAccessRepository(client, order.repositoryPath)) return json(response, 404, { error: "WorkOrder not found" });
-          return json(response, 200, workOrderDetail(order.id));
+          if (!order || !canAccessRepository(client, order.repositoryPath) || !proofClientOwnsWork(client, order.id))
+            return json(response, 404, { error: "WorkOrder not found" });
+          return json(response, 200, connectedDetailFor(client, order.id));
         }
         if (request.method === "POST" && pathname === "/api/connect/v1/actions") {
           const body = await requestBody(request) as { action?: unknown; input?: unknown } | null;
@@ -476,7 +507,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
         });
         response.write(": connected\n\n");
         for (const event of storage.listEvents(workOrderId, cursor)) {
-          response.write(`id: ${event.id}\ndata: ${JSON.stringify(event)}\n\n`);
+          response.write(`id: ${event.id}\ndata: ${JSON.stringify(publicEvent(event))}\n\n`);
         }
         const listeners = subscribers.get(workOrderId) ?? new Set<ServerResponse>();
         listeners.add(response);
