@@ -1,3 +1,5 @@
+> Current connected evidence: [hosted deterministic attempt 4](../cloud-execution/phase-3/hosted-attempt-4.md) passes the existing cloud harness, private custody, independent verifier and cleanup. Fresh browser recovery passes; the local P0 first run failed on timeout. Mac-off/hosted-runner P0 remain NOT_RUN. Paid models 0; production/publication DISABLED.
+
 # HarnessProvider and cloud qualification
 
 Status: accepted design requirement, 2026-10-02. Runtime registry and additional

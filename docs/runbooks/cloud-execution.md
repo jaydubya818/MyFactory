@@ -1,3 +1,5 @@
+> Current connected evidence: [hosted deterministic attempt 4](../cloud-execution/phase-3/hosted-attempt-4.md) passes the existing cloud harness, private custody, independent verifier and cleanup. Fresh browser recovery passes; the local P0 first run failed on timeout. Mac-off/hosted-runner P0 remain NOT_RUN. Paid models 0; production/publication DISABLED.
+
 # Cloud execution runbook
 
 **Current staging status — 2026-10-02:** Exact Sofie preview → Factory preview Trusted Sources OIDC is enabled. Connected infrastructure/application access, different-project preview denial, and remove/restore revocation checks PASS. No static Factory bypass exists. Authorized productive Work, hosted harness, independent verifier and Mac-off/P0 remain NOT_RUN. [OIDC evidence and limits](../cloud-execution/phase-3/trusted-sources-oidc.md). Preserve the [credential-custody incident](../cloud-execution/phase-3/factory-bypass-custody-incident.md) and checkpoint `0df0c37`; historical status entries below do not supersede this status. Paid models: 0; production admission/publication: DISABLED.
