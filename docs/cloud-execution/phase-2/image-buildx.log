@@ -1,0 +1,64 @@
+Vercel CLI 62.1.0
+Retrieving project…
+> Running: docker buildx build --platform linux/amd64 --output type=image,name=vcr.vercel.com/jaydubya818/myfactory-cloud-staging/factory-worker:phase2-node24,push=true,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true apps/cloud-control/worker
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 251B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:24-bookworm@sha256:5a750d3be5e5c80275f8c9a5367c3aed99c2875656590c8d0701c7ee687f5f0a
+#2 ...
+
+#3 [auth] library/node:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:24-bookworm@sha256:5a750d3be5e5c80275f8c9a5367c3aed99c2875656590c8d0701c7ee687f5f0a
+#2 DONE 0.7s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/3] FROM docker.io/library/node:24-bookworm@sha256:5a750d3be5e5c80275f8c9a5367c3aed99c2875656590c8d0701c7ee687f5f0a
+#5 resolve docker.io/library/node:24-bookworm@sha256:5a750d3be5e5c80275f8c9a5367c3aed99c2875656590c8d0701c7ee687f5f0a done
+#5 DONE 0.0s
+
+#6 [2/3] RUN node --version && git --version && mkdir -p /workspace && chown node:node /workspace
+#6 0.117 v24.21.0
+#6 0.134 git version 2.39.5
+#6 DONE 0.2s
+
+#7 [3/3] WORKDIR /workspace
+#7 DONE 0.0s
+
+#8 exporting to image
+#8 exporting layers
+#8 exporting layers 2.3s done
+#8 exporting manifest sha256:56a6f3122d7842e42cf02ccf9375940f05247d7563e6a177a201cfbd1991931b done
+#8 exporting config sha256:3843cbba7428baf3f6a0e92ce32f09388e075e7f566ac93848a45f9b2b9563f8 done
+#8 exporting attestation manifest sha256:2aeeb483b475351d1970968caee9ac7019e0edc2ea3bcc3563326f6d87599809 done
+#8 exporting manifest list sha256:f1075f0fdd7196dca55469978b0467c66a773672da559a8e2816010e6f4a0d84 done
+#8 naming to vcr.vercel.com/jaydubya818/myfactory-cloud-staging/factory-worker:phase2-node24 done
+#8 pushing layers
+#8 ...
+
+#9 [auth] sharing credentials for vcr.vercel.com
+#9 DONE 0.0s
+
+#8 exporting to image
+#8 pushing layers 1.2s done
+#8 ERROR: failed to push vcr.vercel.com/jaydubya818/myfactory-cloud-staging/factory-worker:phase2-node24: failed commit on ref "layer-sha256:311348160143df8096f6ba8438efed4da48521deecb0fd9945a08f6489a4dff0": failed to do request: Put "https://vcr.vercel.com/v2/jaydubya818/myfactory-cloud-staging/factory-worker/blobs/uploads/12de4726707c7085cae12042d9fde91865fd0d48?digest=sha256%3A311348160143df8096f6ba8438efed4da48521deecb0fd9945a08f6489a4dff0": remote error: tls: bad record MAC
+------
+ > exporting to image:
+------
+ERROR: failed to build: failed to solve: failed to push vcr.vercel.com/jaydubya818/myfactory-cloud-staging/factory-worker:phase2-node24: failed commit on ref "layer-sha256:311348160143df8096f6ba8438efed4da48521deecb0fd9945a08f6489a4dff0": failed to do request: Put "https://vcr.vercel.com/v2/jaydubya818/myfactory-cloud-staging/factory-worker/blobs/uploads/12de4726707c7085cae12042d9fde91865fd0d48?digest=sha256%3A311348160143df8096f6ba8438efed4da48521deecb0fd9945a08f6489a4dff0": remote error: tls: bad record MAC
+
+View build details: docker-desktop://dashboard/build/default/default/o26pagw0u4682ftlvrhxbp38x
+{
+  "status": "error",
+  "reason": "command_failed",
+  "message": "`docker buildx build` failed (exit code 1).\n > exporting to image:\n------\nERROR: failed to build: failed to solve: failed to push vcr.vercel.com/jaydubya818/myfactory-cloud-staging/factory-worker:phase2-node24: failed commit on ref \"layer-sha256:311348160143df8096f6ba8438efed4da48521deecb0fd9945a08f6489a4dff0\": failed to do request: Put \"https://vcr.vercel.com/v2/jaydubya818/myfactory-cloud-staging/factory-worker/blobs/uploads/12de4726707c7085cae12042d9fde91865fd0d48?digest=sha256%3A311348160143df8096f6ba8438efed4da48521deecb0fd9945a08f6489a4dff0\": remote error: tls: bad record MAC\n\nView build details: docker-desktop://dashboard/build/default/default/o26pagw0u4682ftlvrhxbp38x",
+  "cliVersion": "62.1.0",
+  "invocationId": "fd2ab7a4-140f-4a12-8a55-d1f8601b5951"
+}

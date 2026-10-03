@@ -1,0 +1,65 @@
+{
+  "id": "80ca1461-d832-4066-a400-9cb3edee2444",
+  "deployment": "https://myfactory-cloud-staging-tr8tmwd59-jaydubya818.vercel.app",
+  "evidenceClass": "CONNECTED",
+  "purpose": "hosted-infrastructure",
+  "startedAt": "2026-10-02T07:21:21.600Z",
+  "status": "NOT_PASS",
+  "response": {
+    "purpose": "deterministic-infrastructure",
+    "admission": "DISABLED",
+    "attempt": {
+      "id": "80ca1461-d832-4066-a400-9cb3edee2444",
+      "purpose": "deterministic-infrastructure",
+      "source_sha": "4753ba1bbbe2ee1cd81a3583e8a8f62f2233c3d9",
+      "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+      "provider_name": "factory-infra-80ca1461-d832-4066-a400-9cb3edee2444",
+      "state": "DESTROYED",
+      "allocation_started_at": "2026-10-02T07:21:22.976Z",
+      "deadline": "2026-10-02T07:23:22.976Z",
+      "provider_session_id": "sbx_z5xgf6c0sSMXFXVPLSeYxck8GnrR",
+      "command_id": "cmd_ba0982e4c25c4730924db633a0f9",
+      "artifact_sha256": null,
+      "artifact_path": null,
+      "cleanup_confirmed": true,
+      "evidence": {
+        "code": "WORKER_COMMAND_FAILED",
+        "stage": "EXECUTION",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git\nnode:child_process:981\n    throw err;\n    ^\n\nError: Command failed: git rev-parse HEAD\nfatal: not a git repository (or any of the parent directories): .git\n\n    at genericNodeError (node:internal/errors:985:15)\n    at wrappedFn (node:internal/errors:539:14)\n    at checkExecSyncError (node:child_process:942:11)\n    at execFileSync (node:child_process:978:15)\n    at [eval]:3:14\n    at [eval]:13:4\n    at runScriptInThisContext (node:internal/vm:219:10)\n    at node:internal/process/execution:451:12\n    at [eval]-wrapper:6:24\n    at runScriptInContext (node:internal/process/execution:449:60) {\n  status: 128,\n  signal: null,\n  output: [\n    null,\n    '',\n    'fatal: not a git repository (or any of the parent directories): .git\\n'\n  ],\n  pid: 795,\n  stdout: '',\n  stderr: 'fatal: not a git repository (or any of the parent directories): .git\\n'\n}\n\nNode.js v24.19.0\n",
+        "outcome": "UNKNOWN",
+        "commandExit": 1,
+        "modelOperations": 0
+      },
+      "updated_at": "2026-10-02T07:21:27.139Z"
+    }
+  },
+  "readback": {
+    "purpose": "deterministic-infrastructure",
+    "admission": "DISABLED",
+    "attempt": {
+      "id": "80ca1461-d832-4066-a400-9cb3edee2444",
+      "purpose": "deterministic-infrastructure",
+      "source_sha": "4753ba1bbbe2ee1cd81a3583e8a8f62f2233c3d9",
+      "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+      "provider_name": "factory-infra-80ca1461-d832-4066-a400-9cb3edee2444",
+      "state": "DESTROYED",
+      "allocation_started_at": "2026-10-02T07:21:22.976Z",
+      "deadline": "2026-10-02T07:23:22.976Z",
+      "provider_session_id": "sbx_z5xgf6c0sSMXFXVPLSeYxck8GnrR",
+      "command_id": "cmd_ba0982e4c25c4730924db633a0f9",
+      "artifact_sha256": null,
+      "artifact_path": null,
+      "cleanup_confirmed": true,
+      "evidence": {
+        "code": "WORKER_COMMAND_FAILED",
+        "stage": "EXECUTION",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git\nnode:child_process:981\n    throw err;\n    ^\n\nError: Command failed: git rev-parse HEAD\nfatal: not a git repository (or any of the parent directories): .git\n\n    at genericNodeError (node:internal/errors:985:15)\n    at wrappedFn (node:internal/errors:539:14)\n    at checkExecSyncError (node:child_process:942:11)\n    at execFileSync (node:child_process:978:15)\n    at [eval]:3:14\n    at [eval]:13:4\n    at runScriptInThisContext (node:internal/vm:219:10)\n    at node:internal/process/execution:451:12\n    at [eval]-wrapper:6:24\n    at runScriptInContext (node:internal/process/execution:449:60) {\n  status: 128,\n  signal: null,\n  output: [\n    null,\n    '',\n    'fatal: not a git repository (or any of the parent directories): .git\\n'\n  ],\n  pid: 795,\n  stdout: '',\n  stderr: 'fatal: not a git repository (or any of the parent directories): .git\\n'\n}\n\nNode.js v24.19.0\n",
+        "outcome": "UNKNOWN",
+        "commandExit": 1,
+        "modelOperations": 0
+      },
+      "updated_at": "2026-10-02T07:21:27.139Z"
+    }
+  },
+  "finishedAt": "2026-10-02T07:21:28.464Z"
+}

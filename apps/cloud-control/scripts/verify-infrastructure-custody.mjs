@@ -1,0 +1,18 @@
+import { readFile,writeFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import { get } from '@vercel/blob';
+import { Sandbox } from '@vercel/sandbox';
+import { diagnosticCredentials } from './staging-diagnostic-credentials.mjs';
+import { boundedBytes,digest } from '../src/infrastructure-provider.mjs';
+import { source } from '../src/infrastructure-plan.mjs';
+const evidence=JSON.parse(await readFile(new URL('../../../docs/cloud-execution/phase-2/provider-diagnosis/infrastructure-f47936ce-6fab-41b8-b3b9-2828e541a374.json',import.meta.url)));
+const row=evidence.readback.attempt;
+const artifact=await get(row.artifact_path,{access:'private',token:process.env.BLOB_READ_WRITE_TOKEN,useCache:false,abortSignal:AbortSignal.timeout(10000)});
+assert.equal(artifact?.statusCode,200);
+const bytes=await boundedBytes(artifact.stream);assert.equal(digest(bytes),row.artifact_sha256);
+const report=JSON.parse(bytes);assert.equal(report.commit,source.commit);assert.equal(report.tree,source.tree);assert.equal(report.testsExit,0);
+const unauthenticated=await fetch(artifact.blob.url,{signal:AbortSignal.timeout(10000)});await unauthenticated.body?.cancel();assert.ok([401,403,404].includes(unauthenticated.status));
+const identity=await diagnosticCredentials();
+await assert.rejects(Sandbox.get({...identity,name:row.provider_name,resume:false,signal:AbortSignal.timeout(10000)}),error=>error.response?.status===404);
+const result={evidenceClass:'CONNECTED',status:'PASS',attempt:row.id,checkedAt:new Date().toISOString(),artifactSha256:row.artifact_sha256,artifactBytes:bytes.length,privateAnonymousStatus:unauthenticated.status,workerAbsent:true,report};
+await writeFile(new URL('../../../docs/cloud-execution/phase-2/provider-diagnosis/custody-readback.json',import.meta.url),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));

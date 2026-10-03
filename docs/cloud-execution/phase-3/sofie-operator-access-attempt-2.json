@@ -1,0 +1,35 @@
+{
+  "checkedAt": "2026-10-02T16:34:13.741Z",
+  "evidenceClass": "CONNECTED",
+  "project": "prj_XU7fJW735PtsnKoAYtGfzdnsotIB",
+  "origin": "https://sofie-cloud-qualification-p7wi976z8-jaydubya818.vercel.app",
+  "note": "Sofie deterministic operator qualification revocation test",
+  "localBypassStorage": false,
+  "results": [
+    {
+      "name": "no_bypass",
+      "status": 302,
+      "pass": true
+    },
+    {
+      "name": "revoked_credential",
+      "status": 302,
+      "pass": true
+    }
+  ],
+  "paidModelCalls": 0,
+  "productionAdmission": "DISABLED",
+  "publication": "DISABLED",
+  "failure": "PROVIDER_API_FAILED",
+  "revocationConfirmed": true,
+  "status": "FAIL",
+  "credentialActive": false,
+  "credentialRevoked": true,
+  "requestedEnvironmentInjection": false,
+  "providerDefaultOnCreation": "isEnvVar=true",
+  "disableInjectionRejected": true,
+  "deploymentCreated": false,
+  "applicationMatrix": "NOT_RUN",
+  "credentialContainmentScan": "NOT_RUN",
+  "providerConstraint": "One bypass must be the VERCEL_AUTOMATION_BYPASS_SECRET Environment Variable set on deployments."
+}

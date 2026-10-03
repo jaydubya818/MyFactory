@@ -2,19 +2,19 @@
   "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
   "sources": {
     "apps/supervisor/src/dispatch-control.ts": {
-      "sha256": "f7bcbd05424e5a24c107f6632d8ef42593af277a3d743ffe32119ce2740c6ef1",
+      "sha256": "4e656d6ba5af09eb37cf07842e9c67ba4c201e8cd9664ae742107be95e4a82de",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
+      "authorityBoundary": "The trusted exact-binding gateway owns productive shutdown; completion uses a distinct token and existing ledger admission after host checks. No model authority, retry or fallback. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Delegate preparation, start, cancellation and resource reconciliation to an explicitly injected local provider. Retain connection authorization, exact binding, transactional dispatch claim, spend ledger, UNKNOWN, terminal fencing and publication boundaries. Resource readback grants no authority."
     },
     "apps/supervisor/src/jobs.ts": {
       "sha256": "8eafe63348cccc9b97f81a077099df945bd140cbd4b1b4393ac9d244a426b492",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
+      "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "50dd036ba5d2e1a079b4b9fb1c75238ab2b4c2ded2a9c64e4262b2babcaddb92",
+      "sha256": "ed4da172aa6e0d1cfa4a291afcdcbc0326dd97be112deda9dcfc50081fbe09f3",
       "classification": "PAID_BOUNDARY",
-      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Consolidated boundary: Share exact paid boundary across Node HTTP and hosted Fetch adapters; await durable accounting, retain UNKNOWN and no fallback. Deterministic upstream injection is trusted server configuration, never client data. Constant-time hashed credentials reject multibyte input safely."
     },
     "apps/supervisor/src/real-provider.ts": {
       "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
@@ -22,9 +22,9 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "359cc74121ada6cf21a738ace14f5bf3b3e4e0ff85348f665592e5c721626694",
+      "sha256": "473e71dd39c693efb2c179b5e9b122f62fefd3864a7145ba6d370ffcf2f4ff34",
       "classification": "EXECUTOR_LIFECYCLE",
-      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes."
+      "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Consolidated boundary: Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Explicit container profile preserves the same process/sandbox/credential behavior and default Mac compatibility."
     },
     "packages/storage/src/index.ts": {
       "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
@@ -32,14 +32,14 @@
       "authorityBoundary": "Additive migration 8"
     },
     "packages/storage/src/spend.ts": {
-      "sha256": "19ea99ca3f78829e62b7f2f9f5bfda68cf1ea053a9aa17a38403754bbd67aafc",
+      "sha256": "4850fee81922f9a0b02822a309cf96da3476aae1f109a85bf0aaa35da7c50143",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars."
+      "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Retain SQLite transactions and all historical V2 semantics while using shared pure validation/accounting functions."
     },
     "apps/supervisor/src/server.ts": {
-      "sha256": "edf5f9b64150ab7f08e23964a57102d7c557673740c6d7d45c9ca647b8d84bcc",
+      "sha256": "48b6b2864778f4528d47df1e9c5f49961372aa985e70adf96e268c4fb1735b03",
       "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
+      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback."
     },
     "apps/supervisor/src/private-alpha.ts": {
       "sha256": "446fbf9e0cf86c04055b6cf53b360755f15b2bc3ee080d074c00b1415e707eb0",
@@ -73,8 +73,8 @@
     },
     "packages/hosted-routing/src/result.ts": {
       "classification": "NOT_APPLICABLE",
-      "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory.",
-      "sha256": "21971070d3d52fe8febbbb3ecdac3510a92501bb9c18f7677c1deb0f2ac70ed5"
+      "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory. Consolidated boundary: Strict legacy snapshot V1 unchanged. Optional cloud-only independent verification is signature-bound, exact-shaped, candidate/policy/resource/chronology checked, and grants no readiness or publication by itself.",
+      "sha256": "9f3ad70fad6310d9c46f9393db03e63c9af9a79b7ee0d55412916a6870209369"
     },
     "apps/supervisor/src/git.ts": {
       "sha256": "5969e10d9dd82a0413c56d25d4e92bb2deca2b749d1654e5d00bd04c419639d0",
@@ -115,6 +115,231 @@
       "sha256": "3369bdca035c09dbc98778b23b49874a633063bd471838e05b9d283fa4bb46a5",
       "classification": "BOUNDED_REPAIR_LIFECYCLE",
       "authorityBoundary": " Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
+    },
+    "apps/supervisor/src/execution-provider.ts": {
+      "sha256": "36b12e18aa008c8204cf23624cc07416b2eda50b26763d49d4a2afb87e72b2e8",
+      "classification": "EXECUTION_PROVIDER_CONTRACT",
+      "authorityBoundary": "Typed migration seam only. Resource evidence cannot grant writer, model, verification or publication authority. Legacy Run and host gateway references are explicitly local migration limitations."
+    },
+    "apps/supervisor/src/local-execution-provider.ts": {
+      "sha256": "727738ba01b853feb93c220b7cd4529f7a8aade3e1e83fc9276cde30cfae3192",
+      "classification": "LOCAL_RESOURCE_RECONCILIATION",
+      "authorityBoundary": "Scope process and verifier observations to the exact persisted attempt. Unknown resources prevent quiescence; only dispatch control decides canonical terminal state after fencing. Keep candidate workspace required by existing publication; never claim it was destroyed."
+    },
+    "apps/cloud-control/src/dependencies.mjs": {
+      "sha256": "85e769d564f9cdcc3d9caf40a3f9fb492baf7d30ee48f577ddc83375a87568c6",
+      "classification": "cloud-staging-foundation",
+      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+    },
+    "apps/cloud-control/src/config.mjs": {
+      "sha256": "ee97f22cae6821e1b183b5919e3152d1b774b910e2ff2242e12488a9f898bfa8",
+      "classification": "STAGING_BOUNDARY",
+      "authorityBoundary": "Require exact dedicated staging preview identity and certificate-verified password-authenticated PostgreSQL. Bound database wake-up connection to 15 seconds and statements to 5 seconds."
+    },
+    "apps/cloud-control/src/readiness.mjs": {
+      "sha256": "d99426407f5870c06dd016ad4c161951a8094ef5b1c7af80d7e5b6f5d9f4ff2e",
+      "classification": "cloud-staging-foundation",
+      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+    },
+    "apps/cloud-control/api/health.mjs": {
+      "sha256": "474f45db39e74a036a207f41ebf6a1d0a76ef41f576de9e48a4b069352c72ea2",
+      "classification": "cloud-staging-foundation",
+      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+    },
+    "apps/cloud-control/api/readiness.mjs": {
+      "sha256": "28363ad4bf96e44e158d79dadffdd5b254ed48650997ac63c0384a18dbba1b83",
+      "classification": "cloud-staging-foundation",
+      "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+    },
+    "apps/cloud-control/src/infrastructure-plan.mjs": {
+      "sha256": "3e5ffdae46115ccdd110b7c0871f8e1e5e5e8245151d79b9c7f9746996241351",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "apps/cloud-control/src/infrastructure-store.mjs": {
+      "sha256": "f5865e1efa63157fab54914566d61aedcf66f417e3abfd7f858ce1b3111d3425",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "apps/cloud-control/src/infrastructure-lifecycle.mjs": {
+      "sha256": "d5e2f62cee6c9f8b860f449c9a09d18f422588a50aab0160033633dc75d738f7",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "apps/cloud-control/src/infrastructure-provider.mjs": {
+      "sha256": "139d522f3adca83b88023974dd263908b7aff4837a12377869a91affd0ee40ad",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "apps/cloud-control/api/infrastructure.mjs": {
+      "sha256": "08915d4fed39da4cd9b091368223b3f0928c4076418d3b5971df29aa1b99e91d",
+      "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
+      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+    },
+    "packages/storage/src/spend-policy.ts": {
+      "sha256": "2d54bd0c68cbf073d831812b9b4f7a79117e46f4b4cdc77443eec8224eed72b8",
+      "classification": "SHARED_SPEND_POLICY",
+      "authorityBoundary": "Canonical V2 pricing, admission, binding, protected completion reserve and UNKNOWN/accounting policy shared by SQLite and PostgreSQL; no provider effects."
+    },
+    "apps/cloud-control/src/postgres-spend.mjs": {
+      "sha256": "06ad22dc3a57b93d44e1f1445bafde7f5817bf111ff26310ec7e93b4a84a21a9",
+      "classification": "CANONICAL_CLOUD_ADMISSION",
+      "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
+    },
+    "apps/cloud-control/src/queue-delivery.mjs": {
+      "sha256": "af8be5f41a0b18ac1c371e2685b4c09cf26a688cc1ebc34aa22814061d87fc8f",
+      "classification": "STAGING_QUEUE_QUALIFICATION",
+      "authorityBoundary": "Fixed bounded infrastructure delivery check only; staging identity and durable nonce binding, private queue trigger, no Work admission, sandbox, model, verifier or publication authority."
+    },
+    "apps/cloud-control/api/queue-check.mjs": {
+      "sha256": "23846dc130d1901dad0b7229c404bb0010648cca8427ac5a7efaa258b8679630",
+      "classification": "STAGING_QUEUE_QUALIFICATION",
+      "authorityBoundary": "Fixed bounded infrastructure delivery check only; staging identity and durable nonce binding, private queue trigger, no Work admission, sandbox, model, verifier or publication authority."
+    },
+    "apps/cloud-control/api/queue-delivery.mjs": {
+      "sha256": "e98e9f89bd6d62289d1964e1613bc9a4502aaf7ae7b7505146970c6d572f9e10",
+      "classification": "STAGING_QUEUE_QUALIFICATION",
+      "authorityBoundary": "Fixed bounded infrastructure delivery check only; staging identity and durable nonce binding, private queue trigger, no Work admission, sandbox, model, verifier or publication authority."
+    },
+    "packages/contracts/src/cloud-execution.ts": {
+      "sha256": "6ccafdcd5dbed2d22df74aa4d5c45c11b841f53348633507018df5469de054dd",
+      "classification": "CANONICAL_CLOUD_ADMISSION",
+      "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
+    },
+    "apps/cloud-control/src/postgres-dispatch.mjs": {
+      "sha256": "9ee4f1097930cc499e925dc7ebd3ab9a303c100fe38a5ed28f65aa38b974927f",
+      "classification": "CLOUD_DISPATCH_AUTHORITY",
+      "authorityBoundary": "Canonical staging admission, writer lease, budget and cancellation preserved. Unresolved verifier blocks new productive allocation; terminal result requires verifier teardown."
+    },
+    "apps/cloud-control/src/candidate-custody.mjs": {
+      "classification": "PRIVATE_CANDIDATE_VALIDATION",
+      "authorityBoundary": "Bounded pure-data Git object and exact patch validation against admitted source/tree/path; no process execution, filesystem, network, protected-verifier verdict or publication authority.",
+      "sha256": "6c70b229315db0725488ca0a97dcebb81b8035ca1892115b5c8997a330ba7e28"
+    },
+    "apps/cloud-control/src/cloud-work-control.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "d1ae7010206a7ba8efb4eae8e46c2ffa594e8a2ea85a48d20e78a07c64ee5507"
+    },
+    "apps/cloud-control/src/cloud-queue-consumer.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "b3df9578ca5da96f544e80407854e3522b8cbb8330d6864bc83ff0a019b5d401"
+    },
+    "apps/cloud-control/src/cloud-work-result.mjs": {
+      "sha256": "8638f112462742f59173ab2b73dcc053a8c34cbb013fe5b3f9ca63f1bf239200",
+      "classification": "CLOUD_SIGNED_RESULT",
+      "authorityBoundary": "Canonical signed Result separately attests independent verifier policy, immutable candidate, Work and distinct destroyed resource; hidden inputs and raw provider errors excluded. No publication/owner authority."
+    },
+    "apps/cloud-control/src/cloud-runtime.mjs": {
+      "sha256": "e1ec7af46211a2b8f0cbf8875dd8c72720104c45d44538cafe14c68565740802",
+      "classification": "CLOUD_RUNTIME_COMPOSITION",
+      "authorityBoundary": "Dedicated staging controller binds canonical PostgreSQL dispatch/spend/custody with separate verifier provider; credentials remain host-side; no production admission."
+    },
+    "apps/cloud-control/src/cloud-work-provider.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "cbab0574824b53068a1c23014fc24d5e4012351e05b090792fc9cfaeb24c6b9d"
+    },
+    "apps/cloud-control/src/cloud-work-plan.mjs": {
+      "sha256": "8efb19e5cbc6a8dbc7259d6299412632f278c97b4076eb1539e4da2f7b8395e6",
+      "classification": "CLOUD_WORK_POLICY",
+      "authorityBoundary": "Exact source, image, existing Codex harness, deterministic model budget, tools and protected verification hash pinned in FactoryVersion; no model/environment/harness fallback."
+    },
+    "apps/cloud-control/src/cloud-work-lifecycle.mjs": {
+      "sha256": "f113f9c28c89bd33b4a21033f2cc1f6b952d76affaaa37c5aefdcdf7805adea7",
+      "classification": "CLOUD_WORK_LIFECYCLE",
+      "authorityBoundary": "Pinned protected verification occurs only after producer cleanup and before terminal Result. Reconciliation observes original verifier without rerunning; HEADLESS remains mandatory."
+    },
+    "apps/cloud-control/api/cloud-recovery.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "5f72e1e7313c90bc8a67e563ed9df018c0ad7458a933cc20601897aa627a6ed5"
+    },
+    "apps/cloud-control/api/cloud.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled. Explicit 403 for exact source/capability/Work binding grant denial; deployment bypass is never application authentication.",
+      "sha256": "9d4ba680d03d1bf6d70965490105c93d65609573561eb89c92237c51ad13fcb3"
+    },
+    "apps/cloud-control/api/cloud-work.mjs": {
+      "classification": "STAGING_CLOUD_EXECUTION",
+      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
+      "sha256": "66fae736e34da2dba309798f9da49cf965b74b30c7673dfb89d4a1c2dd63d442"
+    },
+    "packages/contracts/src/session-surface.ts": {
+      "sha256": "19b90b64505f4ce01bbc77326fdbecf3f951c789dd4f5c87a7bcac2540f95698",
+      "classification": "OPTIONAL_SESSION_SURFACE_CONTRACT",
+      "authorityBoundary": "Exact Environment Fabric contract from 9983ccfcc6881b090e3d11bc575d1af1e710195e; pure scope parser/guard and optional observation/attachment types. No adapters/endpoints or new Work authority. Full authority/lease/qualification checks remain required at any future effect."
+    },
+    "apps/cloud-control/src/session-surface-policy.ts": {
+      "sha256": "3edb7f4139e53f7306084d9fd14bb2d17474a3e68359e5aebe95031a45d695da",
+      "classification": "HEADLESS_POLICY",
+      "authorityBoundary": "Consume canonical SessionSurfaceKind; mandatory HEADLESS production default, no provider construction or runtime terminal dependency."
+    },
+    "apps/cloud-control/src/cloud-harness-executor.mjs": {
+      "sha256": "4de97617e330c5f98567502aa4f74079330a9cf48ed8f85b24f506ac44724c2d",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-mailbox.mjs": {
+      "sha256": "e651b5c24f93a1a1dfb99f9d66e3abe60822964811f78b2ffae6c4cdbc36bc91",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-worker.mjs": {
+      "sha256": "1ccce72a0634fafb818946d9c3cb79872dfd2782a9888ab8f4143518e7484c48",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-checkpoint.mjs": {
+      "sha256": "2d3894f0c7ad138bdac3ca73b691b198a32c9b01ae6eaf000e27debdbddfed78",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-install.mjs": {
+      "sha256": "ecc49b5ff24c703487c9183de771a4c98e923386e711c37194d85efce8a30deb",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-phase.mjs": {
+      "sha256": "1b1de480457f71ab71686b4d1880d8e2fcea96bacb6df3d09305a98dc27a14f6",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-relay.mjs": {
+      "sha256": "373e97889158e0c19a6f4b1c124f7e31490cb42182cce93aa52430edc6547e13",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-plan.mjs": {
+      "sha256": "2a3815b4ccda8cf8c5515715a3dd29bd19c3ccd6c91f0c80cd92be275759f44e",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-harness-fixture.mjs": {
+      "sha256": "6e2b728b8d4d882dac52c9ac25d5af9f8a11dc09ebaa4cfbf67554c064aabfaf",
+      "classification": "CLOUD_HARNESS_BOUNDARY",
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+    },
+    "apps/cloud-control/src/cloud-verification.mjs": {
+      "sha256": "fddc2f830348289a018ca9a79b1828e9b0bf2749306eda69419f3039388c7b2c",
+      "classification": "CLOUD_PROTECTED_VERIFICATION",
+      "authorityBoundary": "One durable verification claim per Run; candidate custody is immutable; no replacement on ambiguity; cleanup before observation; errors reduced to controlled codes."
+    },
+    "apps/cloud-control/src/cloud-verifier-policy.mjs": {
+      "sha256": "ba8e1d01dc6135b149bcb08483697adba87c45eecc3170b1647e5c8dd2aa603c",
+      "classification": "CLOUD_PROTECTED_VERIFICATION",
+      "authorityBoundary": "Pinned protected policy and inputs stay in Factory control plane, never producer source/context; no model, publication or owner authority."
+    },
+    "apps/cloud-control/src/cloud-verifier-provider.mjs": {
+      "sha256": "599285c81e13f051446cdf668ad4c519ad05a8362a714ab425dbfceef18065f6",
+      "classification": "CLOUD_PROTECTED_VERIFICATION",
+      "authorityBoundary": "Independent ephemeral sandbox after producer teardown; exact digest, deny-all network, no injected credentials, non-root candidate process; host compares bounded values, then exact resource cleanup."
+    },
+    "apps/cloud-control/src/postgres-verification.mjs": {
+      "sha256": "cfa2da724a8d5c6a9beb681c2be371c983e3ff2748f79b71d2504a2b493ceba9",
+      "classification": "CLOUD_PROTECTED_VERIFICATION",
+      "authorityBoundary": "Factory-only verification custody and leases serialize with canonical dispatch. Cancellation/deadline fence verdicts; one resource per Run; unknown allocation retains slot until reconciled."
     }
   }
 }

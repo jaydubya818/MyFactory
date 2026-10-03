@@ -1,0 +1,118 @@
+{
+  "staging": true,
+  "mutation": false,
+  "intake": [
+    {
+      "request_id": "0403bfba-5b03-4470-ab14-da374b2a57dd",
+      "work_id": "2a9444d1-0845-4a25-8258-f70323559d80",
+      "work_generation": 2,
+      "run_id": "d9795e60-7f60-4e0c-b2d0-e67fc030a261",
+      "deadline": "2026-10-02T21:17:50.314Z",
+      "dispatched": false
+    },
+    {
+      "request_id": "804c7181-0184-4fe4-a4a7-881c27e33997",
+      "work_id": "2a9444d1-0845-4a25-8258-f70323559d80",
+      "work_generation": 6,
+      "run_id": "acad48d2-008a-492d-8505-e4ddf02b9e82",
+      "deadline": "2026-10-02T23:41:49.412Z",
+      "dispatched": true
+    },
+    {
+      "request_id": "a913a7c1-12cf-4b6a-bad2-0cde377bb92a",
+      "work_id": "2a9444d1-0845-4a25-8258-f70323559d80",
+      "work_generation": 4,
+      "run_id": "b90d7f84-4c5e-4f0e-98ee-8165d9ab834b",
+      "deadline": "2026-10-02T23:26:32.501Z",
+      "dispatched": true
+    }
+  ],
+  "resources": [
+    {
+      "run_id": "b90d7f84-4c5e-4f0e-98ee-8165d9ab834b",
+      "state": "DESTROYED",
+      "cleanup_confirmed": true,
+      "evidence": {
+        "failure": "HARNESS_INSTALL_FAILED"
+      }
+    },
+    {
+      "run_id": "acad48d2-008a-492d-8505-e4ddf02b9e82",
+      "state": "DESTROYED",
+      "cleanup_confirmed": true,
+      "evidence": {
+        "source": {
+          "tree": "1084844b1454165358e51248afe8676f96daf17c",
+          "commit": "5cd13fa1f307a0c0f42f6317d966bb3179ad77c9",
+          "harness": {
+            "uid": 0,
+            "bytes": 285340072,
+            "version": "codex-cli 0.157.0",
+            "integrity": "sha512-3TEPslRaNmlgJST5xMJJ9ZWXW1hr4RlVEpF0tO4NULNGj4b5naWlHa6PlSRiDpnMz322aJkz0uvyyKqc37rLJQ=="
+          }
+        },
+        "failure": "PRIVATE_CUSTODY_READBACK",
+        "executor": "myfactory-codex",
+        "commandId": "cmd_c1fbfb1d0f07420b85ba01006d63",
+        "quiescence": {
+          "uid": 1001,
+          "signal": "SIGKILL",
+          "artifactBytes": 5316
+        },
+        "modelOperations": 2,
+        "harnessObservations": [
+          {
+            "harnessObservation": {
+              "phase": "productive",
+              "status": "yielded",
+              "sequence": 1,
+              "diagnostics": []
+            }
+          },
+          {
+            "harnessPhase": {
+              "phase": "productive",
+              "status": "yielded",
+              "sequence": 1,
+              "startedAt": "2026-10-02T23:39:00.340Z",
+              "finishedAt": "2026-10-02T23:39:01.915Z"
+            }
+          },
+          {
+            "checkpoint": {
+              "step": 1,
+              "tree": "54b52827d3c96b97be575e603cca465380962d13",
+              "passed": true,
+              "sha256": "c399e2ed7bf78722e2e6b40f38a89eb487e4483b3394ae018c23bc3174d52489"
+            }
+          },
+          {
+            "harnessObservation": {
+              "phase": "completion",
+              "status": "completed",
+              "sequence": 3,
+              "diagnostics": []
+            }
+          },
+          {
+            "harnessCompletion": {
+              "phase": "completion",
+              "status": "completed",
+              "sequence": 3,
+              "startedAt": "2026-10-02T23:39:03.356Z",
+              "finishedAt": "2026-10-02T23:39:09.184Z"
+            }
+          }
+        ],
+        "paidModelOperations": 0,
+        "protectedVerification": "NOT_RUN"
+      }
+    }
+  ],
+  "verifiers": [],
+  "operations": [
+    {
+      "count": 2
+    }
+  ]
+}

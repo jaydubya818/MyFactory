@@ -1,0 +1,87 @@
+Vercel CLI 62.1.0
+Deploying myfactory-cloud-staging
+Uploading [--------------------] (0.0B/2.6KB)
+Uploading [==========----------] (1.3KB/2.6KB)
+Uploading [===================-] (2.5KB/2.6KB)
+Uploading [====================] (2.6KB/2.6KB)
+  Inspect         https://vercel.com/jaydubya818/myfactory-cloud-staging/D3yoXgdu2Nr13RmzCwFYTu4dYzYX
+  Preview         https://myfactory-cloud-staging-gma3e66l0-jaydubya818.vercel.app
+Building…
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 4 cores, 8 GB
+Retrieving list of deployment files...
+Downloading 545 deployment files...
+Restored build cache from previous deployment (HXNSB5qDWYsr7XDgCozwho39EFvm)
+Running "vercel build"
+Vercel CLI 62.1.0
+Running "install" command: `npm ci --ignore-scripts --no-audit --no-fund`...
+added 70 packages in 2s
+{"version":1,"sourceDigest":"97c88a43701d15646e75868cd4ed3d3da24b4570eba7e6d626a07988d717d72d"}
+Installing dependencies...
+up to date in 424ms
+10 packages are looking for funding
+run `npm fund` for details
+Using built-in TypeScript 5.9.3 since "typescript" is missing from "devDependencies"
+../../packages/hosted-routing/src/result.ts(1,34): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+../../packages/hosted-routing/src/result.ts(2,44): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+../../packages/hosted-routing/src/result.ts(172,33): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/hosted-routing/src/result.ts(176,21): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/hosted-routing/src/result.ts(185,40): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/hosted-routing/src/result.ts(193,19): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/hosted-routing/src/result.ts(195,16): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/hosted-routing/src/result.ts(201,16): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/hosted-routing/src/result.ts(204,15): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/hosted-routing/src/result.ts(205,47): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/hosted-routing/src/result.ts(222,24): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/hosted-routing/src/result.ts(223,24): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+../../packages/storage/src/spend-policy.ts(1,34): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+../../packages/contracts/src/cloud-execution.ts(1,23): error TS2307: Cannot find module 'node:path' or its corresponding type declarations.
+../../packages/contracts/src/cloud-execution.ts(33,171): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+Using built-in TypeScript 5.9.3 since "typescript" is missing from "devDependencies"
+Using built-in TypeScript 5.9.3 since "typescript" is missing from "devDependencies"
+Build Completed in /vercel/output [21s]
+Deploying outputs...
+[2K[1A[2K[G  Preview         https://myfactory-cloud-staging-gma3e66l0-jaydubya818.vercel.app
+Completing…
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_D3yoXgdu2Nr13RmzCwFYTu4dYzYX",
+    "url": "https://myfactory-cloud-staging-gma3e66l0-jaydubya818.vercel.app",
+    "productionUrl": null,
+    "inspectorUrl": "https://vercel.com/jaydubya818/myfactory-cloud-staging/D3yoXgdu2Nr13RmzCwFYTu4dYzYX",
+    "readyState": "READY",
+    "target": null,
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_D3yoXgdu2Nr13RmzCwFYTu4dYzYX",
+    "buildMachine": {
+      "cores": 4,
+      "memory": 8192,
+      "machine": "standard",
+      "selectionType": "fixed",
+      "selectionSource": "plan-default"
+    },
+    "deploymentProtection": [
+      "vercel_authentication"
+    ]
+  },
+  "message": "Deployment myfactory-cloud-staging-gma3e66l0-jaydubya818.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel git connect --scope team_p8z8exJRTGfOPk1GC9vUOpv3",
+      "when": "Automatically deploy changes on every push"
+    },
+    {
+      "command": "vercel curl https://myfactory-cloud-staging-gma3e66l0-jaydubya818.vercel.app",
+      "when": "Verify deployment, including when Deployment Protection is enabled"
+    },
+    {
+      "command": "vercel inspect myfactory-cloud-staging-gma3e66l0-jaydubya818.vercel.app --scope team_p8z8exJRTGfOPk1GC9vUOpv3",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod --scope team_p8z8exJRTGfOPk1GC9vUOpv3",
+      "when": "Promote to production"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-02T17:58:16.193855+00:00",
+  "scripts": [
+    {
+      "path": "/private/tmp/check-factory-packaging.mjs",
+      "previousSourceSha256": "fcf0bc3ddd1d8f5039810dbd3b54a582cbdfbb158021ab40be977dc115681c15",
+      "action": "replaced with unconditional denial; no credential values searched or retained"
+    },
+    {
+      "path": "/private/tmp/provision-approved-bypass.mjs",
+      "previousSourceSha256": "e5319700fac6046e096f570cd8e26a451c5a6eeb9f56ff19bd722acbc52d1ad5",
+      "action": "replaced with unconditional denial; no credential values searched or retained"
+    }
+  ],
+  "limits": "Historical process memory and OS telemetry cannot be retroactively proven absent. This cleanup neither reads nor preserves old credential values."
+}

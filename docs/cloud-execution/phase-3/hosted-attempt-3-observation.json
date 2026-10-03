@@ -1,0 +1,213 @@
+{
+  "checkedAt": "2026-10-02T23:42:02.672Z",
+  "commands": [
+    {
+      "id": "f0cd7f2b-4bec-42ac-88a6-65cc66352422",
+      "operation": "start",
+      "status": "blocked",
+      "error_code": "factory_reconciliation_required",
+      "created_at": "2026-10-02T21:14:48.806Z",
+      "updated_at": "2026-10-02T21:14:52.469Z"
+    },
+    {
+      "id": "215b6c6c-a5a7-436a-9fcc-c6e130dafb85",
+      "operation": "start",
+      "status": "done",
+      "error_code": null,
+      "created_at": "2026-10-02T23:23:31.119Z",
+      "updated_at": "2026-10-02T23:23:34.466Z"
+    },
+    {
+      "id": "6c59ac0d-c884-4789-a469-afeb10de77d6",
+      "operation": "start",
+      "status": "done",
+      "error_code": null,
+      "created_at": "2026-10-02T23:38:47.858Z",
+      "updated_at": "2026-10-02T23:38:51.364Z"
+    }
+  ],
+  "routing": [
+    {
+      "work_id": "2a9444d1-0845-4a25-8258-f70323559d80",
+      "status": "PROPOSED",
+      "reason": "Beta policy: substantial bounded software production uses the qualified Factory",
+      "prepared": true,
+      "factory_observation": {
+        "observedAt": "2026-10-02T21:24:43.290Z",
+        "value": {
+          "state": "BLOCKED",
+          "reason": "Factory control unavailable (503); reconcile the same request",
+          "spend": {
+            "unit": "microUSD",
+            "phase": "productive",
+            "status": "KNOWN",
+            "workId": "2a9444d1-0845-4a25-8258-f70323559d80",
+            "currency": "USD",
+            "deadline": "2026-10-02T21:17:50.314Z",
+            "cancelled": false,
+            "requestId": "0403bfba-5b03-4470-ab14-da374b2a57dd",
+            "operations": [],
+            "workOrderId": "23f24cd6-7a53-4243-a4de-3e9054f698cc",
+            "authorityState": "prepared",
+            "workGeneration": 2,
+            "ceilingMicrousd": 1000000,
+            "contractVersion": "WORK_LEDGER_V2",
+            "pricingRevision": "cloud-codex-deterministic-v1",
+            "settledMicrousd": 0,
+            "pricingQualified": true,
+            "retainedMicrousd": 0,
+            "availableMicrousd": 1000000,
+            "maxPaidOperations": 3,
+            "accountingComplete": true,
+            "paidOperationsUsed": 0,
+            "unknownExposureMicrousd": 0,
+            "completionOperationsUsed": 0,
+            "completionReserveMicrousd": 186864,
+            "perOperationReserveMicrousd": 186864,
+            "plannedCompletionOperations": 1,
+            "plannedProductiveOperations": 2,
+            "completionOperationSlotsRemaining": 1,
+            "completionReserveRemainingMicrousd": 186864,
+            "productiveAllowanceRemainingMicrousd": 813136
+          },
+          "blocker": null
+        }
+      }
+    },
+    {
+      "work_id": "2a9444d1-0845-4a25-8258-f70323559d80",
+      "status": "ADMITTED",
+      "reason": "Beta policy: substantial bounded software production uses the qualified Factory",
+      "prepared": true,
+      "factory_observation": {
+        "observedAt": "2026-10-02T23:23:42.947Z",
+        "value": {
+          "state": "FAILED",
+          "spend": {
+            "unit": "microUSD",
+            "phase": "productive",
+            "status": "KNOWN",
+            "workId": "2a9444d1-0845-4a25-8258-f70323559d80",
+            "currency": "USD",
+            "deadline": "2026-10-02T23:26:32.501Z",
+            "cancelled": false,
+            "requestId": "a913a7c1-12cf-4b6a-bad2-0cde377bb92a",
+            "operations": [],
+            "workOrderId": "979d8061-97cb-4bb1-8802-cb3cd7055e1c",
+            "authorityState": "fenced",
+            "workGeneration": 4,
+            "ceilingMicrousd": 1000000,
+            "contractVersion": "WORK_LEDGER_V2",
+            "pricingRevision": "cloud-codex-deterministic-v1",
+            "settledMicrousd": 0,
+            "pricingQualified": true,
+            "retainedMicrousd": 0,
+            "availableMicrousd": 1000000,
+            "maxPaidOperations": 3,
+            "accountingComplete": true,
+            "paidOperationsUsed": 0,
+            "unknownExposureMicrousd": 0,
+            "completionOperationsUsed": 0,
+            "completionReserveMicrousd": 186864,
+            "perOperationReserveMicrousd": 186864,
+            "plannedCompletionOperations": 1,
+            "plannedProductiveOperations": 2,
+            "completionOperationSlotsRemaining": 1,
+            "completionReserveRemainingMicrousd": 186864,
+            "productiveAllowanceRemainingMicrousd": 813136
+          },
+          "blocker": "HARNESS_INSTALL_FAILED"
+        }
+      }
+    },
+    {
+      "work_id": "2a9444d1-0845-4a25-8258-f70323559d80",
+      "status": "ADMITTED",
+      "reason": "Beta policy: substantial bounded software production uses the qualified Factory",
+      "prepared": true,
+      "factory_observation": {
+        "observedAt": "2026-10-02T23:39:20.574Z",
+        "value": {
+          "state": "FAILED",
+          "spend": {
+            "unit": "microUSD",
+            "phase": "completion",
+            "status": "KNOWN",
+            "workId": "2a9444d1-0845-4a25-8258-f70323559d80",
+            "currency": "USD",
+            "deadline": "2026-10-02T23:41:49.412Z",
+            "cancelled": false,
+            "requestId": "804c7181-0184-4fe4-a4a7-881c27e33997",
+            "operations": [
+              {
+                "model": "openai/gpt-5.4-mini",
+                "phase": "productive",
+                "runId": "acad48d2-008a-492d-8505-e4ddf02b9e82",
+                "state": "settled",
+                "usage": {
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                "workId": "2a9444d1-0845-4a25-8258-f70323559d80",
+                "requestId": "804c7181-0184-4fe4-a4a7-881c27e33997",
+                "operationId": "8eeac039-b47b-4a69-9ed4-2226976647b9",
+                "workOrderId": "e727b559-bfd4-448b-aa2c-6a47ee3b6681",
+                "actualMicrousd": 0,
+                "factoryVersion": "10e0011500a6c577e55446d4e48a3383a7ee3d8f65b26298f69558dca835c3ac",
+                "workGeneration": 6,
+                "pricingRevision": "cloud-codex-deterministic-v1",
+                "dispatchIdentity": "efffa098-35c2-458d-932a-63199eb075a0",
+                "reservedMicrousd": 186864,
+                "providerRequestId": "deterministic-09652bb0-1024-4f5a-a62c-b288d855b621"
+              },
+              {
+                "model": "openai/gpt-5.4-mini",
+                "phase": "completion",
+                "runId": "acad48d2-008a-492d-8505-e4ddf02b9e82",
+                "state": "settled",
+                "usage": {
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                "workId": "2a9444d1-0845-4a25-8258-f70323559d80",
+                "requestId": "804c7181-0184-4fe4-a4a7-881c27e33997",
+                "operationId": "934d13c7-ca3b-46ce-93a5-f0dd60853947",
+                "workOrderId": "e727b559-bfd4-448b-aa2c-6a47ee3b6681",
+                "actualMicrousd": 0,
+                "factoryVersion": "10e0011500a6c577e55446d4e48a3383a7ee3d8f65b26298f69558dca835c3ac",
+                "workGeneration": 6,
+                "pricingRevision": "cloud-codex-deterministic-v1",
+                "dispatchIdentity": "efffa098-35c2-458d-932a-63199eb075a0",
+                "reservedMicrousd": 186864,
+                "providerRequestId": "deterministic-0a9b4c0e-48a4-448d-90c6-4642733facd2"
+              }
+            ],
+            "workOrderId": "e727b559-bfd4-448b-aa2c-6a47ee3b6681",
+            "authorityState": "fenced",
+            "workGeneration": 6,
+            "ceilingMicrousd": 1000000,
+            "contractVersion": "WORK_LEDGER_V2",
+            "pricingRevision": "cloud-codex-deterministic-v1",
+            "settledMicrousd": 0,
+            "pricingQualified": true,
+            "retainedMicrousd": 0,
+            "availableMicrousd": 1000000,
+            "maxPaidOperations": 3,
+            "accountingComplete": true,
+            "paidOperationsUsed": 2,
+            "unknownExposureMicrousd": 0,
+            "completionOperationsUsed": 1,
+            "completionReserveMicrousd": 186864,
+            "perOperationReserveMicrousd": 186864,
+            "plannedCompletionOperations": 1,
+            "plannedProductiveOperations": 2,
+            "completionOperationSlotsRemaining": 0,
+            "completionReserveRemainingMicrousd": 186864,
+            "productiveAllowanceRemainingMicrousd": 813136
+          },
+          "blocker": "PRIVATE_CUSTODY_READBACK"
+        }
+      }
+    }
+  ]
+}

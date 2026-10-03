@@ -1,12 +1,10 @@
 import { claimRepairPreparation } from "./review-repair.ts";
 import {assertImplementationProgress} from './execution-context.ts';
-import {execFile} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
-import {promisify} from 'node:util';
 import {realpathSync} from 'node:fs';
 import {ActionError,parseCreateInput,admissionState} from './actions.ts';
 import {canAccessRepository,type FactoryClient} from './connections.ts';
-import {JobManager} from './jobs.ts';
+import type {ExecutionProvider} from './execution-provider.ts';
 import {ProducerResults,producerState} from './producer-results.ts';
 import {canonical,digest,type ExecutionSnapshot} from '../../../packages/hosted-routing/src/result.ts';
 import type {FactoryStorage} from '../../../packages/storage/src/index.ts';
@@ -28,28 +26,20 @@ export interface PrepareRequest {
   plannedCompletionOperations:number;maxPaidOperations:number;completionReserveMicrousd:number};
 }
 const spendBinding=(identity:ExecutionIdentity)=>({workId:identity.workId,workGeneration:identity.workGeneration,dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,factoryVersion:identity.factoryVersion,runId:identity.remoteRunId});
-const exec=promisify(execFile),uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
-function absent(pid:unknown):boolean {
- if(typeof pid!=='number'||!Number.isSafeInteger(pid)||pid<=0)return false;
- try{process.kill(-pid,0);return false;}catch(e){return (e as NodeJS.ErrnoException).code==='ESRCH';}
-}
-function processAbsent(pid:unknown):boolean {
- if(typeof pid!=='number'||!Number.isSafeInteger(pid)||pid<=0)return false;
- try{process.kill(pid,0);return false;}catch(e){return (e as NodeJS.ErrnoException).code==='ESRCH';}
-}
+const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 /** Exact request state is appended to the existing WorkOrder event history.
  * BEGIN IMMEDIATE guards every claim across processes. No new execution store. */
 export class FactoryDispatchControl {
  private readonly storage:FactoryStorage;
- private readonly jobs:JobManager;
+ private readonly execution:ExecutionProvider;
  private readonly producer:ProducerResults;
  private readonly spend:SpendLedger;
  private readonly localFixture:boolean;
  private readonly live:boolean;
  private readonly spendFixture?:ProviderConnection;
- constructor(storage:FactoryStorage,jobs:JobManager,producer:ProducerResults,spend:SpendLedger,localFixture=false,
+ constructor(storage:FactoryStorage,execution:ExecutionProvider,producer:ProducerResults,spend:SpendLedger,localFixture=false,
   spendFixture?:ProviderConnection,live=false){
-  this.localFixture=localFixture;this.storage=storage;this.jobs=jobs;this.producer=producer;this.spend=spend;this.spendFixture=spendFixture;
+  this.localFixture=localFixture;this.storage=storage;this.execution=execution;this.producer=producer;this.spend=spend;this.spendFixture=spendFixture;
   this.live=live;
  }
  executionAvailability(){return {mode:this.live?'LIVE':this.localFixture?'LOCAL_FIXTURE':this.spendFixture?'LOCAL_SPEND_FIXTURE':'DISABLED',
@@ -112,7 +102,7 @@ export class FactoryDispatchControl {
   this.spend.createBudget({workId:input.workId,workGeneration:input.workGeneration,requestId:input.requestId,
     workOrderId:created?.id??this.record(client,input.requestId).order.id},
     Math.floor(input.maxSpendUsd*1_000_000),input.deadline,plan);
-  if(created){try{await this.jobs.prepareRun(created);}catch(e){this.storage.appendEvent({workOrderId:created.id,runId:null,type:'factory.prepare_failed',payload:{reason:e instanceof Error?e.message:String(e)}});throw e;}}
+  if(created){try{await this.execution.prepare(created);}catch(e){this.storage.appendEvent({workOrderId:created.id,runId:null,type:'factory.prepare_failed',payload:{reason:e instanceof Error?e.message:String(e)}});throw e;}}
   return this.read(client,input.requestId);
  }
  private bind(client:FactoryClient,identity:ExecutionIdentity){
@@ -176,7 +166,7 @@ export class FactoryDispatchControl {
     },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};
   }
   try{
-  const started=this.jobs.executePrepared(admittedWork,data.run,()=>this.storage.transaction(()=>{
+  const started=await this.execution.start(admittedWork,data.run,()=>this.storage.transaction(()=>{
    const current=this.bind(client,identity);
    if(current.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return false;
    if(Date.parse(identity.deadline)<=Date.now()||this.storage.getPolicy().dispatchPaused)throw new ActionError('Dispatch expired or paused','dispatch_denied',409);
@@ -197,7 +187,7 @@ export class FactoryDispatchControl {
    return data;
   });
   this.spend.cancelBound(spendBinding(identity));
-  if(this.jobs.activeRun(data.run.id))await this.jobs.cancelRun(data.order);
+  await this.execution.cancel(data.order,data.run);
   return this.read(client,identity.requestId);
  }
  async read(client:FactoryClient,requestId:string){
@@ -210,19 +200,11 @@ export class FactoryDispatchControl {
   let state='PREPARING',quiescent=false;
   if(terminal){state=String(terminal.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));}
   else if(run&&snapshot){
-   state=claim?this.jobs.activeRun(run.id)?stopped?'STOPPING':'RUNNING':'UNKNOWN':stopped?'STOPPING':'PREPARED';
-   const settled=events.some(e=>e.runId===run.id&&e.type==='factory.execution_settled');
-   const ownerGone=!claim||claim.payload.supervisorPid===process.pid||processAbsent(claim.payload.supervisorPid);
-   const processEvents=events.filter(e=>e.runId===run.id&&['agent.process_started','agent.completion_process_started'].includes(e.type));
-   const processesGone=processEvents.every(e=>absent(e.payload.pid));
-   const verifierStarted=events.some(e=>e.runId===run.id&&['run.candidate_committed','run.reproduction_started'].includes(e.type));
-   let verifierGone=!verifierStarted;
-   if(verifierStarted){try{const {stdout}=await exec('docker',['ps','-aq','--filter','label=factory.run='+run.id],{timeout:10000,maxBuffer:4096});verifierGone=stdout.trim()==='';}catch{/* Unavailable Docker cannot prove absence. */}}
+   const resources=await this.execution.reconcile(run);
+   state=claim?resources.active?stopped?'STOPPING':'RUNNING':'UNKNOWN':stopped?'STOPPING':'PREPARED';
    const terminalRun=['ready_for_review','failed','cancelled'].includes(run.state);
-   const recovery=events.filter(e=>e.runId===run.id&&['run.recovery_hold','run.interrupted'].includes(e.type)).at(-1);
-   const recoverable=!!recovery && (processEvents.length>0 || recovery.payload.previousState==='verifying');
-   if(binding&&!this.jobs.activeRun(run.id)&&ownerGone&&processesGone&&verifierGone&&
-     ((!claim&&stopped)||(settled&&terminalRun)||(recoverable&&processEvents.length>0))){
+   if(binding&&resources.quiescent&&
+     ((!claim&&stopped)||(resources.settled&&terminalRun)||resources.recoveryEligible)){
     const proposed=!claim?'NOT_DISPATCHED':terminalRun?producerState(this.storage,run):'CANCELLED';
     // A terminal claim cannot precede the durable paid-authority fence.
     this.spend.fenceAuthority(spendBinding(binding));
@@ -233,7 +215,7 @@ export class FactoryDispatchControl {
      // The tombstone is durable before reporting absence. No delayed dispatch
      // can re-enter JobManager after this event.
      if(!terminalRun){this.storage.saveRun({...run,state:'cancelled',finishedAt:new Date().toISOString(),failure:'Bound attempt fenced after resource reconciliation'});this.storage.saveWorkOrder({...data.order,state:'cancelled'});}
-     this.storage.appendEvent({workOrderId:data.order.id,runId:run.id,type:'factory.terminal',payload:{state:proposed,identity:binding,resourceProof:{processGroups:processEvents.map(e=>e.payload.pid),verifierGone,settled,ownerGone},at:new Date().toISOString()}});
+     this.storage.appendEvent({workOrderId:data.order.id,runId:run.id,type:'factory.terminal',payload:{state:proposed,identity:binding,resourceProof:resources.evidence,at:new Date().toISOString()}});
     });
     const saved=this.record(client,requestId).events.find(e=>e.type==='factory.terminal');
     if(saved){state=String(saved.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));}

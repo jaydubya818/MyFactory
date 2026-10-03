@@ -230,3 +230,12 @@ test('host productive protocol cannot be enabled without its metered checkpoint 
     {boundedProductiveContext:true,gateway:{baseUrl:'http://127.0.0.1:8123/v1',childToken:'a'.repeat(64)},productiveEndSignal:new AbortController().signal,sandbox:'read-only'},
   ]) await assert.rejects(work.adapter.runCodex(options(work,'ordinary',overrides)),/Bounded productive context/);
 });
+
+test('explicit container adapter reports its execution profile without changing local defaults',async t=>{
+ const work=await fixture(t),binaryPath=join(work.workspacePath,'..','fake-codex.mjs');
+ const adapter=createCodexAdapter(binaryPath,'container');
+ assert.equal((await adapter.preflightCodex()).workerProfile,'container');
+ const result=await adapter.runCodex(options(work,'bounded container fixture'));
+ assert.equal(result.workerProfile,'container');assert.equal(result.status,'completed');
+ assert.throws(()=>createCodexAdapter(binaryPath,'unqualified'),/Unsupported/);
+});

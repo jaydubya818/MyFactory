@@ -1,0 +1,36 @@
+{
+  "checkedAt": "2026-10-02T17:02:49.424Z",
+  "evidenceClass": "CONNECTED",
+  "scope": "Access diagnostic only; not productive Work qualification",
+  "project": "prj_XU7fJW735PtsnKoAYtGfzdnsotIB",
+  "deploymentId": "dpl_BZqJ2MMH5BHopFtdy3bEFtFChKU9",
+  "origin": "https://sofie-cloud-qualification-e59wu5lwv-jaydubya818.vercel.app",
+  "browserBundleScan": {
+    "status": "PASS",
+    "files": 77
+  },
+  "htmlHydrationBuildScan": {
+    "status": "PASS",
+    "files": 934
+  },
+  "publicFiles": {
+    "status": "PASS",
+    "files": 2
+  },
+  "clientVisibleEnvironmentScan": "PASS",
+  "apiResponseCredentialMatches": 0,
+  "credentialsScannedAtBuild": 4,
+  "modelAgentOperations": 0,
+  "modelContextExposure": 0,
+  "producerAllocations": 0,
+  "producerExposure": 0,
+  "verifierAllocations": 0,
+  "verifierExposure": 0,
+  "screenshotsCreated": 0,
+  "workerVerifierRuntimeContainmentQualification": "NOT_RUN",
+  "factoryServiceAccess": "PASS",
+  "workDispatched": false,
+  "paidModelCalls": 0,
+  "productionAdmission": "DISABLED",
+  "publication": "DISABLED"
+}

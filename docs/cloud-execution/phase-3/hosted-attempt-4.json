@@ -1,0 +1,168 @@
+{
+  "attempt": 4,
+  "evidenceClass": "CONNECTED",
+  "modelBoundary": "DETERMINISTIC",
+  "checkedAt": "2026-10-03T06:07:17.600Z",
+  "factoryCommit": "d84721cbb407db16598ee28e8f0dc5db27af6f5b",
+  "factoryVersion": "da7b51a56a62980ee8f96a029b1a60fc84f495fd7897438fbb74ede3a0e161fe",
+  "paidModelOperations": 0,
+  "productionAdmission": "DISABLED",
+  "publication": "DISABLED",
+  "macOff": "NOT_RUN",
+  "localP0": "FAIL_TIMEOUT",
+  "freshBrowserReconnect": "PASS",
+  "intake": [
+    {
+      "request_id": "8dcf1b2c-21b9-4137-a398-8d179ea4813d",
+      "work_id": "373fed29-0d26-474d-a109-f4cef5329847",
+      "work_generation": 2,
+      "run_id": "e56ad94e-e383-4615-b9e4-601fc174086d",
+      "deadline": "2026-10-02T23:55:23.160Z"
+    }
+  ],
+  "producer": [
+    {
+      "run_id": "e56ad94e-e383-4615-b9e4-601fc174086d",
+      "provider_session_id": "sbx_B6Z5KvjReqq8bt2R5hxsSed24VeG",
+      "state": "DESTROYED",
+      "cleanup_confirmed": true,
+      "evidence": {
+        "source": {
+          "tree": "1084844b1454165358e51248afe8676f96daf17c",
+          "commit": "5cd13fa1f307a0c0f42f6317d966bb3179ad77c9",
+          "harness": {
+            "uid": 0,
+            "bytes": 285340072,
+            "version": "codex-cli 0.157.0",
+            "integrity": "sha512-3TEPslRaNmlgJST5xMJJ9ZWXW1hr4RlVEpF0tO4NULNGj4b5naWlHa6PlSRiDpnMz322aJkz0uvyyKqc37rLJQ=="
+          }
+        },
+        "executor": "myfactory-codex",
+        "commandId": "cmd_5e5577123ae14782b880dd44dc60",
+        "quiescence": {
+          "uid": 1001,
+          "signal": "SIGKILL",
+          "artifactBytes": 5316
+        },
+        "sessionSurface": "HEADLESS",
+        "modelOperations": 2,
+        "harnessObservations": [
+          {
+            "harnessObservation": {
+              "phase": "productive",
+              "status": "yielded",
+              "sequence": 1,
+              "diagnostics": []
+            }
+          },
+          {
+            "harnessPhase": {
+              "phase": "productive",
+              "status": "yielded",
+              "sequence": 1,
+              "startedAt": "2026-10-02T23:52:34.570Z",
+              "finishedAt": "2026-10-02T23:52:36.247Z"
+            }
+          },
+          {
+            "checkpoint": {
+              "step": 1,
+              "tree": "54b52827d3c96b97be575e603cca465380962d13",
+              "passed": true,
+              "sha256": "ad6de7e002b6ac44bd02d1d299fdb551fb7fc5e2d9cfa76e8abc16d80950a358"
+            }
+          },
+          {
+            "harnessObservation": {
+              "phase": "completion",
+              "status": "completed",
+              "sequence": 3,
+              "diagnostics": []
+            }
+          },
+          {
+            "harnessCompletion": {
+              "phase": "completion",
+              "status": "completed",
+              "sequence": 3,
+              "startedAt": "2026-10-02T23:52:37.707Z",
+              "finishedAt": "2026-10-02T23:52:43.976Z"
+            }
+          }
+        ],
+        "paidModelOperations": 0,
+        "visibleChecksPassed": true,
+        "protectedVerification": "NOT_RUN"
+      }
+    }
+  ],
+  "verifier": [
+    {
+      "run_id": "e56ad94e-e383-4615-b9e4-601fc174086d",
+      "provider_session_id": "sbx_vKwTZDYCBdEhZAbw1v4IxOVJDK11",
+      "candidate_commit": "89a622482e2664549ec2631cb0549ff2411e8270",
+      "candidate_tree": "54b52827d3c96b97be575e603cca465380962d13",
+      "custody_sha256": "ad6de7e002b6ac44bd02d1d299fdb551fb7fc5e2d9cfa76e8abc16d80950a358",
+      "policy_sha256": "cefd6a4a154dbbfb11855bfef215b1da6e5e6ed9e2a03264403043aa29d0c781",
+      "image": "vercel/sandbox/node@sha256:6ad1291a9fe7d243ee9f23626e6b08614a596431801c55e14cc5ee9d525f28d1",
+      "state": "DESTROYED",
+      "outcome": "PASS",
+      "checks": [
+        {
+          "id": "trim-and-case",
+          "result": "PASS"
+        },
+        {
+          "id": "repeated-space",
+          "result": "PASS"
+        },
+        {
+          "id": "digits-and-hyphens",
+          "result": "PASS"
+        },
+        {
+          "id": "tab-newline",
+          "result": "PASS"
+        },
+        {
+          "id": "blank",
+          "result": "PASS"
+        },
+        {
+          "id": "empty",
+          "result": "PASS"
+        },
+        {
+          "id": "punctuation",
+          "result": "PASS"
+        },
+        {
+          "id": "unicode",
+          "result": "PASS"
+        },
+        {
+          "id": "number",
+          "result": "PASS"
+        },
+        {
+          "id": "null",
+          "result": "PASS"
+        }
+      ],
+      "cleanup_confirmed": true,
+      "failure": null,
+      "created_at": "2026-10-02T23:52:47.511Z",
+      "updated_at": "2026-10-02T23:52:53.362Z"
+    }
+  ],
+  "custody": [
+    {
+      "run_id": "e56ad94e-e383-4615-b9e4-601fc174086d",
+      "candidate_commit": "89a622482e2664549ec2631cb0549ff2411e8270",
+      "candidate_tree": "54b52827d3c96b97be575e603cca465380962d13",
+      "artifact_sha256": "ad6de7e002b6ac44bd02d1d299fdb551fb7fc5e2d9cfa76e8abc16d80950a358",
+      "artifact_bytes": 5316,
+      "collected_at": "2026-10-02T23:52:45.089Z"
+    }
+  ]
+}
