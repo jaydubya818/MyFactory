@@ -48,6 +48,46 @@
     "api/*.mjs": {
       "maxDuration": 30,
       "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/production-validation-work.mjs": {
+      "maxDuration": 180,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-production-validation-work-v1"
+        }
+      ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/production-validation-recovery.mjs": {
+      "maxDuration": 60,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-production-validation-recovery-v1"
+        }
+      ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/production-work.mjs": {
+      "maxDuration": 180,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-production-work-v1"
+        }
+      ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/production-recovery.mjs": {
+      "maxDuration": 60,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-production-recovery-v1"
+        }
+      ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
     }
   },
   "git": {

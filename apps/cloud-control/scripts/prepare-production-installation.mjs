@@ -10,7 +10,7 @@ import {productionProjectId,productionCustodyStoreId,productionDatabaseResourceI
 export async function productionInstallationSql(ownerScope){
  if(typeof ownerScope!=='string'||!ownerScope.trim()||ownerScope.length>200||/[\x00-\x1f\x7f]/.test(ownerScope)||/qualification|synthetic|staging/i.test(ownerScope))throw Error('PRODUCTION_OWNER_REQUIRED');
  const directory=new URL('../migrations/',import.meta.url),names=(await readdir(directory)).filter(name=>/^\d{3}-[-a-z]+\.sql$/.test(name)).sort();
- if(names.length!==7||names.at(-1)!=='007-production-installation-boundary.sql')throw Error('PRODUCTION_MIGRATION_INVENTORY');
+ if(names.length!==8||names.at(-1)!=='008-production-work-authority.sql')throw Error('PRODUCTION_MIGRATION_INVENTORY');
  const migrations=await Promise.all(names.map(async name=>{const sql=await readFile(new URL(name,directory),'utf8');return{name,sql,checksum:createHash('sha256').update(sql).digest('hex')};}));
  const literal=value=>"'"+value.replaceAll("'","''")+"'";
  return `-- Explicit one-time installation for ${productionDatabaseResourceId}.

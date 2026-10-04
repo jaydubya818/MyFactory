@@ -31,7 +31,7 @@ export function noReplayFetch(transport = fetch) {
   };
 }
 
-export function infrastructureProvider() {
+export function infrastructureProvider({providerOptions=async()=>({})}={}) {
   const sdk = { fetch: noReplayFetch() }; // Hosted staging OIDC only; no keys enter worker.
   const signal = () => AbortSignal.timeout(15000);
   return {
@@ -72,9 +72,10 @@ export function infrastructureProvider() {
       return { sha256, pathname, bytes: bytes.length };
     },
     async destroy(name, knownSandbox) {
+      const boundSdk = {...(await providerOptions()), ...sdk};
       let sandbox = knownSandbox;
       if (!sandbox) {
-        try { sandbox = await Sandbox.get({ name, resume: false, ...sdk, signal: signal() }); }
+        try { sandbox = await Sandbox.get({ name, resume: false, ...boundSdk, signal: signal() }); }
         catch (error) { if (error.response?.status !== 404) throw error; }
       }
       if (sandbox) {
@@ -82,7 +83,7 @@ export function infrastructureProvider() {
         await sandbox.stop({ signal: signal() });
         await sandbox.delete({ deleteOrphanSnapshots: true, signal: signal() });
       }
-      try { await Sandbox.get({ name, resume: false, ...sdk, signal: signal() }); }
+      try { await Sandbox.get({ name, resume: false, ...boundSdk, signal: signal() }); }
       catch (error) { if (error.response?.status === 404) return; throw error; }
       throw Error('CLEANUP_NOT_CONFIRMED');
     },

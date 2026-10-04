@@ -15,7 +15,7 @@ test('CONNECTED production initializer refuses qualification rows and pins a fre
  const isolated={query:(sql,args)=>client.query(rewrite(sql),args)};
  t.after(async()=>{await client.query('ROLLBACK');await client.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);client.release();await pool.end();});
  const files=(await readdir(new URL('../migrations/',import.meta.url))).filter(p=>p.endsWith('.sql')).sort();
- assert.equal(files.length,7);
+ assert.equal(files.length,8);
  for(const file of files)await isolated.query(await readFile(new URL('../migrations/'+file,import.meta.url),'utf8'));
  const install={projectId:productionProjectId,ownerScope:'real-owner',custodyStoreId:productionCustodyStoreId,databaseResourceId:productionDatabaseResourceId};
  await isolated.query("INSERT INTO factory.work_orders(id,record,state) VALUES ('historical-qualification','{}','queued')");
