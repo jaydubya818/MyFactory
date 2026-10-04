@@ -1,3 +1,4 @@
+import {requiresProtectedVerification} from './verification-policy-binding.mjs';
 import { createHash, randomUUID } from 'node:crypto';
 import { canonical, digest } from '../../../packages/hosted-routing/src/result.ts';
 import { assertSpendBinding } from '../../../packages/storage/src/spend-policy.ts';
@@ -7,7 +8,7 @@ import {cloudVerifierPolicySha256} from './cloud-verifier-policy.mjs';
 /** Canonical Factory admission history and resource leases. Queue delivery grants
  * no authority. All mutable checks serialize with the canonical spend ledger. */
 export class PostgresDispatchStore {
-  constructor(pool) { this.pool=pool; }
+  constructor(pool,{maxWorks=8,workLimitError='STAGING_WORK_LIMIT',custodyPrefix='factory/staging',verificationPolicySha256=cloudVerifierPolicySha256,assertAuthority}={}) { if(!Number.isSafeInteger(maxWorks)||maxWorks<1||maxWorks>8||!['factory/staging','factory/production'].includes(custodyPrefix)||!/^[a-f0-9]{64}$/.test(verificationPolicySha256))throw Error('DISPATCH_CONFIGURATION_INVALID');this.assertAuthority=assertAuthority;this.pool=pool;this.maxWorks=maxWorks;this.workLimitError=workLimitError;this.custodyPrefix=custodyPrefix;this.verificationPolicySha256=verificationPolicySha256; }
   async transaction(action) {
     const client=await this.pool.connect();
     try {
@@ -28,11 +29,13 @@ export class PostgresDispatchStore {
   }
   async prepare(grant,input,snapshotFactory) {
     return this.transaction(async(client,now)=>{
-      // Replay remains readable after expiry, but cannot change any admission input.
+      // Exact production authority is consumed atomically with first admission.
+      if(this.assertAuthority)await this.assertAuthority(client,input,now,'prepare');
+      // Replay cannot change any admission input.
       const prior=(await client.query('SELECT * FROM factory.intake_receipts WHERE client_id=$1 AND request_id=$2',[grant.clientId,input?.requestId])).rows[0];
       if(prior){if(prior.input_digest!==digest(input))throw Error('PREPARATION_REPLAY_CONFLICT');return prior;}
       const request=parseCloudPrepare(input,grant,now);
-      if(Number((await client.query('SELECT count(*) FROM factory.intake_receipts WHERE client_id=$1',[grant.clientId])).rows[0].count)>=8)throw Error('STAGING_WORK_LIMIT');
+      if(Number((await client.query('SELECT count(*) FROM factory.intake_receipts WHERE client_id=$1',[grant.clientId])).rows[0].count)>=this.maxWorks)throw Error(this.workLimitError);
       const other=(await client.query('SELECT client_id,work_generation FROM factory.intake_receipts WHERE work_id=$1',[request.workId])).rows;
       if(other.some(r=>r.client_id!==grant.clientId||r.work_generation>=request.workGeneration))throw Error('WORK_SCOPE_OR_GENERATION_CONFLICT');
       // No new generation while an earlier resource can still execute.
@@ -65,6 +68,7 @@ export class PostgresDispatchStore {
   async claim(clientId,identity) {
     return this.transaction(async(client,now)=>{
       const row=await this.record(client,clientId,identity.requestId);this.assertIdentity(row,identity);
+      if(this.assertAuthority)await this.assertAuthority(client,row.request,now,'claim');
       const prior=await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.dispatch_claimed','factory.stop_requested','factory.terminal')",[row.run_id]);
       if(prior.rowCount)return null;
       if(new Date(row.deadline).getTime()<=now)throw Error('WORK_DEADLINE_EXPIRED');
@@ -112,7 +116,8 @@ export class PostgresDispatchStore {
     });
   }
   async heartbeat(runId,leaseOwner,generation) {
-    return this.transaction(async(client)=>{
+    return this.transaction(async(client,now)=>{
+      if(this.assertAuthority){const row=(await client.query('SELECT request FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];await this.assertAuthority(client,row?.request,now,'heartbeat');}
       const r=await client.query(`UPDATE factory.execution_resources SET lease_expires_at=least(clock_timestamp()+interval '60 seconds',deadline),updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 AND lease_expires_at>clock_timestamp() AND deadline>clock_timestamp() AND cancelled_at IS NULL AND NOT cleanup_confirmed RETURNING *`,[runId,leaseOwner,generation]);
       if(!r.rowCount)throw Error('LEASE_FENCED');return r.rows[0];
     });
@@ -121,6 +126,7 @@ export class PostgresDispatchStore {
     if(!/^dpl_[A-Za-z0-9]+$/.test(deploymentId)||!/^[a-f0-9]{64}$/.test(nonce))throw Error('INVALID_DELIVERY_INTENT');
     return this.transaction(async(client,now)=>{
       const row=await this.record(client,clientId,identity.requestId);this.assertIdentity(row,identity);
+      if(this.assertAuthority)await this.assertAuthority(client,row.request,now,'dispatch');
       const previous=(await client.query('SELECT * FROM factory.delivery_intents WHERE run_id=$1',[row.run_id])).rows[0];
       if(previous)return{created:false,intent:previous};
       if(new Date(row.deadline).getTime()<=now)throw Error('WORK_DEADLINE_EXPIRED');
@@ -166,7 +172,7 @@ export class PostgresDispatchStore {
     });
   }
   async retainCustody(runId,leaseOwner,generation,receipt) {
-    if(!receipt||Object.keys(receipt).sort().join(',')!=='bytes,commit,pathname,sha256,tree'||!Number.isSafeInteger(receipt.bytes)||receipt.bytes<1||receipt.bytes>256000||!/^[a-f0-9]{40}$/.test(receipt.commit)||!/^[a-f0-9]{40}$/.test(receipt.tree)||!/^[a-f0-9]{64}$/.test(receipt.sha256)||receipt.pathname!==`factory/staging/runs/${runId}/${receipt.sha256}.json`)throw Error('INVALID_CUSTODY_RECEIPT');
+    if(!receipt||Object.keys(receipt).sort().join(',')!=='bytes,commit,pathname,sha256,tree'||!Number.isSafeInteger(receipt.bytes)||receipt.bytes<1||receipt.bytes>256000||!/^[a-f0-9]{40}$/.test(receipt.commit)||!/^[a-f0-9]{40}$/.test(receipt.tree)||!/^[a-f0-9]{64}$/.test(receipt.sha256)||receipt.pathname!==`${this.custodyPrefix}/runs/${runId}/${receipt.sha256}.json`)throw Error('INVALID_CUSTODY_RECEIPT');
     return this.transaction(async client=>{
       const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[runId])).rows[0];
       if(!resource||resource.lease_owner!==leaseOwner||resource.lease_generation!==generation||!resource.provider_session_id)throw Error('CUSTODY_RESOURCE_MISMATCH');
@@ -202,6 +208,7 @@ export class PostgresDispatchStore {
     if(!['COMPLETED','FAILED','CANCELLED'].includes(requestedStatus))throw Error('INVALID_TERMINAL_STATE');
     return this.transaction(async(client,now)=>{
       const row=await this.record(client,clientId,requestId);
+      const protectedRequired=requiresProtectedVerification(row.snapshot,this.verificationPolicySha256);
       const prior=(await client.query("SELECT payload FROM factory.events WHERE run_id=$1 AND type='factory.terminal'",[row.run_id])).rows[0];
       if(prior)return prior.payload;
       const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[row.run_id])).rows[0];
@@ -209,7 +216,6 @@ export class PostgresDispatchStore {
       if((resource&&!resource.cleanup_confirmed)||(!resource&&!stopped))throw Error('RESOURCE_NOT_QUIESCENT');
       const custody=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[row.run_id])).rows[0];
       const expired=new Date(row.deadline).getTime()<=now;
-      const protectedRequired=row.snapshot.configuration?.cloud?.verificationPolicySha256===cloudVerifierPolicySha256;
       const verification=protectedRequired?(await client.query('SELECT * FROM factory.verification_resources WHERE run_id=$1',[row.run_id])).rows[0]:null;
       if(verification&&!verification.cleanup_confirmed)throw Error('VERIFIER_CLEANUP_UNPROVEN');
       const verifierUnknown=protectedRequired&&(!verification||!['PASS','FAIL'].includes(verification.outcome));
@@ -245,11 +251,12 @@ export class PostgresDispatchStore {
   async read(clientId,requestId) {
     return this.transaction(async client=>{
       const row=await this.record(client,clientId,requestId);
+      const protectedRequired=requiresProtectedVerification(row.snapshot,this.verificationPolicySha256);
       const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[row.run_id])).rows[0]??null;
       const events=(await client.query('SELECT type,payload,created_at FROM factory.events WHERE run_id=$1 ORDER BY id',[row.run_id])).rows;
       const custody=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[row.run_id])).rows[0]??null;
       const delivery=(await client.query('SELECT state FROM factory.delivery_intents WHERE run_id=$1',[row.run_id])).rows[0]??null;
-      const verification=row.snapshot.configuration?.cloud?.verificationPolicySha256===cloudVerifierPolicySha256?(await client.query('SELECT * FROM factory.verification_resources WHERE run_id=$1',[row.run_id])).rows[0]??null:null;
+      const verification=protectedRequired?(await client.query('SELECT * FROM factory.verification_resources WHERE run_id=$1',[row.run_id])).rows[0]??null:null;
       return{...row,resource,events,custody,delivery,verification};
     });
   }

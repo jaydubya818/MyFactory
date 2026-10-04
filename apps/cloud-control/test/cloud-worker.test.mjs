@@ -20,7 +20,8 @@ test('deterministic executor produces a real exact-source Git candidate accepted
   // Reconstruct pinned public Git objects from checked-in fixture data. This
   // also works in a shallow CI checkout without another branch or network.
   mkdirSync(repo);execFileSync('git',['init','-q'],{cwd:repo,env});
-  cpSync(join(root,'fixtures'),join(repo,'fixtures'),{recursive:true});
+  mkdirSync(join(repo,'fixtures'));
+  cpSync(join(root,'fixtures/cloud-work'),join(repo,'fixtures/cloud-work'),{recursive:true});
   execFileSync('git',['add','--all'],{cwd:repo,env});
   assert.equal(execFileSync('git',['write-tree'],{cwd:repo,env,encoding:'utf8'}).trim(),cloudSource.tree);
   const sourceVector=JSON.parse(readFileSync(new URL('./fixtures/project-slug-source.json',import.meta.url),'utf8'));

@@ -167,9 +167,9 @@
       "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
     },
     "apps/cloud-control/src/infrastructure-provider.mjs": {
-      "sha256": "139d522f3adca83b88023974dd263908b7aff4837a12377869a91affd0ee40ad",
+      "sha256": "4135b2b10231f7760cc1d46f85f7d02178082895cc535bf467b1e271f53c4346",
       "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
-      "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/api/infrastructure.mjs": {
       "sha256": "08915d4fed39da4cd9b091368223b3f0928c4076418d3b5971df29aa1b99e91d",
@@ -182,9 +182,9 @@
       "authorityBoundary": "Canonical V2 pricing, admission, binding, protected completion reserve and UNKNOWN/accounting policy shared by SQLite and PostgreSQL; no provider effects."
     },
     "apps/cloud-control/src/postgres-spend.mjs": {
-      "sha256": "06ad22dc3a57b93d44e1f1445bafde7f5817bf111ff26310ec7e93b4a84a21a9",
+      "sha256": "78fa49734cabb621213e032043261a39c03173a365b7ef94d8080e65a35ba1be",
       "classification": "CANONICAL_CLOUD_ADMISSION",
-      "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/queue-delivery.mjs": {
       "sha256": "af8be5f41a0b18ac1c371e2685b4c09cf26a688cc1ebc34aa22814061d87fc8f",
@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "2a1c549cf2806fe0d8d1ff0db57147c686663bc1371f96c804ff4bffc568a1fb",
+      "sha256": "9499a444f97c00efb8557135c18c2d54225131623311287a9fba869a7bd473ce",
       "classification": "CLOUD_DISPATCH_AUTHORITY",
-      "authorityBoundary": "Canonical staging admission, writer lease, budget and cancellation preserved. Unresolved verifier blocks new productive allocation; terminal result requires verifier teardown. Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -217,19 +217,19 @@
       "sha256": "6c70b229315db0725488ca0a97dcebb81b8035ca1892115b5c8997a330ba7e28"
     },
     "apps/cloud-control/src/cloud-work-control.mjs": {
-      "sha256": "af0f5569bd61c7313a9d74d2dcf364905489ed9723c17e1d3c6ac5bc24f3e4aa",
+      "sha256": "8e9675ceb741c9b62d8d1fd3b7275f84eaa59df39bc00f1512cac21ce40588ed",
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled. Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-queue-consumer.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "b3df9578ca5da96f544e80407854e3522b8cbb8330d6864bc83ff0a019b5d401"
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "11f369eada0b68684e67c3a5d546c92e74d29cecbe8482b4aaf41efca44904ae"
     },
     "apps/cloud-control/src/cloud-work-result.mjs": {
-      "sha256": "8638f112462742f59173ab2b73dcc053a8c34cbb013fe5b3f9ca63f1bf239200",
+      "sha256": "12485ad333cf92090bd91cf16cd6643d25335086944dea175778cefc00be8332",
       "classification": "CLOUD_SIGNED_RESULT",
-      "authorityBoundary": "Canonical signed Result separately attests independent verifier policy, immutable candidate, Work and distinct destroyed resource; hidden inputs and raw provider errors excluded. No publication/owner authority."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-runtime.mjs": {
       "sha256": "fd5a4edcc93cc2cf04448d7597c64cee3b362a17f8b5c97370cb8fef4817d200",
@@ -238,18 +238,18 @@
     },
     "apps/cloud-control/src/cloud-work-provider.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Dedicated preview project and staging-only client/queue grants. Exact pinned deterministic source/runtime, no model provider or publication capability; PostgreSQL claims/fences, bounded ephemeral sandbox, private validated custody and cleanup before terminal. Queue recovery never reexecutes. Public admission disabled.",
-      "sha256": "cbab0574824b53068a1c23014fc24d5e4012351e05b090792fc9cfaeb24c6b9d"
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "57f8c783eee598a40cff15400bac395464eb71a082805d8de6f622f4f1431c56"
     },
     "apps/cloud-control/src/cloud-work-plan.mjs": {
-      "sha256": "8efb19e5cbc6a8dbc7259d6299412632f278c97b4076eb1539e4da2f7b8395e6",
+      "sha256": "44d88ced4dd81766858dfc7bc71a86a786984084766ab36860123ef781a53c3d",
       "classification": "CLOUD_WORK_POLICY",
-      "authorityBoundary": "Exact source, image, existing Codex harness, deterministic model budget, tools and protected verification hash pinned in FactoryVersion; no model/environment/harness fallback."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-work-lifecycle.mjs": {
-      "sha256": "f113f9c28c89bd33b4a21033f2cc1f6b952d76affaaa37c5aefdcdf7805adea7",
+      "sha256": "4d9544f36f6efedc2c000875569c32511214ef0b3ae52326a979c2a8e651a61d",
       "classification": "CLOUD_WORK_LIFECYCLE",
-      "authorityBoundary": "Pinned protected verification occurs only after producer cleanup and before terminal Result. Reconciliation observes original verifier without rerunning; HEADLESS remains mandatory."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/api/cloud-recovery.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -277,9 +277,9 @@
       "authorityBoundary": "Consume canonical SessionSurfaceKind; mandatory HEADLESS production default, no provider construction or runtime terminal dependency."
     },
     "apps/cloud-control/src/cloud-harness-executor.mjs": {
-      "sha256": "4de97617e330c5f98567502aa4f74079330a9cf48ed8f85b24f506ac44724c2d",
+      "sha256": "58e353d15613cb8ab461ca2dea71cb9285398a009608183a45f77aad96ff2cb8",
       "classification": "CLOUD_HARNESS_BOUNDARY",
-      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-harness-mailbox.mjs": {
       "sha256": "e651b5c24f93a1a1dfb99f9d66e3abe60822964811f78b2ffae6c4cdbc36bc91",
@@ -292,9 +292,9 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
     "apps/cloud-control/src/cloud-harness-checkpoint.mjs": {
-      "sha256": "2d3894f0c7ad138bdac3ca73b691b198a32c9b01ae6eaf000e27debdbddfed78",
+      "sha256": "ffbcfa8ae7e73dae120ac518622c7b2b679e14eadc95a1205ac678e0803a8a62",
       "classification": "CLOUD_HARNESS_BOUNDARY",
-      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-harness-install.mjs": {
       "sha256": "ecc49b5ff24c703487c9183de771a4c98e923386e711c37194d85efce8a30deb",
@@ -302,9 +302,9 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
     "apps/cloud-control/src/cloud-harness-phase.mjs": {
-      "sha256": "1b1de480457f71ab71686b4d1880d8e2fcea96bacb6df3d09305a98dc27a14f6",
+      "sha256": "441609c1220a2bce9ee55a5fb7838d302d29734c318e11a2dbc9c85e309db963",
       "classification": "CLOUD_HARNESS_BOUNDARY",
-      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-harness-relay.mjs": {
       "sha256": "373e97889158e0c19a6f4b1c124f7e31490cb42182cce93aa52430edc6547e13",
@@ -332,14 +332,14 @@
       "authorityBoundary": "Pinned protected policy and inputs stay in Factory control plane, never producer source/context; no model, publication or owner authority."
     },
     "apps/cloud-control/src/cloud-verifier-provider.mjs": {
-      "sha256": "599285c81e13f051446cdf668ad4c519ad05a8362a714ab425dbfceef18065f6",
+      "sha256": "ed18027c362a997a2be80c288ed74ff4929534b0e1d32f6427babd0b7ab11019",
       "classification": "CLOUD_PROTECTED_VERIFICATION",
-      "authorityBoundary": "Independent ephemeral sandbox after producer teardown; exact digest, deny-all network, no injected credentials, non-root candidate process; host compares bounded values, then exact resource cleanup."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/postgres-verification.mjs": {
-      "sha256": "cfa2da724a8d5c6a9beb681c2be371c983e3ff2748f79b71d2504a2b493ceba9",
+      "sha256": "df52aa07e6adfd42ab66354240d70681f96ea4a698faa88ce772e264039b45ff",
       "classification": "CLOUD_PROTECTED_VERIFICATION",
-      "authorityBoundary": "Factory-only verification custody and leases serialize with canonical dispatch. Cancellation/deadline fence verdicts; one resource per Run; unknown allocation retains slot until reconciled."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "packages/contracts/src/environment.ts": {
       "sha256": "1844f841db35c591b227dec0a6486c91badbbed2fb2135d6895723f0e69bc8ae",
@@ -382,9 +382,9 @@
       "authorityBoundary": "Read-only Git blob verification serves a bounded exact static candidate on loopback and closes after capture. No package install, arbitrary command, developer-provided localhost target or publication authority."
     },
     "apps/cloud-control/src/cloud-evidence.mjs": {
-      "sha256": "4bde6520dfa4030faa19bcf8bfa3544c25569b35893461adc5cba221dc5ec929",
+      "sha256": "b37aa5599579d653a678de9ca44fc997b1240f46023d768997e82c54b31ed44d",
       "classification": "EVIDENCE_READ",
-      "authorityBoundary": " Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/production-installation.mjs": {
       "sha256": "bef595323bc46ca58ee2d04366c0a0637af9fbb3d1797942fb105af312dc94fc",
@@ -402,14 +402,84 @@
       "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
     },
     "apps/cloud-control/src/production-control.mjs": {
-      "sha256": "fc2a8b009d5326f7476bd19ab56e88ad8c19129e610e221163651907b4cd945e",
+      "sha256": "57b84259f9d4c37347049f41e929f51a4858977958b6b6a522c14474582f1c0d",
       "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
-      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/production-identity.mjs": {
       "sha256": "b93eee8e81744e507f7b01bbf66e945f1e6c22c86d2f1ac4c453cc4a3b251a5d",
       "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
       "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
+    },
+    "apps/cloud-control/src/production-execution-plan.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "3df7f44d86f50a83ef7b8cb6745ae00bc024a750b1cd41e3b3b24034f71bfe63"
+    },
+    "apps/cloud-control/src/production-model-provider.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "71fd48051b2847f672b3ceec1ed3e1a8402a29ff73707e015765d75c56d487c6"
+    },
+    "apps/cloud-control/src/production-runtime-components.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "ce0d3534b06ce0010195a57779007ab03a7482dc9df45401b549b9f74a29b383"
+    },
+    "apps/cloud-control/src/production-verifier-policy.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "e122219ab54f01616c10470ce3af528a06313fe05b157acd199b86bbd93481ad"
+    },
+    "apps/cloud-control/src/production-verifier-provider.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "55a1557ac787fab3a067664afc949027f2af30f0522d84d0edbd039c0f423de7"
+    },
+    "apps/cloud-control/src/verification-policy-binding.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "ea72318995189ffd624a1c46ed3697ff6cd7540b94106c01934903b1281abbf4"
+    },
+    "apps/cloud-control/api/production-validation-recovery.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "a2be2a6f41d331593345f4cc5c3ffcbad757091a199e2a69eac0b9d82c406a5a"
+    },
+    "apps/cloud-control/api/production-validation-work.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "d87ab136ca17572b7009998bed2bc898d3291d825c3023653b3aa815ca8223ee"
+    },
+    "apps/cloud-control/src/production-authority.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "cd091fddb8604d79ddcb0640f9e92f95bee4cc987f463333a8e436c8957c4c57"
+    },
+    "apps/cloud-control/src/production-runtime.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "55905372fb762bac51fbb605c4b23df320c7e7918f4128244dbbd4ce490bd9ab"
+    },
+    "apps/cloud-control/src/production-validation-plan.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "a32359c5b1dd9a1e06e4c9333728a9965fad16200a80d2a2b88c432c42d41569"
+    },
+    "apps/cloud-control/src/production-validation-provider.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
+      "sha256": "73a96c2123b39132d4fab24ea2fe01258e6d9296925b98b936293c808f710c4c"
+    },
+    "apps/cloud-control/api/production-recovery.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent read-only release review PASS: exact immutable production Work authority, separate validation/canary scopes, paid approval hash, credential recovery horizon and cleanup-only effect denial; no general Work enablement.",
+      "sha256": "ce38b37fb24f47b680f9c899fc5f81cd163962eb2bde9ded5c8d4178eea4fd4d"
+    },
+    "apps/cloud-control/api/production-work.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Independent read-only release review PASS: exact immutable production Work authority, separate validation/canary scopes, paid approval hash, credential recovery horizon and cleanup-only effect denial; no general Work enablement.",
+      "sha256": "13806aab67f4197ae67b049ea6080761171bdbc152b6aa623ff5c3d0ae1991a6"
     }
   }
 }

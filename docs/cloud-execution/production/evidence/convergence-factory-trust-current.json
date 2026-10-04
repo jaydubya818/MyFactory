@@ -1,0 +1,26 @@
+{
+  "ssoProtection": {
+    "deploymentType": "all"
+  },
+  "trustedSources": {
+    "projects": {
+      "prj_L6faw25wnFGUZtrLKBIccg8gIDLR": {
+        "label": "Sofie production to Factory production only. Application and Work authorization remain required.",
+        "customAllow": [
+          {
+            "from": {
+              "slugs": [
+                "production"
+              ]
+            },
+            "to": {
+              "slugs": [
+                "production"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

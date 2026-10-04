@@ -1,0 +1,29 @@
+{
+  "status": "SCOPED_PASS",
+  "scope": "Independent read-only source review; hosted qualification pending",
+  "factoryFocusedTests": 38,
+  "myEveFocusedTests": 91,
+  "factoryFullTests": 498,
+  "factoryExplicitSkips": 22,
+  "findingsResolved": [
+    "verifier revocation fences finish",
+    "strict production path normalization",
+    "owner same-origin early denial",
+    "current signed receipt and provenance only",
+    "exact Work SQL filter before limits",
+    "cleanup-only effects fenced after approval withdrawal",
+    "strict UI isolation response schema",
+    "20-minute credential recovery horizon"
+  ],
+  "paidCalls": 0,
+  "publicationEffects": 0,
+  "liveProductionEvidence": "PENDING",
+  "productionMigration": {
+    "version": "008-production-work-authority",
+    "sha256": "ef53632cd1b35cc82c00b9ebb0ab15f5c984ae7e6a69474beefa273888ac50ea",
+    "ledgerCount": 8,
+    "authorityRows": 0,
+    "spendOperations": 0,
+    "operatorReadback": "PASS"
+  }
+}

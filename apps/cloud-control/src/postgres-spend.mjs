@@ -5,8 +5,9 @@ import { nonempty, positive, map, sameAttempt, assertSpendBinding, assertReserva
 // This small staging deployment serializes writes with one transaction lock,
 // matching the existing BEGIN IMMEDIATE semantics. No provider effects occur here.
 export class PostgresSpendLedger {
-  constructor(pool, { requireExecutionLease = true } = {}) { this.pool = pool; this.requireExecutionLease=requireExecutionLease; }
+  constructor(pool, { requireExecutionLease = true, assertPaidAuthority } = {}) { this.assertPaidAuthority=assertPaidAuthority;this.pool = pool; this.requireExecutionLease=requireExecutionLease; }
   async assertExecutionLease(client,binding) {
+    if(this.assertPaidAuthority)await this.assertPaidAuthority(client,binding);
     if(!this.requireExecutionLease)return; // Explicit standalone policy-parity tests only.
     const result=await client.query(`SELECT 1 FROM factory.execution_resources WHERE run_id=$1 AND provider_session_id IS NOT NULL AND state='RUNNING' AND lease_expires_at>clock_timestamp() AND deadline>clock_timestamp() AND cancelled_at IS NULL AND NOT cleanup_confirmed`,[binding.runId]);
     if(result.rowCount!==1)throw Error('Cloud execution lease fenced or not running');

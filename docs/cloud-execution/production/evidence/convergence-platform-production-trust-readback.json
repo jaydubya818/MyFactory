@@ -1,0 +1,69 @@
+{
+  "observedAt": "2026-10-03T23:41:54.640336+00:00",
+  "deployments": [
+    {
+      "projectId": "prj_L6faw25wnFGUZtrLKBIccg8gIDLR",
+      "deploymentId": "dpl_4b3o72WezGEY8i97fwzCPgaV8eAx",
+      "state": "READY",
+      "target": "production",
+      "sha": "82b4284b100f13b91ed5ba8142716033d695aac0",
+      "expectedSha": "82b4284b100f13b91ed5ba8142716033d695aac0",
+      "canonicalMatch": true,
+      "url": "sofie-personal-agent-hnwiggjg7-jaydubya818.vercel.app",
+      "forbiddenProductionEnvironmentKeys": []
+    },
+    {
+      "projectId": "prj_4hfceCN8l6wN1gUyYOzZLQ7aJapK",
+      "deploymentId": "dpl_DbPHmA5U6GADjWYGsT5U5wQJCKnb",
+      "state": "READY",
+      "target": "production",
+      "sha": "7e60ad2044b2805f5c7caad7dca4811fca777e33",
+      "expectedSha": "7e60ad2044b2805f5c7caad7dca4811fca777e33",
+      "canonicalMatch": true,
+      "url": "myfactory-cloud-production-f7yqm9wvm-jaydubya818.vercel.app",
+      "forbiddenProductionEnvironmentKeys": []
+    }
+  ],
+  "anonymousSmoke": [
+    {
+      "check": "untrusted-local",
+      "status": 302,
+      "expected": 302,
+      "pass": true
+    },
+    {
+      "check": "invalid-workload-identity",
+      "status": 302,
+      "expected": 302,
+      "pass": true
+    },
+    {
+      "check": "sofie-anonymous/login",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "check": "sofie-anonymous/api/beta/factory-installation",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    }
+  ],
+  "servedLoginCredentialScan": {
+    "status": "PASS",
+    "credentials": 2,
+    "encodings": [
+      "plaintext",
+      "base64"
+    ],
+    "htmlPages": 1,
+    "linkedStaticAssets": 14,
+    "scope": "fresh production Factory application/proof credentials only; full configured-credential build scan is separate"
+  },
+  "authenticatedProductionChecks": "PASS_at_canonical_82b4284_owner_panel_after_redeployment",
+  "previewAndDevelopmentWorkloadLiveChecks": "PASS_exact_environment_mismatch_separate_receipts",
+  "productionExecutionContract": "NOT_READY",
+  "paidModelCallsInitiated": 0,
+  "generatedPublicationEffectsInitiated": 0
+}

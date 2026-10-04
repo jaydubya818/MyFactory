@@ -31,10 +31,10 @@ export async function cloudEvidence(row,provider,ownerScope){
    ref,proofReference:proofEvidenceReference(ref),base64:bytes.toString('base64')};
  });
 }
-export async function cloudEvidenceRead(input,{store,provider},ownerScope){
+export async function cloudEvidenceRead(input,{store,provider},ownerScope,clientId=cloudGrant.clientId){
  if(!input||Object.keys(input).sort().join(',')!=='candidateCommit,evidenceKind,evidenceReference,expectedDigest,factoryVersion,ownerScope,repository,requestId,runId,workGeneration,workId,workOrderId'||input.ownerScope!==ownerScope)throw denied();
- const found=await store.findRun(cloudGrant.clientId,input.workOrderId,input.runId);
- const row=await store.read(cloudGrant.clientId,found.request_id);
+ const found=await store.findRun(clientId,input.workOrderId,input.runId);
+ const row=await store.read(clientId,found.request_id);
  const matches=(await cloudEvidence(row,provider,ownerScope)).filter(e=>e.proofReference===input.evidenceReference);
  if(matches.length!==1)throw denied();const e=matches[0];
  if(Object.entries(e.scope).some(([k,v])=>input[k]!==v)||['workOrderId','runId','candidateCommit','factoryVersion'].some(k=>input[k]!==e.ref[k])||input.evidenceKind!==e.ref.kind||input.expectedDigest!==e.ref.sha256)throw denied();
