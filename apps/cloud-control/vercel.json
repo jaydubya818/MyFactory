@@ -45,10 +45,6 @@
       "maxDuration": 60,
       "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
     },
-    "api/*.mjs": {
-      "maxDuration": 30,
-      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
-    },
     "api/production-validation-work.mjs": {
       "maxDuration": 180,
       "experimentalTriggers": [
@@ -87,6 +83,10 @@
           "topic": "factory-production-recovery-v1"
         }
       ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/*.mjs": {
+      "maxDuration": 30,
       "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
     }
   },
