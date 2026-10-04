@@ -26,7 +26,13 @@ async function fixture(t,worker,localFactoryFixture=true,localSpendFixture){
  t.after(async()=>{await supervisor.close();rmSync(dir,{recursive:true,force:true});});
  return {request,input,identity,key,get calls(){return calls;},get supervisor(){return supervisor;},async restart(){await supervisor.close();supervisor=createSupervisor({dataDir,resultSigning,jobDependencies,localFactoryFixture,localSpendFixture});origin=await listen();}};
 }
-async function terminal(f){for(let i=0;i<300;i++){const r=await f.request('dispatches/'+f.input.requestId);assert.equal(r.status,200);if(r.body.quiescent)return r.body;await sleep(10);}throw Error('No terminal proof');}
+async function terminal(f){
+ // Full CI also runs Docker and browser checks. Bound elapsed time rather than
+ // assuming the connected HTTP/process completion fits300ten-millisecond polls.
+ const until=performance.now()+20000;let state;
+ while(performance.now()<until){const r=await f.request('dispatches/'+f.input.requestId);assert.equal(r.status,200);state=r.body.state;if(r.body.quiescent)return r.body;await sleep(25);}
+ throw Error('No terminal proof within20s; last state='+state);
+}
 test('prepare binds actual attempt before any execution; response-loss/restart replay never redispatches',async t=>{
  const f=await fixture(t);const p=await f.request('dispatches',f.input);assert.equal(p.status,200);assert.equal(p.body.state,'PREPARED');assert.equal(f.calls,0);assert(p.body.snapshot.requestDigest);const id=f.identity(p.body);
  assert.equal(f.supervisor.storage.listEvents(id.workOrderId).find(event=>event.type==='factory.owner_scope_bound').payload.ownerScope,'owner:fixture');
