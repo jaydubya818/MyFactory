@@ -1,10 +1,10 @@
-# Production execution contract — preparation
+# Production execution contract and release qualification
 
-Status: **NOT_READY**. Production admission remains disabled. Preparing this contract is not owner authorization for a model operation.
+Status: **LOCAL_QUALIFIED / LIVE_VALIDATION_PENDING**. General production admission remains disabled. This contract does not authorize the first paid canary.
 
 ## Model connection
 
-The host-only `production-model-provider.mjs` supplies a ProviderConnection to the existing SpendGateway. It does not introduce a HarnessProvider or execution engine. It is not yet connected to production Work admission.
+The host-only `production-model-provider.mjs` supplies a ProviderConnection to the existing SpendGateway. It does not introduce a HarnessProvider or execution engine. Its dedicated canary route requires a separately installed exact owner authorization hash and an immutable matching database grant; neither is installed by the release-validation path.
 
 Each operation must first pass a durable, exact Work authorization assertion. The adapter then acquires fresh runtime OIDC, verifies the signature and exact Factory production project/team/issuer/audience/environment, and refuses expired identities. No static API-key fallback, qualification identity or provider credential enters the producer/verifier. The existing SpendGateway reserves budget and rechecks authority after identity acquisition, prohibits server-side conversations/background execution, enforces input/output caps, uses one HTTP attempt, rejects redirects and credential echoes, and records unknown spend conservatively.
 
@@ -24,7 +24,7 @@ A new harmless three-file source is durably preserved as ancestor commit `8f1d95
 
 The production plan explicitly binds the existing myfactory-codex0.157.0 harness, source, command, implementation checkpoint, read-only completion, separate protected policy, price and conservative reserves. Its proposed bounds are one candidate attempt, at most two productive operations plus one completion operation,180 seconds and$1 maximum. These are preparation limits, not an approved Work envelope. The exact canonical Work, owner grant, FactoryVersion, Environment, validity window and production qualification are still required before Section17 authorization can be requested.
 
-The retained Cloud components now accept trusted host configuration for source/checkpoints, provider credentials, custody prefix/store, queue/client identity, spend plan and protected verifier. `production-runtime-components.mjs` composes those existing components with production bindings but is **not imported by HTTP or queue entrypoints**. It does not open a database, enqueue a dispatch, acquire identity or call a model during construction. Production admission remains at the deployed disabled boundary. No second execution engine or HarnessProvider was added.
+The retained Cloud components now accept trusted host configuration for source/checkpoints, provider credentials, custody prefix/store, queue/client identity, spend plan and protected verifier. `production-runtime-components.mjs` composes those existing components behind distinct production validation and canary HTTP/queue entrypoints. It does not open a database, enqueue a dispatch, acquire identity or call a model during construction. Production admission remains at the deployed disabled boundary. No second execution engine or HarnessProvider was added.
 
 Protected policy answers remain outside the three-file source and producer harness/context. Local subprocess tests reject identity, trimming, coercion and false-verdict candidates. These tests do not establish hosted sandbox isolation. Existing lifecycle, custody, signer and verifier components must be composed and live-qualified before Ready.
 
@@ -33,3 +33,24 @@ Final local corpus:486 PASS/21 gated skips; connected verified-TLS disposable Po
 The final production platform readback is retained under [evidence](evidence/): MyEve main/deployment `82b4284b100f13b91ed5ba8142716033d695aac0`, Factory main/deployment `7e60ad2044b2805f5c7caad7dca4811fca777e33`; exact All Deployments protection and sole Sofie Production→Factory Production trust remain intact. Owner connection checks passed again after redeployment. This platform result does not promote this preparation branch into production.
 
 Remaining: durable exact Work authority and qualified entrypoints; production signer provisioning; production queue activation; MyEve production configuration/Environment binding; new production EvidenceProvider→Proof ingestion; full deterministic composed qualification and final canary envelope. Overall remains NOT_READY for paid execution. No paid model call or generated publication occurred.
+
+
+## Final release assembly
+
+The operator validation uses a fixed, reviewed implementation of line-ending normalization. It is attributed as `operator-authored-candidate-validation`, model `none`, evidence class `DETERMINISTIC`; it never installs a Harness or invokes a model adapter. It exercises real source materialization, visible checks, durable candidate custody, producer teardown, separate protected verification, signed Result, authenticated TestEvidence/DiffEvidence transport, MyEve durable custody and owner Proof readback. Its client and FactoryVersion differ from the future paid canary. A conservative unused V2 budget ceiling is not a paid-call or completion claim.
+
+Migration008 adds immutable operator-installed Work envelopes. Runtime cannot create them. The exact request, owner, source, configuration, FactoryVersion, contract digest, candidate-input digest, environment, expiry and publication=false are checked under the existing serialized transaction before prepare, claim, queue reservation, heartbeat, paid spend and protected verifier admission/finish. Revocation is one-way. A validation envelope cannot authorize the paid client. The paid client additionally requires the exact manifest hash in its separately authorized server configuration.
+
+The MyEve production path is server-only, pins one canonical Work/generation and repository, and does not reuse the old qualification conversation, source, model transport or owner. Owner-only same-origin POST queues the existing Cloud controller; it cannot select another Work, source, model or grant. The controller filters its exact Work before queue limits. General Work and synthetic conversation switches remain disabled. Result readback requires the current admitted receipt, signature, Work revision/generation, FactoryVersion/source/configuration and candidate digests. Both evidence kinds must survive independent durable readback. Live negative probes must return exact cross-owner/cross-Work denials from Factory and MyEve before the UI can show PASS.
+
+## Cancellation, revocation and bounded recovery
+
+The top-level paid-canary authorization guard remains. Explicit cleanup-only routing permits observation, stop, retained Result/Proof readback and the authenticated recovery queue for already admitted identities after withdrawal of the canary hash. This mode unconditionally rejects every new execution authority crossing, including prepare, claim, heartbeat, model operations and verifier execution. It does not admit replacement Work, producers or candidates.
+
+Proof credentials and the active Result signer remain required; no authentication or signing validation was bypassed. Canonical production authority requires both expiries to be strictly later than the exact Work deadline plus20 minutes. This covers the deadline+30s recovery delivery,900s retention and bounded callback/provider operations. Near-expiry admission fails before grant consumption or allocation. If an outage exceeds that recovery envelope, an operator must equivalently renew the existing Proof credential/signing configuration before replaying cleanup for the same retained Run. Do not create another Run, reset UNKNOWN exposure, or treat an expired credential as proof of cleanup. Credential renewal cannot change Work/source/FactoryVersion/effects or resurrect a revoked grant. A provider allocation with uncertain outcome remains UNKNOWN until the original resource is reconciled.
+
+Two proposed relaxations of cleanup guards were rejected by automatic approval review. The accepted implementation instead narrows admission with the credential recovery horizon, retains all credential/signer checks, and documents the operator renewal boundary.
+
+## Remaining live release gate
+
+Merge/deploy only after independent source review and release tests pass. Apply migrations only through the qualified operator path. Provision the production signer and distinct application/Proof credentials, install only the exact operator-validation envelope, run the hosted journey, verify zero model operations and publication effects, and record its current owner Proof plus isolation denials. Platform health alone does not satisfy this gate. The paid canary configuration/hash/grant must remain absent until the separate Section17 owner approval.

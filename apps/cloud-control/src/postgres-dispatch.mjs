@@ -8,7 +8,7 @@ import {cloudVerifierPolicySha256} from './cloud-verifier-policy.mjs';
 /** Canonical Factory admission history and resource leases. Queue delivery grants
  * no authority. All mutable checks serialize with the canonical spend ledger. */
 export class PostgresDispatchStore {
-  constructor(pool,{maxWorks=8,workLimitError='STAGING_WORK_LIMIT',custodyPrefix='factory/staging',verificationPolicySha256=cloudVerifierPolicySha256}={}) { if(!Number.isSafeInteger(maxWorks)||maxWorks<1||maxWorks>8||!['factory/staging','factory/production'].includes(custodyPrefix)||!/^[a-f0-9]{64}$/.test(verificationPolicySha256))throw Error('DISPATCH_CONFIGURATION_INVALID');this.pool=pool;this.maxWorks=maxWorks;this.workLimitError=workLimitError;this.custodyPrefix=custodyPrefix;this.verificationPolicySha256=verificationPolicySha256; }
+  constructor(pool,{maxWorks=8,workLimitError='STAGING_WORK_LIMIT',custodyPrefix='factory/staging',verificationPolicySha256=cloudVerifierPolicySha256,assertAuthority}={}) { if(!Number.isSafeInteger(maxWorks)||maxWorks<1||maxWorks>8||!['factory/staging','factory/production'].includes(custodyPrefix)||!/^[a-f0-9]{64}$/.test(verificationPolicySha256))throw Error('DISPATCH_CONFIGURATION_INVALID');this.assertAuthority=assertAuthority;this.pool=pool;this.maxWorks=maxWorks;this.workLimitError=workLimitError;this.custodyPrefix=custodyPrefix;this.verificationPolicySha256=verificationPolicySha256; }
   async transaction(action) {
     const client=await this.pool.connect();
     try {
@@ -29,7 +29,9 @@ export class PostgresDispatchStore {
   }
   async prepare(grant,input,snapshotFactory) {
     return this.transaction(async(client,now)=>{
-      // Replay remains readable after expiry, but cannot change any admission input.
+      // Exact production authority is consumed atomically with first admission.
+      if(this.assertAuthority)await this.assertAuthority(client,input,now,'prepare');
+      // Replay cannot change any admission input.
       const prior=(await client.query('SELECT * FROM factory.intake_receipts WHERE client_id=$1 AND request_id=$2',[grant.clientId,input?.requestId])).rows[0];
       if(prior){if(prior.input_digest!==digest(input))throw Error('PREPARATION_REPLAY_CONFLICT');return prior;}
       const request=parseCloudPrepare(input,grant,now);
@@ -66,6 +68,7 @@ export class PostgresDispatchStore {
   async claim(clientId,identity) {
     return this.transaction(async(client,now)=>{
       const row=await this.record(client,clientId,identity.requestId);this.assertIdentity(row,identity);
+      if(this.assertAuthority)await this.assertAuthority(client,row.request,now,'claim');
       const prior=await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.dispatch_claimed','factory.stop_requested','factory.terminal')",[row.run_id]);
       if(prior.rowCount)return null;
       if(new Date(row.deadline).getTime()<=now)throw Error('WORK_DEADLINE_EXPIRED');
@@ -113,7 +116,8 @@ export class PostgresDispatchStore {
     });
   }
   async heartbeat(runId,leaseOwner,generation) {
-    return this.transaction(async(client)=>{
+    return this.transaction(async(client,now)=>{
+      if(this.assertAuthority){const row=(await client.query('SELECT request FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];await this.assertAuthority(client,row?.request,now,'heartbeat');}
       const r=await client.query(`UPDATE factory.execution_resources SET lease_expires_at=least(clock_timestamp()+interval '60 seconds',deadline),updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 AND lease_expires_at>clock_timestamp() AND deadline>clock_timestamp() AND cancelled_at IS NULL AND NOT cleanup_confirmed RETURNING *`,[runId,leaseOwner,generation]);
       if(!r.rowCount)throw Error('LEASE_FENCED');return r.rows[0];
     });
@@ -122,6 +126,7 @@ export class PostgresDispatchStore {
     if(!/^dpl_[A-Za-z0-9]+$/.test(deploymentId)||!/^[a-f0-9]{64}$/.test(nonce))throw Error('INVALID_DELIVERY_INTENT');
     return this.transaction(async(client,now)=>{
       const row=await this.record(client,clientId,identity.requestId);this.assertIdentity(row,identity);
+      if(this.assertAuthority)await this.assertAuthority(client,row.request,now,'dispatch');
       const previous=(await client.query('SELECT * FROM factory.delivery_intents WHERE run_id=$1',[row.run_id])).rows[0];
       if(previous)return{created:false,intent:previous};
       if(new Date(row.deadline).getTime()<=now)throw Error('WORK_DEADLINE_EXPIRED');
