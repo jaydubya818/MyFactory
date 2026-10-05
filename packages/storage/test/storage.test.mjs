@@ -116,7 +116,7 @@ test("records survive close and reopen with contract shaped JSON and status", (t
 
   const database = new DatabaseSync(path);
   assert.equal(database.prepare("PRAGMA journal_mode").get().journal_mode, "wal");
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 8);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 9);
   database.close();
 });
 
@@ -143,6 +143,7 @@ test("migrates an existing v1 WorkOrder and preserves the new failure oracle", (
     .run(id, "Known defect", "Zero appears missing", "defect", "/tmp/repo", "main",
       '["Show $0"]', "npm test", '["npm test"]', '["src/**"]', "mac", "queued",
       "2026-09-24T00:00:00.000Z", "2026-09-24T00:00:00.000Z");
+  legacy.exec('CREATE TABLE IF NOT EXISTS work_orders(id TEXT PRIMARY KEY); CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY, work_order_id TEXT NOT NULL, UNIQUE(work_order_id,id));');
   legacy.close();
 
   const storage = openStorage(path);
@@ -156,7 +157,7 @@ test("migrates an existing v1 WorkOrder and preserves the new failure oracle", (
   t.after(() => reopened.close());
   assert.equal(reopened.getWorkOrder(id)?.expectedFailureText, "Expected '$0'");
   const database = new DatabaseSync(path);
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 8);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 9);
   database.close();
 });
 
@@ -368,6 +369,7 @@ test("v4 external actions migrate with null publication binding", (t) => {
       NULL, NULL, '2026-09-24T00:00:00.000Z', '2026-09-24T00:00:00.000Z'
     );
     PRAGMA user_version = 4;`);
+  legacy.exec('CREATE TABLE IF NOT EXISTS work_orders(id TEXT PRIMARY KEY); CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY, work_order_id TEXT NOT NULL, UNIQUE(work_order_id,id));');
   legacy.close();
 
   const storage = openStorage(path);
@@ -380,6 +382,6 @@ test("v4 external actions migrate with null publication binding", (t) => {
   assert.equal(storage.getExternalAction("old-action")?.state, "failed");
   assert.equal(saved.publicationRequestId, null);
   const database = new DatabaseSync(path);
-  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 8);
+  assert.equal(database.prepare("PRAGMA user_version").get().user_version, 9);
   database.close();
 });
