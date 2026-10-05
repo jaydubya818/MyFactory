@@ -189,6 +189,7 @@ export class PostgresDispatchStore {
       // Collection is observation, not execution authority: retain authenticated
       // bytes even if cancellation raced with storage readback.
       if(!['COLLECTING','DESTROYED'].includes(resource.state)||(await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type='factory.resource_advanced' AND payload->>'state'='COLLECTING'",[runId])).rowCount!==1)throw Error('CUSTODY_BEFORE_QUIESCENCE');
+      if((await client.query("SELECT 1 FROM factory.work_spend_operations WHERE run_id=$1 AND state IN ('reserved','dispatched','unknown') LIMIT 1",[runId])).rowCount)throw Error('UNRESOLVED_PAID_OPERATION_BLOCKS_CUSTODY');
       const prior=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[runId])).rows[0];
       if(prior){if(prior.candidate_commit!==receipt.commit||prior.candidate_tree!==receipt.tree||prior.artifact_sha256!==receipt.sha256||prior.artifact_path!==receipt.pathname||prior.artifact_bytes!==receipt.bytes)throw Error('CUSTODY_CONFLICT');return prior;}
       return(await client.query('INSERT INTO factory.candidate_custody(run_id,candidate_commit,candidate_tree,artifact_sha256,artifact_path,artifact_bytes) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',[runId,receipt.commit,receipt.tree,receipt.sha256,receipt.pathname,receipt.bytes])).rows[0];
@@ -204,6 +205,7 @@ export class PostgresDispatchStore {
       await client.query("UPDATE factory.execution_resources SET state='DESTROYED',cleanup_confirmed=true,allocation_unknown=false,updated_at=clock_timestamp() WHERE run_id=$1",[runId]);
       const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
       await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id=$1 AND work_generation=$2",[row.work_id,row.work_generation]);
+      await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=clock_timestamp()::text WHERE run_id=$1 AND state IN ('reserved','dispatched')",[runId]);
       if(!resource.cleanup_confirmed)await this.event(client,row,'factory.resource_destroyed',{providerName:resource.provider_name,providerSessionId});
     });
   }
@@ -229,7 +231,8 @@ export class PostgresDispatchStore {
       const verification=protectedRequired?(await client.query('SELECT * FROM factory.verification_resources WHERE run_id=$1',[row.run_id])).rows[0]:null;
       if(verification&&!verification.cleanup_confirmed)throw Error('VERIFIER_CLEANUP_UNPROVEN');
       const verifierUnknown=protectedRequired&&(!verification||!['PASS','FAIL'].includes(verification.outcome));
-      const status=stopped?'CANCELLED':expired||resource?.evidence.failure||verifierUnknown?'FAILED':requestedStatus;
+      const unresolved=(await client.query("SELECT 1 FROM factory.work_spend_operations WHERE work_id=$1 AND state IN ('reserved','dispatched','unknown') LIMIT 1",[row.work_id])).rowCount>0;
+      const status=stopped?'CANCELLED':unresolved||expired||resource?.evidence.failure||verifierUnknown?'FAILED':requestedStatus;
       if(status==='CANCELLED'&&!stopped)throw Error('CANCELLATION_NOT_REQUESTED');
       if(status==='COMPLETED'&&(!custody||resource.evidence.visibleChecksPassed!==true))throw Error('CANDIDATE_NOT_CHECKED');
       const finishedAt=new Date(now).toISOString(),state=status==='COMPLETED'?'ready_for_review':status.toLowerCase();

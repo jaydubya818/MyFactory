@@ -16,7 +16,7 @@ export interface SpendPrice {
   outputMicrousdPerMillion: number;
 }
 
-type GatewayLedgerMethods = Pick<SpendLedger, 'read' | 'reserve' | 'markDispatched' | 'settle' | 'markUnknown' | 'assertCompletionEligible'>;
+type GatewayLedgerMethods = Pick<SpendLedger, 'read' | 'reserve' | 'markDispatched' | 'settle' | 'markUnknown' | 'releaseUndispatched' | 'assertCompletionEligible'>;
 export type GatewayLedger = {
   [K in keyof GatewayLedgerMethods]: (...args: Parameters<GatewayLedgerMethods[K]>) => ReturnType<GatewayLedgerMethods[K]> | Promise<ReturnType<GatewayLedgerMethods[K]>>;
 };
@@ -29,6 +29,8 @@ export interface SpendGatewayOptions extends ProviderConnection {
   childToken: string;
   phase: SpendPhase;
   timeoutMs?: number;
+  /** Host-owned identity for one CLOUD harness phase; never taken from model input. */
+  operationId?: string;
   /** Trusted deployment injection for deterministic qualification behind this boundary. */
   upstreamFetch?: typeof fetch;
   assertImplementationProgress?: () => Promise<void>;
@@ -218,9 +220,10 @@ export class SpendGateway {
       // Identity refresh may take time. Recheck price and ledger admission afterward.
       validatePrice(price);
       stage='admission';
-      operationId = randomUUID();
-      await ledger.reserve({ ...binding, operationId, model: price.model, pricingRevision: price.revision,
+      const reservedId = this.#options.operationId ?? randomUUID();
+      await ledger.reserve({ ...binding, operationId:reservedId, model: price.model, pricingRevision: price.revision,
         reservedMicrousd: reserveMicrousd, phase: this.#options.phase });
+      operationId=reservedId;
       await ledger.markDispatched(operationId);
       stage='upstream';
       const upstream = await (this.#options.upstreamFetch??fetch)(new URL('/v1/responses', this.#options.upstreamOrigin), {
@@ -255,7 +258,11 @@ export class SpendGateway {
       response.end(result);
     } catch (error) {
       if (operationId) {
-        try { await ledger.markUnknown(operationId); } catch { /* Durable reservation remains retained. */ }
+        try {
+          // A failed dispatch commit is ambiguous to this process. The ledger
+          // releases only if its durable state proves the boundary was not crossed.
+          await ledger.releaseUndispatched(operationId);
+        } catch { try { await ledger.markUnknown(operationId); } catch { /* Retain exposure. */ } }
       }
       // Fixed codes only: never persist raw exceptions, provider bodies or headers.
       const code=stage==='admission'?'LOCAL_ADMISSION_DENIED':stage==='capacity'?'IMPLEMENTATION_CAPACITY_PROTECTED':

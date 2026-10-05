@@ -12,9 +12,9 @@
       "authorityBoundary": "Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Fabric boundary: Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Consolidated boundary: Require quiescent productive process, allowed immutable source tree, isolated pinned checks, unchanged tree and exact ledger admission. Completion is read-only without tools; only host commits checked tree. Protected verification remains independent. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. Durable Test/Diff evidence is bound to candidate and FactoryVersion and rechecked before local review; browser profile additionally requires screenshot and journey, and a missing trusted preview fails closed. Collection grants no Proof, semantic PASS, publication, budget or authority."
     },
     "apps/supervisor/src/spend-gateway.ts": {
-      "sha256": "ed4da172aa6e0d1cfa4a291afcdcbc0326dd97be112deda9dcfc50081fbe09f3",
+      "sha256": "9689d506fb0b48ad595d594213d4479119a3f047f0dc89c47197d167b2325f72",
       "classification": "PAID_BOUNDARY",
-      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Consolidated boundary: Share exact paid boundary across Node HTTP and hosted Fetch adapters; await durable accounting, retain UNKNOWN and no fallback. Deterministic upstream injection is trusted server configuration, never client data. Constant-time hashed credentials reject multibyte input safely. Fabric boundary: Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Consolidated boundary: Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority."
+      "authorityBoundary": "Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Consolidated boundary: Share exact paid boundary across Node HTTP and hosted Fetch adapters; await durable accounting, retain UNKNOWN and no fallback. Deterministic upstream injection is trusted server configuration, never client data. Constant-time hashed credentials reject multibyte input safely. Fabric boundary: Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Consolidated boundary: Exhausted productive requests signal host closure once without upstream dispatch or phase admission; UNKNOWN, stale/fenced binding and completion reserves retain existing checks. Attempt-6 checkpoint: one response per productive process; quiescent immutable visible-test feedback can request only the remaining existing productive slot. No holdout input, new attempt, budget, fallback, completion or publication authority. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "apps/supervisor/src/real-provider.ts": {
       "sha256": "f31405ce8d12bde4e97c70b00d01588a648f6fac24c2427165172c30c0230d2b",
@@ -27,14 +27,14 @@
       "authorityBoundary": "Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Fixed host-owned bounded productive developer protocol only after context collection and metered checkpoint binding. No repository/model text promoted to instructions. Read-only completion excluded; no tool, sandbox, quota, writer, verification or publication authority changes. Consolidated boundary: Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved. Explicit container profile preserves the same process/sandbox/credential behavior and default Mac compatibility. Fabric boundary: Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved.; output capture subscribes before asynchronous start persistence, but event interpretation awaits the durable start receipt; callback failure still fails closed Consolidated boundary: Host-only productiveEndSignal yields/reaps executor without asserting model success. User cancellation and invalid output still fail closed; all provider routing/retry isolation preserved."
     },
     "packages/storage/src/index.ts": {
-      "sha256": "d620f7f5c897bc469a863206ecf67a4e1f83fca5ad24b64e31fbd68250ea006a",
+      "sha256": "2934ab7bbe963033f68667e3b18a743238a3f4ea0aeb634a5b6336d59efba58c",
       "classification": "SCHEMA_MIGRATION",
-      "authorityBoundary": "Additive migration 8"
+      "authorityBoundary": "Additive migration 8 Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "packages/storage/src/spend.ts": {
-      "sha256": "4850fee81922f9a0b02822a309cf96da3476aae1f109a85bf0aaa35da7c50143",
+      "sha256": "29ecce9255bede54028c2c9770c8edbeb7c3479bf0c53d942d5ea9cde3ff5e7a",
       "classification": "COMPLETION_ADMISSION",
-      "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Retain SQLite transactions and all historical V2 semantics while using shared pure validation/accounting functions. Fabric boundary: Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars."
+      "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Retain SQLite transactions and all historical V2 semantics while using shared pure validation/accounting functions. Fabric boundary: Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "apps/supervisor/src/server.ts": {
       "sha256": "de4694096a42bd75a634c60db8d8bf81667638f6a17f0830346966fb376fa614",
@@ -177,14 +177,14 @@
       "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
     },
     "packages/storage/src/spend-policy.ts": {
-      "sha256": "2d54bd0c68cbf073d831812b9b4f7a79117e46f4b4cdc77443eec8224eed72b8",
+      "sha256": "6893d66d2cf006773d11837934ec1c32dbab450e4bb7e78f32aba6ef9b6a52f4",
       "classification": "SHARED_SPEND_POLICY",
-      "authorityBoundary": "Canonical V2 pricing, admission, binding, protected completion reserve and UNKNOWN/accounting policy shared by SQLite and PostgreSQL; no provider effects."
+      "authorityBoundary": "Canonical V2 pricing, admission, binding, protected completion reserve and UNKNOWN/accounting policy shared by SQLite and PostgreSQL; no provider effects. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "apps/cloud-control/src/postgres-spend.mjs": {
-      "sha256": "78fa49734cabb621213e032043261a39c03173a365b7ef94d8080e65a35ba1be",
+      "sha256": "af0e65dc78dcadb124e78991ea786f6bd73c87e92b3f606721ff0fcce5840f27",
       "classification": "CANONICAL_CLOUD_ADMISSION",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "apps/cloud-control/src/queue-delivery.mjs": {
       "sha256": "af8be5f41a0b18ac1c371e2685b4c09cf26a688cc1ebc34aa22814061d87fc8f",
@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "1231e8dade0c1db82490abd56e721a714608b9ebe7da7c6ca7b5c18055fa1443",
+      "sha256": "2b0e00fa57d892c8f1f6ee8dbe9363d612ff2639c277321093e36361af3718df",
       "classification": "CLOUD_DISPATCH_AUTHORITY",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -302,9 +302,9 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
     "apps/cloud-control/src/cloud-harness-phase.mjs": {
-      "sha256": "441609c1220a2bce9ee55a5fb7838d302d29734c318e11a2dbc9c85e309db963",
+      "sha256": "9a0aed9105f61f365c504b93db0ceada5dbb1e75701f8187f1cfd28353d5e106",
       "classification": "CLOUD_HARNESS_BOUNDARY",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "apps/cloud-control/src/cloud-harness-relay.mjs": {
       "sha256": "373e97889158e0c19a6f4b1c124f7e31490cb42182cce93aa52430edc6547e13",
@@ -453,8 +453,8 @@
     },
     "apps/cloud-control/src/production-authority.mjs": {
       "classification": "ENFORCED",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress.",
-      "sha256": "6ad12c50ae5ef3742e7ca783477253769de436c0a0b0a43efa7ab05f6e9cd816"
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion.",
+      "sha256": "47d557edf65c9c4fce0cf9dd56bc9f0cde831c4b421950e96aeabeac65cf95bc"
     },
     "apps/cloud-control/src/production-runtime.mjs": {
       "classification": "ENFORCED",
@@ -480,6 +480,11 @@
       "classification": "ENFORCED",
       "authorityBoundary": "Independent read-only release review PASS: exact immutable production Work authority, separate validation/canary scopes, paid approval hash, credential recovery horizon and cleanup-only effect denial; no general Work enablement.",
       "sha256": "13806aab67f4197ae67b049ea6080761171bdbc152b6aa623ff5c3d0ae1991a6"
+    },
+    "apps/cloud-control/src/production-approval.mjs": {
+      "classification": "INTERNAL",
+      "authorityBoundary": "Pure exact approval/concrete-grant projection; no side effects. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion.",
+      "sha256": "c08a89d15845a78ebf67fbbe124960b0085b680e1df38f2d98a391e05af4e3d6"
     }
   }
 }

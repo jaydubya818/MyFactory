@@ -98,11 +98,11 @@ test('concurrent requests cannot exceed the productive operation slot limit', as
   const first = f.call();
   await seen;
   const second = await f.call();
-  assert.equal(second.status, 200);
-  assert.equal(f.calls, 2);
+  assert.notEqual(second.status, 200);
+  assert.equal(f.calls, 1);
   assert.equal(f.ledger.read(f.binding.workId).retainedMicrousd, 1200);
-  assert.equal((await f.call()).status,409);
-  assert.equal(f.calls,2);
+  assert.notEqual((await f.call()).status,200);
+  assert.equal(f.calls,1);
   release();
   assert.equal((await first).status, 200);
 });

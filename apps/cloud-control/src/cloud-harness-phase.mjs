@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises';
-import {randomBytes} from 'node:crypto';
+import {randomBytes,createHash} from 'node:crypto';
 import {SpendGateway} from '../../supervisor/src/spend-gateway.ts';
 import {boundedBytes} from './infrastructure-provider.mjs';
 import {cloudHarnessPrice,cloudHarnessIdentity} from './cloud-harness-plan.mjs';
@@ -28,7 +28,7 @@ export async function runCloudHarnessPhase({sandbox,ledger,binding,phase,sequenc
  if(!['productive','completion'].includes(phase)||![1,2,3].includes(sequence)||!Number.isSafeInteger(deadline)||deadline<=Date.now()||deadline>Date.now()+180000)throw Error('HARNESS_PHASE_AUTHORITY');
  const childToken=randomBytes(32).toString('hex'),user=sandbox.asUser('factoryproducer'),root=`/home/factoryproducer/phase-${sequence}`;
  let boundary=false,finished=false;
- const gateway=new SpendGateway({ledger,binding,...(modelProvider??{price:cloudHarnessPrice,upstreamOrigin:'https://deterministic.factory.invalid',upstreamApiKey:'deterministic-only',upstreamFetch:deterministicHarnessResponse({phase,currentSource})}),childToken,phase,...(phase==='productive'?{productiveCheckpointAfter:sequence,onProductiveBoundary:()=>{boundary=true;}}:{})});
+ const gateway=new SpendGateway({ledger,binding,operationId:createHash('sha256').update(JSON.stringify([binding,phase,sequence])).digest('hex'),...(modelProvider??{price:cloudHarnessPrice,upstreamOrigin:'https://deterministic.factory.invalid',upstreamApiKey:'deterministic-only',upstreamFetch:deterministicHarnessResponse({phase,currentSource})}),childToken,phase,...(phase==='productive'?{productiveCheckpointAfter:sequence,onProductiveBoundary:()=>{boundary=true;}}:{})});
  await user.writeFiles([{path:root+'.json',content:JSON.stringify({childToken,deadline,phase,prompt,sequence}),mode:0o600}],{signal:AbortSignal.timeout(10000)});
  const command=await user.runCommand({cmd:'node',args:['/opt/factory-harness/apps/cloud-control/src/cloud-harness-worker.mjs',root+'.json'],cwd:'/home/factoryproducer/workspace',timeoutMs:Math.min(50000,deadline-Date.now()),detached:true,signal:AbortSignal.timeout(15000)});
  await recordCommand(command.cmdId);
@@ -50,6 +50,11 @@ export async function runCloudHarnessPhase({sandbox,ledger,binding,phase,sequenc
   await recordEvidence({harnessObservation:{phase,sequence,status:['completed','yielded','failed','cancelled','timed_out'].includes(result.status)?result.status:'UNKNOWN',diagnostics:Array.isArray(result.diagnostics)?result.diagnostics.filter(code=>['bwrap','Operation not permitted','Permission denied','sandbox','Connection refused','Unauthorized','model not found'].includes(code)):[]}});
   if(result.workerProfile!=='container'||!['completed','yielded'].includes(result.status)||(result.status==='yielded'&&!boundary)||(phase==='completion'&&(!result.success||!result.completionEventSeen)))throw Error('HARNESS_PHASE_FAILED');
   return {phase,sequence,status:result.status,startedAt:result.startedAt,finishedAt:result.finishedAt};
+ }catch(error){
+  // Accounting may already be settled while delivery to the worker is unknown.
+  // Neither this phase nor a successor may resume paid execution automatically.
+  await ledger.fenceAuthority(binding);
+  throw error;
  }finally{
   // Waiting rejection is observed; caller always quiesces/destroys the sandbox
   // when transport or command outcome is ambiguous. Never restart this phase.

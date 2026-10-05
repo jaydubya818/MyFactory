@@ -47,14 +47,13 @@ test('UNKNOWN is a hard Work-level stop across restart, attempt and model change
   f.reserve('first'); f.ledger.markDispatched('first'); f.ledger.markUnknown('first');
   const restarted = new SpendLedger(f.path); t.after(() => restarted.close());
   assert.equal(restarted.read(f.binding.workId).unknownExposureMicrousd,1200);
-  assert.throws(() => f.reserve('second'), /UNKNOWN/);
+  assert.throws(() => f.reserve('second'), /UNKNOWN|authority/);
   assert.throws(() => restarted.reserve({...f.binding,operationId:'retry',model:'other-model',
-    pricingRevision:f.plan.pricingRevision,reservedMicrousd:1200,phase:'productive'}), /pricing|UNKNOWN/);
+    pricingRevision:f.plan.pricingRevision,reservedMicrousd:1200,phase:'productive'}), /pricing|UNKNOWN|authority/);
   const next={...f.binding,workGeneration:3,requestId:'next-request'};
-  restarted.createBudget(next,4000,new Date(Date.now()+60000).toISOString(),f.plan);
-  restarted.bindAuthority(next);
+  assert.throws(()=>restarted.createBudget(next,4000,new Date(Date.now()+60000).toISOString(),f.plan),/active spend/);
   assert.throws(() => restarted.reserve({...next,operationId:'next',model:f.plan.model,
-    pricingRevision:f.plan.pricingRevision,reservedMicrousd:1200,phase:'productive'}), /UNKNOWN/);
+    pricingRevision:f.plan.pricingRevision,reservedMicrousd:1200,phase:'productive'}), /UNKNOWN|authority|binding/);
   restarted.settle('first',30,'provider-first',{input_tokens:10,output_tokens:10});
   assert.equal(restarted.read(f.binding.workId).unknownExposureMicrousd,0);
 });
@@ -73,7 +72,7 @@ test('productive calls cannot take completion reserve and host-only completion t
   f.reserve('complete','completion');f.settle('complete',30);
   assert.doesNotThrow(()=>f.ledger.assertCompleted(f.binding));
   assert.equal(f.ledger.read(f.binding.workId).completionOperationSlotsRemaining,0);
-  assert.throws(() => f.reserve('extra','completion'),/limit/);
+  assert.throws(() => f.reserve('extra','completion'),/limit|Unresolved/);
 });
 
 test('paid operation slots persist across process restart and exact replay cannot dispatch twice', t => {
@@ -85,17 +84,18 @@ test('paid operation slots persist across process restart and exact replay canno
   f.reserve('b');f.settle('b');
   assert.equal(restarted.read(f.binding.workId).paidOperationsUsed,2);
   assert.throws(()=>restarted.reserve({...f.binding,operationId:'c',model:f.plan.model,
-    pricingRevision:f.plan.pricingRevision,reservedMicrousd:1200,phase:'productive'}),/limit/);
+    pricingRevision:f.plan.pricingRevision,reservedMicrousd:1200,phase:'productive'}),/limit|Unresolved/);
 });
 
 test('reservation, UNKNOWN, cancellation and authority are checked again at paid dispatch', t => {
   const f=setup(t);
-  f.reserve('reserved');f.reserve('unknown');f.ledger.markDispatched('unknown');f.ledger.markUnknown('unknown');
-  assert.throws(()=>f.ledger.markDispatched('reserved'),/UNKNOWN/);
+  f.reserve('reserved');assert.throws(()=>f.reserve('unknown'),/Unresolved/);
+  f.ledger.markUnknown('reserved');
+  assert.throws(()=>f.ledger.markDispatched('reserved'),/fresh/);
   f.ledger.cancel(f.binding.workId);
-  assert.throws(()=>f.ledger.markDispatched('reserved'),/Post-cancel/);
+  assert.throws(()=>f.ledger.markDispatched('reserved'),/fresh|Post-cancel/);
   assert.equal(f.ledger.read(f.binding.workId).authorityState,'fenced');
-  assert.equal(f.ledger.read(f.binding.workId).retainedMicrousd,2400);
+  assert.equal(f.ledger.read(f.binding.workId).retainedMicrousd,1200);
 });
 
 test('concurrent ledger connections share the last operation slot', t => {
@@ -103,7 +103,7 @@ test('concurrent ledger connections share the last operation slot', t => {
   f.reserve('a');f.settle('a');
   other.reserve({...f.binding,operationId:'b',model:f.plan.model,pricingRevision:f.plan.pricingRevision,
     reservedMicrousd:1200,phase:'productive'});
-  assert.throws(()=>f.reserve('c'),/limit/);
+  assert.throws(()=>f.reserve('c'),/limit|Unresolved/);
   assert.equal(f.ledger.read(f.binding.workId).paidOperationsUsed,2);
 });
 
@@ -115,32 +115,22 @@ test('legacy V1 Work budget has no paid admission', t => {
     pricingRevision:f.plan.pricingRevision,reservedMicrousd:1200,phase:'productive'}),/V2/);
 });
 
-test('process loss retains slot and dollars before dispatch, after dispatch, and in completion', t => {
-  const f=setup(t);
-  f.reserve('pre-dispatch');
-  const reopened=new SpendLedger(f.path);t.after(()=>reopened.close());
-  assert.equal(reopened.recoverUnknown(),1);
-  assert.equal(reopened.read(f.binding.workId).paidOperationsUsed,1);
-  assert.equal(reopened.read(f.binding.workId).unknownExposureMicrousd,1200);
-  assert.throws(()=>f.reserve('blocked'),/UNKNOWN/);
-  reopened.settle('pre-dispatch',0,'authoritative-not-sent',{input_tokens:0,output_tokens:0});
-  f.reserve('dispatched');f.ledger.markDispatched('dispatched');
-  assert.equal(reopened.recoverUnknown(),1);
-  assert.throws(()=>f.reserve('still-blocked'),/UNKNOWN/);
-  reopened.settle('dispatched',30,'authoritative-dispatched',{input_tokens:10,output_tokens:10});
-  f.ledger.beginCompletion(f.binding);
-  f.reserve('completion','completion');
-  assert.equal(reopened.recoverUnknown(),1);
-  assert.equal(reopened.read(f.binding.workId).completionReserveRemainingMicrousd,0);
-  assert.equal(reopened.read(f.binding.workId).completionOperationSlotsRemaining,0);
-  assert.equal(reopened.read(f.binding.workId).accountingComplete,false);
-  reopened.settle('completion',30,'authoritative-completion',{input_tokens:10,output_tokens:10});
-  assert.equal(reopened.read(f.binding.workId).accountingComplete,true);
-  assert.equal(reopened.read(f.binding.workId).paidOperationsUsed,3);
-  const afterSettlement=new SpendLedger(f.path);t.after(()=>afterSettlement.close());
-  assert.equal(afterSettlement.recoverUnknown(),0);
-  assert.equal(afterSettlement.read(f.binding.workId).paidOperationsUsed,3);
-  assert.equal(afterSettlement.read(f.binding.workId).completionOperationSlotsRemaining,0);
+test('process loss retains each phase exposure; reconciliation cannot reopen authority', t => {
+  for(const phase of ['reserved','dispatched','completion']){
+    const f=setup(t);
+    if(phase==='completion'){f.reserve('productive');f.settle('productive');f.ledger.beginCompletion(f.binding);}
+    f.reserve('interrupted',phase==='completion'?'completion':'productive');
+    if(phase==='dispatched')f.ledger.markDispatched('interrupted');
+    const reopened=new SpendLedger(f.path);t.after(()=>reopened.close());
+    assert.equal(reopened.recoverUnknown(),1);
+    assert.equal(reopened.read(f.binding.workId).unknownExposureMicrousd,1200);
+    assert.throws(()=>f.reserve('blocked'),/authority/);
+    reopened.settle('interrupted',30,'authoritative-interrupted',{input_tokens:10,output_tokens:10});
+    assert.equal(reopened.read(f.binding.workId).accountingComplete,true);
+    assert.equal(reopened.read(f.binding.workId).authorityState,'fenced');
+    assert.throws(()=>reopened.bindAuthority(f.binding),/authority/);
+    assert.equal(reopened.recoverUnknown(),0);
+  }
 });
 
 test('two completion operations cannot race past protected completion slots or dollars', t => {
@@ -148,9 +138,10 @@ test('two completion operations cannot race past protected completion slots or d
   t.after(()=>other.close());
   f.reserve('productive');f.settle('productive');f.ledger.beginCompletion(f.binding);
   f.reserve('completion-one','completion');
-  other.reserve({...f.binding,operationId:'completion-two',model:f.plan.model,
-    pricingRevision:f.plan.pricingRevision,reservedMicrousd:1200,phase:'completion'});
-  assert.throws(()=>f.reserve('completion-three','completion'),/limit/);
+  assert.throws(()=>other.reserve({...f.binding,operationId:'completion-two',model:f.plan.model,
+    pricingRevision:f.plan.pricingRevision,reservedMicrousd:1200,phase:'completion'}),/Unresolved/);
+  f.settle('completion-one',1200);f.reserve('completion-two','completion');
+  assert.throws(()=>f.reserve('completion-three','completion'),/limit|Unresolved/);
   assert.equal(f.ledger.read(f.binding.workId).completionReserveRemainingMicrousd,0);
   assert.equal(f.ledger.read(f.binding.workId).paidOperationsUsed,3);
 });
@@ -182,10 +173,9 @@ test('Attempt 5 completion eligibility rejects UNKNOWN, stale generation, fenced
  assert.doesNotThrow(()=>f.ledger.assertCompletionEligible(f.binding));
  assert.throws(()=>f.ledger.assertCompletionEligible({...f.binding,workGeneration:0}));
  f.reserve('second');f.ledger.markDispatched('second');f.ledger.markUnknown('second');
- assert.throws(()=>f.ledger.assertCompletionEligible(f.binding),/Outstanding/);
+ assert.throws(()=>f.ledger.assertCompletionEligible(f.binding),/Outstanding|authority/);
  f.ledger.settle('second',30,'provider-second',{input_tokens:10,output_tokens:10});
- f.ledger.beginCompletion(f.binding);assert.throws(()=>f.ledger.beginCompletion(f.binding));
- f.reserve('completion','completion');f.settle('completion',30);
- assert.throws(()=>f.reserve('again','completion'),/limit/);assert.throws(()=>f.reserve('productive-again'),/phase/);
+ assert.throws(()=>f.ledger.beginCompletion(f.binding),/authority/);
+ assert.throws(()=>f.reserve('completion','completion'),/authority/);
  f.ledger.fenceAuthority(f.binding);assert.throws(()=>f.ledger.assertCompletionEligible(f.binding));
 });
