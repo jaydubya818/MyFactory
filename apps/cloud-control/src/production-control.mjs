@@ -52,6 +52,7 @@ export async function handleProductionControl(request,env,withRuntime=withProduc
    return reply({error:'NOT_FOUND'},404);
   },{validation:!canary,cleanupOnly});
  }catch(error){
+  if(error.message==='PRODUCTION_VALIDATION_GRANT_PENDING')return reply({error:'PRODUCTION_VALIDATION_GRANT_PENDING',admission:'DISABLED'},403);
   if(error.message==='PRODUCTION_WORK_NOT_AUTHORIZED')return reply({error:'PRODUCTION_WORK_NOT_AUTHORIZED',admission:'DISABLED'},403);
   if(error.status===404||error.message==='FACTORY_REQUEST_NOT_FOUND')return reply({error:'NOT_FOUND'},404);
   if(error.code==='waiting_for_evidence')return reply({code:error.code},409);

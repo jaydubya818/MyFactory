@@ -8,11 +8,12 @@ import {PostgresSpendLedger} from '../src/postgres-spend.mjs';
 import {handleProductionControl} from '../src/production-control.mjs';
 import {productionRuntimeComponents} from '../src/production-runtime-components.mjs';
 import {productionProjectId,productionCallerProjectId,productionCustodyStoreId,productionDatabaseResourceId} from '../src/production-installation.mjs';
-import {validationConfiguration,validationContractSha256,validationCandidateSha256} from '../src/production-validation-plan.mjs';
+import {validationConfiguration,validationContractSha256,validationCandidateSha256,validationSourceGrant} from '../src/production-validation-plan.mjs';
+import {validationResourceState} from '../src/cloud-work-control.mjs';
 
 const installation={version:1,environment:'production',factoryId:'myfactory-cloud-production',ownerScope:'real-owner',projectId:productionProjectId,teamId:'team_p8z8exJRTGfOPk1GC9vUOpv3',callerProjectId:productionCallerProjectId,custodyStoreId:productionCustodyStoreId,databaseResourceId:productionDatabaseResourceId};
 function fixture(){
- const sourceDigest='a'.repeat(64),configurationDigest=digest(validationConfiguration),request={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,deadline:new Date(Date.now()+60000).toISOString()},clientId='sofie-production-validation';
+ const sourceDigest='a'.repeat(64),configurationDigest=digest(validationConfiguration),request={protocol:'MYFACTORY_EXECUTION_V2',requestId:randomUUID(),workId:randomUUID(),workGeneration:1,deadline:new Date(Date.now()+60000).toISOString(),repository:validationSourceGrant.source.repository,source:validationSourceGrant.source,maxSpendUsd:1,input:{title:'Validation',description:'Exact model-free source',kind:'feature',acceptanceCriteria:['Exact bytes'],checkCommands:validationSourceGrant.commands,allowedPaths:validationSourceGrant.allowedPaths}},clientId='sofie-production-validation';
  const manifest={version:1,request,clientId,ownerScope:installation.ownerScope,environment:'CLOUD_PRODUCTION',publication:false,sourceDigest,configurationDigest,factoryVersion:digest({sourceDigest,configurationDigest}),contractSha256:validationContractSha256,candidateSha256:validationCandidateSha256};
  const row={request_id:request.requestId,work_id:request.workId,client_id:clientId,state:'AUTHORIZED',manifest,manifest_sha256:digest(manifest),consumed_at:null};
  const check=productionAuthority({installation,sourceDigest,configuration:validationConfiguration,contractSha256:validationContractSha256,clientId,candidateSha256:validationCandidateSha256});
@@ -36,6 +37,28 @@ test('owner, source, candidate, configuration, effects and manifest digest canno
 test('unconsumed and expired manifests cannot authorize subsequent effects',async()=>{
  const f=fixture();await assert.rejects(f.check(f.client,f.request,Date.now(),'claim'),/NOT_ADMITTED/);
  await assert.rejects(f.check(f.client,f.request,Date.now()+120000,'prepare'),/NOT_AUTHORIZED/);
+});
+test('only missing unexpired validation preparation returns a pending grant denial',async()=>{
+ const f=fixture(),missing={query:async()=>({rows:[]})};
+ await assert.rejects(f.check(missing,f.request,Date.now(),'prepare'),/VALIDATION_GRANT_PENDING/);
+ for(const phase of ['claim','heartbeat','model'])await assert.rejects(f.check(missing,f.request,Date.now(),phase),/NOT_AUTHORIZED/);
+ await assert.rejects(f.check(missing,f.request,Date.now()+120000,'prepare'),/NOT_AUTHORIZED/);
+ f.row.state='REVOKED';await assert.rejects(f.check(f.client,f.request,Date.now(),'prepare'),/NOT_AUTHORIZED/);
+ for(const patch of [{source:{...f.request.source,commit:'e'.repeat(40)}},{input:{...f.request.input,checkCommands:['unexpected']}},{input:{...f.request.input,allowedPaths:['unexpected']}},{maxSpendUsd:2},{deadline:new Date(Date.now()+200000).toISOString()}]){
+  await assert.rejects(f.check(missing,{...f.request,...patch},Date.now(),'prepare'),error=>!/GRANT_PENDING/.test(error.message));
+ }
+});
+test('normal producer-to-verifier handoff remains RUNNING; failures and expiry remain UNKNOWN',()=>{
+ const now=Date.now(),future=new Date(now+30000).toISOString(),r={state:'ALLOCATING',allocation_unknown:true,deadline:future,lease_expires_at:future,evidence:{}},row={deadline:future,resource:r};
+ assert.equal(validationResourceState(row,now),'RUNNING');
+ r.cleanup_confirmed=true;r.evidence.visibleChecksPassed=true;row.custody={candidate_commit:'a',candidate_tree:'b',artifact_sha256:'c'};
+ assert.equal(validationResourceState(row,now),'RUNNING');
+ row.verification={state:'ALLOCATING',outcome:'UNKNOWN',deadline:future,lease_expires_at:future,candidate_commit:'a',candidate_tree:'b',custody_sha256:'c'};
+ assert.equal(validationResourceState(row,now),'RUNNING');row.verification.state='RUNNING';assert.equal(validationResourceState(row,now),'RUNNING');
+ row.verification.state='FINISHED';assert.equal(validationResourceState(row,now),'UNKNOWN');row.verification.outcome='PASS';assert.equal(validationResourceState(row,now),'RUNNING');
+ for(const patch of [{failure:'VERIFIER_EXECUTION_UNKNOWN'},{custody_sha256:'wrong'},{lease_expires_at:new Date(now-1).toISOString()}])assert.equal(validationResourceState({...row,verification:{...row.verification,...patch}},now),'UNKNOWN');
+ assert.equal(validationResourceState({...row,resource:{...r,evidence:{...r.evidence,cleanup:'UNKNOWN'}}},now),'UNKNOWN');
+ assert.equal(validationResourceState(row,now+30001),'UNKNOWN');
 });
 test('revocation before verifier admission or between probes fences execution but not cleanup',async()=>{
  let revoked=false,checks=0,cleaned=false;
@@ -94,7 +117,7 @@ test('canonical effect authority requires Proof and signer horizon beyond the fu
   const env={VERCEL:'1',VERCEL_ENV:'production',VERCEL_PROJECT_ID:installation.projectId,VERCEL_ORG_ID:installation.teamId,VERCEL_DEPLOYMENT_ID:'dpl_test',FACTORY_PRODUCTION_INSTALLATION:JSON.stringify(installation),FACTORY_PRODUCTION_CANARY_AUTHORIZATION_SHA256:'d'.repeat(64),FACTORY_PROOF_EXPIRES_AT:new Date(bound+(short==='proof'?offset:1000)).toISOString()};
   const runtime=productionRuntimeComponents({env,validation,pool:{},queue:{},sourceDigest:'a'.repeat(64),signing:{factoryId:installation.factoryId,key:{factoryId:installation.factoryId,keyId:'production-cloud-v1',notAfter:new Date(bound+(short==='signer'?offset:1000)).toISOString()}}});
   const client={query:async()=>{queried++;return{rows:[]};}};
-  for(const phase of ['prepare','claim'])await assert.rejects(runtime.store.assertAuthority(client,{deadline:new Date(deadline).toISOString()},Date.now(),phase),offset<=0?/RECOVERY_HORIZON/:/NOT_AUTHORIZED/);
+  for(const phase of ['prepare','claim'])await assert.rejects(runtime.store.assertAuthority(client,{...fixture().request,deadline:new Date(deadline).toISOString()},Date.now(),phase),offset<=0?/RECOVERY_HORIZON/:validation&&phase==='prepare'?/VALIDATION_GRANT_PENDING/:/NOT_AUTHORIZED/);
   assert.equal(queried,offset<=0?0:2,'expiry is checked before authority consumption or resource allocation');
  }
 });

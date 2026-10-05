@@ -8,6 +8,21 @@ export const binding=i=>({workId:i.workId,workGeneration:i.workGeneration,dispat
 export {cloudHarnessSpendPlan as spendPlan} from './cloud-harness-plan.mjs';
 import {cloudHarnessSpendPlan as spendPlan} from './cloud-harness-plan.mjs';
 
+// An unfinished allocation/verifier is pending while its original lease is
+// live. Recorded failure or an expired lease is UNKNOWN, never a new attempt.
+export function validationResourceState(row,now=Date.now()){
+ const r=row.resource,v=row.verification;
+ const live=resource=>!resource.cancelled_at&&new Date(resource.deadline).getTime()>now&&new Date(resource.lease_expires_at).getTime()>now;
+ if(!r||new Date(row.deadline).getTime()<=now||r.evidence?.failure||r.evidence?.cleanup==='UNKNOWN'||r.cancelled_at)return 'UNKNOWN';
+ if(!r.cleanup_confirmed)return live(r)?'RUNNING':'UNKNOWN';
+ if(!row.custody||r.evidence?.visibleChecksPassed!==true)return 'UNKNOWN';
+ if(!v)return live(r)?'RUNNING':'UNKNOWN'; // bounded handoff to the sole verifier
+ if(v.failure||v.candidate_commit!==row.custody.candidate_commit||v.candidate_tree!==row.custody.candidate_tree||v.custody_sha256!==row.custody.artifact_sha256)return 'UNKNOWN';
+ if(['ALLOCATING','RUNNING'].includes(v.state)&&live(v))return 'RUNNING';
+ if(['PASS','FAIL'].includes(v.outcome)&&(v.cleanup_confirmed||live(v)))return 'RUNNING'; // terminal Result is being retained
+ return 'UNKNOWN';
+}
+
 export class CloudWorkControl {
  constructor({store,spend,provider,queue,signing,sourceDigest,deploymentId,ownerScope,grant=cloudGrant,configuration=cloudConfiguration,executionSpendPlan=spendPlan,executionWorkTopic=workTopic,verificationPolicy}) {Object.assign(this,{store,spend,provider,queue,signing,sourceDigest,deploymentId,ownerScope,grant,configuration,executionSpendPlan,executionWorkTopic,verificationPolicy});}
  snapshot(request,order,run){
@@ -34,7 +49,7 @@ export class CloudWorkControl {
  async read(requestId){
   const row=await this.store.read(this.grant.clientId,requestId),spend=await this.spend.read(row.work_id);
   const terminal=row.events.find(e=>e.type==='factory.terminal')?.payload,stopped=row.events.some(e=>e.type==='factory.stop_requested'),r=row.resource;
-  const state=terminal?.status??(stopped?'STOPPING':r?(r.cleanup_confirmed?'UNKNOWN':r.allocation_unknown?'UNKNOWN':'RUNNING'):row.delivery?.state==='UNKNOWN'?'UNKNOWN':row.identity?'DISPATCHING':spend?'PREPARED':'PREPARING');
+  const state=terminal?.status??(stopped?'STOPPING':r?(this.grant.clientId==='sofie-production-validation'?validationResourceState(row):r.cleanup_confirmed?'UNKNOWN':r.allocation_unknown?'UNKNOWN':'RUNNING'):row.delivery?.state==='UNKNOWN'?'UNKNOWN':row.identity?'DISPATCHING':spend?'PREPARED':'PREPARING');
   return{requestId:row.request_id,workOrderId:row.work_order_id,runId:row.run_id,snapshot:row.snapshot,identity:row.identity,state,quiescent:!!terminal,evidenceRef:terminal?.evidenceRef??null,spend,blocker:terminal?.status==='FAILED'?(r?.evidence.failure??'EXECUTION_FAILED'):state==='UNKNOWN'?'EXECUTION_REQUIRES_RECONCILIATION':null};
  }
  async result(requestId){
