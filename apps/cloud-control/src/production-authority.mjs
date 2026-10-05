@@ -1,3 +1,4 @@
+import {assertConcreteProductionGrant} from './production-approval.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {parseCloudPrepare} from '../../../packages/contracts/src/cloud-execution.ts';
 import {validationSourceGrant} from './production-validation-plan.mjs';
@@ -20,9 +21,12 @@ export function productionAuthority({installation,sourceDigest,configuration,con
    throw Error('PRODUCTION_VALIDATION_GRANT_PENDING');
   }
   const m=row?.manifest;
-  const expectedKeys='candidateSha256,clientId,configurationDigest,contractSha256,environment,factoryVersion,ownerScope,publication,request,sourceDigest,version';
+  const paid=clientId==='sofie-production';
+  if(!row)throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');
+  if(paid)assertConcreteProductionGrant(m,authorizationSha256,now);
+  const expectedKeys=(paid?'authorizationEnvelope,authorizationEnvelopeSha256,':'')+'candidateSha256,clientId,configurationDigest,contractSha256,environment,factoryVersion,ownerScope,publication,request,sourceDigest,version';
   if(!row||row.state!=='AUTHORIZED'||row.client_id!==clientId||row.work_id!==request.workId||!m||Object.keys(m).sort().join(',')!==expectedKeys||
-   digest(m)!==row.manifest_sha256||(authorizationSha256!==undefined&&row.manifest_sha256!==authorizationSha256)||m.version!==1||m.clientId!==clientId||m.ownerScope!==installation.ownerScope||m.environment!=='CLOUD_PRODUCTION'||m.publication!==false||
+   digest(m)!==row.manifest_sha256||(!paid&&authorizationSha256!==undefined&&row.manifest_sha256!==authorizationSha256)||m.version!==(paid?2:1)||m.clientId!==clientId||m.ownerScope!==installation.ownerScope||m.environment!=='CLOUD_PRODUCTION'||m.publication!==false||
    m.sourceDigest!==sourceDigest||m.configurationDigest!==configurationDigest||m.factoryVersion!==factoryVersion||m.contractSha256!==contractSha256||m.candidateSha256!==candidateSha256||
    digest(m.request)!==digest(request)||!Number.isFinite(Date.parse(request.deadline))||Date.parse(request.deadline)<=now)throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');
   if(phase==='prepare')await client.query('UPDATE factory.production_work_authority SET consumed_at=COALESCE(consumed_at,clock_timestamp()) WHERE request_id=$1',[request.requestId]);

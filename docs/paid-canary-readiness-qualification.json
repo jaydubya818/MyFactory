@@ -1,0 +1,20 @@
+{
+  "qualifiedSourceCommit": "01fcd6dae201f043a92081f8c04a9a1dec054f5a",
+  "freshRemoteClone": "PASS",
+  "cleanCheckout": true,
+  "checks": {
+    "all": "PASS",
+    "postgres": "PASS",
+    "types": "PASS",
+    "producer-types": "PASS",
+    "governance": "PASS",
+    "source-identity": "PASS",
+    "build": "PASS"
+  },
+  "independentReview": "PASS",
+  "productionInstallation": "PENDING_EXPLICIT_OPERATOR_WINDOW",
+  "generalWork": "DISABLED",
+  "realProviderCallsDuringQualification": 0,
+  "publicationEffectsDuringQualification": 0,
+  "privateEvidencePreserved": true
+}

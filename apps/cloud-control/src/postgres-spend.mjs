@@ -43,7 +43,7 @@ export class PostgresSpendLedger {
         if(previous.ceiling_microusd!==ceiling||previous.cancelled_at||workGeneration<previous.work_generation)throw Error('Work ceiling or cancellation cannot reset');
         if(previous.contract_version!==(plan?.version??'WORK_LEDGER_V1')||(plan&&(previous.pricing_revision!==plan.pricingRevision||previous.model!==plan.model||previous.per_operation_reserve_microusd!==plan.perOperationReserveMicrousd||previous.planned_productive_operations!==plan.plannedProductiveOperations||previous.planned_completion_operations!==plan.plannedCompletionOperations||previous.max_paid_operations!==plan.maxPaidOperations||previous.completion_reserve_microusd!==plan.completionReserveMicrousd||previous.pricing_valid_until!==plan.validUntil)))throw Error('Work spend plan cannot reset');
         if(workGeneration===previous.work_generation){if(previous.deadline!==deadline||previous.request_id!==requestId||previous.work_order_id!==workOrderId)throw Error('Work generation binding conflict');return;}
-        if((await operations(workId)).some(op=>['reserved','dispatched'].includes(op.state)))throw Error('Prior Work generation has active spend operations');
+        if((await operations(workId)).some(op=>['reserved','dispatched','unknown'].includes(op.state)))throw Error('Prior Work generation has active spend operations');
         await client.query("UPDATE factory.work_spend_budgets SET work_generation=$2,request_id=$3,work_order_id=$4,deadline=$5,authority_state='prepared',authority_dispatch_identity=NULL,authority_factory_version=NULL,authority_run_id=NULL,phase='productive' WHERE work_id=$1",[workId,workGeneration,requestId,workOrderId,deadline]);return;
       }
       await client.query(`INSERT INTO factory.work_spend_budgets (work_id,work_generation,request_id,work_order_id,ceiling_microusd,deadline,created_at,contract_version,pricing_revision,model,pricing_valid_until,per_operation_reserve_microusd,planned_productive_operations,planned_completion_operations,max_paid_operations,completion_reserve_microusd) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,[workId,workGeneration,requestId,workOrderId,ceiling,deadline,timestamp,plan?.version??'WORK_LEDGER_V1',plan?.pricingRevision??null,plan?.model??null,plan?.validUntil??null,plan?.perOperationReserveMicrousd??0,plan?.plannedProductiveOperations??0,plan?.plannedCompletionOperations??0,plan?.maxPaidOperations??0,plan?.completionReserveMicrousd??0]);
@@ -73,7 +73,7 @@ export class PostgresSpendLedger {
       const b=await budget(op.workId);assertSpendBinding(b,op,op.phase,now);
       await this.assertExecutionLease(client,op);
       if(b.model!==op.model||b.pricing_revision!==op.pricingRevision||b.per_operation_reserve_microusd!==op.reservedMicrousd)throw Error('Pricing changed before dispatch');
-      if((await operations(op.workId)).some(other=>other.operationId!==id&&other.state==='unknown'))throw Error('UNKNOWN exposure blocks paid dispatch');
+      if((await operations(op.workId)).some(other=>other.operationId!==id&&['reserved','dispatched','unknown'].includes(other.state)))throw Error('UNKNOWN exposure blocks paid dispatch');
       await client.query("UPDATE factory.work_spend_operations SET state='dispatched',updated_at=$2 WHERE operation_id=$1",[id,timestamp]);
     });
   }
@@ -86,14 +86,21 @@ export class PostgresSpendLedger {
       await client.query("UPDATE factory.work_spend_operations SET actual_microusd=$2,provider_request_id=$3,usage_json=$4,state='settled',updated_at=$5 WHERE operation_id=$1",[id,actual,requestId,JSON.stringify(usage),timestamp]);
     });
   }
-  async markUnknown(id) { return this.transaction(async({client,timestamp})=>{await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=$2 WHERE operation_id=$1 AND state<>'settled'",[id,timestamp]);}); }
-  async recoverUnknown() { return this.transaction(async({client,timestamp})=>(await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=$1 WHERE state IN ('reserved','dispatched')",[timestamp])).rowCount); }
+  async releaseUndispatched(id) {
+    return this.transaction(async({client,timestamp,operation})=>{
+      const op=await operation(id);
+      if(!op||op.state!=='reserved')throw Error('Dispatch absence is not proven');
+      await client.query("UPDATE factory.work_spend_operations SET state='released',updated_at=$2 WHERE operation_id=$1",[id,timestamp]);
+    });
+  }
+  async markUnknown(id) { return this.transaction(async({client,timestamp})=>{await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id IN (SELECT work_id FROM factory.work_spend_operations WHERE operation_id=$1 AND state IN ('reserved','dispatched','unknown'))",[id]);await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=$2 WHERE operation_id=$1 AND state IN ('reserved','dispatched','unknown')",[id,timestamp]);}); }
+  async recoverUnknown() { return this.transaction(async({client,timestamp})=>{await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id IN (SELECT work_id FROM factory.work_spend_operations WHERE state IN ('reserved','dispatched','unknown'))");return (await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=$1 WHERE state IN ('reserved','dispatched')",[timestamp])).rowCount;}); }
   async completion(binding,transition=false,completed=false) {
     return this.transaction(async({client,now,budget,operations})=>{
       assertSpendBinding(await budget(binding.workId),binding,completed?'completion':'productive',now);
       await this.assertExecutionLease(client,binding);
       const ops=await operations(binding.workId);
-      if(completed){if(!ops.some(op=>sameAttempt(op,binding)&&op.phase==='completion'&&op.state==='settled')||ops.some(op=>op.state!=='settled'))throw Error('Mandatory completion spend and accounting are not settled');}
+      if(completed){if(!ops.some(op=>sameAttempt(op,binding)&&op.phase==='completion'&&op.state==='settled')||ops.some(op=>!['settled','released'].includes(op.state)))throw Error('Mandatory completion spend and accounting are not settled');}
       else assertCompletionOperations(ops,binding);
       if(transition)await client.query("UPDATE factory.work_spend_budgets SET phase='completion' WHERE work_id=$1",[binding.workId]);
     });
