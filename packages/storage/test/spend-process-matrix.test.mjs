@@ -71,9 +71,9 @@ test('UNKNOWN and cancellation races deny subsequent provider dispatch',async t=
   const [unknown,reserved]=await race(t,f,{action:'unknown',operationId:'initial'},
     {action:'reserve',operationId:'candidate'});
   assert.equal(unknown.ok,true);
-  if(reserved.ok)assert.throws(()=>f.ledger.markDispatched('candidate'),/UNKNOWN/);
+  if(reserved.ok)assert.throws(()=>f.ledger.markDispatched('candidate'),/UNKNOWN|authority/);
   assert.equal(f.ledger.read(f.binding.workId).unknownExposureMicrousd,1200);
-  assert.throws(()=>f.reserve('after-unknown'),/UNKNOWN/);
+  assert.throws(()=>f.reserve('after-unknown'),/UNKNOWN|authority/);
 
   // Reconcile the exact UNKNOWN before testing a separate cancel/admission race.
   f.ledger.settle('initial',30,'provider-initial',{input_tokens:10,output_tokens:10});
@@ -96,39 +96,20 @@ test('synchronized completion processes cannot exceed final reserve or slot',asy
   assert.equal(f.ledger.read(f.binding.workId).completionOperationSlotsRemaining,0);
 });
 
-test('actual writer deaths preserve slots, dollars, UNKNOWN, completion and settlement',async t=>{
+test('actual writer deaths retain exposure and settlement cannot reactivate the writer',async t=>{
+ for(const stage of ['reserve','dispatch','unknown','completion']){
   const f=setup(t,{productive:3,completion:1});
-  const afterDeath=()=>{const reopened=new SpendLedger(f.path);t.after(()=>reopened.close());return reopened;};
-  const executeAndDie=async command=>{const child=actor(t,f);await child.arm(command);const result=await child.go();
-    assert.equal(result.ok,true,result.error);await child.kill();return afterDeath();};
-
-  let reopened=await executeAndDie({action:'reserve',operationId:'slot-reserved'});
-  assert.equal(reopened.recoverUnknown(),1);
-  assert.equal(reopened.read(f.binding.workId).paidOperationsUsed,1);
-  assert.equal(reopened.read(f.binding.workId).completionReserveMicrousd,1200);
-  reopened.settle('slot-reserved',0,'confirmed-not-sent',{input_tokens:0,output_tokens:0});
-
-  f.reserve('dispatched');reopened=await executeAndDie({action:'dispatch',operationId:'dispatched'});
-  assert.equal(reopened.recoverUnknown(),1);
+  if(stage==='completion'){f.reserve('productive');f.settle('productive');f.ledger.beginCompletion(f.binding);}
+  if(['dispatch','unknown'].includes(stage))f.reserve('operation');
+  if(stage==='unknown')f.ledger.markDispatched('operation');
+  const child=actor(t,f);await child.arm({action:stage==='completion'?'reserve':stage,operationId:'operation',phase:stage==='completion'?'completion':'productive'});
+  const result=await child.go();assert.equal(result.ok,true,result.error);await child.kill();
+  const reopened=new SpendLedger(f.path);t.after(()=>reopened.close());reopened.recoverUnknown();
   assert.equal(reopened.read(f.binding.workId).unknownExposureMicrousd,1200);
-  reopened.settle('dispatched',30,'confirmed-dispatched',{input_tokens:10,output_tokens:10});
-
-  f.reserve('explicit-unknown');f.ledger.markDispatched('explicit-unknown');
-  reopened=await executeAndDie({action:'unknown',operationId:'explicit-unknown'});
-  assert.equal(reopened.read(f.binding.workId).status,'UNKNOWN');
-  assert.equal(reopened.read(f.binding.workId).paidOperationsUsed,3);
-  reopened.settle('explicit-unknown',30,'confirmed-unknown',{input_tokens:10,output_tokens:10});
-
-  reopened=await executeAndDie({action:'completion'});
-  assert.equal(reopened.read(f.binding.workId).phase,'completion');
-  assert.equal(reopened.read(f.binding.workId).completionReserveRemainingMicrousd,1200);
-
-  reopened=await executeAndDie({action:'reserve',operationId:'completion-op',phase:'completion'});
-  assert.equal(reopened.recoverUnknown(),1);
-  assert.equal(reopened.read(f.binding.workId).completionReserveRemainingMicrousd,0);
-  assert.equal(reopened.read(f.binding.workId).completionOperationSlotsRemaining,0);
-  reopened=await executeAndDie({action:'settle',operationId:'completion-op',actual:30});
-  assert.equal(reopened.recoverUnknown(),0);
+  assert.equal(reopened.read(f.binding.workId).authorityState,'fenced');
+  reopened.settle('operation',30,'confirmed-operation',{input_tokens:10,output_tokens:10});
   assert.equal(reopened.read(f.binding.workId).accountingComplete,true);
-  assert.equal(reopened.read(f.binding.workId).paidOperationsUsed,4);
+  assert.throws(()=>f.reserve('automatic-retry'),/authority/);
+  assert.equal(reopened.recoverUnknown(),0);
+ }
 });

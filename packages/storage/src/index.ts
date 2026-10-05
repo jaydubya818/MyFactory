@@ -402,6 +402,35 @@ const migrations = [
   ALTER TABLE work_spend_budgets ADD COLUMN authority_state TEXT NOT NULL DEFAULT 'prepared';
   ALTER TABLE work_spend_budgets ADD COLUMN phase TEXT NOT NULL DEFAULT 'productive';
   ALTER TABLE work_spend_operations ADD COLUMN phase TEXT NOT NULL DEFAULT 'productive';`,
+  `  CREATE TABLE work_spend_operations_next (
+    operation_id TEXT PRIMARY KEY,
+    work_id TEXT NOT NULL REFERENCES work_spend_budgets(work_id),
+    work_generation INTEGER NOT NULL CHECK (work_generation > 0),
+    dispatch_identity TEXT NOT NULL,
+    request_id TEXT NOT NULL,
+    work_order_id TEXT NOT NULL REFERENCES work_orders(id),
+    factory_version TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    model TEXT NOT NULL,
+    pricing_revision TEXT NOT NULL,
+    reserved_microusd INTEGER NOT NULL CHECK (reserved_microusd > 0),
+    actual_microusd INTEGER CHECK (actual_microusd >= 0),
+    provider_request_id TEXT,
+    usage_json TEXT,
+    state TEXT NOT NULL CHECK (state IN ('reserved', 'dispatched', 'unknown', 'settled', 'released')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    phase TEXT NOT NULL DEFAULT 'productive',
+    CHECK ((state = 'settled') = (actual_microusd IS NOT NULL)),
+    CHECK (actual_microusd IS NULL OR actual_microusd <= reserved_microusd),
+    FOREIGN KEY (work_order_id, run_id) REFERENCES runs(work_order_id, id)
+  ) STRICT;
+  INSERT INTO work_spend_operations_next SELECT * FROM work_spend_operations;
+  DROP TABLE work_spend_operations;
+  ALTER TABLE work_spend_operations_next RENAME TO work_spend_operations;
+  CREATE INDEX work_spend_operations_work_idx ON work_spend_operations(work_id, created_at);
+  CREATE UNIQUE INDEX work_spend_provider_request_idx ON work_spend_operations(provider_request_id)
+    WHERE provider_request_id IS NOT NULL;`,
 ];
 
 function parseJson<T>(value: string): T {

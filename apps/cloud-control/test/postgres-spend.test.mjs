@@ -19,7 +19,8 @@ test('CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing',
   await pool.query(`CREATE SCHEMA ${schema}`);
   t.after(async()=>{await pool.query(`DROP SCHEMA ${schema} CASCADE`);await pool.end();});
   const sql=(await readFile(new URL('../migrations/002-canonical-execution-ledger.sql',import.meta.url),'utf8')).replace(/\bfactory\b/g,schema);
-  await pool.query(sql);await pool.query(sql); // Explicit idempotence before adoption.
+  await pool.query(sql);await pool.query(sql);
+  await pool.query((await readFile(new URL('../migrations/009-paid-operation-release.sql',import.meta.url),'utf8')).replace(/\bfactory\b/g,schema)); // Explicit idempotence before adoption.
   // Test-only SQL namespace rewriting keeps all fixtures out of authoritative tables.
   const isolated={connect:async()=>{const c=await pool.connect();return{query:(sql,args)=>c.query(sql.replaceAll('factory.',schema+'.'),args),release:()=>c.release()};}};
   const query=(sql,args)=>pool.query(sql.replaceAll('factory.',schema+'.'),args);
@@ -62,12 +63,12 @@ test('CONNECTED PostgreSQL canonical ledger parity, race, recovery and fencing',
   await t.test('UNKNOWN persists across connection restart and generation changes',async()=>{
     const f=await fixture(),id=randomUUID();await f.remote.reserve(f.reservation(id));await f.remote.markDispatched(id);await f.remote.markUnknown(id);
     const restarted=new PostgresSpendLedger(isolated,{requireExecutionLease:false});
-    await assert.rejects(restarted.reserve(f.reservation(randomUUID())),/UNKNOWN/);
-    const next={...f.binding,workGeneration:2,requestId:randomUUID()};await restarted.createBudget(next,4000,f.deadline,f.plan);await restarted.bindAuthority(next);
-    await assert.rejects(restarted.reserve({...f.reservation(randomUUID()),...next}),/UNKNOWN/);
+    await assert.rejects(restarted.reserve(f.reservation(randomUUID())),/UNKNOWN|authority/);
+    const next={...f.binding,workGeneration:2,requestId:randomUUID()};await assert.rejects(restarted.createBudget(next,4000,f.deadline,f.plan),/active spend/);
+    await assert.rejects(restarted.reserve({...f.reservation(randomUUID()),...next}),/UNKNOWN|authority|binding/);
     assert.equal((await restarted.read(next.workId)).unknownExposureMicrousd,1200);
-    assert.equal(await restarted.fenceAuthority(f.binding),false);
-    await assert.rejects(restarted.cancelBound(f.binding),/Stale/);
+    assert.equal(await restarted.fenceAuthority(next),false);
+    await assert.rejects(restarted.cancelBound(next),/Stale/);
   });
   await t.test('cancel after reservation prevents dispatch, and stale writers cannot spend',async()=>{
     const f=await fixture(),id=randomUUID();await f.remote.reserve(f.reservation(id));await f.remote.cancelBound(f.binding);

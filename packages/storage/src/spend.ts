@@ -47,7 +47,7 @@ export class SpendLedger {
             previous.work_order_id !== workOrderId) throw new Error('Work generation binding conflict');
           return;
         }
-        if (this.#operations(workId).some(op => op.state === 'reserved' || op.state === 'dispatched'))
+        if (this.#operations(workId).some(op => ['reserved', 'dispatched', 'unknown'].includes(op.state)))
           throw new Error('Prior Work generation has active spend operations');
         this.#db.prepare(`UPDATE work_spend_budgets SET work_generation = ?, request_id = ?,
           work_order_id = ?, deadline = ?, authority_state = 'prepared', authority_dispatch_identity = NULL,
@@ -92,7 +92,7 @@ export class SpendLedger {
       assertSpendBinding(this.#budget(binding.workId), binding, 'completion');
       const operations = this.#operations(binding.workId);
       if (!operations.some(op => sameAttempt(op, binding) && op.phase === 'completion' && op.state === 'settled') ||
-        operations.some(op => op.state !== 'settled'))
+        operations.some(op => !['settled', 'released'].includes(op.state)))
         throw new Error('Mandatory completion spend and accounting are not settled');
     });
   }
@@ -155,7 +155,7 @@ export class SpendLedger {
       assertSpendBinding(b, op, op.phase);
       if (b.model !== op.model || b.pricing_revision !== op.pricingRevision ||
         b.per_operation_reserve_microusd !== op.reservedMicrousd) throw new Error('Pricing changed before dispatch');
-      if (this.#operations(op.workId).some(other => other.operationId !== operationId && other.state === 'unknown'))
+      if (this.#operations(op.workId).some(other => other.operationId !== operationId && ['reserved', 'dispatched', 'unknown'].includes(other.state)))
         throw new Error('UNKNOWN exposure blocks paid dispatch');
       this.#db.prepare("UPDATE work_spend_operations SET state = 'dispatched', updated_at = ? WHERE operation_id = ?")
         .run(new Date().toISOString(), operationId);
@@ -175,17 +175,29 @@ export class SpendLedger {
         .run(actualMicrousd, providerRequestId, JSON.stringify(usage), new Date().toISOString(), operationId);
     });
   }
+  /** Only the durable pre-dispatch state proves zero provider exposure. */
+  releaseUndispatched(operationId: string): void {
+    this.#write(() => {
+      const op = this.getOperation(operationId);
+      if (!op || op.state !== 'reserved') throw new Error('Dispatch absence is not proven');
+      this.#db.prepare("UPDATE work_spend_operations SET state='released', updated_at=? WHERE operation_id=?")
+        .run(new Date().toISOString(), operationId);
+    });
+  }
   markUnknown(operationId: string): void {
     this.#write(() => {
       const op = this.getOperation(operationId);
-      if (!op || op.state === 'settled') return;
+      if (!op || ['settled', 'released'].includes(op.state)) return;
+      this.#db.prepare("UPDATE work_spend_budgets SET authority_state='fenced' WHERE work_id=?").run(op.workId);
       this.#db.prepare("UPDATE work_spend_operations SET state = 'unknown', updated_at = ? WHERE operation_id = ?")
         .run(new Date().toISOString(), operationId);
     });
   }
   recoverUnknown(): number {
-    return this.#write(() => Number(this.#db.prepare(`UPDATE work_spend_operations SET state = 'unknown', updated_at = ?
-      WHERE state IN ('reserved', 'dispatched')`).run(new Date().toISOString()).changes));
+    return this.#write(() => {
+      this.#db.exec("UPDATE work_spend_budgets SET authority_state='fenced' WHERE work_id IN (SELECT work_id FROM work_spend_operations WHERE state IN ('reserved','dispatched','unknown'))");
+      return Number(this.#db.prepare(`UPDATE work_spend_operations SET state = 'unknown', updated_at = ?
+      WHERE state IN ('reserved', 'dispatched')`).run(new Date().toISOString()).changes);});
   }
   read(workId: string): {
     status: 'KNOWN' | 'UNKNOWN'; currency: 'USD'; unit: 'microUSD'; workId: string;

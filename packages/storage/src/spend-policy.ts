@@ -23,7 +23,7 @@ export interface SpendReservation extends SpendBinding {
 export interface SpendOperation extends SpendReservation {
   actualMicrousd: number | null; providerRequestId: string | null;
   usage: Record<string, number> | null;
-  state: 'reserved' | 'dispatched' | 'unknown' | 'settled';
+  state: 'reserved' | 'dispatched' | 'unknown' | 'settled' | 'released';
 }
 export type OperationRow = {
   operation_id: string; work_id: string; work_generation: number;
@@ -60,7 +60,7 @@ export function map(row: OperationRow): SpendOperation {
     usage: row.usage_json ? JSON.parse(row.usage_json) as Record<string, number> : null,
     state: row.state, phase: row.phase };
 }
-export function exposure(op: SpendOperation): number { return op.state === 'settled' ? op.actualMicrousd! : op.reservedMicrousd; }
+export function exposure(op: SpendOperation): number { return op.state === 'released' ? 0 : op.state === 'settled' ? op.actualMicrousd! : op.reservedMicrousd; }
 export function sameAttempt(op: SpendOperation, binding: SpendBinding): boolean {
   return op.workGeneration === binding.workGeneration && op.dispatchIdentity === binding.dispatchIdentity &&
     op.requestId === binding.requestId && op.workOrderId === binding.workOrderId &&
@@ -82,7 +82,7 @@ export function assertReservation(budget: BudgetRow, ops: SpendOperation[], inpu
       if (budget.model !== input.model || budget.pricing_revision !== input.pricingRevision ||
         input.reservedMicrousd !== budget.per_operation_reserve_microusd)
         throw new Error('Pinned pricing or conservative reservation mismatch');
-      if (ops.some(op => op.state === 'unknown')) throw new Error('UNKNOWN exposure blocks all new paid operations');
+      if (ops.some(op => ['reserved', 'dispatched', 'unknown'].includes(op.state))) throw new Error('Unresolved reservation or UNKNOWN exposure blocks all new paid operations');
       if (ops.length >= budget.max_paid_operations ||
         ops.filter(op => op.phase === input.phase).length >=
           (input.phase === 'productive' ? budget.planned_productive_operations : budget.planned_completion_operations))
@@ -98,7 +98,7 @@ export function assertReservation(budget: BudgetRow, ops: SpendOperation[], inpu
 export function assertCompletionOperations(operations: SpendOperation[], binding: SpendBinding): void {
       if (!operations.some(op => sameAttempt(op, binding) && op.phase === 'productive' && op.state === 'settled'))
         throw new Error('Productive paid operation missing before completion');
-      if (operations.some(op => op.state !== 'settled'))
+      if (operations.some(op => !['settled', 'released'].includes(op.state)))
         throw new Error('Outstanding paid operation blocks completion transition');
       if (operations.some(op => op.phase === 'completion'))
         throw new Error('Completion already consumed');
@@ -141,7 +141,7 @@ export function matchesCurrent(b: BudgetRow, binding: SpendBinding): boolean {
   }
 export function spendSummary(workId: string, budget: BudgetRow, operations: SpendOperation[], now = Date.now()) {
       const settledMicrousd = operations.reduce((n, op) => n + (op.actualMicrousd ?? 0), 0);
-      const retainedMicrousd = operations.reduce((n, op) => n + (op.state === 'settled' ? 0 : op.reservedMicrousd), 0);
+      const retainedMicrousd = operations.reduce((n, op) => n + (['settled', 'released'].includes(op.state) ? 0 : op.reservedMicrousd), 0);
       const unknownExposureMicrousd = operations.reduce((n, op) => n + (op.state === 'unknown' ? op.reservedMicrousd : 0), 0);
       const completionOperations = operations.filter(op => op.phase === 'completion');
       const completionExposure = completionOperations.reduce((n, op) => n + exposure(op), 0);
@@ -164,7 +164,7 @@ export function spendSummary(workId: string, budget: BudgetRow, operations: Spen
         contractVersion: budget.contract_version, pricingRevision: budget.pricing_revision,
         pricingQualified: budget.contract_version === 'WORK_LEDGER_V2' && !!budget.pricing_revision &&
           !!budget.pricing_valid_until && Date.parse(budget.pricing_valid_until) > now,
-        authorityState: budget.authority_state, accountingComplete: operations.every(op => op.state === 'settled'),
+        authorityState: budget.authority_state, accountingComplete: operations.every(op => ['settled', 'released'].includes(op.state)),
         phase: budget.phase, cancelled: budget.cancelled_at !== null, operations };
 return result;
 }
