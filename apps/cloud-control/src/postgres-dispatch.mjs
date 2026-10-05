@@ -142,11 +142,21 @@ export class PostgresDispatchStore {
     if(messageId!==null&&(typeof messageId!=='string'||!messageId.length||messageId.length>256))throw Error('INVALID_MESSAGE_ID');
     return this.transaction(async client=>{
       await client.query("UPDATE factory.delivery_intents SET state=$2,message_id=$3 WHERE run_id=$1 AND state='SENDING'",[runId,messageId?'ACCEPTED':'UNKNOWN',messageId]);
+      if(messageId===null){
+        const row=(await client.query("SELECT i.* FROM factory.intake_receipts i JOIN factory.delivery_intents d ON d.run_id=i.run_id WHERE i.run_id=$1 AND i.client_id='sofie-production-validation' AND d.state='UNKNOWN'",[runId])).rows[0];
+        if(row){
+          await this.event(client,row,'factory.stop_requested',{reason:'VALIDATION_DELIVERY_UNKNOWN'});
+          await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced',cancelled_at=clock_timestamp() WHERE work_id=$1 AND work_generation=$2",[row.work_id,row.work_generation]);
+          await client.query('UPDATE factory.execution_resources SET cancelled_at=clock_timestamp(),lease_expires_at=clock_timestamp() WHERE run_id=$1',[runId]);
+        }
+      }
     });
   }
   async acceptDelivery(runId,deploymentId,nonce,messageId) {
     if(typeof nonce!=='string'||!/^[a-f0-9]{64}$/.test(nonce)||typeof messageId!=='string'||!messageId.length||messageId.length>256)throw Error('INVALID_DELIVERY');
     return this.transaction(async client=>{
+      const halted=await client.query("SELECT 1 FROM factory.delivery_intents d JOIN factory.intake_receipts i ON i.run_id=d.run_id WHERE d.run_id=$1 AND i.client_id='sofie-production-validation' AND d.state='UNKNOWN'",[runId]);
+      if(halted.rowCount)throw Error('DELIVERY_BINDING_MISMATCH');
       const result=await client.query("UPDATE factory.delivery_intents SET state='DELIVERED',message_id=$4,delivered_at=COALESCE(delivered_at,clock_timestamp()) WHERE run_id=$1 AND deployment_id=$2 AND nonce_sha256=$3 AND (message_id IS NULL OR message_id=$4) RETURNING run_id",[runId,deploymentId,createHash('sha256').update(nonce).digest('hex'),messageId]);
       if(!result.rowCount)throw Error('DELIVERY_BINDING_MISMATCH');
       // A delivery authenticates the wake-up only. claim() still checks deadline,

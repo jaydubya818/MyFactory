@@ -1,4 +1,6 @@
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
+import {parseCloudPrepare} from '../../../packages/contracts/src/cloud-execution.ts';
+import {validationSourceGrant} from './production-validation-plan.mjs';
 export const productionRecoveryAllowanceMs=20*60*1000;
 export function assertProductionCredentialHorizon(request,proofExpiresAt,signerNotAfter){
  const bound=Date.parse(request?.deadline)+productionRecoveryAllowanceMs;
@@ -11,6 +13,12 @@ export function productionAuthority({installation,sourceDigest,configuration,con
  const configurationDigest=digest(configuration),factoryVersion=digest({sourceDigest,configurationDigest});
  return async(client,request,now,phase)=>{
   const row=(await client.query('SELECT * FROM factory.production_work_authority WHERE request_id=$1 FOR UPDATE',[request.requestId])).rows[0];
+  // Only a missing validation grant may wait. Revocation, expiry and mismatches
+  // are terminal authority failures, never permission to retry preparation.
+  if(!row&&clientId==='sofie-production-validation'&&phase==='prepare'&&Date.parse(request.deadline)>now){
+   parseCloudPrepare(request,validationSourceGrant,now);
+   throw Error('PRODUCTION_VALIDATION_GRANT_PENDING');
+  }
   const m=row?.manifest;
   const expectedKeys='candidateSha256,clientId,configurationDigest,contractSha256,environment,factoryVersion,ownerScope,publication,request,sourceDigest,version';
   if(!row||row.state!=='AUTHORIZED'||row.client_id!==clientId||row.work_id!==request.workId||!m||Object.keys(m).sort().join(',')!==expectedKeys||

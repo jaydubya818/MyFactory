@@ -34,7 +34,7 @@ test('CONNECTED production exact authority consumption, immutable grant, concurr
  assert((await query('SELECT consumed_at FROM factory.production_work_authority')).rows[0].consumed_at);
  await assert.rejects(query("UPDATE factory.production_work_authority SET manifest=manifest||'{\"publication\":true}'"),/immutable/);
  await assert.rejects(query('DELETE FROM factory.production_work_authority'),/cannot be deleted/);
- await assert.rejects(control.prepare({...request,requestId:randomUUID()}),/NOT_AUTHORIZED/);
+ await assert.rejects(control.prepare({...request,requestId:randomUUID()}),/VALIDATION_GRANT_PENDING/);
  const identity={runId:randomUUID(),dispatchIdentity:randomUUID(),writerGeneration:1,workId:request.workId,workGeneration:1,requestId:request.requestId,repository:request.repository,deadline:request.deadline,baseSha:grant.source.commit,allowedPaths:grant.allowedPaths,factoryId:one.snapshot.factoryId,factoryVersion,workOrderId:one.workOrderId,remoteRunId:one.runId};
  await spend.bindAuthority({workId:request.workId,workGeneration:1,requestId:request.requestId,workOrderId:one.workOrderId,dispatchIdentity:identity.dispatchIdentity,factoryVersion,runId:one.runId});
  const claims=await Promise.all([store.claim(grant.clientId,identity),store.claim(grant.clientId,identity)]);assert.equal(claims.filter(Boolean).length,1);
@@ -52,5 +52,43 @@ test('CONNECTED production exact authority consumption, immutable grant, concurr
  await verification.failed(one.runId,admitted.record.lease_owner,'VERIFIER_AUTHORITY_REVOKED');await verification.cleanup(one.runId,admitted.record.lease_owner,'sbx_disposable_verifier');
  assert.equal((await verification.read(grant.clientId,request.requestId)).cleanup_confirmed,true);
  await assert.rejects(query("UPDATE factory.production_work_authority SET state='AUTHORIZED'"),/immutable/);
+ assert.equal((await query('SELECT count(*) FROM factory.work_spend_operations')).rows[0].count,'0');
+});
+
+test('CONNECTED validation UNKNOWN delivery permanently fences late execution while preserving recovery',{skip:process.env.FACTORY_POSTGRES_TEST!=='1'},async t=>{
+ const url=new URL(process.env.DATABASE_URL_UNPOOLED);assert(['localhost','127.0.0.1'].includes(url.hostname));
+ const pool=new pg.Pool({...databaseConfig(url.href),max:5}),schema='factory_halt_'+randomUUID().replaceAll('-','');
+ await pool.query('CREATE SCHEMA '+schema);
+ const rewrite=sql=>sql.replace(/\bfactory\.(production_work_authority|protect_production_authority|work_spend_budgets|work_spend_operations|intake_receipts|delivery_intents|verification_resources|execution_resources|candidate_custody|work_orders|runs|events)\b/g,schema+'.$1').replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);
+ t.after(async()=>{await pool.query('DROP SCHEMA '+schema+' CASCADE');await pool.end();});
+ const query=(sql,args)=>pool.query(rewrite(sql),args),isolated={connect:async()=>{const c=await pool.connect();return{query:(sql,args)=>c.query(rewrite(sql),args),release:()=>c.release()};}};
+ for(const file of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification','008-production-work-authority'])await query(await readFile(new URL('../migrations/'+file+'.sql',import.meta.url),'utf8'));
+ const installation={ownerScope:'disposable-validation-owner'},sourceDigest='a'.repeat(64),configurationDigest=digest(configuration),factoryVersion=digest({sourceDigest,configurationDigest});
+ const assertAuthority=productionAuthority({installation,sourceDigest,configuration,contractSha256,clientId:grant.clientId,candidateSha256});
+ const store=new PostgresDispatchStore(isolated,{custodyPrefix:'factory/production',verificationPolicySha256:policySha256,assertAuthority}),spend=new PostgresSpendLedger(isolated);
+ const control=new CloudWorkControl({store,spend,grant:{...grant,ownerScope:installation.ownerScope},configuration,sourceDigest,signing:{factoryId:'myfactory-cloud-production'},executionSpendPlan:productionSpendPlan,verificationPolicy:{policy,policySha256}});
+ async function prepared(){
+  const request={protocol:'MYFACTORY_EXECUTION_V2',requestId:randomUUID(),workId:randomUUID(),workGeneration:1,repository:grant.source.repository,source:grant.source,deadline:new Date(Date.now()+170000).toISOString(),maxSpendUsd:1,input:{title:'Disposable validation halt',description:'No execution after unknown',kind:'feature',acceptanceCriteria:['No allocation'],allowedPaths:grant.allowedPaths,checkCommands:grant.commands}};
+  const manifest={version:1,clientId:grant.clientId,ownerScope:installation.ownerScope,sourceDigest,configurationDigest,factoryVersion,contractSha256,candidateSha256,environment:'CLOUD_PRODUCTION',publication:false,request};
+  await query("INSERT INTO factory.production_work_authority(request_id,work_id,client_id,manifest,manifest_sha256,state) VALUES($1,$2,$3,$4,$5,'AUTHORIZED')",[request.requestId,request.workId,grant.clientId,manifest,digest(manifest)]);
+  const p=await control.prepare(request),identity={runId:randomUUID(),dispatchIdentity:randomUUID(),writerGeneration:1,workId:request.workId,workGeneration:1,requestId:request.requestId,repository:request.repository,deadline:request.deadline,baseSha:grant.source.commit,allowedPaths:grant.allowedPaths,factoryId:p.snapshot.factoryId,factoryVersion,workOrderId:p.workOrderId,remoteRunId:p.runId};
+  await spend.bindAuthority({workId:request.workId,workGeneration:1,requestId:request.requestId,workOrderId:p.workOrderId,dispatchIdentity:identity.dispatchIdentity,factoryVersion,runId:p.runId});
+  await store.reserveDelivery(grant.clientId,identity,'dpl_test','a'.repeat(64));return {p,identity};
+ }
+ const unknown=await prepared();await store.recordDeliverySend(unknown.p.runId);
+ await assert.rejects(store.acceptDelivery(unknown.p.runId,'dpl_test','a'.repeat(64),'message'),/DELIVERY_BINDING_MISMATCH/);
+ assert.equal(await store.claim(grant.clientId,unknown.identity),null);
+ assert.equal((await store.recoveryBinding(unknown.p.runId,'dpl_test','a'.repeat(64))).run_id,unknown.p.runId);
+ assert.equal((await query('SELECT count(*) FROM factory.execution_resources')).rows[0].count,'0');
+ const concurrent=await prepared();
+ await Promise.allSettled([store.recordDeliverySend(concurrent.p.runId),store.acceptDelivery(concurrent.p.runId,'dpl_test','a'.repeat(64),'message')]);
+ const delivery=(await query('SELECT state FROM factory.delivery_intents WHERE run_id=$1',[concurrent.p.runId])).rows[0];
+ if(delivery.state==='UNKNOWN')assert.equal(await store.claim(grant.clientId,concurrent.identity),null);
+ else {assert.equal(delivery.state,'DELIVERED');const lease=await store.claim(grant.clientId,concurrent.identity);assert(lease);await store.recordAllocation(concurrent.p.runId,lease.lease_owner,lease.lease_generation,'sbx_race');await store.confirmCleanup(concurrent.p.runId,lease.lease_owner,lease.lease_generation,'sbx_race');}
+ const success=await prepared();await store.recordDeliverySend(success.p.runId,'accepted');
+ await store.acceptDelivery(success.p.runId,'dpl_test','a'.repeat(64),'accepted');await store.acceptDelivery(success.p.runId,'dpl_test','a'.repeat(64),'accepted');
+ const claimed=await store.claim(grant.clientId,success.identity);assert(claimed);assert.equal(await store.claim(grant.clientId,success.identity),null);
+ await store.recordAllocation(success.p.runId,claimed.lease_owner,claimed.lease_generation,'sbx_single');await store.confirmCleanup(success.p.runId,claimed.lease_owner,claimed.lease_generation,'sbx_single');
+ assert.equal((await query('SELECT count(*) FROM factory.execution_resources WHERE NOT cleanup_confirmed')).rows[0].count,'0');
  assert.equal((await query('SELECT count(*) FROM factory.work_spend_operations')).rows[0].count,'0');
 });

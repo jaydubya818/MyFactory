@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "9499a444f97c00efb8557135c18c2d54225131623311287a9fba869a7bd473ce",
+      "sha256": "1231e8dade0c1db82490abd56e721a714608b9ebe7da7c6ca7b5c18055fa1443",
       "classification": "CLOUD_DISPATCH_AUTHORITY",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -217,9 +217,9 @@
       "sha256": "6c70b229315db0725488ca0a97dcebb81b8035ca1892115b5c8997a330ba7e28"
     },
     "apps/cloud-control/src/cloud-work-control.mjs": {
-      "sha256": "8e9675ceb741c9b62d8d1fd3b7275f84eaa59df39bc00f1512cac21ce40588ed",
+      "sha256": "c80d4cc90ab6eb805bfe76e4cf0f690d17de5bc503cd266709e3cc2f63d8f302",
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress."
     },
     "apps/cloud-control/src/cloud-queue-consumer.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -402,9 +402,9 @@
       "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
     },
     "apps/cloud-control/src/production-control.mjs": {
-      "sha256": "57b84259f9d4c37347049f41e929f51a4858977958b6b6a522c14474582f1c0d",
+      "sha256": "162c934393e64b13328bd0f43850a0bf9af6ed5e1584263f407c95f4e617d8f5",
       "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress."
     },
     "apps/cloud-control/src/production-identity.mjs": {
       "sha256": "b93eee8e81744e507f7b01bbf66e945f1e6c22c86d2f1ac4c453cc4a3b251a5d",
@@ -453,8 +453,8 @@
     },
     "apps/cloud-control/src/production-authority.mjs": {
       "classification": "ENFORCED",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
-      "sha256": "cd091fddb8604d79ddcb0640f9e92f95bee4cc987f463333a8e436c8957c4c57"
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress.",
+      "sha256": "6ad12c50ae5ef3742e7ca783477253769de436c0a0b0a43efa7ab05f6e9cd816"
     },
     "apps/cloud-control/src/production-runtime.mjs": {
       "classification": "ENFORCED",
