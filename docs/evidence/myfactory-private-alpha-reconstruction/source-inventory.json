@@ -207,7 +207,7 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "4c5f7c9e796c763a99940eef183b4ff4ac99f474d0c1a42f605d15fc7f2dffa5",
+      "sha256": "36ba5e55b019c1fe0aac0749ed7bba808b171815b45c57f3f67bef80b40a95b5",
       "classification": "CLOUD_DISPATCH_AUTHORITY",
       "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review."
     },
@@ -454,7 +454,7 @@
     "apps/cloud-control/src/production-authority.mjs": {
       "classification": "ENFORCED",
       "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review.",
-      "sha256": "c70298b32b90214d8b6f0243fd87466ee5491ef29df7e65d3c8ffc672ab20607"
+      "sha256": "129c5bb9b56b65e25fc95634f960361e9c978539409504f6b0f92a751c10d186"
     },
     "apps/cloud-control/src/production-runtime.mjs": {
       "classification": "ENFORCED",
@@ -484,7 +484,7 @@
     "apps/cloud-control/src/production-approval.mjs": {
       "classification": "INTERNAL",
       "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review.",
-      "sha256": "a4f91c0d5b50f8e0383e43c443df6ae45913ddd13ea0979c7899d95c2516beb5"
+      "sha256": "dc27db461ff38aad51e4b367105d78fbe9ea1c1c61248330f9ff620a9db82aed"
     },
     "apps/cloud-control/api/alpha-recovery.mjs": {
       "classification": "canonical-host",
@@ -505,6 +505,11 @@
       "classification": "OPERATOR_STARTUP_QUALIFICATION",
       "authorityBoundary": " Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure.",
       "sha256": "aabfdab855c411315846ba5d729166174d35c71898daccdea04f89b91071346a"
+    },
+    "apps/cloud-control/src/production-successor-intake.mjs": {
+      "classification": "EXACT_SUCCESSOR_ADMISSION",
+      "authorityBoundary": "Digest-bound alpha-A successor only: preserves one lifetime intake, exact revoked predecessor and all historical records; no grant, model, retry, fallback or publication authority from configuration.",
+      "sha256": "7a4743821a2615a09f1cd8e777f1d59ec4736665e5111803b337ac69ccb96305"
     }
   }
 }
