@@ -1,3 +1,4 @@
+import {successorIntakePolicy} from './production-successor-intake.mjs';
 import {alphaClientIds} from './alpha-owner-roster.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 /** Approval is immutable pre-activation material. The concrete grant binds the
@@ -17,5 +18,6 @@ export function assertConcreteProductionGrant(manifest,approvedDigest,now=Date.n
  const {authorizationEnvelope,authorizationEnvelopeSha256,...concrete}=manifest;
  const projected={...concrete,version:1,request:{...concrete.request,requestId:null,deadline:null}};
  if(digest(projected)!==digest(t))throw Error('PRODUCTION_APPROVAL_BINDING');
+ successorIntakePolicy(a);
  return a;
 }

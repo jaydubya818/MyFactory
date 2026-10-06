@@ -36,12 +36,14 @@ export class PostgresDispatchStore {
   async prepare(grant,input,snapshotFactory) {
     return this.transaction(async(client,now)=>{
       // Exact production authority is consumed atomically with first admission.
-      if(this.assertAuthority)await this.assertAuthority(client,input,now,'prepare');
+      const authority=this.assertAuthority?await this.assertAuthority(client,input,now,'prepare'):undefined;
       // Replay cannot change any admission input.
       const prior=(await client.query('SELECT * FROM factory.intake_receipts WHERE client_id=$1 AND request_id=$2',[grant.clientId,input?.requestId])).rows[0];
       if(prior){if(this.assertRecordScope)await this.assertRecordScope(client,prior);if(prior.input_digest!==digest(input))throw Error('PREPARATION_REPLAY_CONFLICT');return prior;}
       const request=parseCloudPrepare(input,grant,now);
-      if(Number((await client.query('SELECT count(*) FROM factory.intake_receipts WHERE client_id=$1',[grant.clientId])).rows[0].count)>=this.maxWorks)throw Error(this.workLimitError);
+      const count=Number((await client.query('SELECT count(*) FROM factory.intake_receipts WHERE client_id=$1',[grant.clientId])).rows[0].count),successor=authority?.successorIntake;
+      const extra=this.maxWorks===1&&count===1&&successor?.maxIntakes===1&&successor.clientId===grant.clientId&&successor.workId===request.workId&&successor.workGeneration===request.workGeneration;
+      if(count>=this.maxWorks&&!extra)throw Error(this.workLimitError);
       const other=(await client.query('SELECT client_id,work_generation FROM factory.intake_receipts WHERE work_id=$1',[request.workId])).rows;
       if(other.some(r=>r.client_id!==grant.clientId||r.work_generation>=request.workGeneration))throw Error('WORK_SCOPE_OR_GENERATION_CONFLICT');
       // No new generation while an earlier resource can still execute.
