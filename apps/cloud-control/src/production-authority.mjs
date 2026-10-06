@@ -1,3 +1,4 @@
+import {alphaClientIds,assertAlphaApprovalBinding} from './alpha-owner-roster.mjs';
 import {assertConcreteProductionGrant} from './production-approval.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {parseCloudPrepare} from '../../../packages/contracts/src/cloud-execution.ts';
@@ -10,7 +11,7 @@ export function assertProductionCredentialHorizon(request,proofExpiresAt,signerN
 
 /** Runs inside the dispatch store's existing serialization transaction. The
  * operator installs the exact envelope; runtime never creates or widens it. */
-export function productionAuthority({installation,sourceDigest,configuration,contractSha256,clientId,candidateSha256=null,authorizationSha256}){
+export function productionAuthority({installation,sourceDigest,configuration,contractSha256,clientId,candidateSha256=null,authorizationSha256,ownerBinding}){
  const configurationDigest=digest(configuration),factoryVersion=digest({sourceDigest,configurationDigest});
  return async(client,request,now,phase)=>{
   const row=(await client.query('SELECT * FROM factory.production_work_authority WHERE request_id=$1 FOR UPDATE',[request.requestId])).rows[0];
@@ -21,9 +22,11 @@ export function productionAuthority({installation,sourceDigest,configuration,con
    throw Error('PRODUCTION_VALIDATION_GRANT_PENDING');
   }
   const m=row?.manifest;
-  const paid=clientId==='sofie-production';
+  const alpha=alphaClientIds.includes(clientId),paid=clientId==='sofie-production'||alpha;
+  if(alpha&&!ownerBinding||ownerBinding&&(!alpha||ownerBinding.clientId!==clientId||ownerBinding.ownerScope!==installation.ownerScope))throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');
   if(!row)throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');
   if(paid)assertConcreteProductionGrant(m,authorizationSha256,now);
+  if(alpha)assertAlphaApprovalBinding(m?.authorizationEnvelope,ownerBinding);
   const expectedKeys=(paid?'authorizationEnvelope,authorizationEnvelopeSha256,':'')+'candidateSha256,clientId,configurationDigest,contractSha256,environment,factoryVersion,ownerScope,publication,request,sourceDigest,version';
   if(!row||row.state!=='AUTHORIZED'||row.client_id!==clientId||row.work_id!==request.workId||!m||Object.keys(m).sort().join(',')!==expectedKeys||
    digest(m)!==row.manifest_sha256||(!paid&&authorizationSha256!==undefined&&row.manifest_sha256!==authorizationSha256)||m.version!==(paid?2:1)||m.clientId!==clientId||m.ownerScope!==installation.ownerScope||m.environment!=='CLOUD_PRODUCTION'||m.publication!==false||
