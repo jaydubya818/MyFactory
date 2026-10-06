@@ -8,7 +8,7 @@ import {cloudVerifierPolicySha256} from './cloud-verifier-policy.mjs';
 /** Canonical Factory admission history and resource leases. Queue delivery grants
  * no authority. All mutable checks serialize with the canonical spend ledger. */
 export class PostgresDispatchStore {
-  constructor(pool,{maxWorks=8,workLimitError='STAGING_WORK_LIMIT',custodyPrefix='factory/staging',verificationPolicySha256=cloudVerifierPolicySha256,assertAuthority}={}) { if(!Number.isSafeInteger(maxWorks)||maxWorks<1||maxWorks>8||!['factory/staging','factory/production'].includes(custodyPrefix)||!/^[a-f0-9]{64}$/.test(verificationPolicySha256))throw Error('DISPATCH_CONFIGURATION_INVALID');this.assertAuthority=assertAuthority;this.pool=pool;this.maxWorks=maxWorks;this.workLimitError=workLimitError;this.custodyPrefix=custodyPrefix;this.verificationPolicySha256=verificationPolicySha256; }
+  constructor(pool,{maxWorks=8,workLimitError='STAGING_WORK_LIMIT',custodyPrefix='factory/staging',verificationPolicySha256=cloudVerifierPolicySha256,assertAuthority,assertRecordScope}={}) { if(!Number.isSafeInteger(maxWorks)||maxWorks<1||maxWorks>8||!['factory/staging','factory/production'].includes(custodyPrefix)||!/^[a-f0-9]{64}$/.test(verificationPolicySha256))throw Error('DISPATCH_CONFIGURATION_INVALID');this.assertAuthority=assertAuthority;this.assertRecordScope=assertRecordScope;this.pool=pool;this.maxWorks=maxWorks;this.workLimitError=workLimitError;this.custodyPrefix=custodyPrefix;this.verificationPolicySha256=verificationPolicySha256; }
   async transaction(action) {
     const client=await this.pool.connect();
     try {
@@ -22,7 +22,13 @@ export class PostgresDispatchStore {
   }
   async record(client,clientId,requestId) {
     const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE client_id=$1 AND request_id=$2',[clientId,requestId])).rows[0];
-    if(!row)throw Error('FACTORY_REQUEST_NOT_FOUND');return row;
+    if(!row)throw Error('FACTORY_REQUEST_NOT_FOUND');if(this.assertRecordScope)await this.assertRecordScope(client,row);return row;
+  }
+  async assertRunScope(client,runId) {
+    if(!this.assertRecordScope)return;
+    const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
+    if(!row)throw Error('FACTORY_REQUEST_NOT_FOUND');
+    await this.assertRecordScope(client,row);
   }
   async event(client,row,type,payload) {
     await client.query('INSERT INTO factory.events(work_order_id,run_id,type,payload) VALUES($1,$2,$3,$4)',[row.work_order_id,row.run_id,type,payload]);
@@ -33,7 +39,7 @@ export class PostgresDispatchStore {
       if(this.assertAuthority)await this.assertAuthority(client,input,now,'prepare');
       // Replay cannot change any admission input.
       const prior=(await client.query('SELECT * FROM factory.intake_receipts WHERE client_id=$1 AND request_id=$2',[grant.clientId,input?.requestId])).rows[0];
-      if(prior){if(prior.input_digest!==digest(input))throw Error('PREPARATION_REPLAY_CONFLICT');return prior;}
+      if(prior){if(this.assertRecordScope)await this.assertRecordScope(client,prior);if(prior.input_digest!==digest(input))throw Error('PREPARATION_REPLAY_CONFLICT');return prior;}
       const request=parseCloudPrepare(input,grant,now);
       if(Number((await client.query('SELECT count(*) FROM factory.intake_receipts WHERE client_id=$1',[grant.clientId])).rows[0].count)>=this.maxWorks)throw Error(this.workLimitError);
       const other=(await client.query('SELECT client_id,work_generation FROM factory.intake_receipts WHERE work_id=$1',[request.workId])).rows;
@@ -100,6 +106,7 @@ export class PostgresDispatchStore {
     // Observation only: a delayed create receipt must remain collectible after cancellation.
     if(typeof providerSessionId!=='string'||!/^sbx_[A-Za-z0-9_-]+$/.test(providerSessionId))throw Error('INVALID_PROVIDER_ID');
     return this.transaction(async client=>{
+      await this.assertRunScope(client,runId);
       const result=await client.query(`UPDATE factory.execution_resources SET provider_session_id=$4,allocation_unknown=false,updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 AND NOT cleanup_confirmed AND (provider_session_id IS NULL OR provider_session_id=$4) RETURNING *`,[runId,leaseOwner,generation,providerSessionId]);
       if(!result.rowCount)throw Error('RESOURCE_RECEIPT_CONFLICT');return result.rows[0];
     });
@@ -117,6 +124,7 @@ export class PostgresDispatchStore {
   }
   async heartbeat(runId,leaseOwner,generation) {
     return this.transaction(async(client,now)=>{
+      await this.assertRunScope(client,runId);
       if(this.assertAuthority){const row=(await client.query('SELECT request FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];await this.assertAuthority(client,row?.request,now,'heartbeat');}
       const r=await client.query(`UPDATE factory.execution_resources SET lease_expires_at=least(clock_timestamp()+interval '60 seconds',deadline),updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 AND lease_expires_at>clock_timestamp() AND deadline>clock_timestamp() AND cancelled_at IS NULL AND NOT cleanup_confirmed RETURNING *`,[runId,leaseOwner,generation]);
       if(!r.rowCount)throw Error('LEASE_FENCED');return r.rows[0];
@@ -141,6 +149,7 @@ export class PostgresDispatchStore {
   async recordDeliverySend(runId,messageId=null) {
     if(messageId!==null&&(typeof messageId!=='string'||!messageId.length||messageId.length>256))throw Error('INVALID_MESSAGE_ID');
     return this.transaction(async client=>{
+      await this.assertRunScope(client,runId);
       await client.query("UPDATE factory.delivery_intents SET state=$2,message_id=$3 WHERE run_id=$1 AND state='SENDING'",[runId,messageId?'ACCEPTED':'UNKNOWN',messageId]);
       if(messageId===null){
         const row=(await client.query("SELECT i.* FROM factory.intake_receipts i JOIN factory.delivery_intents d ON d.run_id=i.run_id WHERE i.run_id=$1 AND i.client_id='sofie-production-validation' AND d.state='UNKNOWN'",[runId])).rows[0];
@@ -155,6 +164,7 @@ export class PostgresDispatchStore {
   async acceptDelivery(runId,deploymentId,nonce,messageId) {
     if(typeof nonce!=='string'||!/^[a-f0-9]{64}$/.test(nonce)||typeof messageId!=='string'||!messageId.length||messageId.length>256)throw Error('INVALID_DELIVERY');
     return this.transaction(async client=>{
+      await this.assertRunScope(client,runId);
       const halted=await client.query("SELECT 1 FROM factory.delivery_intents d JOIN factory.intake_receipts i ON i.run_id=d.run_id WHERE d.run_id=$1 AND i.client_id='sofie-production-validation' AND d.state='UNKNOWN'",[runId]);
       if(halted.rowCount)throw Error('DELIVERY_BINDING_MISMATCH');
       const result=await client.query("UPDATE factory.delivery_intents SET state='DELIVERED',message_id=$4,delivered_at=COALESCE(delivered_at,clock_timestamp()) WHERE run_id=$1 AND deployment_id=$2 AND nonce_sha256=$3 AND (message_id IS NULL OR message_id=$4) RETURNING run_id",[runId,deploymentId,createHash('sha256').update(nonce).digest('hex'),messageId]);
@@ -167,6 +177,7 @@ export class PostgresDispatchStore {
   async recoveryBinding(runId,deploymentId,nonce) {
     if(typeof nonce!=='string'||!/^[a-f0-9]{64}$/.test(nonce))throw Error('INVALID_DELIVERY');
     return this.transaction(async client=>{
+      await this.assertRunScope(client,runId);
       const row=(await client.query('SELECT i.* FROM factory.intake_receipts i JOIN factory.delivery_intents d ON d.run_id=i.run_id WHERE i.run_id=$1 AND d.deployment_id=$2 AND d.nonce_sha256=$3',[runId,deploymentId,createHash('sha256').update(nonce).digest('hex')])).rows[0];
       if(!row)throw Error('DELIVERY_BINDING_MISMATCH');return row;
     });
@@ -175,6 +186,7 @@ export class PostgresDispatchStore {
     const previous={PREPARING:'ALLOCATING',READY:'PREPARING',RUNNING:'READY',QUIESCING:'RUNNING',COLLECTING:'QUIESCING'}[state];
     if(!previous||Buffer.byteLength(canonical(evidence))>16000)throw Error('INVALID_RESOURCE_TRANSITION');
     return this.transaction(async client=>{
+      await this.assertRunScope(client,runId);
       const result=await client.query(`UPDATE factory.execution_resources SET state=$4,evidence=evidence||$5::jsonb,updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 AND state=$6 AND provider_session_id IS NOT NULL AND lease_expires_at>clock_timestamp() AND deadline>clock_timestamp() AND cancelled_at IS NULL AND NOT cleanup_confirmed RETURNING *`,[runId,leaseOwner,generation,state,evidence,previous]);
       if(!result.rowCount)throw Error('RESOURCE_TRANSITION_FENCED');
       const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
@@ -184,6 +196,7 @@ export class PostgresDispatchStore {
   async retainCustody(runId,leaseOwner,generation,receipt) {
     if(!receipt||Object.keys(receipt).sort().join(',')!=='bytes,commit,pathname,sha256,tree'||!Number.isSafeInteger(receipt.bytes)||receipt.bytes<1||receipt.bytes>256000||!/^[a-f0-9]{40}$/.test(receipt.commit)||!/^[a-f0-9]{40}$/.test(receipt.tree)||!/^[a-f0-9]{64}$/.test(receipt.sha256)||receipt.pathname!==`${this.custodyPrefix}/runs/${runId}/${receipt.sha256}.json`)throw Error('INVALID_CUSTODY_RECEIPT');
     return this.transaction(async client=>{
+      await this.assertRunScope(client,runId);
       const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[runId])).rows[0];
       if(!resource||resource.lease_owner!==leaseOwner||resource.lease_generation!==generation||!resource.provider_session_id)throw Error('CUSTODY_RESOURCE_MISMATCH');
       // Collection is observation, not execution authority: retain authenticated
@@ -197,6 +210,7 @@ export class PostgresDispatchStore {
   }
   async confirmCleanup(runId,leaseOwner,generation,providerSessionId) {
     return this.transaction(async(client,now)=>{
+      await this.assertRunScope(client,runId);
       const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[runId])).rows[0];
       if(!resource||resource.lease_owner!==leaseOwner||resource.lease_generation!==generation||resource.provider_session_id!==providerSessionId)throw Error('CLEANUP_RESOURCE_MISMATCH');
       // With no allocation receipt, an early 404 cannot prove absence. Only a
@@ -212,6 +226,7 @@ export class PostgresDispatchStore {
   async noteResource(runId,leaseOwner,generation,evidence) {
     if(Buffer.byteLength(canonical(evidence))>16000)throw Error('EVIDENCE_BOUND');
     return this.transaction(async client=>{
+      await this.assertRunScope(client,runId);
       const r=await client.query('UPDATE factory.execution_resources SET evidence=evidence||$4::jsonb,updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 RETURNING run_id',[runId,leaseOwner,generation,evidence]);
       if(!r.rowCount)throw Error('RESOURCE_EVIDENCE_MISMATCH');
     });
@@ -257,6 +272,7 @@ export class PostgresDispatchStore {
   }
   async findRun(clientId,workOrderId,runId) {
     return this.transaction(async client=>{
+      await this.assertRunScope(client,runId);
       const row=(await client.query('SELECT request_id FROM factory.intake_receipts WHERE client_id=$1 AND work_order_id=$2 AND run_id=$3',[clientId,workOrderId,runId])).rows[0];
       if(!row)throw Error('FACTORY_REQUEST_NOT_FOUND');return row;
     });
