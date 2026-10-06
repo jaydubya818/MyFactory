@@ -12,18 +12,21 @@ export async function executeCloudWork(store,provider,clientId,identity,schedule
  const pulse=()=>{heartbeatTask=heartbeatTask.then(async()=>{if(heartbeatStopped||heartbeatFailure)return;try{await store.heartbeat(...args);}catch(error){heartbeatFailure=error;}});};
  const timer=setInterval(pulse,10000);
  const active=async()=>{await heartbeatTask;if(heartbeatFailure)throw Error('LEASE_FENCED');await store.heartbeat(...args);};
- let status='FAILED';
+ let status='FAILED',startupStage='RECOVERY_SCHEDULING';
+ const note=async evidence=>{if(evidence.startupStage)startupStage=evidence.startupStage;await store.noteResource(...args,evidence);};
  try{
   // Recovery is independent of the request, browser and producer callback.
   // If its acceptance is ambiguous, no sandbox is allocated.
   await scheduleRecovery(row,resource);
-  await active();sandbox=await provider.allocate(resource);
+  await active();startupStage='ALLOCATION';sandbox=await provider.allocate(resource);
   sessionId=sandbox.currentSession().sessionId;await store.recordAllocation(...args,sessionId);
   await active();await store.advanceResource(...args,'PREPARING');
-  const source=await provider.materialize(sandbox);
+  startupStage='SANDBOX_READINESS';
+  const source=await provider.materialize(sandbox,note);
   await active();await store.advanceResource(...args,'READY',{source});
   await store.advanceResource(...args,'RUNNING');
-  const manifest=await provider.execute(sandbox,commandId=>store.noteResource(...args,{commandId}),row,evidence=>store.noteResource(...args,evidence));
+  startupStage='EXECUTION';
+  const manifest=await provider.execute(sandbox,commandId=>store.noteResource(...args,{commandId}),row,note);
   await active();await store.advanceResource(...args,'QUIESCING');
   const quiescence=await provider.quiesce(sandbox);
   await active();await store.advanceResource(...args,'COLLECTING',{quiescence});
@@ -33,7 +36,7 @@ export async function executeCloudWork(store,provider,clientId,identity,schedule
   await store.noteResource(...args,{visibleChecksPassed,sessionSurface:cloudSessionSurface,protectedVerification:'NOT_RUN'});
   status=visibleChecksPassed?'COMPLETED':'FAILED';
  }catch(error){
-  await store.noteResource(...args,{failure:safeCode(error)});
+  await store.noteResource(...args,{failure:safeCode(error),failureStage:startupStage});
  }finally{
   heartbeatStopped=true;clearInterval(timer);await heartbeatTask;
   if(sandbox){
