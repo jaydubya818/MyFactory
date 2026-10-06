@@ -1,3 +1,4 @@
+import {authenticateAlphaOwner} from './alpha-owner-roster.mjs';
 import pg from 'pg';
 import {list} from '@vercel/blob';
 import {Sandbox} from '@vercel/sandbox';
@@ -19,12 +20,13 @@ export function productionDependencies(env,installation){
   provider:async()=>{const token=await productionWorkloadIdentity(installation);await Sandbox.list({token,projectId:installation.projectId,teamId:installation.teamId,limit:1,signal:AbortSignal.timeout(5000)});},
  };
 }
-export async function handleProductionReadiness(request,env,makeChecks=productionDependencies){
+export async function handleProductionReadiness(request,env,makeChecks=productionDependencies,authenticateOwner=authenticateAlphaOwner){
  const reply=(body,status)=>Response.json(body,{status,headers:{'cache-control':'private, no-store'}});
  if(request.method!=='GET')return reply({error:'METHOD_NOT_ALLOWED'},405);
- if(!authorized(request,env.FACTORY_PRODUCTION_APPLICATION_TOKEN))return reply({error:'UNAUTHORIZED'},401);
+ let alpha;try{alpha=authorized(request,env.FACTORY_PRODUCTION_APPLICATION_TOKEN)?null:await authenticateOwner(request,env)}catch{return reply({error:'UNAUTHORIZED'},401)}
+ if(!authorized(request,env.FACTORY_PRODUCTION_APPLICATION_TOKEN)&&alpha?.kind!=='execution')return reply({error:'UNAUTHORIZED'},401);
  try{
-  const installation=productionInstallation(env);productionCredentials(env,installation);assertProductionAdmissionDisabled(env);
+  const installation=productionInstallation(env);if(!alpha)productionCredentials(env,installation);assertProductionAdmissionDisabled(env);
   const checks=makeChecks(env,installation),names=['database','artifacts','provider'];
   const results=await Promise.allSettled(names.map(name=>Promise.resolve().then(()=>checks[name]())));
   const platformReady=results.every(result=>result.status==='fulfilled');

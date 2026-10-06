@@ -1,3 +1,4 @@
+import {alphaClientIds} from './alpha-owner-roster.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 /** Approval is immutable pre-activation material. The concrete grant binds the
  * later request UUID/deadline; neither digest depends on itself. */
@@ -8,7 +9,7 @@ export function assertConcreteProductionGrant(manifest,approvedDigest,now=Date.n
   Object.keys(envelope??{}).sort().join(',')!=='approval,expiresAt,version'||envelope.version!==1||
   !Number.isFinite(Date.parse(envelope.expiresAt))||Date.parse(envelope.expiresAt)<=now||
   !Number.isSafeInteger(a?.workVersion)||a.workVersion<1||!t||t.version!==1||
-  t.clientId!=='sofie-production'||t.request?.requestId!==null||t.request?.deadline!==null||
+  !(t.clientId==='sofie-production'||alphaClientIds.includes(t.clientId))||t.request?.requestId!==null||t.request?.deadline!==null||
   !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(manifest.request?.requestId??'')||
   !Number.isFinite(Date.parse(manifest.request?.deadline))||Date.parse(manifest.request.deadline)<=now||
   Date.parse(manifest.request.deadline)>Date.parse(envelope.expiresAt)||Date.parse(manifest.request.deadline)>now+180000)

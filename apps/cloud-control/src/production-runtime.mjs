@@ -1,3 +1,4 @@
+import {alphaClientIds,alphaOwnerBinding,alphaOwnerCredentials} from './alpha-owner-roster.mjs';
 import pg from 'pg';
 import {QueueClient} from '@vercel/queue';
 import {createPublicKey} from 'node:crypto';
@@ -14,13 +15,21 @@ export function productionSigning(env){
  if(actual.asymmetricKeyType!=='ed25519'||!actual.export({type:'spki',format:'der'}).equals(expected.export({type:'spki',format:'der'}))||config.key.revokedAt||config.key.retiredAt||!Number.isFinite(Date.parse(config.key.activeFrom))||!Number.isFinite(Date.parse(config.key.notAfter))||Date.now()<Date.parse(config.key.activeFrom)||Date.now()>=Date.parse(config.key.notAfter))throw Error('PRODUCTION_SIGNER_INVALID');
  return config;
 }
-export async function withProductionRuntime(env,action,{validation=false,cleanupOnly=false}={}){
- const installation=productionInstallation(env);productionCredentials(env,installation);assertProductionAdmissionDisabled(env);
+export async function withProductionRuntime(env,action,{validation=false,cleanupOnly=false,alphaClientId,alphaRunId,alphaQueue=false}={}){
+ const installation=productionInstallation(env);assertProductionAdmissionDisabled(env);
+ if(!alphaClientId&&!alphaQueue)productionCredentials(env,installation);
+ if(validation&&(alphaClientId||alphaQueue))throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');
  // Paid entrypoints remain closed pending the separately approved canary.
- if(!validation&&!cleanupOnly&&!/^[a-f0-9]{64}$/.test(env.FACTORY_PRODUCTION_CANARY_AUTHORIZATION_SHA256??''))throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');
+ if(!alphaClientId&&!alphaQueue&&!validation&&!cleanupOnly&&!/^[a-f0-9]{64}$/.test(env.FACTORY_PRODUCTION_CANARY_AUTHORIZATION_SHA256??''))throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');
  const signing=productionSigning(env),pool=new pg.Pool(databaseConfig(env.DATABASE_URL_UNPOOLED??env.DATABASE_URL));
  try{
   assertProductionDatabaseMarker((await pool.query('SELECT * FROM factory.environment WHERE singleton')).rows[0],installation);
-  return await action(productionRuntimeComponents({env,pool,queue:new QueueClient({region:'iad1'}),signing,sourceDigest:sourceIdentity.sourceDigest,validation,cleanupOnly}));
+  if(alphaQueue){
+   if(!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(alphaRunId)||alphaClientId)throw Error('INVALID_DELIVERY');
+   const row=(await pool.query('SELECT client_id FROM factory.intake_receipts WHERE run_id=$1',[alphaRunId])).rows[0];
+   if(!row||!alphaClientIds.includes(row.client_id))throw Error('INVALID_DELIVERY');alphaClientId=row.client_id;
+  }
+  if(alphaClientId)alphaOwnerCredentials(env,alphaOwnerBinding(env,alphaClientId),Date.now(),cleanupOnly);
+  return await action(productionRuntimeComponents({env,pool,queue:new QueueClient({region:'iad1'}),signing,sourceDigest:sourceIdentity.sourceDigest,validation,cleanupOnly,alphaClientId}));
  }finally{await pool.end();}
 }
