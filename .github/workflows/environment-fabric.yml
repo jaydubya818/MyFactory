@@ -10,6 +10,15 @@ jobs:
     name: Factory contracts and regressions
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -26,6 +35,12 @@ jobs:
       # EvidenceProvider static-preview tests require the locked Playwright browser.
       - run: node node_modules/playwright/cli.js install --with-deps chromium
       - run: npm test
+      - name: Exact successor authority and ambiguity fencing
+        env:
+          FACTORY_PAID_TEST_DATABASE_URL: postgres://postgres@127.0.0.1:5432/postgres
+          FACTORY_POSTGRES_TEST: '1'
+          DATABASE_URL_UNPOOLED: postgres://postgres@127.0.0.1:5432/postgres
+        run: node --test apps/cloud-control/test/successor-intake-postgres.test.mjs apps/cloud-control/test/cloud-startup-postgres.test.mjs apps/cloud-control/test/paid-ambiguity-postgres.test.mjs apps/cloud-control/test/alpha-owner-postgres.test.mjs
       - run: npm run check:producer-governance
       - run: npm run typecheck:producer
       - run: npm run typecheck
