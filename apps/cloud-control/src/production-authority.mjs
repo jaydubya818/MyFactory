@@ -1,3 +1,4 @@
+import {assertSuccessorPredecessor} from './production-successor-intake.mjs';
 import {alphaClientIds,assertAlphaApprovalBinding} from './alpha-owner-roster.mjs';
 import {assertConcreteProductionGrant} from './production-approval.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
@@ -32,7 +33,9 @@ export function productionAuthority({installation,sourceDigest,configuration,con
    digest(m)!==row.manifest_sha256||(!paid&&authorizationSha256!==undefined&&row.manifest_sha256!==authorizationSha256)||m.version!==(paid?2:1)||m.clientId!==clientId||m.ownerScope!==installation.ownerScope||m.environment!=='CLOUD_PRODUCTION'||m.publication!==false||
    m.sourceDigest!==sourceDigest||m.configurationDigest!==configurationDigest||m.factoryVersion!==factoryVersion||m.contractSha256!==contractSha256||m.candidateSha256!==candidateSha256||
    digest(m.request)!==digest(request)||!Number.isFinite(Date.parse(request.deadline))||Date.parse(request.deadline)<=now)throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');
+  const successor=phase==='prepare'&&paid?await assertSuccessorPredecessor(client,m.authorizationEnvelope.approval):null;
   if(phase==='prepare')await client.query('UPDATE factory.production_work_authority SET consumed_at=COALESCE(consumed_at,clock_timestamp()) WHERE request_id=$1',[request.requestId]);
   else if(!row.consumed_at)throw Error('PRODUCTION_WORK_NOT_ADMITTED');
+  return successor?{successorIntake:successor}:undefined;
  };
 }
