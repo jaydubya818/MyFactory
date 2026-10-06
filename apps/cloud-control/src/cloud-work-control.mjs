@@ -8,6 +8,8 @@ export const binding=i=>({workId:i.workId,workGeneration:i.workGeneration,dispat
 export {cloudHarnessSpendPlan as spendPlan} from './cloud-harness-plan.mjs';
 import {cloudHarnessSpendPlan as spendPlan} from './cloud-harness-plan.mjs';
 
+// Every CLOUD client shares this projection: initial allocation_unknown is
+// an outstanding allocation receipt, not proof of provider failure.
 // An unfinished allocation/verifier is pending while its original lease is
 // live. Recorded failure or an expired lease is UNKNOWN, never a new attempt.
 export function validationResourceState(row,now=Date.now()){
@@ -49,12 +51,13 @@ export class CloudWorkControl {
  async read(requestId){
   const row=await this.store.read(this.grant.clientId,requestId),spend=await this.spend.read(row.work_id);
   const terminal=row.events.find(e=>e.type==='factory.terminal')?.payload,stopped=row.events.some(e=>e.type==='factory.stop_requested'),r=row.resource;
-  const state=terminal?.status??(stopped?'STOPPING':r?(this.grant.clientId==='sofie-production-validation'?validationResourceState(row):r.cleanup_confirmed?'UNKNOWN':r.allocation_unknown?'UNKNOWN':'RUNNING'):row.delivery?.state==='UNKNOWN'?'UNKNOWN':row.identity?'DISPATCHING':spend?'PREPARED':'PREPARING');
+  const paidUnknown=spend?.operations?.some(op=>op.state==='unknown');
+  const state=terminal?.status??(stopped?'STOPPING':paidUnknown?'UNKNOWN':r?(validationResourceState(row)):row.delivery?.state==='UNKNOWN'?'UNKNOWN':row.identity?'DISPATCHING':spend?'PREPARED':'PREPARING');
   return{requestId:row.request_id,workOrderId:row.work_order_id,runId:row.run_id,snapshot:row.snapshot,identity:row.identity,state,quiescent:!!terminal,evidenceRef:terminal?.evidenceRef??null,spend,blocker:terminal?.status==='FAILED'?(r?.evidence.failure??'EXECUTION_FAILED'):state==='UNKNOWN'?'EXECUTION_REQUIRES_RECONCILIATION':null};
  }
  async result(requestId){
   const row=await this.store.read(this.grant.clientId,requestId),terminal=row.events.find(e=>e.type==='factory.terminal')?.payload;
-  if(!terminal)return{state:(await this.read(requestId)).state==='STOPPING'?'STOPPING':row.resource?.allocation_unknown?'UNKNOWN':'RUNNING',result:null};
+  if(!terminal)return{state:(await this.read(requestId)).state,result:null};
   const saved=row.events.find(e=>e.type==='run.signed_result')?.payload;
   const result=saved??await this.store.saveResult(this.grant.clientId,requestId,cloudResult(row,row.custody?await this.provider.readCustody(row):null,this.signing,this.verificationPolicy));
   return{state:terminal.status,result};

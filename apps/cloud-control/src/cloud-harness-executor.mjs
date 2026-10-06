@@ -12,7 +12,7 @@ async function quiesce(sandbox){
 export async function executeCloudHarness({sandbox,row,ledger,recordCommand,recordEvidence,plan=qualificationCheckpointPlan,modelProvider}){
  const {allowedPaths,testPath}=plan;
  if(plan.production===true&&!modelProvider)throw Error('PRODUCTION_MODEL_PROVIDER_REQUIRED');
- const observations=[];const note=async observation=>{observations.push(observation);if(observations.length>16)throw Error('HARNESS_EVIDENCE_BOUND');await recordEvidence({harnessObservations:structuredClone(observations)});};
+ const observations=[];const note=async observation=>{observations.push(observation);if(observations.length>16)throw Error('HARNESS_EVIDENCE_BOUND');await recordEvidence({harnessObservations:structuredClone(observations),...(observation.startupStage?{startupStage:observation.startupStage}:{})});};
  const binding=executionBinding(row.identity),deadline=Math.min(new Date(row.request.deadline).getTime(),Date.now()+110000),user=sandbox.asUser('factoryproducer');
  let candidate,manifest;
  for(let step=1;step<=2;step++){
