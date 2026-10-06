@@ -18,18 +18,24 @@ export function cloudWorkProvider({ledger,plan=qualificationCheckpointPlan,proje
    if(!Number.isSafeInteger(remaining)||remaining<30000||resource.provider_name!==`factory-run-${resource.run_id}`)throw Error('RESOURCE_ENVELOPE');
    return Sandbox.create({name:resource.provider_name,image:qualifiedImage,persistent:false,region:'iad1',failoverRegions:[],resources:{vcpus:1},timeout:remaining,ports:[],env:{},networkPolicy:{allow:['github.com','registry.npmjs.org']},tags:{purpose:'factory-canonical-work',run:resource.run_id,project:projectId},...(await providerOptions()),...sdk,signal:AbortSignal.timeout(30000)});
   },
-  async materialize(sandbox){
+  async materialize(sandbox,record=async()=>{}){
+   await record({startupStage:'SANDBOX_READINESS'});
    if(sandbox.image!==qualifiedImage)throw Error('IMAGE_MISMATCH');
+   await record({startupStage:'HARNESS_INSTALLATION'});
    const harness=await installCloudHarness(sandbox);
+   await record({startupStage:'SOURCE_MATERIALIZATION'});
    const user=await sandbox.createUser('factoryproducer',{signal:signal()});
    const done=await user.runCommand({cmd:'node',args:['-e',sourceMaterializationScript(plan.source)],timeoutMs:30000,signal:AbortSignal.timeout(35000)});
    if(done.exitCode!==0)throw Error('SOURCE_MATERIALIZATION_FAILED');
    const report=JSON.parse(await done.stdout({signal:signal()}));
    if(report.commit!==plan.source.commit||report.tree!==plan.source.tree)throw Error('SOURCE_MISMATCH');
-   await sandbox.updateNetworkPolicy('deny-all',{signal:signal()});return {...report,harness};
+   await sandbox.updateNetworkPolicy('deny-all',{signal:signal()});
+   await record({startupStage:'SOURCE_READY'});return {...report,harness};
   },
   async execute(sandbox,recordCommand,row,recordEvidence){
-   return executeCloudHarness({sandbox,row,ledger,recordCommand,recordEvidence,plan,modelProvider:modelProviderForRow?.(row)});
+   await recordEvidence({startupStage:'MODEL_TRANSPORT_INITIALIZATION'});
+   const modelProvider=modelProviderForRow?.(row);
+   return executeCloudHarness({sandbox,row,ledger,recordCommand,recordEvidence,plan,modelProvider});
   },
   async quiesce(sandbox){
    const done=await sandbox.asUser('root').runCommand({cmd:'node',args:['-e',quiescenceScript],timeoutMs:5000,signal:signal()});

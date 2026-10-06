@@ -217,9 +217,9 @@
       "sha256": "6c70b229315db0725488ca0a97dcebb81b8035ca1892115b5c8997a330ba7e28"
     },
     "apps/cloud-control/src/cloud-work-control.mjs": {
-      "sha256": "c80d4cc90ab6eb805bfe76e4cf0f690d17de5bc503cd266709e3cc2f63d8f302",
+      "sha256": "050e846011ac74a2cb16d89429e4f51d55b7f90470a42877baee6d3f038b4127",
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
     },
     "apps/cloud-control/src/cloud-queue-consumer.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -238,8 +238,8 @@
     },
     "apps/cloud-control/src/cloud-work-provider.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
-      "sha256": "57f8c783eee598a40cff15400bac395464eb71a082805d8de6f622f4f1431c56"
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure.",
+      "sha256": "0d50253fe077c4e1f21d491194ec855702b2d36a4ee2663e8c4eea6c93e260c2"
     },
     "apps/cloud-control/src/cloud-work-plan.mjs": {
       "sha256": "44d88ced4dd81766858dfc7bc71a86a786984084766ab36860123ef781a53c3d",
@@ -247,9 +247,9 @@
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-work-lifecycle.mjs": {
-      "sha256": "4d9544f36f6efedc2c000875569c32511214ef0b3ae52326a979c2a8e651a61d",
+      "sha256": "664516a7be5f480c05844dc6658b37b881b0559b9d4e8cb3e7a3c293b29c839c",
       "classification": "CLOUD_WORK_LIFECYCLE",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
     },
     "apps/cloud-control/api/cloud-recovery.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -277,9 +277,9 @@
       "authorityBoundary": "Consume canonical SessionSurfaceKind; mandatory HEADLESS production default, no provider construction or runtime terminal dependency."
     },
     "apps/cloud-control/src/cloud-harness-executor.mjs": {
-      "sha256": "58e353d15613cb8ab461ca2dea71cb9285398a009608183a45f77aad96ff2cb8",
+      "sha256": "e8fe035c05fbb66ba7fd44193c1c7424860632ba829e81939093493509cf4cfd",
       "classification": "CLOUD_HARNESS_BOUNDARY",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
     },
     "apps/cloud-control/src/cloud-harness-mailbox.mjs": {
       "sha256": "e651b5c24f93a1a1dfb99f9d66e3abe60822964811f78b2ffae6c4cdbc36bc91",
@@ -302,14 +302,14 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
     "apps/cloud-control/src/cloud-harness-phase.mjs": {
-      "sha256": "9a0aed9105f61f365c504b93db0ceada5dbb1e75701f8187f1cfd28353d5e106",
+      "sha256": "933af1d3a4850618e9500b3377599b7307527a924149c64b06c6d30146c339ba",
       "classification": "CLOUD_HARNESS_BOUNDARY",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
     },
     "apps/cloud-control/src/cloud-harness-relay.mjs": {
-      "sha256": "373e97889158e0c19a6f4b1c124f7e31490cb42182cce93aa52430edc6547e13",
+      "sha256": "85895fa20a88f464bca4139481359cec2bb48dcd571cb38734cb69382a5ca3a0",
       "classification": "CLOUD_HARNESS_BOUNDARY",
-      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
     },
     "apps/cloud-control/src/cloud-harness-plan.mjs": {
       "sha256": "2a3815b4ccda8cf8c5515715a3dd29bd19c3ccd6c91f0c80cd92be275759f44e",
@@ -500,6 +500,11 @@
       "classification": "canonical-host",
       "sha256": "c85a692540bde3994dbd61ded5f2b3be814a9836371233e7cb92b4e19a64cdf4",
       "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review."
+    },
+    "apps/cloud-control/src/producer-startup-qualification.mjs": {
+      "classification": "OPERATOR_STARTUP_QUALIFICATION",
+      "authorityBoundary": " Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure.",
+      "sha256": "aabfdab855c411315846ba5d729166174d35c71898daccdea04f89b91071346a"
     }
   }
 }
