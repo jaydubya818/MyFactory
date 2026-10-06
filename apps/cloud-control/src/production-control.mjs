@@ -1,3 +1,4 @@
+import {authenticateAlphaOwner} from './alpha-owner-roster.mjs';
 import {authorized} from './readiness.mjs';
 import {productionInstallation,productionCredentials,assertProductionAdmissionDisabled} from './production-installation.mjs';
 import {withProductionRuntime} from './production-runtime.mjs';
@@ -7,17 +8,20 @@ import {reconcileCloudWork} from './cloud-work-lifecycle.mjs';
 const uuid='[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}';
 /** Ordinary production Work remains closed. Release validation and the future
  * owner-approved canary have distinct explicit paths and durable exact grants. */
-export async function handleProductionControl(request,env,withRuntime=withProductionRuntime){
+export async function handleProductionControl(request,env,withRuntime=withProductionRuntime,authenticateOwner=authenticateAlphaOwner){
  const reply=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'private, no-store'}});
- const proof=proofCredential(request,env);
- if(!proof&&!authorized(request,env.FACTORY_PRODUCTION_APPLICATION_TOKEN))return reply({error:'UNAUTHORIZED'},401);
+ const personal=authorized(request,env.FACTORY_PRODUCTION_APPLICATION_TOKEN)||proofCredential(request,env);
+ let alpha;try{alpha=personal?null:await authenticateOwner(request,env)}catch{return reply({error:'UNAUTHORIZED'},401)}
+ const proof=alpha?alpha.kind==='proof':proofCredential(request,env);
+ if(!alpha&&!proof&&!authorized(request,env.FACTORY_PRODUCTION_APPLICATION_TOKEN))return reply({error:'UNAUTHORIZED'},401);
  try{
-  const installation=productionInstallation(env);productionCredentials(env,installation);assertProductionAdmissionDisabled(env);
+  const hostInstallation=productionInstallation(env),installation=alpha?{...hostInstallation,ownerScope:alpha.binding.ownerScope}:hostInstallation;if(!alpha)productionCredentials(env,installation);assertProductionAdmissionDisabled(env);
   const url=new URL(request.url);
   const tail=url.searchParams.size===1?url.searchParams.get('path'):!url.search&&url.pathname.startsWith('/api/connect/v2/')?url.pathname.slice('/api/connect/v2/'.length):null;
   if(!tail||!/^[-a-z0-9/]+$/.test(tail)||tail.split('/').some(p=>!p)||url.search&&!['/api/cloud',`/api/connect/v2/${tail}`].includes(url.pathname))return reply({error:'PRODUCTION_WORK_NOT_AUTHORIZED',admission:'DISABLED'},403);
   if(tail==='actions'&&request.method==='GET'&&!proof)return reply({controls:[],admission:'DISABLED',execution:{mode:'CLOUD',qualified:false},qualificationOnly:false,reason:'PRODUCTION_EXECUTION_CONTRACT_REQUIRED'});
   const validation=tail.startsWith('release-validation/'),canary=tail.startsWith('production-canary/');
+  if(alpha&&!canary)return reply({error:'PRODUCTION_WORK_NOT_AUTHORIZED',admission:'DISABLED'},403);
   const path=validation?tail.slice('release-validation/'.length):canary?tail.slice('production-canary/'.length):tail;
   const detail=new RegExp(`^work-orders/(${uuid})$`).exec(path),evidence=!!detail||path==='evidence/read';
   if(proof&&!evidence)return reply({error:'UNAUTHORIZED'},401);
@@ -50,7 +54,7 @@ export async function handleProductionControl(request,env,withRuntime=withProduc
    const result=new RegExp(`^work-orders/(${uuid})/runs/(${uuid})/result$`).exec(path);
    if(result&&request.method==='GET'){const row=await store.findRun(clientId,result[1],result[2]);return reply(await control.result(row.request_id));}
    return reply({error:'NOT_FOUND'},404);
-  },{validation:!canary,cleanupOnly});
+  },{validation:!canary,cleanupOnly,...(alpha?{alphaClientId:alpha.binding.clientId}:{})});
  }catch(error){
   if(error.message==='PRODUCTION_VALIDATION_GRANT_PENDING')return reply({error:'PRODUCTION_VALIDATION_GRANT_PENDING',admission:'DISABLED'},403);
   if(error.message==='PRODUCTION_WORK_NOT_AUTHORIZED')return reply({error:'PRODUCTION_WORK_NOT_AUTHORIZED',admission:'DISABLED'},403);

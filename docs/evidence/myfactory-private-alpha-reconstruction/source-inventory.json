@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "2b0e00fa57d892c8f1f6ee8dbe9363d612ff2639c277321093e36361af3718df",
+      "sha256": "4c5f7c9e796c763a99940eef183b4ff4ac99f474d0c1a42f605d15fc7f2dffa5",
       "classification": "CLOUD_DISPATCH_AUTHORITY",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -397,14 +397,14 @@
       "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
     },
     "apps/cloud-control/src/production-readiness.mjs": {
-      "sha256": "ece3905d63932c1481e45991dfa88e42ea1e5b55245da9d18e1f434a29807ed9",
+      "sha256": "b85f8add52f353f1900e2cce14393e956a768896bd331fbc834f4b4ee93a64a6",
       "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
-      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review."
     },
     "apps/cloud-control/src/production-control.mjs": {
-      "sha256": "162c934393e64b13328bd0f43850a0bf9af6ed5e1584263f407c95f4e617d8f5",
+      "sha256": "0050dee15ab6799b3002b19fc7f8fe28a8cf2b149993b6152615c750659ad863",
       "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress."
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review."
     },
     "apps/cloud-control/src/production-identity.mjs": {
       "sha256": "b93eee8e81744e507f7b01bbf66e945f1e6c22c86d2f1ac4c453cc4a3b251a5d",
@@ -423,8 +423,8 @@
     },
     "apps/cloud-control/src/production-runtime-components.mjs": {
       "classification": "ENFORCED",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
-      "sha256": "ce0d3534b06ce0010195a57779007ab03a7482dc9df45401b549b9f74a29b383"
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review.",
+      "sha256": "a1031d3ee650908429126c2e924b76bb119c23f6db0872cea752e0ba30caa3d2"
     },
     "apps/cloud-control/src/production-verifier-policy.mjs": {
       "classification": "ENFORCED",
@@ -453,13 +453,13 @@
     },
     "apps/cloud-control/src/production-authority.mjs": {
       "classification": "ENFORCED",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Validation-only no-retry boundary independently reviewed 2026-10-04: exact missing-grant wait, durable UNKNOWN fencing and lease/custody-bound progress. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion.",
-      "sha256": "47d557edf65c9c4fce0cf9dd56bc9f0cde831c4b421950e96aeabeac65cf95bc"
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review.",
+      "sha256": "c70298b32b90214d8b6f0243fd87466ee5491ef29df7e65d3c8ffc672ab20607"
     },
     "apps/cloud-control/src/production-runtime.mjs": {
       "classification": "ENFORCED",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
-      "sha256": "55905372fb762bac51fbb605c4b23df320c7e7918f4128244dbbd4ce490bd9ab"
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review.",
+      "sha256": "495260b2fc1ec381c109a0220ba3819e23b78f3a65feea5a6610e8787a7ed578"
     },
     "apps/cloud-control/src/production-validation-plan.mjs": {
       "classification": "ENFORCED",
@@ -483,8 +483,23 @@
     },
     "apps/cloud-control/src/production-approval.mjs": {
       "classification": "INTERNAL",
-      "authorityBoundary": "Pure exact approval/concrete-grant projection; no side effects. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion.",
-      "sha256": "c08a89d15845a78ebf67fbbe124960b0085b680e1df38f2d98a391e05af4e3d6"
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review.",
+      "sha256": "a4f91c0d5b50f8e0383e43c443df6ae45913ddd13ea0979c7899d95c2516beb5"
+    },
+    "apps/cloud-control/api/alpha-recovery.mjs": {
+      "classification": "canonical-host",
+      "sha256": "5e5c957410f7e19008a06bd31804ca5068d5976a65bb8e623950c9490635b823",
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review."
+    },
+    "apps/cloud-control/api/alpha-work.mjs": {
+      "classification": "canonical-host",
+      "sha256": "9c6f390054eee696e54e66d4a30eb9abc4fe308622fafe800e57db1780e082ce",
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review."
+    },
+    "apps/cloud-control/src/alpha-owner-roster.mjs": {
+      "classification": "canonical-host",
+      "sha256": "c85a692540bde3994dbd61ded5f2b3be814a9836371233e7cb92b4e19a64cdf4",
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review."
     }
   }
 }
