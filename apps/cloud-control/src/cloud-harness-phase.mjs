@@ -29,6 +29,7 @@ export async function runCloudHarnessPhase({sandbox,ledger,binding,phase,sequenc
  const childToken=randomBytes(32).toString('hex'),user=sandbox.asUser('factoryproducer'),root=`/home/factoryproducer/phase-${sequence}`;
  let boundary=false,finished=false;
  const gateway=new SpendGateway({ledger,binding,operationId:createHash('sha256').update(JSON.stringify([binding,phase,sequence])).digest('hex'),...(modelProvider??{price:cloudHarnessPrice,upstreamOrigin:'https://deterministic.factory.invalid',upstreamApiKey:'deterministic-only',upstreamFetch:deterministicHarnessResponse({phase,currentSource})}),childToken,phase,...(phase==='productive'?{productiveCheckpointAfter:sequence,onProductiveBoundary:()=>{boundary=true;}}:{})});
+ await recordEvidence({startupStage:'HARNESS_STARTUP'});
  await user.writeFiles([{path:root+'.json',content:JSON.stringify({childToken,deadline,phase,prompt,sequence}),mode:0o600}],{signal:AbortSignal.timeout(10000)});
  const command=await user.runCommand({cmd:'node',args:['/opt/factory-harness/apps/cloud-control/src/cloud-harness-worker.mjs',root+'.json'],cwd:'/home/factoryproducer/workspace',timeoutMs:Math.min(50000,deadline-Date.now()),detached:true,signal:AbortSignal.timeout(15000)});
  await recordCommand(command.cmdId);
@@ -36,6 +37,7 @@ export async function runCloudHarnessPhase({sandbox,ledger,binding,phase,sequenc
  const waiting=command.wait({signal:AbortSignal.timeout(Math.max(1,Math.min(55000,deadline-Date.now())))}).then(value=>{finished=true;return value;},error=>{finished=true;commandError=error;});
  try{
   await relayHarnessRequests({childToken,deadline,finished:()=>finished,gateway,onBoundary:()=>boundary,
+   beforeGateway:()=>recordEvidence({startupStage:'MODEL_GATEWAY'}),
    readRequest:async id=>{const stream=await user.readFile({path:root+`/mailbox/request-${id}.json`},{signal:AbortSignal.timeout(10000)});return stream?boundedBytes(stream,210000):null;},
    writeResponse:async(id,content)=>{
     // Producer identity prevents writing through a malicious link as root.
