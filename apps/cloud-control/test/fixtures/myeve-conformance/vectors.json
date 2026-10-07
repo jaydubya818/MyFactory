@@ -1,0 +1,3149 @@
+{
+ "kind": "MYEVE_EXTERNAL_ALPHA_CONFORMANCE_VECTORS_V1",
+ "synthetic": true,
+ "generator": "apps/cloud-control/scripts/generate-myeve-conformance-vectors.mjs",
+ "myeveCommit": "da5eefc1b81794df76f90c27b02c16ea8f602f20",
+ "nowMs": 1791374400000,
+ "issuedAt": "2026-10-07T12:00:00.000Z",
+ "testKey": {
+  "purpose": "TEST ONLY: seed is public in the generator; never pin in a real installation",
+  "keyId": "d2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAUgmMKNtY+nb4RvC6yuxP4986tTEpfAhHgB9u7wrR5PM=\n-----END PUBLIC KEY-----\n"
+ },
+ "policy": {
+  "version": 1,
+  "kind": "TWO_EXTERNAL_OWNERS_V1",
+  "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+  "slot": "1",
+  "ownerId": "2d595df2-881b-4753-8343-2d1efb333772",
+  "projectId": "prj_ConformanceFixture1",
+  "clientId": "external-alpha-90f954de5747728c17629ef8dd8f40f2",
+  "repository": "fixture-org/myeve-alpha-workspace-01",
+  "baseSha": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+  "treeSha": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+  "workspacePolicy": "ISOLATED_WORKSPACE_V1",
+  "dayBoundary": "UTC_MIDNIGHT",
+  "model": "openai/gpt-5.4-mini",
+  "provider": "vercel-ai-gateway/openai",
+  "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+  "factoryVersion": "39a52dc716a6ae8b0249482f4263a22e5a06abdb77530f289efb476ce957570e",
+  "limits": {
+   "days": 5,
+   "chatTurnsPerDay": 10,
+   "chatOperationsPerTurn": 2,
+   "chatMicrousd": 100000,
+   "worksPerDay": 1,
+   "workOperations": 5,
+   "workMicrousd": 1300000,
+   "factoryOperations": 3,
+   "factoryMicrousd": 1000000,
+   "productiveSeconds": 180,
+   "ownerDailyMicrousd": 2300000,
+   "ownerLifetimeMicrousd": 11500000,
+   "cohortDailyMicrousd": 4600000,
+   "cohortLifetimeMicrousd": 23000000,
+   "candidates": 1,
+   "writers": 1,
+   "cleanupSeconds": 1200
+  },
+  "publication": false,
+  "automaticRepair": false,
+  "fallback": false
+ },
+ "workConfig": {
+  "allowedFiles": [
+   "src/app.js",
+   "src/store.js",
+   "test/app.test.mjs"
+  ],
+  "checkCommands": [
+   "node --test test/app.test.mjs"
+  ],
+  "factoryOrigin": "https://myfactory-cloud-production.vercel.app"
+ },
+ "installation": {
+  "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+  "slot": "1",
+  "ownerId": "2d595df2-881b-4753-8343-2d1efb333772",
+  "policySha256": "01dcd6d0593d4f3aedf3591438ab36d8e0adae9dc7be92c3f6088d04b538b8a6",
+  "application": {
+   "clientId": "external-alpha-90f954de5747728c17629ef8dd8f40f2",
+   "projectId": "prj_ConformanceFixture1"
+  },
+  "source": {
+   "repository": "fixture-org/myeve-alpha-workspace-01",
+   "baseSha": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+   "treeSha": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+   "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+   "allowedFiles": [
+    "src/app.js",
+    "src/store.js",
+    "test/app.test.mjs"
+   ]
+  },
+  "factoryVersion": "39a52dc716a6ae8b0249482f4263a22e5a06abdb77530f289efb476ce957570e",
+  "checkCommands": [
+   "node --test test/app.test.mjs"
+  ]
+ },
+ "tuple": {
+  "project": {
+   "name": "Alpha Tasks",
+   "task": "add a Priority field (exactly Low|Medium|High) shown on the task list"
+  },
+  "criteria": [
+   "Existing tasks still display and function",
+   "Creating or editing a task supports exactly Low, Medium and High",
+   "Priority persists after reload",
+   "The task list displays each task's priority",
+   "An invalid priority is rejected",
+   "Existing tests pass",
+   "Focused tests cover creation, editing, persistence, display and invalid input",
+   "No unrelated product or UI changes",
+   "No production deployment or external publication",
+   "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+  ],
+  "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+  "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577",
+  "title": "Alpha Tasks: add a Priority field",
+  "objective": "In the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list.",
+  "objectiveSha256": "42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e"
+ },
+ "allowedFilesSha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1",
+ "identifiers": {
+  "idempotencyKey": "fcaf3d28d91a541a5426e9e41a32d6069369e4bb91d790e1550592eb88811302",
+  "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+  "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+  "writerId": "ecc9b13f-eef3-8bf3-a15b-7d2c2275a16d",
+  "derivation": {
+   "idempotencyKeyInput": {
+    "kind": "EXTERNAL_ALPHA_WORK_AUTHORITY_KEY_V1",
+    "policySha256": "01dcd6d0593d4f3aedf3591438ab36d8e0adae9dc7be92c3f6088d04b538b8a6",
+    "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+    "workVersion": 1,
+    "workGeneration": 1,
+    "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577"
+   },
+   "requestSeed": "EXTERNAL_ALPHA_REQUEST_V1:fcaf3d28-d91a-841a-a426-e9e41a32d606",
+   "writerSeed": "EXTERNAL_ALPHA_WRITER_V1:fcaf3d28-d91a-841a-a426-e9e41a32d606"
+  }
+ },
+ "work": {
+  "id": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+  "version": 1,
+  "generation": 1
+ },
+ "canonicalDocument": "{\"allowedEffects\":[\"candidate.create\",\"repository.read\",\"sandbox.write\",\"verification.request\"],\"application\":{\"clientId\":\"external-alpha-90f954de5747728c17629ef8dd8f40f2\",\"projectId\":\"prj_ConformanceFixture1\"},\"authorityId\":\"fcaf3d28-d91a-841a-a426-e9e41a32d606\",\"candidateWriter\":{\"candidateSlot\":1,\"requestId\":\"2e1acaa2-d4c2-808d-a25b-e6885531f6d5\",\"writerId\":\"ecc9b13f-eef3-8bf3-a15b-7d2c2275a16d\"},\"cohortId\":\"fbf3d8f0-4e07-4419-8c3f-45dc339ee003\",\"environment\":\"CLOUD_PRODUCTION\",\"executionProvider\":\"MYFACTORY_CLOUD_EXECUTION_V2\",\"expiresAt\":\"2026-10-07T12:04:50.000Z\",\"factoryVersion\":\"39a52dc716a6ae8b0249482f4263a22e5a06abdb77530f289efb476ce957570e\",\"forbiddenEffects\":[\"deploy\",\"merge\",\"production\",\"publication\",\"repository.admin\",\"secrets.mutate\",\"workflows.mutate\"],\"harness\":{\"id\":\"myfactory-cloud-harness\",\"version\":\"1\"},\"idempotencyKey\":\"fcaf3d28d91a541a5426e9e41a32d6069369e4bb91d790e1550592eb88811302\",\"issuedAt\":\"2026-10-07T12:00:00.000Z\",\"limits\":{\"candidates\":1,\"factory\":{\"microusd\":1000000,\"operations\":3},\"productiveSeconds\":180,\"work\":{\"microusd\":1300000,\"operations\":5},\"writers\":1},\"model\":{\"id\":\"openai/gpt-5.4-mini\",\"provider\":\"vercel-ai-gateway/openai\"},\"notBefore\":\"2026-10-07T12:00:00.000Z\",\"ownerId\":\"2d595df2-881b-4753-8343-2d1efb333772\",\"policySha256\":\"01dcd6d0593d4f3aedf3591438ab36d8e0adae9dc7be92c3f6088d04b538b8a6\",\"project\":{\"criteriaSha256\":\"266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466\",\"name\":\"Alpha Tasks\",\"task\":\"add a Priority field (exactly Low|Medium|High) shown on the task list\",\"tupleSha256\":\"22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577\"},\"schema\":\"MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1\",\"singleUse\":true,\"slot\":\"1\",\"source\":{\"allowedFiles\":[\"src/app.js\",\"src/store.js\",\"test/app.test.mjs\"],\"allowedFilesSha256\":\"2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1\",\"baseSha\":\"61aced4d0f652562b3208686ff38cb3e17ee7057\",\"repository\":\"fixture-org/myeve-alpha-workspace-01\",\"sourceDigest\":\"67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387\",\"treeSha\":\"55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d\"},\"verifier\":{\"criteriaSha256\":\"266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466\",\"id\":\"independent-exact-artifact-verifier\",\"trustProducer\":false,\"verifiesExactArtifact\":true},\"work\":{\"criteriaCount\":10,\"criteriaSha256\":\"266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466\",\"generation\":1,\"id\":\"8b91dfcd-c435-4932-80cd-b9e2a31e4bb4\",\"objectiveSha256\":\"42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e\",\"title\":\"Alpha Tasks: add a Priority field\",\"version\":1}}",
+ "signedBytesHex": "4d594556455f45585445524e414c5f414c5048415f574f524b5f415554484f524954595f56310036306630383865656133323533336438343734633736343563323039366536333932333132383830633565616362633062383133323264636339393963323862",
+ "canonicalVectors": [
+  {
+   "name": "key-order",
+   "value": {
+    "b": 1,
+    "a": {
+     "d": [
+      3,
+      2,
+      1
+     ],
+     "c": null
+    },
+    "A": true
+   },
+   "canonical": "{\"A\":true,\"a\":{\"c\":null,\"d\":[3,2,1]},\"b\":1}",
+   "sha256": "d2ac2dbe63e525b808f32f519848bb5ea3c64350a73112b37cc1bbaf5f73755b"
+  },
+  {
+   "name": "utf16-order",
+   "value": {
+    "😀": 1,
+    "ﬁ": 2,
+    "z": 3,
+    "é": 4,
+    "Z": 5,
+    "": 6,
+    "a10": 7,
+    "a9": 8
+   },
+   "canonical": "{\"\":6,\"Z\":5,\"a10\":7,\"a9\":8,\"z\":3,\"é\":4,\"😀\":1,\"ﬁ\":2}",
+   "sha256": "97c158bcb15db4a2b2e6c9fc60900004a63a592b1742a6746681718e84c5a3b7"
+  },
+  {
+   "name": "escapes",
+   "value": {
+    "s": "quote \" backslash \\ newline \n tab \t nul \u0000 del  unicode     emoji 🚀"
+   },
+   "canonical": "{\"s\":\"quote \\\" backslash \\\\ newline \\n tab \\t nul \\u0000 del  unicode     emoji 🚀\"}",
+   "sha256": "b99add69feed3ec2a4cba55651ca6e9b2892f518af672f9701ab30d172db408e"
+  },
+  {
+   "name": "numbers",
+   "value": {
+    "ints": [
+     0,
+     -1,
+     1,
+     9007199254740991
+    ],
+    "decimals": [
+     0.5,
+     1.25,
+     1e+21,
+     1e-7,
+     0
+    ],
+    "nested": {
+     "n": 1
+    }
+   },
+   "canonical": "{\"decimals\":[0.5,1.25,1e+21,1e-7,0],\"ints\":[0,-1,1,9007199254740991],\"nested\":{\"n\":1}}",
+   "sha256": "f2864c0a2bc4c3709db4bc6f4c309005237f2cbe47728a151ae5d974cebb4080"
+  },
+  {
+   "name": "empty",
+   "value": {
+    "a": [],
+    "b": {},
+    "c": ""
+   },
+   "canonical": "{\"a\":[],\"b\":{},\"c\":\"\"}",
+   "sha256": "12db860d7676bcec84a4ea9fa9a3e39e8931c41b10d064b23ced53f06e15caae"
+  },
+  {
+   "name": "arrays-keep-order",
+   "value": {
+    "list": [
+     "b",
+     "a",
+     [
+      "d",
+      "c"
+     ],
+     {
+      "y": 1,
+      "x": 2
+     }
+    ]
+   },
+   "canonical": "{\"list\":[\"b\",\"a\",[\"d\",\"c\"],{\"x\":2,\"y\":1}]}",
+   "sha256": "1a47c8600a340666173b8c5939715bafb7547a19fdbff3aeefdc8d6c9e5f61dd"
+  },
+  {
+   "name": "authority-subset",
+   "value": {
+    "version": 1,
+    "files": [
+     "src/app.js",
+     "src/store.js",
+     "test/app.test.mjs"
+    ]
+   },
+   "canonical": "{\"files\":[\"src/app.js\",\"src/store.js\",\"test/app.test.mjs\"],\"version\":1}",
+   "sha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1"
+  },
+  {
+   "name": "integer-like-keys-known-divergence",
+   "expectDivergence": true,
+   "value": {
+    "9": "b",
+    "10": "a"
+   },
+   "canonical": "{\"9\":\"b\",\"10\":\"a\"}",
+   "sha256": "32c76047634ee8d61aeb727dee6fcb2507b60cc4fe6ecce96d04274d6a9c8c03"
+  }
+ ],
+ "envelope": {
+  "document": {
+   "schema": "MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1",
+   "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+   "idempotencyKey": "fcaf3d28d91a541a5426e9e41a32d6069369e4bb91d790e1550592eb88811302",
+   "singleUse": true,
+   "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+   "slot": "1",
+   "ownerId": "2d595df2-881b-4753-8343-2d1efb333772",
+   "policySha256": "01dcd6d0593d4f3aedf3591438ab36d8e0adae9dc7be92c3f6088d04b538b8a6",
+   "application": {
+    "clientId": "external-alpha-90f954de5747728c17629ef8dd8f40f2",
+    "projectId": "prj_ConformanceFixture1"
+   },
+   "source": {
+    "repository": "fixture-org/myeve-alpha-workspace-01",
+    "baseSha": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+    "treeSha": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+    "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+    "allowedFiles": [
+     "src/app.js",
+     "src/store.js",
+     "test/app.test.mjs"
+    ],
+    "allowedFilesSha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1"
+   },
+   "work": {
+    "id": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+    "version": 1,
+    "generation": 1,
+    "title": "Alpha Tasks: add a Priority field",
+    "objectiveSha256": "42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e",
+    "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+    "criteriaCount": 10
+   },
+   "project": {
+    "name": "Alpha Tasks",
+    "task": "add a Priority field (exactly Low|Medium|High) shown on the task list",
+    "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+    "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577"
+   },
+   "environment": "CLOUD_PRODUCTION",
+   "executionProvider": "MYFACTORY_CLOUD_EXECUTION_V2",
+   "harness": {
+    "id": "myfactory-cloud-harness",
+    "version": "1"
+   },
+   "factoryVersion": "39a52dc716a6ae8b0249482f4263a22e5a06abdb77530f289efb476ce957570e",
+   "model": {
+    "provider": "vercel-ai-gateway/openai",
+    "id": "openai/gpt-5.4-mini"
+   },
+   "limits": {
+    "work": {
+     "operations": 5,
+     "microusd": 1300000
+    },
+    "factory": {
+     "operations": 3,
+     "microusd": 1000000
+    },
+    "productiveSeconds": 180,
+    "candidates": 1,
+    "writers": 1
+   },
+   "candidateWriter": {
+    "candidateSlot": 1,
+    "writerId": "ecc9b13f-eef3-8bf3-a15b-7d2c2275a16d",
+    "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5"
+   },
+   "verifier": {
+    "id": "independent-exact-artifact-verifier",
+    "verifiesExactArtifact": true,
+    "trustProducer": false,
+    "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466"
+   },
+   "allowedEffects": [
+    "candidate.create",
+    "repository.read",
+    "sandbox.write",
+    "verification.request"
+   ],
+   "forbiddenEffects": [
+    "deploy",
+    "merge",
+    "production",
+    "publication",
+    "repository.admin",
+    "secrets.mutate",
+    "workflows.mutate"
+   ],
+   "issuedAt": "2026-10-07T12:00:00.000Z",
+   "notBefore": "2026-10-07T12:00:00.000Z",
+   "expiresAt": "2026-10-07T12:04:50.000Z"
+  },
+  "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+  "signature": "f_kAT9lj2gSmwn1tz5f-hhVBooZSqjq-vX_1yA_FNk9rexu2vjuNWOYVTSS4twx6t6Fjg_KSuFY_PWd7Mc3cBQ",
+  "keyId": "d2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e"
+ },
+ "prepare": {
+  "protocol": "MYFACTORY_EXECUTION_V2",
+  "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+  "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+  "workGeneration": 1,
+  "repository": "fixture-org/myeve-alpha-workspace-01",
+  "deadline": "2026-10-07T12:03:00.000Z",
+  "maxSpendUsd": 1,
+  "source": {
+   "repository": "fixture-org/myeve-alpha-workspace-01",
+   "commit": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+   "tree": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d"
+  },
+  "input": {
+   "title": "Alpha Tasks: add a Priority field",
+   "description": "In the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list.",
+   "kind": "feature",
+   "acceptanceCriteria": [
+    "Existing tasks still display and function",
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication",
+    "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+   ],
+   "checkCommands": [
+    "node --test test/app.test.mjs"
+   ],
+   "allowedPaths": [
+    "src/app.js",
+    "src/store.js",
+    "test/app.test.mjs"
+   ]
+  }
+ },
+ "variants": {
+  "competing": {
+   "envelope": {
+    "document": {
+     "schema": "MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1",
+     "authorityId": "2aa61017-61f7-8f5b-a50f-f395f44b9a77",
+     "idempotencyKey": "2aa6101761f70f5ba50ff395f44b9a7773c727c339fe9ef7cb321f5c5802a001",
+     "singleUse": true,
+     "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+     "slot": "1",
+     "ownerId": "2d595df2-881b-4753-8343-2d1efb333772",
+     "policySha256": "01dcd6d0593d4f3aedf3591438ab36d8e0adae9dc7be92c3f6088d04b538b8a6",
+     "application": {
+      "clientId": "external-alpha-90f954de5747728c17629ef8dd8f40f2",
+      "projectId": "prj_ConformanceFixture1"
+     },
+     "source": {
+      "repository": "fixture-org/myeve-alpha-workspace-01",
+      "baseSha": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+      "treeSha": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+      "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+      "allowedFiles": [
+       "src/app.js",
+       "src/store.js",
+       "test/app.test.mjs"
+      ],
+      "allowedFilesSha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1"
+     },
+     "work": {
+      "id": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "version": 2,
+      "generation": 1,
+      "title": "Alpha Tasks: add a Priority field",
+      "objectiveSha256": "42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e",
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+      "criteriaCount": 10
+     },
+     "project": {
+      "name": "Alpha Tasks",
+      "task": "add a Priority field (exactly Low|Medium|High) shown on the task list",
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+      "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577"
+     },
+     "environment": "CLOUD_PRODUCTION",
+     "executionProvider": "MYFACTORY_CLOUD_EXECUTION_V2",
+     "harness": {
+      "id": "myfactory-cloud-harness",
+      "version": "1"
+     },
+     "factoryVersion": "39a52dc716a6ae8b0249482f4263a22e5a06abdb77530f289efb476ce957570e",
+     "model": {
+      "provider": "vercel-ai-gateway/openai",
+      "id": "openai/gpt-5.4-mini"
+     },
+     "limits": {
+      "work": {
+       "operations": 5,
+       "microusd": 1300000
+      },
+      "factory": {
+       "operations": 3,
+       "microusd": 1000000
+      },
+      "productiveSeconds": 180,
+      "candidates": 1,
+      "writers": 1
+     },
+     "candidateWriter": {
+      "candidateSlot": 1,
+      "writerId": "4bcb3486-5c12-8016-a624-e37241f0029f",
+      "requestId": "cc55d0f6-c43d-8f27-a235-970a440d7d23"
+     },
+     "verifier": {
+      "id": "independent-exact-artifact-verifier",
+      "verifiesExactArtifact": true,
+      "trustProducer": false,
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466"
+     },
+     "allowedEffects": [
+      "candidate.create",
+      "repository.read",
+      "sandbox.write",
+      "verification.request"
+     ],
+     "forbiddenEffects": [
+      "deploy",
+      "merge",
+      "production",
+      "publication",
+      "repository.admin",
+      "secrets.mutate",
+      "workflows.mutate"
+     ],
+     "issuedAt": "2026-10-07T12:00:00.000Z",
+     "notBefore": "2026-10-07T12:00:00.000Z",
+     "expiresAt": "2026-10-07T12:04:50.000Z"
+    },
+    "authoritySha256": "6b14988584e3ecd0be67ccf9c5cfc2d63a06f99611455eb2a45de7b656afc988",
+    "signature": "u2H6OgugchWr733iHsifDjdxpGLng82-Kj86QrsKvVuz_hrhpGBCpGDUXJoPZE4WKMxhC8M5euPp0NhijG4-BQ",
+    "keyId": "d2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e"
+   },
+   "prepare": {
+    "protocol": "MYFACTORY_EXECUTION_V2",
+    "requestId": "cc55d0f6-c43d-8f27-a235-970a440d7d23",
+    "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+    "workGeneration": 1,
+    "repository": "fixture-org/myeve-alpha-workspace-01",
+    "deadline": "2026-10-07T12:03:00.000Z",
+    "maxSpendUsd": 1,
+    "source": {
+     "repository": "fixture-org/myeve-alpha-workspace-01",
+     "commit": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+     "tree": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d"
+    },
+    "input": {
+     "title": "Alpha Tasks: add a Priority field",
+     "description": "In the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list.",
+     "kind": "feature",
+     "acceptanceCriteria": [
+      "Existing tasks still display and function",
+      "Creating or editing a task supports exactly Low, Medium and High",
+      "Priority persists after reload",
+      "The task list displays each task's priority",
+      "An invalid priority is rejected",
+      "Existing tests pass",
+      "Focused tests cover creation, editing, persistence, display and invalid input",
+      "No unrelated product or UI changes",
+      "No production deployment or external publication",
+      "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+     ],
+     "checkCommands": [
+      "node --test test/app.test.mjs"
+     ],
+     "allowedPaths": [
+      "src/app.js",
+      "src/store.js",
+      "test/app.test.mjs"
+     ]
+    }
+   }
+  },
+  "slot2": {
+   "envelope": {
+    "document": {
+     "schema": "MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1",
+     "authorityId": "f16548ec-57dc-849a-ab41-cdc5f330add0",
+     "idempotencyKey": "f16548ec57dcb49aeb41cdc5f330add01c7468db3b064a2377fbfe4d4a732be3",
+     "singleUse": true,
+     "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+     "slot": "2",
+     "ownerId": "2b30a09d-7410-4f2f-8e8f-e8c5403c126d",
+     "policySha256": "7ad5deebc51a59f24e27cac4152bc2544e155dfd9560c5e0da6565319cb3cabc",
+     "application": {
+      "clientId": "external-alpha-e10dfbf90b2cd18a560a603af0e06e1f",
+      "projectId": "prj_ConformanceFixture2"
+     },
+     "source": {
+      "repository": "fixture-org/myeve-alpha-workspace-02",
+      "baseSha": "e600ce856f9a16d220d301fa5d8bb05421fdff3a",
+      "treeSha": "d814088d6ab2df015ed5b41c2f1282a5f9ddf26b",
+      "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+      "allowedFiles": [
+       "src/app.js",
+       "src/store.js",
+       "test/app.test.mjs"
+      ],
+      "allowedFilesSha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1"
+     },
+     "work": {
+      "id": "83e52ffb-ad84-434d-8035-d9994ca30542",
+      "version": 1,
+      "generation": 1,
+      "title": "Alpha Tasks: add a Priority field",
+      "objectiveSha256": "42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e",
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+      "criteriaCount": 10
+     },
+     "project": {
+      "name": "Alpha Tasks",
+      "task": "add a Priority field (exactly Low|Medium|High) shown on the task list",
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+      "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577"
+     },
+     "environment": "CLOUD_PRODUCTION",
+     "executionProvider": "MYFACTORY_CLOUD_EXECUTION_V2",
+     "harness": {
+      "id": "myfactory-cloud-harness",
+      "version": "1"
+     },
+     "factoryVersion": "39a52dc716a6ae8b0249482f4263a22e5a06abdb77530f289efb476ce957570e",
+     "model": {
+      "provider": "vercel-ai-gateway/openai",
+      "id": "openai/gpt-5.4-mini"
+     },
+     "limits": {
+      "work": {
+       "operations": 5,
+       "microusd": 1300000
+      },
+      "factory": {
+       "operations": 3,
+       "microusd": 1000000
+      },
+      "productiveSeconds": 180,
+      "candidates": 1,
+      "writers": 1
+     },
+     "candidateWriter": {
+      "candidateSlot": 1,
+      "writerId": "0d166cc5-9953-8928-a8a9-3255160fb58c",
+      "requestId": "61302d45-d595-8641-a0e0-812c9f182141"
+     },
+     "verifier": {
+      "id": "independent-exact-artifact-verifier",
+      "verifiesExactArtifact": true,
+      "trustProducer": false,
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466"
+     },
+     "allowedEffects": [
+      "candidate.create",
+      "repository.read",
+      "sandbox.write",
+      "verification.request"
+     ],
+     "forbiddenEffects": [
+      "deploy",
+      "merge",
+      "production",
+      "publication",
+      "repository.admin",
+      "secrets.mutate",
+      "workflows.mutate"
+     ],
+     "issuedAt": "2026-10-07T12:00:00.000Z",
+     "notBefore": "2026-10-07T12:00:00.000Z",
+     "expiresAt": "2026-10-07T12:04:50.000Z"
+    },
+    "authoritySha256": "5eb1ccb43643159f563847b0283e9bcb23167063ca492d92e111db935c978d20",
+    "signature": "tJ_gOwcjcRcYnBGAtWihNSuKqsUVMr2v9kYq6Kp5ql1Hq3sFLHoKBN2brhFWT-I3IonF0rnFdykR5ZC4zkocAA",
+    "keyId": "d2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e"
+   },
+   "prepare": {
+    "protocol": "MYFACTORY_EXECUTION_V2",
+    "requestId": "61302d45-d595-8641-a0e0-812c9f182141",
+    "workId": "83e52ffb-ad84-434d-8035-d9994ca30542",
+    "workGeneration": 1,
+    "repository": "fixture-org/myeve-alpha-workspace-02",
+    "deadline": "2026-10-07T12:03:00.000Z",
+    "maxSpendUsd": 1,
+    "source": {
+     "repository": "fixture-org/myeve-alpha-workspace-02",
+     "commit": "e600ce856f9a16d220d301fa5d8bb05421fdff3a",
+     "tree": "d814088d6ab2df015ed5b41c2f1282a5f9ddf26b"
+    },
+    "input": {
+     "title": "Alpha Tasks: add a Priority field",
+     "description": "In the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list.",
+     "kind": "feature",
+     "acceptanceCriteria": [
+      "Existing tasks still display and function",
+      "Creating or editing a task supports exactly Low, Medium and High",
+      "Priority persists after reload",
+      "The task list displays each task's priority",
+      "An invalid priority is rejected",
+      "Existing tests pass",
+      "Focused tests cover creation, editing, persistence, display and invalid input",
+      "No unrelated product or UI changes",
+      "No production deployment or external publication",
+      "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+     ],
+     "checkCommands": [
+      "node --test test/app.test.mjs"
+     ],
+     "allowedPaths": [
+      "src/app.js",
+      "src/store.js",
+      "test/app.test.mjs"
+     ]
+    }
+   },
+   "installation": {
+    "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+    "slot": "2",
+    "ownerId": "2b30a09d-7410-4f2f-8e8f-e8c5403c126d",
+    "policySha256": "7ad5deebc51a59f24e27cac4152bc2544e155dfd9560c5e0da6565319cb3cabc",
+    "application": {
+     "clientId": "external-alpha-e10dfbf90b2cd18a560a603af0e06e1f",
+     "projectId": "prj_ConformanceFixture2"
+    },
+    "source": {
+     "repository": "fixture-org/myeve-alpha-workspace-02",
+     "baseSha": "e600ce856f9a16d220d301fa5d8bb05421fdff3a",
+     "treeSha": "d814088d6ab2df015ed5b41c2f1282a5f9ddf26b",
+     "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+     "allowedFiles": [
+      "src/app.js",
+      "src/store.js",
+      "test/app.test.mjs"
+     ]
+    },
+    "factoryVersion": "39a52dc716a6ae8b0249482f4263a22e5a06abdb77530f289efb476ce957570e",
+    "checkCommands": [
+     "node --test test/app.test.mjs"
+    ]
+   }
+  }
+ },
+ "prepareBodyBytes": 4210,
+ "mutations": [
+  {
+   "name": "document:schema",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "schema"
+   ],
+   "value": "xYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1",
+   "authoritySha256": "34c4ddd682036b9844063521f527f8b26f5bc02e336204a351e073a5c92d8c95",
+   "signature": "FzqUW-Ly5OTh1PsqXgejAfk4OGfnqKG2XXI855L4isKY31g8ICN7Nm_9Ro0QNp8xOsYz1AlqodDvAry_WRfZDg"
+  },
+  {
+   "name": "document:authorityId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "authorityId"
+   ],
+   "value": "0caf3d28-d91a-841a-a426-e9e41a32d606",
+   "authoritySha256": "f8def95f8f9faacd4a46af063dacb4ab6196ba843c985eae974fb28d53142797",
+   "signature": "UMyJhVZIKEVs00ngXujHIf0UTsfEbiIuXbvOhbmwWpD0eUbPykWzTpoB6UiPPzAJsT7Jqf53nF5g_sem26MuBA"
+  },
+  {
+   "name": "document:idempotencyKey",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "idempotencyKey"
+   ],
+   "value": "0caf3d28d91a541a5426e9e41a32d6069369e4bb91d790e1550592eb88811302",
+   "authoritySha256": "80018023339bf0d3f0ce078be50d10a9ced667b2751da7a0a621c8c645227492",
+   "signature": "Ql0wx73JqpGOkOZvIvW2kYvKJD1tLIYevd5A4vwAXByAnhhgbcd7aQ6qNsN81g7JV_ff1csCx3lgkfFSkDjFBg"
+  },
+  {
+   "name": "document:singleUse",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "singleUse"
+   ],
+   "value": false,
+   "authoritySha256": "1b9d0915b257420f6144eae300e01079d3ef6204d35a4ed0bcf3f053f69d4d8c",
+   "signature": "6epp9m13H6dL7xdlLfuDtS-zipZiVS4A3uCmvgvuK86nqsDd_o8rfIs6P4hJZZnR67Pcbmavq_xQagm7_fN2Bw"
+  },
+  {
+   "name": "document:cohortId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "cohortId"
+   ],
+   "value": "0bf3d8f0-4e07-4419-8c3f-45dc339ee003",
+   "authoritySha256": "b7e09b45e0ffda663691e48416c151c8b9bdfe8932844d6ee5a932c4f9c6cf96",
+   "signature": "3fnYqZfTRxLjRzCDaL927rJHQseCkdC0Jn5guDZG0xbA_BkoRlBvu6pTPiapU6jStFbP1QK4gvRwVn4GgSW8CA"
+  },
+  {
+   "name": "document:slot",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "slot"
+   ],
+   "value": "2",
+   "authoritySha256": "163d52b3ca2886c7c2c3b46497e6b52ddd3cc5b9f02b465674b6e3d9678f2e6e",
+   "signature": "cAhDeg956Jo0FP0XByHArtcQrdSSwmA9HrgjP_BNZKk2_EkEjciHdd0g1VIf9ajm4PzyUCsLU3I4KeTYZcZpCw"
+  },
+  {
+   "name": "document:ownerId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "ownerId"
+   ],
+   "value": "3d595df2-881b-4753-8343-2d1efb333772",
+   "authoritySha256": "2daf876060381068718fcaef1f85f81f2b3a7308f50b6245a86a06422ea04111",
+   "signature": "OGugDCew6cUsJ9ETBd2hrEIQ6Qj1xzRXFDbkO4KSeb3muwg5ZKE2oxO_AtJtDyE7i-loWL0XrhoNgQFM3LkhCQ"
+  },
+  {
+   "name": "document:policySha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "policySha256"
+   ],
+   "value": "11dcd6d0593d4f3aedf3591438ab36d8e0adae9dc7be92c3f6088d04b538b8a6",
+   "authoritySha256": "77dbd8872b0133fb70661f643c8e544def9ffc08cebe94c3d52854691ebc2261",
+   "signature": "TN9YnhMuLq_bW-ZHkhCMHCf94Q45n3ux-a6kYVBUh-nhryqcyPgExgXsiiVA3UzMMG454sCITXESN_1dE76sDg"
+  },
+  {
+   "name": "document:application.clientId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "application",
+    "clientId"
+   ],
+   "value": "fxternal-alpha-90f954de5747728c17629ef8dd8f40f2",
+   "authoritySha256": "828e28c6476de5bff41bfd642564142e5037a0beb36077e09ee4ec87b2cfe57a",
+   "signature": "keJxLtvtJSDrCDNKR0G_QkfN_b9D-wd4oK_8WFRuyITS0e81CLUHBbLrCIqaNS-vHFFyhIyip6LluP2cX7slAg"
+  },
+  {
+   "name": "document:application.projectId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "application",
+    "projectId"
+   ],
+   "value": "xrj_ConformanceFixture1",
+   "authoritySha256": "b97236280604651722cd487958ccbdd49d536b77eb821ff1f9007bf942bc39dc",
+   "signature": "zqCXbWBzoFSZxQtItL9ee8CghQ4z49Cy-ElqM_gsmy7l5PhC6SPcHBNXCuxY7sp7kuN7YbbjQEM4hOg7zu-qAQ"
+  },
+  {
+   "name": "document:source.repository",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "repository"
+   ],
+   "value": "0ixture-org/myeve-alpha-workspace-01",
+   "authoritySha256": "1dfd208429df621191cc1748f441696827319a5defe7002fc54912cd397ed379",
+   "signature": "4xFJ6x9Uj4DvqtF4LNl4Jd5jV07L-yK7THxOvLV5izbekFkFe-OGLpdj-H8qSgpeE942ei5SfszMsO8Xr7LfDQ"
+  },
+  {
+   "name": "document:source.baseSha",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "baseSha"
+   ],
+   "value": "71aced4d0f652562b3208686ff38cb3e17ee7057",
+   "authoritySha256": "bfcd05bcc066cad508a3a72e91605f192f8ac58618b85e4f2887ddbc25d54123",
+   "signature": "L1CZ6Wa6nrCIgXc2GhlUGuNPoZ55zAQQRmMSXbC_cX5bRH9nOanS4cHdZDwXR7pVevXDXsifyG6oGpCzGg_2CA"
+  },
+  {
+   "name": "document:source.treeSha",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "treeSha"
+   ],
+   "value": "65a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+   "authoritySha256": "5989653f9146b538813fb541d6f4485d38c803dc25b570048dbb1d5caa329342",
+   "signature": "8pQa5cIi7qa9qgiXFPhsA_ddKq3Y1r4qee4ESY9F7Xs3Fd8UY3qnAaYei1lSJCzhPa8FT9Y-k4p8tesGCvwZBQ"
+  },
+  {
+   "name": "document:source.sourceDigest",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "sourceDigest"
+   ],
+   "value": "77d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+   "authoritySha256": "5dfaf9d3522007155f693a8203001a8bc5c5d79cea22fb35ebacf8a472d7e672",
+   "signature": "tufQaz4OIniMUE7zin3HVmB1iDxwLhkb-MJlA0KWk0LZspW-m8U3sidfhyeoft9Q11lb0dL1DudwW_hy3yoyCg"
+  },
+  {
+   "name": "document:source.allowedFiles.0",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "allowedFiles",
+    0
+   ],
+   "value": "xrc/app.js",
+   "authoritySha256": "558577ac57da47af4c3b393ee6795d8de788df393ef9ebe49920fa9a064b12c7",
+   "signature": "eRzUxKChRadRvO2y13etfqlt2VXoqzKaVReRGMggHg8oOUK7MpDi2M-0hlSQ05ubUIkMBIlDQkaxGE5a9BUdCA"
+  },
+  {
+   "name": "document:source.allowedFiles.1",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "allowedFiles",
+    1
+   ],
+   "value": "xrc/store.js",
+   "authoritySha256": "449f3348c311af039c16457256fe25da9ad40178625558055e2cef95b07658d7",
+   "signature": "XhPTc8BSlRrICHv-L6ARey7gRXRV5vZnehwqpByCUNmJfI0vsgIy8hq2o88mlXsJlJw3_B9uan7XRBXdsWO8Aw"
+  },
+  {
+   "name": "document:source.allowedFiles.2",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "allowedFiles",
+    2
+   ],
+   "value": "xest/app.test.mjs",
+   "authoritySha256": "e87230a595dc4a3f81ddd55bf79b9cceefa5fa78690dee61ff7c55e5d78e2173",
+   "signature": "530zdFWymXDu4DnRM2L7NoPjqgx0cpnVVNNv108l25_ShvHgJ21-iES6PPmdQZYj2Zp32JX5muMSYMvAuVu5BQ"
+  },
+  {
+   "name": "document:source.allowedFilesSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "allowedFilesSha256"
+   ],
+   "value": "3f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1",
+   "authoritySha256": "de9a8fdb281b427a0b5fe5290b8bc2ea2635a4e65a6e13d4e4d3f7f1e6a6e425",
+   "signature": "Jl4Vm_ud0ImnONXcHK9OHgUwAzpkEbN5GZXro5fk0KqJimxLCqWZuDBk0Kq8ywNQFeLDt24BTMUbkj7m1X4QCw"
+  },
+  {
+   "name": "document:work.id",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "id"
+   ],
+   "value": "9b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+   "authoritySha256": "a21e3de41d0e7115a02b3b36d01f80aa8d647d0a3fda8d19097129ba409f828c",
+   "signature": "37GhVDicTbiiF2vZTFeE7-Ct_mlUCYnVELyhfID1GFt3DNZezD6MH2vW_zcsvFpXGjm1rAIP_CjfYVRQAXcbDg"
+  },
+  {
+   "name": "document:work.version",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "version"
+   ],
+   "value": 2,
+   "authoritySha256": "bfca5b63c87250ec4bbe7b08a2cdb556e0ddad7446837c4bc2333807041e927d",
+   "signature": "3iLi6oqxWwqojeeCPr7uhVTLApAl9Ub-JIzTTE7ruYHzyr6KWEDxcevMRPPvvyQ6j9Ulwrg8v0phiWP3oKV4CA"
+  },
+  {
+   "name": "document:work.generation",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "generation"
+   ],
+   "value": 2,
+   "authoritySha256": "8b7b04603af075627f24aaace40ca689b5aa4d8ff9bc5ba956c212d32c1edf3f",
+   "signature": "4AZ0iXrFKcqsQeMW3yaBIU_7pMsq9-Dl1rfZIK27RnrQSNXmw7J1pnltrHqs6wdwX6ptwI_hDbF9eSp7cVE5Dg"
+  },
+  {
+   "name": "document:work.title",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "title"
+   ],
+   "value": "xlpha Tasks: add a Priority field",
+   "authoritySha256": "29f067f06f7c9b27b361cb7a1d1060fcbad1d50e377905ea9af01e8acff96155",
+   "signature": "MGlgdjArtkszYD73alL-5VLh8-2JjoCoGn9xcMUsUH2rkv2gPQm6Zh2XVQsVlHd5a9TYwhRDu4yt3nYNuhxxDg"
+  },
+  {
+   "name": "document:work.objectiveSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "objectiveSha256"
+   ],
+   "value": "52ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e",
+   "authoritySha256": "f97a381b6842111f60939104164a57870278fbc9c71a7c7a01a181e41aa0b96f",
+   "signature": "L1hCp4NocyeE9__Zvi0CMji7pp5DsywgvCyA0Zwms8OCWFYOfAWMQ3DU3BpJFHsj5A37Ti8j5iJY-GaUOrbfBA"
+  },
+  {
+   "name": "document:work.criteriaSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "criteriaSha256"
+   ],
+   "value": "366874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+   "authoritySha256": "bd0e9e986706f8256473ab5d71a0ccb6d64679826f61c67c8fb40717f6039336",
+   "signature": "33l24thuJZz7fmuNfki7qGAzapIknWFNw9zxuoyqvbrCdm-kcQoiKdfK32uNjSCc6mcs5pwmLOtzWSdlC2GdDQ"
+  },
+  {
+   "name": "document:work.criteriaCount",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "criteriaCount"
+   ],
+   "value": 11,
+   "authoritySha256": "3f662ab6c48c76dbc0a935571e812b0062847e54523d06a9bf6a1d8c6d2be0c1",
+   "signature": "Bsrb6Do1THOu-67m781Mk4mU1QVtdWPbouja-vkWnuEaGTv_WhPCuChxnr_OZlhOw2RBILl-8pUeYOPpbSa-AQ"
+  },
+  {
+   "name": "document:project.name",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "project",
+    "name"
+   ],
+   "value": "xlpha Tasks",
+   "authoritySha256": "06dfc113795a73bbbb05e27735f5b282fa9dceeac5cc093e94a342fcb5ee2c8b",
+   "signature": "lJgnwQ3tQn4Sb02-oj9Ad6Ia5GGcFzD700rVZ2eHwPGTMMOlP2GNamhMpaD34RtKxXXVdTa-io0cQhiC3sOtBA"
+  },
+  {
+   "name": "document:project.task",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "project",
+    "task"
+   ],
+   "value": "bdd a Priority field (exactly Low|Medium|High) shown on the task list",
+   "authoritySha256": "99f5e81e9ce6a288405c72fe7be39a352e822dbd1573b550952eabc95f2a53a2",
+   "signature": "d4rd3H5uxL7fx-P5yyVM4GHfnFuEpN-6iumepcdbmxMttdo9XPs2Vl1XH-U0xA4mrZYRl2IURV7NhaxU_iNPAg"
+  },
+  {
+   "name": "document:project.criteriaSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "project",
+    "criteriaSha256"
+   ],
+   "value": "366874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+   "authoritySha256": "05f08c6b7ed84d917b596a20302d4b68d61bff7e76840361debdc07cebd11fd8",
+   "signature": "hazzF9Osq0EQ6I8gM895oNcbVxpu3vufcubhBZd5IDZ60v7v2JG4D5Qw2Pe7L1VyLOkMwF-TnGsg6-q1hr3GDg"
+  },
+  {
+   "name": "document:project.tupleSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "project",
+    "tupleSha256"
+   ],
+   "value": "32768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577",
+   "authoritySha256": "efda06277f7fb6e81b756811964f610ef5de79f44edb4502919590cd31144223",
+   "signature": "OzIKwHaOR7fbCjZQng047RSHCWQE2ot26IupjBPWwY5u8vAvReevakJBzRo87pf6xNCKjyzcJUGFtiZtT_RXCA"
+  },
+  {
+   "name": "document:environment",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "environment"
+   ],
+   "value": "xLOUD_PRODUCTION",
+   "authoritySha256": "27fb461d6419b0d6495cd8cf098014ee39628483bd1ad323cd93223f2bd8e81f",
+   "signature": "N7Ug2MzbNv40R8WIBUTFATmhL-swZyeQt3syiu7Gej9S5YT8YwOD4vAxZ_LTV_U3n5AaaxFfnMe-6xIH67C8CA"
+  },
+  {
+   "name": "document:executionProvider",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "executionProvider"
+   ],
+   "value": "xYFACTORY_CLOUD_EXECUTION_V2",
+   "authoritySha256": "33fbbd866342bfe15d77981d192ad7b9ad5c078b5a6c154872b89b79b36d18ed",
+   "signature": "f0qy4KJB4utFJWOfFLyGeHbipt3qoDhHtdeYgJ2pOUIi1wRoJ4HZmLE0mhSVXt-iQGGr4mWTzHZQFQQthVwOCw"
+  },
+  {
+   "name": "document:harness.id",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "harness",
+    "id"
+   ],
+   "value": "xyfactory-cloud-harness",
+   "authoritySha256": "ab7705001649b60cf621b5a8b25982afa4aae69a140b943c85431591026f59e1",
+   "signature": "oaSNzt2PeVBV0rfCRbpc38IqYJ4txQ4u-jkvTrRv6z76SOoClJpRxpQjPXJK1EiiZDqUNmmaO_Ot8i0MvpbMAA"
+  },
+  {
+   "name": "document:harness.version",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "harness",
+    "version"
+   ],
+   "value": "2",
+   "authoritySha256": "a822704bae3202a0797b8214832d8735d8c9a1fb1fcc493128a02781eb305e2b",
+   "signature": "JcSzHFPXhTfjm8beaqRZyqMJe8zDRydXcOEByGVaNY9EEMIVyyNNa6AsS8-cF5ETLjWwHzeT2fme5z2gdxhkCA"
+  },
+  {
+   "name": "document:factoryVersion",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "factoryVersion"
+   ],
+   "value": "49a52dc716a6ae8b0249482f4263a22e5a06abdb77530f289efb476ce957570e",
+   "authoritySha256": "47d67116afcf4d684bf4dc0bc755f89abae2f3fefc290da49820d8f505ef60b2",
+   "signature": "T5F_lVVhZ2NmBfdjo1f9bwHF3dZ-EWqJwhgas73QIlJtlsAwEPVYBMz1QDkfJJ4QE5lAKs5M3ZfhWYObZBAYCw"
+  },
+  {
+   "name": "document:model.provider",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "model",
+    "provider"
+   ],
+   "value": "xercel-ai-gateway/openai",
+   "authoritySha256": "76df9142380eea30e2aff230e27543d2231b07548ff3608134a97d0c4df604aa",
+   "signature": "Nus5z3ysWDv9i6XOqHIRHXsdqPdr0zwJ44HuDUCNvpMLDFTVEVZgvjeZ1IS7uqhOVNW1p-utTJI4IpdN1Fz0BQ"
+  },
+  {
+   "name": "document:model.id",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "model",
+    "id"
+   ],
+   "value": "xpenai/gpt-5.4-mini",
+   "authoritySha256": "6256229fda4ed666460a3d7609ffc4318bf3c18c298dbcf1447bf3ea09cfdc86",
+   "signature": "axVobqunhVs1uCeveXW0GiBVV2uzFm856YQii0Z9e0zDmUS1s17Sw93meiT8_TRKmDCVyZgIlhPjeVjzy4GrBA"
+  },
+  {
+   "name": "document:limits.work.operations",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "work",
+    "operations"
+   ],
+   "value": 6,
+   "authoritySha256": "c73502ffed66b3f51a439c8e1825bf9c69e84054bf9b4b6ba7f6619a920d5f00",
+   "signature": "vR3cbG_Kq8U4VSrbxqk_eMmG9CxjrF3qOIkw5snwyrKzkDtiVO1GkXwhpmm8yskUv29pcnTClz1vq9GNvtiEDw"
+  },
+  {
+   "name": "document:limits.work.microusd",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "work",
+    "microusd"
+   ],
+   "value": 1300001,
+   "authoritySha256": "10bb8ae8a8d85070778bc5b067836f002da37f0a6e55a130b991716df50d208a",
+   "signature": "LynXwYLPt_FVdXOqHytGnqDT6qh6WYkWottPXb8rNulpUMP2naVEKOqnLyKyAAEllxeXKfpr-jUhWnAUcD99Dw"
+  },
+  {
+   "name": "document:limits.factory.operations",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "factory",
+    "operations"
+   ],
+   "value": 4,
+   "authoritySha256": "0558d5734ee03c53adf15cc0e9bfc16f9c510b1a670e51d2f4635b03ef1ce89d",
+   "signature": "l3tM4JtLI2pjPXn18WYNdpaCKiW6g_HXc5tzPEjgaWA9ov3oP4T4v3PTD31SQA2cAgSet_LOWm7zUvy_5lR7DA"
+  },
+  {
+   "name": "document:limits.factory.microusd",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "factory",
+    "microusd"
+   ],
+   "value": 1000001,
+   "authoritySha256": "b789068899edf77d77177ec2bbb111a578c2bb4f1f77b96589c3be774c27ef17",
+   "signature": "YPJM2FqnHz17tMFAivhwFZgkavv2Sk2b3nP78UDgPwRslbZrVWshXLWajDpaVoHBjxb0NOsA07xiiD0uSbeyAg"
+  },
+  {
+   "name": "document:limits.productiveSeconds",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "productiveSeconds"
+   ],
+   "value": 181,
+   "authoritySha256": "800b4ba34a4e1a7709ba1c951dc0c12735aae78e2aff4e20dd179080a543f90a",
+   "signature": "9R98t7nlHOVMDEctaIbAaTy2QREproKvrssqQWSU3JE_mIcU6tRPy7JH11AO3LiC61nbevElcwD4fYhGYxPSAA"
+  },
+  {
+   "name": "document:limits.candidates",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "candidates"
+   ],
+   "value": 2,
+   "authoritySha256": "8add41775283fd6d5de209350aff11330b43030e57c0a9c22844e9c3f1aa91c9",
+   "signature": "SIzJPSCTULWCf5sl7rXBLAHIDSRa3IBjJtfZZ8kae7O_V3i8luH9dO-aVCgu0fKLp06qtHMZipoGR5xALukeCQ"
+  },
+  {
+   "name": "document:limits.writers",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "writers"
+   ],
+   "value": 2,
+   "authoritySha256": "cb43a43fe9e049818083dc474c11203020c34a2e78a512bf0a690a835739fcf8",
+   "signature": "ljkZfQ7MRNF3bcspL2l0i99voAZ5VrI9J0GlME_tiWzqsBUyx_b6qNtF_cG91eYi8zijvh5a8OwXPlR9c4FDAg"
+  },
+  {
+   "name": "document:candidateWriter.candidateSlot",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "candidateWriter",
+    "candidateSlot"
+   ],
+   "value": 2,
+   "authoritySha256": "ab13623c3ee2de5c57614598dd1721b152652401889f5f3ecd1b725029a339fc",
+   "signature": "cSO00A6i3s18mGO2Nvxt82Kjk8Ovn2lyLgonRvWqQL_U-uacgQANRJ_fGfC20LIJn6UbseOdYWsMwFwPMqKUAA"
+  },
+  {
+   "name": "document:candidateWriter.writerId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "candidateWriter",
+    "writerId"
+   ],
+   "value": "fcc9b13f-eef3-8bf3-a15b-7d2c2275a16d",
+   "authoritySha256": "0df96701794224c6a7423ffa0e85e9af83225af0a35410af78c3ed96daa48735",
+   "signature": "WzXdmjMxUL_UCuK8foBa0JSqLBS54HbwocBeEjvcZWZ_gFg-oIVQFVt7JwL3b6DVgroVQtxxCst3hFk4on7XBw"
+  },
+  {
+   "name": "document:candidateWriter.requestId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "candidateWriter",
+    "requestId"
+   ],
+   "value": "3e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+   "authoritySha256": "c20821e2b08f46d0cf8288f4f97e1cd9bc25cb28846560229a9666b3f38e2006",
+   "signature": "_zKTZMR3E2cVgeNQSQUNYAqgdlbdomgZm20b2V0eGNxqAZ8vHcz6If0v7e7_fSOAVy5lZ9mHiSGqwHRETGO0DQ"
+  },
+  {
+   "name": "document:verifier.id",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "verifier",
+    "id"
+   ],
+   "value": "xndependent-exact-artifact-verifier",
+   "authoritySha256": "93064b7af2169e9e2cdd5ba7eda7593274bc2e340902a35eae9c3e6902fe4646",
+   "signature": "MC_yNtr7sP0tOVvXpCDIJw1gRnerMDE_HbPYlegHiSI4JhmZraro5Z3zpPoT7X6cOwmnQPlHP6VCo7Sw1W0GAg"
+  },
+  {
+   "name": "document:verifier.verifiesExactArtifact",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "verifier",
+    "verifiesExactArtifact"
+   ],
+   "value": false,
+   "authoritySha256": "5c914f21f8e998558309ddc48f1aef5a50b8bdcf4cc36b388ec223d6443b2f63",
+   "signature": "YTOXz7RNj46DeVGrPdxawU4W-i_ucqmPfhaZ5CHEekEI69hijtU-8fslA-6eQu9Au0_vavTfrAAOyheTAK4sAA"
+  },
+  {
+   "name": "document:verifier.trustProducer",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "verifier",
+    "trustProducer"
+   ],
+   "value": true,
+   "authoritySha256": "e4f85e50ea08cdcc45a8c585778d4a2fe06f4ca54646fa4df69f9b9f4e1e9a46",
+   "signature": "aBqzAjA7Ox5W6jlBBImqznUa5wa3qqFRDojprHLp8iXcV6y0jF03TIsBVXDpUj4Bv3D7CAjMry1nAZXDxLp-Ag"
+  },
+  {
+   "name": "document:verifier.criteriaSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "verifier",
+    "criteriaSha256"
+   ],
+   "value": "366874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+   "authoritySha256": "24ebe41768c8c76a1865b85a91366f5e786f554465dc2b6401cf410f9b9079fc",
+   "signature": "8wdI4CPFqQT-Cb6u1_lDbP7g2V0aa6PuRP7jFPbtHU-0Auxp2PsaCKyJ4y3fwXT4clDvkFH26QfKOH-Zp5hECg"
+  },
+  {
+   "name": "document:allowedEffects.0",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "allowedEffects",
+    0
+   ],
+   "value": "dandidate.create",
+   "authoritySha256": "63c31f818b372c32d8ea43fd2d458ab5cf633440e96ee2ab0d1a2a31e160f560",
+   "signature": "8vPvZSI7pFs8Virpvk0vepUIXfAmlJ7lh1wzySyIK9ojSKmMj96eqPftikaNnZbZQcpyjp8nn_gMH0xAr3FBBQ"
+  },
+  {
+   "name": "document:allowedEffects.1",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "allowedEffects",
+    1
+   ],
+   "value": "xepository.read",
+   "authoritySha256": "dd04f089583b96278104ee34da672a899bca4e49e3d6106728e832e11b17f4d8",
+   "signature": "Nqr7b3Y1dLOiywcwHHwgBGjSvlALAHAEyq85cdVXC9pYtIR2EKyl6j95stgiEvuO_XJP9je2FI4XZBFQ6A6UCQ"
+  },
+  {
+   "name": "document:allowedEffects.2",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "allowedEffects",
+    2
+   ],
+   "value": "xandbox.write",
+   "authoritySha256": "4d9273310426de62331e6cbf185a4cdc2714c780b8d92bb97ea779bc4c2b0b8e",
+   "signature": "XFxr4bhiPW_GnYZImS4oKmC9jvmlpLM5GE9sxGehuZ-SJwtEuRoNbE2dO8MSdnAXRENWQh_CAyXa0hEtYWK3BQ"
+  },
+  {
+   "name": "document:allowedEffects.3",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "allowedEffects",
+    3
+   ],
+   "value": "xerification.request",
+   "authoritySha256": "d0b969495423d746d42953766a4049c94f0d2f8725f7e3609431630bdc9da872",
+   "signature": "fTA6ZM6t6QgdErbuJ7fcXo7671TNKe-n4sZRUajRFy5Ftl1NWQu1LZOU6ZlE48xFU7rRv5TNQhtkzt2HPLCwDw"
+  },
+  {
+   "name": "document:forbiddenEffects.0",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    0
+   ],
+   "value": "eeploy",
+   "authoritySha256": "429f5c17d65e2a6e79af1cb255facd04ac967577708723a85495b69bf58ec65a",
+   "signature": "-aglntpTThH54iD_US2JnIfRYXzG0lcB40GYQOXahjOV910cKbgdtgRqzWCcHc90RDYNoNGynGWIPcMwk_k3Cg"
+  },
+  {
+   "name": "document:forbiddenEffects.1",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    1
+   ],
+   "value": "xerge",
+   "authoritySha256": "23614ec2d058db65f2e21925e96f6d664cbf9f26c0f541877bef45abe88e8114",
+   "signature": "0nlL7iL7_3FyZcQUhVj8QQWsJlNVnH28aH98ccqJUdMu5XVAi6_uRCvhVwj39KQ82W6pmmxi7wSXgRp09hpRBA"
+  },
+  {
+   "name": "document:forbiddenEffects.2",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    2
+   ],
+   "value": "xroduction",
+   "authoritySha256": "5dfcbde6a5d0c94868427272c99677f8dd38b8e8999758026728ef3de6402590",
+   "signature": "HXo0QeBnRfL1kEOx-u39rJq5ouV9iBcJDhPCyfARMmz0DbCFWWDGNSd9xJ-WpJypEi1NcVFeA7z3EFChSzPJBQ"
+  },
+  {
+   "name": "document:forbiddenEffects.3",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    3
+   ],
+   "value": "xublication",
+   "authoritySha256": "21dd29c9f93529b13a51f385ca72cf082b833072e8f2044802b56e173497a9e1",
+   "signature": "T2LFbtIYGj4yDj_9JTscxAj63m8e9ajfHCKbjFS1IsyZGVP963dNrTvuZsGEphp2SUu4XqDZPiyMHfn0klfcDw"
+  },
+  {
+   "name": "document:forbiddenEffects.4",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    4
+   ],
+   "value": "xepository.admin",
+   "authoritySha256": "ba3ffa86c2f51ca521c58b1869c7f932bdf5d1f12b3ab9a4b9ed4c654167d643",
+   "signature": "J-rI3p8EHdVUJkirO-C2LEgW6IzaIJU7gCRQOp0lCUjkAuxEDPlVfXRSnnDGfG6d_rNpDiyrqEtFL6wtqxZUDQ"
+  },
+  {
+   "name": "document:forbiddenEffects.5",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    5
+   ],
+   "value": "xecrets.mutate",
+   "authoritySha256": "65df68f0d2f91a38750f9803998b8fdb223feb9e10d5fe3dca6097d324afe1a7",
+   "signature": "AvWJMapyfAaCFbsozEG_CqySNFL5SyO-uBQyUGyElZQ4xcCrTHmwTlupb31yP8BtlphIVvNuld0SgrHe1kTOAw"
+  },
+  {
+   "name": "document:forbiddenEffects.6",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    6
+   ],
+   "value": "xorkflows.mutate",
+   "authoritySha256": "9a330917353694b250617683ccf27f9ae5cd7f29722fd27e854aa70d463ab38d",
+   "signature": "7PDFTCY6Xlgd21ZLnny4XnM-pVd4bTsSoHaX0PjoF9x7fLOqaGgQUv6PYM41bE5No-aYp6MovLl7x6B6evroBQ"
+  },
+  {
+   "name": "document:issuedAt",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "issuedAt"
+   ],
+   "value": "2026-10-07T12:00:01.000Z",
+   "authoritySha256": "c49eb8847b6586532383b5526cb9cdbbdec81009e4de28e95bcc462ff2f3bd11",
+   "signature": "zhXSiMJvNOl4YHu3e7JUSJ6yjcxqjQd9lnlBO9Q8DNmyZLGl0j1MtPRTyYI1ScXDOgOUxFrLocssBbV8Vry2BQ"
+  },
+  {
+   "name": "document:notBefore",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "notBefore"
+   ],
+   "value": "2026-10-07T12:00:01.000Z",
+   "authoritySha256": "2f6b17d890e018e6b0877170d9e0eaf9b71e52e3e6da81fb84fd347a442f894c",
+   "signature": "ZyAriB269NufbduSiAsY9OVjfgH8LLj5Kvzs8w7crqsky8R8LX3iyTz-YnN2KSePIom0USsgGuUeXhM2fQWfBg"
+  },
+  {
+   "name": "document:expiresAt",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "expiresAt"
+   ],
+   "value": "2026-10-07T12:04:51.000Z",
+   "authoritySha256": "16ddfcb453b827d68a61bd231276161b1c70d2d027691c307c44d4bb772d19fb",
+   "signature": "2bPEsmOM8113thoJdPGT6zzGInpnzJZsce2hOCAvDUZznwhbbbVlU9Hf7t3avV5HP45DTfoq60Hws9WQokZcAg"
+  },
+  {
+   "name": "document:+unknown@root",
+   "target": "document",
+   "op": "unknown",
+   "path": [],
+   "authoritySha256": "91b5eb8113b6d981428422b835c6fb6f46bfe9388324b8c0e35b9ee67479679b",
+   "signature": "hsKNpRPKVRDW0n74tU1v-dpqhfU3H2QR56GvQKO-8xsWfphZCP6uaicilt3CRkUTghO7XP5oG9j-s2WtwUmTCQ"
+  },
+  {
+   "name": "document:+unknown@application",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "application"
+   ],
+   "authoritySha256": "3f222af5ea5bf7be06ec442c65b2ce24d6c797e6c3a293eccf800a402305c751",
+   "signature": "WZaMVLu0GsfJGePqJnW7uI66COMhv7iNXJT4RUZfjxhwNhJ4cKpZdK_9pKaLsHSSKAsFWwlXMVmCX_3Pyqr9AQ"
+  },
+  {
+   "name": "document:+unknown@source",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "source"
+   ],
+   "authoritySha256": "33720d46dad66aeb055ebe591851b3846f46484ed66b01b884ced13577d8f496",
+   "signature": "r1urLgQC434VWCN038IkZcwHjflmY04IcqKQtr2DKOqNXzNvLsx67xnlbZrO8Lb2avs_y-L3O8vo70kq3ZHRDw"
+  },
+  {
+   "name": "document:+unknown@work",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "work"
+   ],
+   "authoritySha256": "8831cc341fd76c08face17795b5ad41be4f7a31dce75498fe8ee2bb6e92347a4",
+   "signature": "BNxiVefU_OQkFHvX5GkTUo3LTB11pGNEmPWul9HRgNdAXnf2FF6XlW74Nj1h99JOhf3o9P3oza66j-oMMQh9Bw"
+  },
+  {
+   "name": "document:+unknown@project",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "project"
+   ],
+   "authoritySha256": "2eddf3f227723b346df81885eb76a945aa27b7fdc8684cfa863cc26beadeea28",
+   "signature": "4VKVw_w2VegdJ5lV-sIGCHjEBEMYUdZ0OHQ_723-ASQYjhra0rcHlZwqUgkxFLolHte4gKep2MYk6yNB0ld8AQ"
+  },
+  {
+   "name": "document:+unknown@harness",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "harness"
+   ],
+   "authoritySha256": "9ee9681e075f5cdbb2de6e76769a8fd8462dd67d0b85fcd93c2635af350d05ed",
+   "signature": "Pch6CHnnj6DIUOUPUeGjcAJmVxIGJRR1QsycBM4K9EcDFLApqArg1LqY857qWTQRI3qJPFBXilpd-B9hXw1RBQ"
+  },
+  {
+   "name": "document:+unknown@model",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "model"
+   ],
+   "authoritySha256": "d87c93c1cc2c251a8530116ae1f444f917fea5cf099ff4feaa754145a02ed5e3",
+   "signature": "f5I2rN0EbCKH5ob9-IJleofLc7TxDnMkU-dnUPy2-_8MN2A1VsKVe1Pmrc4jeVjWMNLPoNEcfc54vE3FEfycDg"
+  },
+  {
+   "name": "document:+unknown@limits.work",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "limits",
+    "work"
+   ],
+   "authoritySha256": "59112781525f47ba44fde85caeccadbeaf3ed3964285b580c78af4c31c1bf7a9",
+   "signature": "8qBVgBaLOwd6uv5MvMzzdhIGpXSyLw2aMovduR4IRYHY3N5_7jL23iXfB824wDSEV4BoRFJsWN5xliMmC2sQBw"
+  },
+  {
+   "name": "document:+unknown@limits.factory",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "limits",
+    "factory"
+   ],
+   "authoritySha256": "1b62e5e931c12e4c1b6252e0d47925e83257fdbc73a27a356cf565e31d74bf62",
+   "signature": "9Dq6VpEA-or-HNyko3fDvxMLimsFQSguvTsTPtUnTxq-im3QfxHUCTT8w5wweB9nfSxkuOHObL1UCNoIiuYwDw"
+  },
+  {
+   "name": "document:+unknown@limits",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "limits"
+   ],
+   "authoritySha256": "345e887f37cfabb53649717dae5e62a49e681783176a4d3ac999fd46e2273d06",
+   "signature": "jhhDgjSac88bk3mkcI7_03dScVDjBVbnzQUNtd6eUYQF2h9G_FlE_ZIXwb08EjZEc8ClHP0gdZoIFT2Z4qFbCg"
+  },
+  {
+   "name": "document:+unknown@candidateWriter",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "candidateWriter"
+   ],
+   "authoritySha256": "0817214ebe51efed30aac6ace1bb8f315ee87f71cf5bc69a30f69731349ff2c5",
+   "signature": "loBxuJFCvAzDXcvolM6LI_twENFwLAxrzFWtu_SdAWFEiCbDcIj01rcYyLeMGn60M3G67MD-KPaF9DSk4gMpCQ"
+  },
+  {
+   "name": "document:+unknown@verifier",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "verifier"
+   ],
+   "authoritySha256": "a97fe0388da6ea3857d85c10a429ef55586634c2dbb1579deb4fc89b3fad0bcb",
+   "signature": "Wee1yNwkaI0LE4UyVm3WUEPQfb0-IFzS84bpaGyYG01Ryk-aJJFm6SSLFB3cR7OFO5tWLpES262-qmnLcBnEBw"
+  },
+  {
+   "name": "document:-schema",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "schema"
+   ],
+   "authoritySha256": "ad9fcdc76b285f9d6e5541dbcd7074327545f3ab4278a6d08c20ccec0510596a",
+   "signature": "jzG3P7hyFPhjzb5N5I0PxdkOtuPoUwCX1-wrVAjMvepV8FeWsa7MEIjKn0gx41foJncAUiDnRC9tKrX7-c92BA"
+  },
+  {
+   "name": "document:-authorityId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "authorityId"
+   ],
+   "authoritySha256": "48cdb2e0dc42a2c5a7118aff0b628b560ee4e75cf8a517acb273ffa912de2619",
+   "signature": "PDJwO16XJUPOpd4ikpF-awQcdNJueACNdgxHWzkc8dX9GO_X4WRzBbCh4U5o4aLEcJvTVbimBX7OhXJKaH92CQ"
+  },
+  {
+   "name": "document:-idempotencyKey",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "idempotencyKey"
+   ],
+   "authoritySha256": "da53ca90e76d59e319a9dedef9a9932204d07c82bc5f4a0da14c1476b32767c1",
+   "signature": "9i0iGKFTItl-SJCMNZ5fdXGtUSWLtAj_3r_ZU7WAwhk6Ue5-Nhy94MgyEQaN3_DVHi1YyA7XwCQlmto7T7ixCQ"
+  },
+  {
+   "name": "document:-singleUse",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "singleUse"
+   ],
+   "authoritySha256": "2b7f52442900e6f35af914bf7bc83e25aad81207f72a33c535772c7003c1a141",
+   "signature": "-mBwYL4mz3mmXLjnBs2gfO8BIp0_a4dAt2CplwlQ3jNiah0lw8sCvPllRrzkj6OIpdCjhSky9oVgErRq1nIxCw"
+  },
+  {
+   "name": "document:-cohortId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "cohortId"
+   ],
+   "authoritySha256": "6e69cde582da20ab35e80c369645d6eef761e2b7b4e635999f5624a5900bff5c",
+   "signature": "Gc8x8fHq1VqTWMIS9JekpjDyuR-eVE4KlG5tR21Uan96DtYpewaoBXJdq_HIe5vcoXuCmKe75tJElhpcm0TbBg"
+  },
+  {
+   "name": "document:-slot",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "slot"
+   ],
+   "authoritySha256": "06aeb4e9f64b3a6393963030a76abe68993d4be7c44ad58e8a26b440e084fb93",
+   "signature": "J45ZXrk6kNIknsv8BaSp8iZ_bX1BQSpg2LEALVUEhwDKjv8SiQoMXngJR8bAC3gp4JONlG2DCiuzJYfBT6TeCA"
+  },
+  {
+   "name": "document:-ownerId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "ownerId"
+   ],
+   "authoritySha256": "866e99bc5d14c029f8b52be51131e5dab3c42729fd4acd9d2b039be7c716bb6f",
+   "signature": "sHY2wjN0jRCM9TJ8nBcZ4B7n7eRGDZfKyHwcjKJoLKRE1glT1IG1RHki8KJnh661C0uDW73FfreB06AbEDFGBw"
+  },
+  {
+   "name": "document:-policySha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "policySha256"
+   ],
+   "authoritySha256": "bab67e29d43d86342e766e33f48e894f047ae99de2b635e19f08e40e8afe80ee",
+   "signature": "i52LjQRZCoGJpwYvnMM-UlGfKL2-M1VE_PlQ7NDab13ZUJR0VmkilrpUjxxfKYDOgxnc0gR_S_04povvv9dJBg"
+  },
+  {
+   "name": "document:-application.clientId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "application",
+    "clientId"
+   ],
+   "authoritySha256": "e2b5d0732696e1f612789ceef3017629c32b554d2e9aafb8f2825cec04aa91c8",
+   "signature": "Joznx93nxysgLGbD8YA76AGeqSVAQGgdIuLl7uYNOX_NCkCu3nty6CpvvFWz2vcw3-Sly3H_cKCQNtd-otCmCg"
+  },
+  {
+   "name": "document:-application.projectId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "application",
+    "projectId"
+   ],
+   "authoritySha256": "3beafae2af931388d611f245671c0db94d032a36bd1a2d2d36e5204e773ceebd",
+   "signature": "2LIBqp1gqGdCyjoxLvZ2vKsH7QTzrdaBVjq4B6NJp6ROBhitZTHb_ghO6GkU6tMo02-TUYJI8LLieWd_OviOAg"
+  },
+  {
+   "name": "document:-source.repository",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "repository"
+   ],
+   "authoritySha256": "abb9088d2a51b9e2eee5a4a4170783ceafcb07cab1e7a3a24dc743c82f53e7d5",
+   "signature": "Of2AakPNBc09avyNTtq-cXfb6o-TegmAw7Fje4PQqC5HleeMf4yWFj2Mor73Dw0tS2bA_MA6MFKLocYPR_rPCQ"
+  },
+  {
+   "name": "document:-source.baseSha",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "baseSha"
+   ],
+   "authoritySha256": "837386da9a8450b5a76c98bbfced0ae3c18525df0328f09ca8f351d0f332ecc6",
+   "signature": "M2fWX3SCUlTiOoIeiFE20I1hiHdNvtTzUmN2DIcBo7PcgTh5nNvwr6askbBlPMoBs5-9Px808Xsvx6IFoN2_Dg"
+  },
+  {
+   "name": "document:-source.treeSha",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "treeSha"
+   ],
+   "authoritySha256": "ae84fd8e36d698dd1038dc9db7645459125e7681f5cf9461e831d906f2e8eb94",
+   "signature": "43wE9XaQpE_t5YoXCxvMJoT9DIKYWclu92ElkqcE5OUAjtb3eJlm3c-rCzZx8o4Hvd5sSgtu5yvjvt6J2tX9Cw"
+  },
+  {
+   "name": "document:-source.sourceDigest",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "sourceDigest"
+   ],
+   "authoritySha256": "120e1f670839aae3ccda59146af40e49b085dcd6241ea142d5f749f7e9c5746c",
+   "signature": "FLZVJi1_yuOM28w9h8GWUR2auGp5hSjMBgiXV8SOavNsoTl0E0NessIfRrlKD6-7RM2lEcyQmakPkJm0cyd1Bw"
+  },
+  {
+   "name": "document:-source.allowedFilesSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "allowedFilesSha256"
+   ],
+   "authoritySha256": "77a36d4ee92a4bf24f9a4725ef719c96231ca4e2d2a1daa88bf787556582e265",
+   "signature": "FUjL0SaxT2InCIQo2DYC4kTJ3m_78wTuIxQoBFUL85fcNFT6CoS2jM8eaSDCRVjBBkZmW2Tuuw9MVvJITNIhAw"
+  },
+  {
+   "name": "document:-work.id",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "id"
+   ],
+   "authoritySha256": "62261894845276dc35cd35ab9ef08f3c92ec9c6ae429c8c8194a4644fa504fcd",
+   "signature": "4Cznkdxc8Xj1aMtcicVXtBZa68VUodoRMab-eq5z4Bn69cHmW0cD3DOhroJuFTRszUUHBirTjbrS6_hFTFWHBg"
+  },
+  {
+   "name": "document:-work.version",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "version"
+   ],
+   "authoritySha256": "e4ad1202a40caa0b604fc59b36336a8a9cf98e954ce48b2485fd069dd03655ca",
+   "signature": "vFOA_OBV1c15PLx8c8Ryho1Sz5JkyighZHm7dxXYcyfOPWJJpfpu0EDYCxVKI56m9dA0z5HHVhCNYBv-9Y_tCw"
+  },
+  {
+   "name": "document:-work.generation",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "generation"
+   ],
+   "authoritySha256": "a74e5350596545bd1e89bbb3b91e04ceea8aa406e19e87d10f20b63776696b1d",
+   "signature": "FSLjnt-NrakHuUAXOf7w8u8RAluWH5y0JqrSuNMgUuoleIqVOn0kzdRRLAFFszAok6v32J2OjmSvRRvw_BMLCA"
+  },
+  {
+   "name": "document:-work.title",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "title"
+   ],
+   "authoritySha256": "27b687406095331b94ee69464606aaec3f39a3f0cc4b5f491d869826cefa2ff4",
+   "signature": "eN6yUKsYf_-CJsSaK4AxQMdvDPrhMzkKt921X62Rh95ovCWtJBQhPR23oTo8vdcR8Is88knn8HMnO2kEGpMGBA"
+  },
+  {
+   "name": "document:-work.objectiveSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "objectiveSha256"
+   ],
+   "authoritySha256": "2908291f055c51a521340d1f58c7e5973f47527b6ccc7e24dd69f838762ce383",
+   "signature": "-oG0CwzF4YSINaZcd6rh0FHf-fC3qJEmZMSFogYf3-X22UT1qQtZRvoFlKEbzTQf1Uy7smzu2qYuk9T6u7B4Bg"
+  },
+  {
+   "name": "document:-work.criteriaSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "criteriaSha256"
+   ],
+   "authoritySha256": "c77cd3922a4a9591eb2a73fcca04a4335dfff970344486e2a5cded7aef1e24bd",
+   "signature": "cZgeWoc05VTRBDD2yqj7e87ibN-tfAmWhWH9kx2SEhYU0bzj_qaKyRtbXeZNUl8KliR285ze1nWTIGdT4SLjBQ"
+  },
+  {
+   "name": "document:-work.criteriaCount",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "criteriaCount"
+   ],
+   "authoritySha256": "df6b360f7ea9bdc52ff883e23442da3d1811ff3db7d8cec75de0792611b9fac4",
+   "signature": "4ECpwc3OlC4HdYq3DhdjEOk2jHAvHCQC29uSPPD7ig2yno8xiSnzva512fldlwccRVeLOobXH5H2ZGFYi2D0CA"
+  },
+  {
+   "name": "document:-project.name",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "project",
+    "name"
+   ],
+   "authoritySha256": "320e3b17dc3698dd7acd8c9ac150c180dfc80e095265eccf7631a46469a638d8",
+   "signature": "7ROxNc2O7VibxFpGaiqFySs9kpZARltB-p2jofJStnwXh7uazwloCm0ctCtZTnODw9buaWXHJTwGKRRrXOX7Bw"
+  },
+  {
+   "name": "document:-project.task",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "project",
+    "task"
+   ],
+   "authoritySha256": "1a30d1d5af8e5869e27cb36a69dea7df3468e3e9aa242f42d00d54b04b5f1d94",
+   "signature": "LdHb4sH9tesbZ3VZHDR7HH239rO0jUcv91yDiLWmOY9kC-jzrDy1jNkghIJrISNlTJzIyeKIqURTEDR4BFZjBQ"
+  },
+  {
+   "name": "document:-project.criteriaSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "project",
+    "criteriaSha256"
+   ],
+   "authoritySha256": "bd2c6612d308f9e1f64c5430b404112dd221f45486e20a8935c75d2b4a58d006",
+   "signature": "KohDMf3YZqzYJWhjJ_HuTzREzvUCB9TBb-QAzDnkX8NtRlIGhi51CpVbxo2EZSkVeT2IMvwr-4m3_Va-x6BBDA"
+  },
+  {
+   "name": "document:-project.tupleSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "project",
+    "tupleSha256"
+   ],
+   "authoritySha256": "3710b00483487517781edb90d820b718eb3cc9b46d5c204a53661bdafec4d640",
+   "signature": "xqpSx5usTfgDNdxC2oxyqjgxjSIshvRShCmWDf54RNdxHhD71jfuV0P_kOOdUVflMni37bnJ9cTU8SErYn4LAA"
+  },
+  {
+   "name": "document:-environment",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "environment"
+   ],
+   "authoritySha256": "94309bf1f9e640219d3b71d91208b58758b56d5372bbf8224d39f527ff0e163b",
+   "signature": "L47pHhyaxQnPEzJni0PXn5LkEtFKw8hi563UsRbgtz1CP-ycf4FH0X-xuMGPYdfhjsUzQ3ZaTGVbU9NYEKDkAQ"
+  },
+  {
+   "name": "document:-executionProvider",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "executionProvider"
+   ],
+   "authoritySha256": "fcfb93e36512b01872d7daadb5a3ab6179fc6fecd7d460f9b76cf5ca1ad46190",
+   "signature": "X_QgX7QfNMQtdmQr3mkqWaJw_4O7ADKLQoX4T-84F61LbdwF114N70teJwb33KigcFv8ipu2d37WN7VF9KW3Cg"
+  },
+  {
+   "name": "document:-harness.id",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "harness",
+    "id"
+   ],
+   "authoritySha256": "0c8316ce634c884560ff157140ca27ddadc0e328d597750633d8078e776d8cac",
+   "signature": "PfaAW89Dn9fJ4GWH1IL6T3VIm37zWkQTaVThi1AhUpxT3vJJhl9pAJoUP6lcyCTzyKpH7cF6jnzvPnaJo-YvDg"
+  },
+  {
+   "name": "document:-harness.version",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "harness",
+    "version"
+   ],
+   "authoritySha256": "808b89db4fa6eea7f692ee440cd256ee21822fa351bd4f952ece456c181eeb68",
+   "signature": "j6ADNO_k9Fs7mciVxziik6Es2AC9TMLOGgx1HU5LVWZD4P4g5KXzQA5sSJsZsIxlR22hXrMEjRsQYdeBSRz6Ag"
+  },
+  {
+   "name": "document:-factoryVersion",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "factoryVersion"
+   ],
+   "authoritySha256": "680b8098371decd83797713c122c6bce464719cf46e70b02bfe89c3dc8bb32eb",
+   "signature": "iERLBPKpuiJCQA_i9VI5ueMRTqeXK_BlO_s-IDXGO-8ikAqIL1FHNJwRByEqxAvFBxxt31Ndq8KnNNH8BdFSDQ"
+  },
+  {
+   "name": "document:-model.provider",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "model",
+    "provider"
+   ],
+   "authoritySha256": "f6373440ae9e93bfb7db0c26e185437d9c3a0e9a356a25ad5692b7e154ba1a80",
+   "signature": "oL07vJRJRSgaIOWfjwXv37Y7baqJM1rvGCwxLSv1sGIVFIAraGQTPfxZUHh4uPS_EELa8l8LPWOBhjpTjAnXDA"
+  },
+  {
+   "name": "document:-model.id",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "model",
+    "id"
+   ],
+   "authoritySha256": "d4d4f79e27d967521f154e8105ee0a0bb4ce4e953f32c679c56d109e5fc5f63d",
+   "signature": "RpdTSC6xTen2trxVV-e0_8T6JnvniIBymF-meK3_oL6ymMCgoMQNWDXPkPkoCmjws581fnOfJ5fFaftHnSUOCg"
+  },
+  {
+   "name": "document:-limits.work.operations",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "work",
+    "operations"
+   ],
+   "authoritySha256": "f417fd05b749757cf4cd8059f89fd63dde0b20507acd60f4d59034827af966a1",
+   "signature": "NhnXAMPKV497bGbwyw9DTL7B7XHODvLCyJzjy5ZHdiZ9Cbk3mIkHrV8As5w6E0dx5unKlSy40E-eD4jWGXmcBQ"
+  },
+  {
+   "name": "document:-limits.work.microusd",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "work",
+    "microusd"
+   ],
+   "authoritySha256": "1a8f68ba5e762d2ca733e8668a2d56408a517ee301b5948bd582fbf9ae03ef6a",
+   "signature": "rG2egrhHN5OFmYO0X46f-LDwdZTC9zgqULAsRHTElO7RwjKl-fi6QCJLU8VE74Mu2NV7V8Ix2DfcNHvjH1jhAQ"
+  },
+  {
+   "name": "document:-limits.factory.operations",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "factory",
+    "operations"
+   ],
+   "authoritySha256": "2fb0286a2fb3ca1c6a231c12bc8ad11f3319b11f1c01b8e17653ca2b1479bd2d",
+   "signature": "1v9DbRH4QlWtvLICivJ0acGjlC_1lywOIODy9Qcm2c_A_5n99ry_6pzKVevsZwEbHFO7-Oj9udeVDnAq2CKXCg"
+  },
+  {
+   "name": "document:-limits.factory.microusd",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "factory",
+    "microusd"
+   ],
+   "authoritySha256": "689ab996e925cfa61987b26224ddb4a734d16e68acaa8ad1de3e803ee815898a",
+   "signature": "8T0HXG1ZaurZO5_Dewx1N-TmS1S7qQMDX2Y_maXRbhMzkl75fYbpWVQ6gdHY8ZaNPgD0OlowF7yXorvpHdrqDA"
+  },
+  {
+   "name": "document:-limits.productiveSeconds",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "productiveSeconds"
+   ],
+   "authoritySha256": "d87d6b77c74533cd6b8709ed74ec613af1c4fbf77ec86d3b7802501291609f57",
+   "signature": "oBoOVtgLvdvvcNaTXBtE1oKdcIa6qB_AgQv7KHN6x9TraBRrwDItCr0u3jkwTi_UeRTFaBL9bpQZbSolzvU4Cg"
+  },
+  {
+   "name": "document:-limits.candidates",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "candidates"
+   ],
+   "authoritySha256": "adbd3a27af144d857751649b4dadc404c5b547af17b049a32844e3ef2ed74331",
+   "signature": "U9jbON5MlFgA0tnyeiOeg2BvWMq4dtJaQPzvyL4hBynUAYFuTTF-eUxMNI8r6bxICcssTPNrtLzwH7tDzygWBw"
+  },
+  {
+   "name": "document:-limits.writers",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "writers"
+   ],
+   "authoritySha256": "064bc59a635f30634f36fc238120188ed96aed52e0a1ec4787e447ab0ab04e51",
+   "signature": "GVDrF51WAozircO8SIAeFD60qI9MetPWKqH7smYlLzJZlkiVJKrKxv87YBd7Q-dl3Joq7g9yL510KhAj-_2tCg"
+  },
+  {
+   "name": "document:-candidateWriter.candidateSlot",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "candidateWriter",
+    "candidateSlot"
+   ],
+   "authoritySha256": "769da44bbce327827ec1323dea116d7fc49f2781540fe7dd76a426038632a3fe",
+   "signature": "qia85-bYRdhI6vfYwHvUOU2M0TUn7hTxQFUsVoh3rgQqwRPXOneQcZKUus0o8JZ40tUt9wWoAkP3_ifm-e7eDg"
+  },
+  {
+   "name": "document:-candidateWriter.writerId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "candidateWriter",
+    "writerId"
+   ],
+   "authoritySha256": "642632730f27ab58816d0d66c469af0130a32ed1f2f778e9d6ef824cf85727c3",
+   "signature": "KLWo60r72Rj_hUPwXH7HefFRuO45ltQacWIvNSS6vz1OrmquRwGDMDI1iYBfNC2KIjDhwkXpsjYkiShh70HQBA"
+  },
+  {
+   "name": "document:-candidateWriter.requestId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "candidateWriter",
+    "requestId"
+   ],
+   "authoritySha256": "487add83d5b9e457f468a9d01ff4594c35b4140e7830eeb9f729c7246ce9474a",
+   "signature": "U5fBNsI_gJViXntdWHjG1R1beCbK0TMM6WwsuHgz-EiEmv0wA88Bxp8tlOGAwezN3jaGEWI7ItB3CX8_N2S1Bw"
+  },
+  {
+   "name": "document:-verifier.id",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "verifier",
+    "id"
+   ],
+   "authoritySha256": "d2550d3a7d1fbf48d644b5ebe5d67c4c5072372be65f0b1b5546e26fa3d6474d",
+   "signature": "NgKP_zQAM5NoF3S06VA4lv_n2lqrHCGNd-Qw6OZS0Ez7-CSpFll4F9tvGWyglufeoeU8XA6Pu0-7dZcW6jftAw"
+  },
+  {
+   "name": "document:-verifier.verifiesExactArtifact",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "verifier",
+    "verifiesExactArtifact"
+   ],
+   "authoritySha256": "c18cdf987bd574bad1314fa9409fbafab2db3ccb71b70fe0d739fda692f55f85",
+   "signature": "q88V5yIQo0-d2GPcbC6FIBJQZTSiaAn8-pMTy2-26P1HOYUdQy902v63k9A5hwElzJucF9DVnhf8YSUHqdIhAw"
+  },
+  {
+   "name": "document:-verifier.trustProducer",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "verifier",
+    "trustProducer"
+   ],
+   "authoritySha256": "3036cd92cd0cd36e35eca6855115f2676cde0b002bf0361c191faedd50e8feb5",
+   "signature": "5kgxGR6pNRWRpgpgkn89eXYlVndJnMjsbXVBkVg_CDXdJc8JMBHAB_Lk2wJ7BXIgWOr77MQM0oNzr256P3JQCA"
+  },
+  {
+   "name": "document:-verifier.criteriaSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "verifier",
+    "criteriaSha256"
+   ],
+   "authoritySha256": "0f44b45a9e31c5a84989d62d31832337c81945d6898a037589f4ceae5780b5f2",
+   "signature": "1nfWcVCD-Pd8gqiK2FVf4gq-QUuhn8NV_9r-_tDteblq6oXMbHbV4Ffv-eKbb-ZoMZ60fYOlkQCXXBn3x60aAg"
+  },
+  {
+   "name": "document:-issuedAt",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "issuedAt"
+   ],
+   "authoritySha256": "5f19464e3776766d4d6441a9a3b59745142e1cbec7d85e9efeeced20400a34d0",
+   "signature": "koDS1diV8cI0xPyc4RpchgiNZQPVJGRzwZ8FshYRoNy_H6pUBNZ2CYjdR1etm2hbaEd6FWxMjxUYbaq8qg1jAg"
+  },
+  {
+   "name": "document:-notBefore",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "notBefore"
+   ],
+   "authoritySha256": "6fe1d5e76bb73fb735cad3912cc936b94e371918fac61c74d8d7685e2b324e6e",
+   "signature": "E-L3kst4AB8r6AANNqpC2vPiINJNXHGDSi1-GhZNGec-18fGbKTtZxFE1VMYgELoIMmqhWHCrD84OPmZLC0BCw"
+  },
+  {
+   "name": "document:-expiresAt",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "expiresAt"
+   ],
+   "authoritySha256": "3d0e54ddc9113d62c125e42c35cbd6692c4a2512d30e06d70eebd7599ca320a7",
+   "signature": "q0FlkKQi64wJhxRLo2tJqVuer9UQjefl9deZi0NJxPjGdfo-vmAEqZCVNtmBPodCsjx7NlkcRK3P1xvDjWGfDw"
+  },
+  {
+   "name": "document:-source.allowedFiles",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "allowedFiles"
+   ],
+   "authoritySha256": "165884fd7c2b5bf6e06a5e8d88ff958e1a41aa593ebc23b5f8c05777e797b160",
+   "signature": "T1LPRvnlE02G9yEbENJ0q3utuKOt6pTX-bkjsu5ajuzl3xvnqc8OyCC8EpM_qO3TkLDDgeofLUTZpsiW-1VPBA"
+  },
+  {
+   "name": "document:source.allowedFiles.dropped-last",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "source",
+    "allowedFiles"
+   ],
+   "value": [
+    "src/app.js",
+    "src/store.js"
+   ],
+   "authoritySha256": "e3b97a641da8ecf6a4e688cb99137b2634a80f101c7d3d480dd4a1a19d151a52",
+   "signature": "hwbG3GKFDoVeojmYKyj1bv_EKsRPEquJh0tViqDZ9abCvnJtiYJg5qmSt5h4erDDYrZRxKuAvbwhPZHXPTZDDg"
+  },
+  {
+   "name": "document:source.allowedFiles.reversed",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "source",
+    "allowedFiles"
+   ],
+   "value": [
+    "test/app.test.mjs",
+    "src/store.js",
+    "src/app.js"
+   ],
+   "authoritySha256": "7993051fa2bc63285df2f828bbc338d1358e03276ec68280f2025e4a048fe9fb",
+   "signature": "qM1mDJ_1Cx7ltEdpJf11XhbqRpWs3YknayS2HoJmTH1KbjBM7N5oUCgn1sTM-c0i2UMNOldO6mkaH0eoe2O-Bg"
+  },
+  {
+   "name": "document:source.allowedFiles.extended",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "source",
+    "allowedFiles"
+   ],
+   "value": [
+    "src/app.js",
+    "src/store.js",
+    "test/app.test.mjs",
+    "extra"
+   ],
+   "authoritySha256": "a6568de5997032157f9b694f42202ddec4496aad17e9bd3754df9587d34907ed",
+   "signature": "-vY3_CgYp1xsGAiWOAizQ8aMh-8OAJXIh_UBPI9_fyvabvi48A5l-NceYYomPm0MTof5-HlsJL3xt3ZMQtdOBg"
+  },
+  {
+   "name": "document:-allowedEffects",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "allowedEffects"
+   ],
+   "authoritySha256": "09303a8662275052445e58ed64730b6889a0d023ac076ca858128d61315d49b2",
+   "signature": "lu8jYXHZVJ_NEc30yE5tdXGOfm5HQ5_69c1VE96gNVhvRAQY26H4_gL2u11xpWMdm9G4ilIYz_MdOHf_XlkPBQ"
+  },
+  {
+   "name": "document:allowedEffects.dropped-last",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "allowedEffects"
+   ],
+   "value": [
+    "candidate.create",
+    "repository.read",
+    "sandbox.write"
+   ],
+   "authoritySha256": "f91a084fab308c519d763f597680bd6530c2abfb29d80e46f2bbd6a3eb65999c",
+   "signature": "SiTmUlhFjTHbdPYuzvIJrQM0oRTb71UcbAPDktWwtSfcsJsewmwwcJlaBOchp8HjFXzAFmsUJsBf1ZFxD6r5BA"
+  },
+  {
+   "name": "document:allowedEffects.reversed",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "allowedEffects"
+   ],
+   "value": [
+    "verification.request",
+    "sandbox.write",
+    "repository.read",
+    "candidate.create"
+   ],
+   "authoritySha256": "231369e5b574943516830c29b45ec92432583a4212e980751df8cbb26f196807",
+   "signature": "WAzZEjtinM4xmoVzuAi_JP9awSPhC3HAq-Z29buFT-LR_C0b7IeTJw74VPjQ4Q0hfKTLFuQmB36oZP9VOgMnAg"
+  },
+  {
+   "name": "document:allowedEffects.extended",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "allowedEffects"
+   ],
+   "value": [
+    "candidate.create",
+    "repository.read",
+    "sandbox.write",
+    "verification.request",
+    "extra"
+   ],
+   "authoritySha256": "46fda055ffb63301c477f2024430d73eebf204f7b3496db1c4a89ce84212ed9a",
+   "signature": "fKjGl7438QXEn7extHVS4eWxIqDPST1bIkzJjhjRzQ-5IxfGyE0ES-pKlHjCatwWVOEujlKWOthxcGKaZQIpAg"
+  },
+  {
+   "name": "document:-forbiddenEffects",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "forbiddenEffects"
+   ],
+   "authoritySha256": "a37c106a4d597d9d37958a06afd0ddd2c0ca743f77493f4dd26d4e7d774e7293",
+   "signature": "VFLlCgPR4EplZ8Sr5tUL_kAgU7bLOBx1fECrsSsKCm90c-IdFRKR6o6xFRqbORnCO2_6op5BYOPeTZTrI5vxAg"
+  },
+  {
+   "name": "document:forbiddenEffects.dropped-last",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "forbiddenEffects"
+   ],
+   "value": [
+    "deploy",
+    "merge",
+    "production",
+    "publication",
+    "repository.admin",
+    "secrets.mutate"
+   ],
+   "authoritySha256": "501f0b2e9efc5f049a7ff05992221855cc54851603aef1da34c877425520a043",
+   "signature": "Y3li5qV8P2l27LhfFCOBE87pWzd8aSRdOglq8IOSE6CYg77j1q6fdKZynOnnNXOYpzaFxlc4JsZi5Cj_t2acAQ"
+  },
+  {
+   "name": "document:forbiddenEffects.reversed",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "forbiddenEffects"
+   ],
+   "value": [
+    "workflows.mutate",
+    "secrets.mutate",
+    "repository.admin",
+    "publication",
+    "production",
+    "merge",
+    "deploy"
+   ],
+   "authoritySha256": "69d6481b40d33a59526cc79d255ba7889720e53c8238818393b1ded2ab6a8091",
+   "signature": "88uO0YdCb_eJq7Yhbnwx7QKhPkDt80G4hMVsiQhMJRf7Bb9fivsWGa2uq1OB1d0egNS9lPMrAIxzMHnsivgZCQ"
+  },
+  {
+   "name": "document:forbiddenEffects.extended",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "forbiddenEffects"
+   ],
+   "value": [
+    "deploy",
+    "merge",
+    "production",
+    "publication",
+    "repository.admin",
+    "secrets.mutate",
+    "workflows.mutate",
+    "extra"
+   ],
+   "authoritySha256": "6149d6718d85fdd6ef869e0f5f38501cc14a51d27f65d8f6b1275d8bbff391a7",
+   "signature": "UutthLxWx4gQS7P4cRB03HMWcBU_GkOvGJrD9IPfy4roTYX9GloxiDnkIdwbUcqdI-p93BTpoRpIE-DUr0ZjAw"
+  },
+  {
+   "name": "envelope:authoritySha256",
+   "target": "envelope",
+   "op": "set",
+   "path": [
+    "authoritySha256"
+   ],
+   "value": "70f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b"
+  },
+  {
+   "name": "envelope:signature",
+   "target": "envelope",
+   "op": "set",
+   "path": [
+    "signature"
+   ],
+   "value": "0_kAT9lj2gSmwn1tz5f-hhVBooZSqjq-vX_1yA_FNk9rexu2vjuNWOYVTSS4twx6t6Fjg_KSuFY_PWd7Mc3cBQ"
+  },
+  {
+   "name": "envelope:keyId",
+   "target": "envelope",
+   "op": "set",
+   "path": [
+    "keyId"
+   ],
+   "value": "e2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e"
+  },
+  {
+   "name": "prepare:protocol",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "protocol"
+   ],
+   "value": "xYFACTORY_EXECUTION_V2"
+  },
+  {
+   "name": "prepare:requestId",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "requestId"
+   ],
+   "value": "3e1acaa2-d4c2-808d-a25b-e6885531f6d5"
+  },
+  {
+   "name": "prepare:workId",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "workId"
+   ],
+   "value": "9b91dfcd-c435-4932-80cd-b9e2a31e4bb4"
+  },
+  {
+   "name": "prepare:workGeneration",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "workGeneration"
+   ],
+   "value": 2
+  },
+  {
+   "name": "prepare:repository",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "repository"
+   ],
+   "value": "0ixture-org/myeve-alpha-workspace-01"
+  },
+  {
+   "name": "prepare:deadline",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "deadline"
+   ],
+   "value": "2026-10-07T12:03:01.000Z"
+  },
+  {
+   "name": "prepare:maxSpendUsd",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "maxSpendUsd"
+   ],
+   "value": 2
+  },
+  {
+   "name": "prepare:source.repository",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "source",
+    "repository"
+   ],
+   "value": "0ixture-org/myeve-alpha-workspace-01"
+  },
+  {
+   "name": "prepare:source.commit",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "source",
+    "commit"
+   ],
+   "value": "71aced4d0f652562b3208686ff38cb3e17ee7057"
+  },
+  {
+   "name": "prepare:source.tree",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "source",
+    "tree"
+   ],
+   "value": "65a6bc40c227c94c6b4dfbc0c64497c9e3e2642d"
+  },
+  {
+   "name": "prepare:input.title",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "title"
+   ],
+   "value": "xlpha Tasks: add a Priority field"
+  },
+  {
+   "name": "prepare:input.description",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "description"
+   ],
+   "value": "xn the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list."
+  },
+  {
+   "name": "prepare:input.kind",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "kind"
+   ],
+   "value": "0eature"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.0",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    0
+   ],
+   "value": "xxisting tasks still display and function"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.1",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    1
+   ],
+   "value": "xreating or editing a task supports exactly Low, Medium and High"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.2",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    2
+   ],
+   "value": "xriority persists after reload"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.3",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    3
+   ],
+   "value": "xhe task list displays each task's priority"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.4",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    4
+   ],
+   "value": "xn invalid priority is rejected"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.5",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    5
+   ],
+   "value": "xxisting tests pass"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.6",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    6
+   ],
+   "value": "xocused tests cover creation, editing, persistence, display and invalid input"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.7",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    7
+   ],
+   "value": "xo unrelated product or UI changes"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.8",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    8
+   ],
+   "value": "xo production deployment or external publication"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.9",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    9
+   ],
+   "value": "xn independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+  },
+  {
+   "name": "prepare:input.checkCommands.0",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "checkCommands",
+    0
+   ],
+   "value": "xode --test test/app.test.mjs"
+  },
+  {
+   "name": "prepare:input.allowedPaths.0",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "allowedPaths",
+    0
+   ],
+   "value": "xrc/app.js"
+  },
+  {
+   "name": "prepare:input.allowedPaths.1",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "allowedPaths",
+    1
+   ],
+   "value": "xrc/store.js"
+  },
+  {
+   "name": "prepare:input.allowedPaths.2",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "allowedPaths",
+    2
+   ],
+   "value": "xest/app.test.mjs"
+  },
+  {
+   "name": "prepare:+unknown@root",
+   "target": "prepare",
+   "op": "unknown",
+   "path": []
+  },
+  {
+   "name": "prepare:+unknown@source",
+   "target": "prepare",
+   "op": "unknown",
+   "path": [
+    "source"
+   ]
+  },
+  {
+   "name": "prepare:+unknown@input",
+   "target": "prepare",
+   "op": "unknown",
+   "path": [
+    "input"
+   ]
+  },
+  {
+   "name": "prepare:-protocol",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "protocol"
+   ]
+  },
+  {
+   "name": "prepare:-requestId",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "requestId"
+   ]
+  },
+  {
+   "name": "prepare:-workId",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "workId"
+   ]
+  },
+  {
+   "name": "prepare:-workGeneration",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "workGeneration"
+   ]
+  },
+  {
+   "name": "prepare:-repository",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "repository"
+   ]
+  },
+  {
+   "name": "prepare:-deadline",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "deadline"
+   ]
+  },
+  {
+   "name": "prepare:-maxSpendUsd",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "maxSpendUsd"
+   ]
+  },
+  {
+   "name": "prepare:-source.repository",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "source",
+    "repository"
+   ]
+  },
+  {
+   "name": "prepare:-source.commit",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "source",
+    "commit"
+   ]
+  },
+  {
+   "name": "prepare:-source.tree",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "source",
+    "tree"
+   ]
+  },
+  {
+   "name": "prepare:-input.title",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "title"
+   ]
+  },
+  {
+   "name": "prepare:-input.description",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "description"
+   ]
+  },
+  {
+   "name": "prepare:-input.kind",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "kind"
+   ]
+  },
+  {
+   "name": "prepare:-input.acceptanceCriteria",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ]
+  },
+  {
+   "name": "prepare:-input.checkCommands",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "checkCommands"
+   ]
+  },
+  {
+   "name": "prepare:-input.allowedPaths",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "allowedPaths"
+   ]
+  },
+  {
+   "name": "prepare:checkCommands.extended",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "checkCommands"
+   ],
+   "value": [
+    "node --test test/app.test.mjs",
+    "node -e 1"
+   ]
+  },
+  {
+   "name": "prepare:acceptanceCriteria.reordered",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ],
+   "value": [
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Existing tasks still display and function",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication",
+    "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+   ]
+  },
+  {
+   "name": "prepare:acceptanceCriteria.dropped",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ],
+   "value": [
+    "Existing tasks still display and function",
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication"
+   ]
+  },
+  {
+   "name": "prepare:acceptanceCriteria.added",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ],
+   "value": [
+    "Existing tasks still display and function",
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication",
+    "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer",
+    "An extra criterion"
+   ]
+  },
+  {
+   "name": "prepare:acceptanceCriteria.reworded-trailing-space",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ],
+   "value": [
+    "Existing tasks still display and function",
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication",
+    "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer "
+   ]
+  },
+  {
+   "name": "prepare:allowedPaths.unsorted",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "allowedPaths"
+   ],
+   "value": [
+    "test/app.test.mjs",
+    "src/store.js",
+    "src/app.js"
+   ]
+  },
+  {
+   "name": "prepare:allowedPaths.widened",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "allowedPaths"
+   ],
+   "value": [
+    "src/app.js",
+    "src/store.js",
+    "test/app.test.mjs",
+    "src/extra.js"
+   ]
+  }
+ ],
+ "readback": {
+  "receipt": {
+   "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+   "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+   "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+   "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+   "consumedAt": "2026-10-07T12:00:00.500Z"
+  },
+  "receiptDomain": "MYFACTORY_EXTERNAL_ALPHA_RECEIPT_V1",
+  "cases": [
+   {
+    "name": "valid",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+      "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "KtWQjHR4Zi2vRpS4M9rgU7HNWrFDlhQEfbbzvQO4WVTLdJV4yW8xZrIYTA3vsqfyMZl9walSfJOrcCKxRplkBA"
+    },
+    "outcome": "ACCEPTED"
+   },
+   {
+    "name": "extra-passthrough-fields",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+      "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "KtWQjHR4Zi2vRpS4M9rgU7HNWrFDlhQEfbbzvQO4WVTLdJV4yW8xZrIYTA3vsqfyMZl9walSfJOrcCKxRplkBA",
+     "snapshot": {
+      "a": 1
+     },
+     "identity": null,
+     "delivery": "x"
+    },
+    "outcome": "ACCEPTED"
+   },
+   {
+    "name": "signature-of-other-receipt",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+      "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "LY4H2ExHxfH3yRRuHoPr27r68cuIsTJ-g2wQLEp56x9qOqjdw98zdD8hm6OZqsZ2IKCMq_cjkJdCzmh-HxAABQ"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID"
+   },
+   {
+    "name": "tampered-work-order",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+      "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+      "workOrderId": "116e89b3-dc9d-48b9-83bf-404f2a427047",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "KtWQjHR4Zi2vRpS4M9rgU7HNWrFDlhQEfbbzvQO4WVTLdJV4yW8xZrIYTA3vsqfyMZl9walSfJOrcCKxRplkBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID"
+   },
+   {
+    "name": "wrong-authority-sha",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+      "authoritySha256": "70f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "KtWQjHR4Zi2vRpS4M9rgU7HNWrFDlhQEfbbzvQO4WVTLdJV4yW8xZrIYTA3vsqfyMZl9walSfJOrcCKxRplkBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID"
+   },
+   {
+    "name": "wrong-authority-id",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "522bbf2a-00a6-4e62-8f13-fe3848279a2b",
+      "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "KtWQjHR4Zi2vRpS4M9rgU7HNWrFDlhQEfbbzvQO4WVTLdJV4yW8xZrIYTA3vsqfyMZl9walSfJOrcCKxRplkBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID"
+   },
+   {
+    "name": "wrong-receipt-request",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+      "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "1f2ec411-9721-42e3-83e5-7b00c9327a7e",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "KtWQjHR4Zi2vRpS4M9rgU7HNWrFDlhQEfbbzvQO4WVTLdJV4yW8xZrIYTA3vsqfyMZl9walSfJOrcCKxRplkBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID"
+   },
+   {
+    "name": "wrong-body-request",
+    "value": {
+     "requestId": "1f2ec411-9721-42e3-83e5-7b00c9327a7e",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+      "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "KtWQjHR4Zi2vRpS4M9rgU7HNWrFDlhQEfbbzvQO4WVTLdJV4yW8xZrIYTA3vsqfyMZl9walSfJOrcCKxRplkBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID"
+   },
+   {
+    "name": "missing-signature",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+      "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     }
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID"
+   },
+   {
+    "name": "null-receipt",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": null,
+     "authorityReceiptSignature": null
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID"
+   },
+   {
+    "name": "unknown-state",
+    "value": {
+     "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+     "state": "BOGUS",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "fcaf3d28-d91a-841a-a426-e9e41a32d606",
+      "authoritySha256": "60f088eea32533d8474c7645c2096e6392312880c5eacbc0b81322dcc999c28b",
+      "requestId": "2e1acaa2-d4c2-808d-a25b-e6885531f6d5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "KtWQjHR4Zi2vRpS4M9rgU7HNWrFDlhQEfbbzvQO4WVTLdJV4yW8xZrIYTA3vsqfyMZl9walSfJOrcCKxRplkBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID"
+   }
+  ]
+ }
+}

@@ -5,7 +5,7 @@ import { nonempty, positive, map, sameAttempt, assertSpendBinding, assertReserva
 // This small staging deployment serializes writes with one transaction lock,
 // matching the existing BEGIN IMMEDIATE semantics. No provider effects occur here.
 export class PostgresSpendLedger {
-  constructor(pool, { requireExecutionLease = true, assertPaidAuthority } = {}) { this.assertPaidAuthority=assertPaidAuthority;this.pool = pool; this.requireExecutionLease=requireExecutionLease; }
+  constructor(pool, { requireExecutionLease = true, assertPaidAuthority, onUnknown } = {}) { this.assertPaidAuthority=assertPaidAuthority;this.onUnknown=onUnknown;this.pool = pool; this.requireExecutionLease=requireExecutionLease; }
   async assertExecutionLease(client,binding) {
     if(this.assertPaidAuthority)await this.assertPaidAuthority(client,binding);
     if(!this.requireExecutionLease)return; // Explicit standalone policy-parity tests only.
@@ -93,8 +93,20 @@ export class PostgresSpendLedger {
       await client.query("UPDATE factory.work_spend_operations SET state='released',updated_at=$2 WHERE operation_id=$1",[id,timestamp]);
     });
   }
-  async markUnknown(id) { return this.transaction(async({client,timestamp})=>{await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id IN (SELECT work_id FROM factory.work_spend_operations WHERE operation_id=$1 AND state IN ('reserved','dispatched','unknown'))",[id]);await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=$2 WHERE operation_id=$1 AND state IN ('reserved','dispatched','unknown')",[id,timestamp]);}); }
-  async recoverUnknown() { return this.transaction(async({client,timestamp})=>{await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id IN (SELECT work_id FROM factory.work_spend_operations WHERE state IN ('reserved','dispatched','unknown'))");return (await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=$1 WHERE state IN ('reserved','dispatched')",[timestamp])).rowCount;}); }
+  async markUnknown(id) { return this.transaction(async({client,timestamp})=>{
+    const works=(await client.query("SELECT DISTINCT work_id FROM factory.work_spend_operations WHERE operation_id=$1 AND state IN ('reserved','dispatched','unknown')",[id])).rows.map(r=>r.work_id);
+    await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id IN (SELECT work_id FROM factory.work_spend_operations WHERE operation_id=$1 AND state IN ('reserved','dispatched','unknown'))",[id]);
+    await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=$2 WHERE operation_id=$1 AND state IN ('reserved','dispatched','unknown')",[id,timestamp]);
+    // Same transaction: the owning cohort is fenced atomically with the UNKNOWN transition.
+    if(this.onUnknown&&works.length)await this.onUnknown(client,works);
+  }); }
+  async recoverUnknown() { return this.transaction(async({client,timestamp})=>{
+    const works=(await client.query("SELECT DISTINCT work_id FROM factory.work_spend_operations WHERE state IN ('reserved','dispatched','unknown')")).rows.map(r=>r.work_id);
+    await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id IN (SELECT work_id FROM factory.work_spend_operations WHERE state IN ('reserved','dispatched','unknown'))");
+    const count=(await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=$1 WHERE state IN ('reserved','dispatched')",[timestamp])).rowCount;
+    if(this.onUnknown&&works.length)await this.onUnknown(client,works);
+    return count;
+  }); }
   async completion(binding,transition=false,completed=false) {
     return this.transaction(async({client,now,budget,operations})=>{
       assertSpendBinding(await budget(binding.workId),binding,completed?'completion':'productive',now);

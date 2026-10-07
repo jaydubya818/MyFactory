@@ -29,6 +29,16 @@ interface ActiveJob {
     assertCompleted?: () => void; fenceAuthority?: () => void };
 }
 
+/** Result of the protected, independent acceptance policy. Contains no hidden test material. */
+export interface AcceptanceOutcome {
+  policyId: string;
+  verdict: "PASS" | "FAIL" | "PARTIAL";
+  reportSha256: string;
+  criteria: { id: number; status: string }[];
+  failedChecks: string[];
+  inconclusive: { check: string; code: string }[];
+}
+
 export interface JobDependencies {
   preflightCodex: typeof preflightCodex;
   runCodex: typeof runCodex;
@@ -38,6 +48,12 @@ export interface JobDependencies {
   createTaskWorktree: typeof createTaskWorktree;
   removeTaskWorktree: typeof removeTaskWorktree;
   commitCandidate: typeof commitCandidate;
+  /**
+   * Protected, independent acceptance verification of the exact committed candidate (separate from the host's
+   * bounded checks above). Returns null only when the Work is not governed by an independent policy. Any
+   * non-PASS outcome, and any error, blocks ready_for_review: unsupported or inconclusive is PARTIAL, never PASS.
+   */
+  independentAcceptance?: (input: { workOrder: WorkOrder; run: Run; sourceCommit: string; candidateCommit: string; candidateTree: string }) => Promise<AcceptanceOutcome | null>;
   /** Only a trusted launcher serving the exact exported candidate may supply this preview. */
   candidatePreview?: (input: { workOrder: WorkOrder; run: Run; candidateCommit: string }) => Promise<
     CandidatePreview | null>;
@@ -621,6 +637,30 @@ export class JobManager {
           ...(unavailable && this.producer ? { previousState: "verifying", pid: null, reason: "Verifier outcome unresolved; reconcile before retrying" } : {}),
         }, { failure: unavailable ? "A required check was unavailable" : "One or more required checks failed" });
         return;
+      }
+      if (this.dependencies.independentAcceptance) {
+        // Host checks passing is necessary, never sufficient, for governed Work.
+        let acceptance: AcceptanceOutcome | null;
+        try {
+          acceptance = await this.dependencies.independentAcceptance({
+            workOrder, run, sourceCommit: run.inputCommit, candidateCommit: candidate.commit, candidateTree: candidate.tree });
+        } catch {
+          acceptance = { policyId: "unknown", verdict: "PARTIAL", reportSha256: "", criteria: [], failedChecks: [],
+            inconclusive: [{ check: "acceptance", code: "ACCEPTANCE_VERIFIER_ERROR" }] };
+        }
+        if (acceptance) {
+          this.#event(workOrder.id, run.id, "run.acceptance_evaluated", { candidateCommit: candidate.commit, candidateTree: candidate.tree,
+            policyId: acceptance.policyId, verdict: acceptance.verdict, reportSha256: acceptance.reportSha256, criteria: acceptance.criteria,
+            failedChecks: acceptance.failedChecks, inconclusive: acceptance.inconclusive });
+          if (acceptance.verdict !== "PASS") {
+            const partial = acceptance.verdict !== "FAIL";
+            run = this.#transition(run, "failed", partial ? "needs_investigation" : "failed",
+              partial ? "run.acceptance_partial" : "run.acceptance_failed",
+              { candidateCommit: candidate.commit, verdict: acceptance.verdict },
+              { failure: partial ? "Independent acceptance verification was PARTIAL (unsupported or inconclusive); not accepted" : "Independent acceptance verification FAILED" });
+            return;
+          }
+        }
       }
       run = this.#transition(run, "ready_for_review", "ready_for_review", "run.ready_for_review", {
         candidateCommit: candidate.commit,

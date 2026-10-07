@@ -105,6 +105,10 @@
       ],
       "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
     },
+    "api/external-alpha.mjs": {
+      "maxDuration": 60,
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
     "api/*.mjs": {
       "maxDuration": 30,
       "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
@@ -114,6 +118,10 @@
     "deploymentEnabled": false
   },
   "rewrites": [
+    {
+      "source": "/api/connect/v2/external-alpha/:path*",
+      "destination": "/api/external-alpha"
+    },
     {
       "source": "/api/connect/v2/:path*",
       "destination": "/api/cloud"

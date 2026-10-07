@@ -9,14 +9,19 @@ import { validateCandidateBundle,validateCustodyReadback } from './candidate-cus
 import {installCloudHarness} from './cloud-harness-phase.mjs';
 import {executeCloudHarness} from './cloud-harness-executor.mjs';
 import {qualificationCheckpointPlan} from './cloud-harness-checkpoint.mjs';
+import {bindPrivateSource,materializePrivateSourceInSandbox,privateSourceNetworkPolicy} from './private-source.mjs';
 
-export function cloudWorkProvider({ledger,plan=qualificationCheckpointPlan,projectId=stagingProjectId,custodyStore=custodyStoreId,custodyPrefix='factory/staging',providerOptions=async()=>({}),blobOptions=async()=>({}),modelProviderForRow}) {
+/* privateSource (optional, separate mode): {binding,registry?,snapshot:{bytes,sha256}}. The producer
+ * receives only the digest-verified snapshot bytes; GitHub is never reachable from it. When absent the
+ * existing public-source behavior (used by canary/synthetic qualification) is byte-for-byte unchanged. */
+export function cloudWorkProvider({ledger,plan=qualificationCheckpointPlan,projectId=stagingProjectId,custodyStore=custodyStoreId,custodyPrefix='factory/staging',providerOptions=async()=>({}),blobOptions=async()=>({}),modelProviderForRow,privateSource}) {
+ const privateEntry=privateSource?bindPrivateSource(privateSource.binding,privateSource.registry):undefined;
  const sdk={fetch:noReplayFetch()},signal=()=>AbortSignal.timeout(15000);
  return {
   async allocate(resource){
    const remaining=Math.min(180000,new Date(resource.deadline).getTime()-Date.now());
    if(!Number.isSafeInteger(remaining)||remaining<30000||resource.provider_name!==`factory-run-${resource.run_id}`)throw Error('RESOURCE_ENVELOPE');
-   return Sandbox.create({name:resource.provider_name,image:qualifiedImage,persistent:false,region:'iad1',failoverRegions:[],resources:{vcpus:1},timeout:remaining,ports:[],env:{},networkPolicy:{allow:['github.com','registry.npmjs.org']},tags:{purpose:'factory-canonical-work',run:resource.run_id,project:projectId},...(await providerOptions()),...sdk,signal:AbortSignal.timeout(30000)});
+   return Sandbox.create({name:resource.provider_name,image:qualifiedImage,persistent:false,region:'iad1',failoverRegions:[],resources:{vcpus:1},timeout:remaining,ports:[],env:{},networkPolicy:privateEntry?{allow:[...privateSourceNetworkPolicy.allow]}:{allow:['github.com','registry.npmjs.org']},tags:{purpose:'factory-canonical-work',run:resource.run_id,project:projectId},...(await providerOptions()),...sdk,signal:AbortSignal.timeout(30000)});
   },
   async materialize(sandbox,record=async()=>{}){
    await record({startupStage:'SANDBOX_READINESS'});
@@ -25,9 +30,16 @@ export function cloudWorkProvider({ledger,plan=qualificationCheckpointPlan,proje
    const harness=await installCloudHarness(sandbox);
    await record({startupStage:'SOURCE_MATERIALIZATION'});
    const user=await sandbox.createUser('factoryproducer',{signal:signal()});
+   let report;
+   if(privateEntry){
+    // Bounded snapshot only; the plan source must be this exact binding, never the public canary source.
+    if(plan.source?.commit!==privateEntry.commit||plan.source?.tree!==privateEntry.tree)throw Error('SOURCE_MISMATCH');
+    report=await materializePrivateSourceInSandbox(sandbox,{snapshotBytes:privateSource.snapshot.bytes,sha256:privateSource.snapshot.sha256,entry:privateEntry,user,...(privateSource.home?{home:privateSource.home}:{})});
+   }else{
    const done=await user.runCommand({cmd:'node',args:['-e',sourceMaterializationScript(plan.source)],timeoutMs:30000,signal:AbortSignal.timeout(35000)});
    if(done.exitCode!==0)throw Error('SOURCE_MATERIALIZATION_FAILED');
-   const report=JSON.parse(await done.stdout({signal:signal()}));
+   report=JSON.parse(await done.stdout({signal:signal()}));
+   }
    if(report.commit!==plan.source.commit||report.tree!==plan.source.tree)throw Error('SOURCE_MISMATCH');
    await sandbox.updateNetworkPolicy('deny-all',{signal:signal()});
    await record({startupStage:'SOURCE_READY'});return {...report,harness};
