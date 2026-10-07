@@ -43,9 +43,9 @@ function routeOf(request){
  else return null;
  if(!/^[-a-z0-9/]+$/.test(tail)||tail.split('/').some(p=>!p))return null;
  if(tail==='dispatches')return {kind:'prepare',method:'POST'};
- const m=new RegExp(`^dispatches/(${derivedId})(?:/(dispatch|stop))?$`).exec(tail);
+ const m=new RegExp(`^dispatches/(${derivedId})(?:/(dispatch|stop|result))?$`).exec(tail);
  if(!m)return null;
- return m[2]?{kind:m[2],id:m[1],method:'POST'}:{kind:'read',id:m[1],method:'GET'};
+ return m[2]?{kind:m[2],id:m[1],method:m[2]==='result'?'GET':'POST'}:{kind:'read',id:m[1],method:'GET'};
 }
 
 async function readBody(request,limit){
@@ -116,6 +116,8 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
   const route=routeOf(request);
   if(!route)return reply({error:'NOT_FOUND'},404);
   if(request.method!==route.method)return reply({error:'METHOD_NOT_ALLOWED'},405);
+  const challenge=request.headers.get('x-external-alpha-challenge');
+  if(challenge!==null&&!/^[a-f0-9]{16,64}$/.test(challenge))return reply({error:'INVALID_REQUEST'},400);
 
   if(route.kind==='prepare'){
    const body=await readBody(request,MAX_DISPATCH_BYTES);
@@ -129,23 +131,24 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
     const prepare=prior?{...body.prepare,deadline:prior}:body.prepare;
     bindAuthorityEnvelope(prepare,body.authority);
     await c.control.prepare(prepare);
-    return reply(await c.readbackWithReceipt(prepare.requestId));
+    return reply(await c.readbackWithReceipt(prepare.requestId,challenge));
    });
   }
 
   const small=async()=>{const b=await readBody(request,MAX_SMALL_BYTES);if(!plain(b)||Object.keys(b).length!==0)throw Object.assign(Error('INVALID_REQUEST'),{status:400});};
-  if(route.kind!=='read')await small();
+  if(!['read','result'].includes(route.kind))await small();
   return await withRuntime(env,installation,async c=>{
    // Owner scope: only the pinned slot's own Work. Anything else is indistinguishable from an unknown request.
    const owned=await c.authority.withClient(client=>c.authority.ownedRow(client,route.id));
    if(!owned)return reply({error:'NOT_FOUND'},404);
-   if(route.kind==='read')return reply(await c.readbackWithReceipt(route.id));
+   if(route.kind==='read')return reply(await c.readbackWithReceipt(route.id,challenge));
+   if(route.kind==='result'){const result=await c.readResult(route.id,challenge);return reply(result,result.pending?202:200);}
    const row=await c.store.read(c.clientId,route.id),identity=externalAlphaIdentity(row);
-   if(route.kind==='dispatch'){await c.control.dispatch(identity);return reply(await c.readbackWithReceipt(route.id));}
+   if(route.kind==='dispatch'){await c.control.dispatch(identity);return reply(await c.readbackWithReceipt(route.id,challenge));}
    // stop: fence in PostgreSQL first, then request physical termination (best effort, reconciled later).
    await c.store.stop(c.clientId,identity);
    try{await reconcileCloudWork(c.store,c.provider,c.clientId,route.id);}catch{/* recovery path owns the rest */}
-   return reply(await c.readbackWithReceipt(route.id));
+   return reply(await c.readbackWithReceipt(route.id,challenge));
   });
  }catch(error){return failure(error);}
 }

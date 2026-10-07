@@ -11,7 +11,7 @@ function fixture(){
  const factoryVersion=externalAlphaFactoryVersion(base.installation,base.config.source.sourceDigest);
  const {installation}=makeInstallation(base.keys,{...base.config,factoryVersion});
  return {base,installation,sourceDigest:installation.source.sourceDigest,
-  deps:{env:{},pool:{},queue:{},signing:{factoryId:'f',key:{factoryId:'f'}},signReceipt:()=>'s',hostInstallation:{projectId:'prj_x',teamId:'team_x',custodyStoreId:'store_x'},deploymentId:'dpl_abc123'}};
+  deps:{env:{},pool:{},queue:{},signing:{factoryId:'myfactory-external-alpha',key:{factoryId:'myfactory-external-alpha',keyId:'external-alpha-result-v1'}},signReceipt:()=>'s',signReadback:()=>'s',hostInstallation:{projectId:'prj_x',teamId:'team_x',custodyStoreId:'store_x'},deploymentId:'dpl_abc123'}};
 }
 
 test('composition refuses (fail closed) unless build and configuration equal what the pinned installation names',()=>{

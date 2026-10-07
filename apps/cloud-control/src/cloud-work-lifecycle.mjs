@@ -71,6 +71,6 @@ export async function reconcileCloudWork(store,provider,clientId,requestId,now=D
  await provider.destroy(r);
  await store.confirmCleanup(r.run_id,r.lease_owner,r.lease_generation,r.provider_session_id);
  // Expired producer authority is never recovered by starting a new worker.
- await store.noteResource(r.run_id,r.lease_owner,r.lease_generation,{failure:'EXECUTION_INTERRUPTED',reconciled:true});
+ await (store.noteReconciliation??store.noteResource).call(store,r.run_id,r.lease_owner,r.lease_generation,{failure:'EXECUTION_INTERRUPTED',reconciled:true});
  await store.finalize(clientId,requestId,'FAILED');return store.read(clientId,requestId);
 }

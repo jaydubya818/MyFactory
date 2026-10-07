@@ -29,12 +29,12 @@ const verifyToken=async(token,expect)=>{const p=tokens.get(token);if(!p)throw Er
 const oidcToken=(claims)=>{const t='aaa.'+sha(JSON.stringify(claims)).slice(0,16)+'.sig';tokens.set(t,claims);return t;};
 const req=(path,{method='POST',cred,oidc,body,headers={}}={})=>new Request(P+path,{method,headers:{'content-type':'application/json',...(cred?{authorization:'Bearer '+cred}:{}),...(oidc?{'x-vercel-trusted-oidc-idp-token':oidc}:{}),...headers},body:body===undefined?undefined:typeof body==='string'?body:JSON.stringify(body)});
 function runtime(){
- const calls={prepare:[],dispatch:[],stop:[],owned:[]};
+ const calls={prepare:[],dispatch:[],stop:[],owned:[],result:[]};
  const fake=installation=>({clientId:installation.application.clientId,
   authority:{withClient:fn=>fn({}),priorDeadline:async()=>calls.prior,ownedRow:async(_c,id)=>calls.ownedIds?.has(id)?{request_id:id}:null},
   control:{prepare:async p=>{calls.prepare.push(p);},dispatch:async i=>{calls.dispatch.push(i);}},
   store:{read:async()=>({request:{requestId:'x',input:{allowedPaths:[]},source:{commit:'c'},deadline:'d',repository:'r',workGeneration:1,workId:'w'},snapshot:{factoryId:'f',factoryVersion:'v'},run_id:'r',work_order_id:'o'}),stop:async()=>{calls.stop.push(1);}},
-  provider:{},readbackWithReceipt:async id=>({requestId:id,authorityReceipt:{},authorityReceiptSignature:'s'})});
+  provider:{},readResult:async(id,challenge)=>{calls.result.push({id,challenge});return calls.resultPayload??{pending:true,state:'PENDING'};},readbackWithReceipt:async id=>({requestId:id,authorityReceipt:{},authorityReceiptSignature:'s'})});
  return {calls,withRuntime:async(env,installation,action)=>{calls.installation=installation;return action(fake(installation));}};
 }
 const good=(w,i=0)=>{const b=build(w.ctx[i]);return {b,oidc:oidcToken(claimsFor(w.configs[i]))};};
@@ -162,4 +162,22 @@ test('authenticate returns null for a bearer whose hash is not pinned, without c
  const w=world();let called=0;
  const r=await authenticateExternalAlphaCaller(req('dispatches',{cred:'unpinned-credential-unpinned',oidc:'a.b.c'}),w.ctx.map(x=>x.installation),{}, async()=>{called++;return {};});
  assert.equal(r,null);assert.equal(called,0);
+});
+
+test('dedicated Result boundary requires exact caller ownership, GET and a bounded challenge; pending never means verified',async()=>{
+ const w=world(),rt=runtime(),{b,oidc}=good(w),id=b.prepare.requestId,h={cred:CRED[0],oidc};
+ const path=`dispatches/${id}/result`,challenge='b'.repeat(32);
+ const unknown=await send(w,req(path,{...h,method:'GET'}),rt);
+ assert.equal(unknown.status,404);assert.deepEqual(await code(unknown),{error:'NOT_FOUND'});assert.equal(rt.calls.result.length,0);
+ rt.calls.ownedIds=new Set([id]);
+ const pending=await send(w,req(path,{...h,method:'GET',headers:{'x-external-alpha-challenge':challenge}}),rt);
+ assert.equal(pending.status,202);assert.equal((await code(pending)).pending,true);assert.deepEqual(rt.calls.result,[{id,challenge}]);
+ rt.calls.resultPayload={state:'FAILED',result:{encoded:'signed-fixture'}};
+ const terminal=await send(w,req(path,{...h,method:'GET'}),rt);
+ assert.equal(terminal.status,200);assert.equal((await code(terminal)).state,'FAILED');
+ assert.equal((await send(w,req(path,{...h,body:{}}),rt)).status,405);
+ assert.equal((await send(w,req(path,{...h,method:'GET',headers:{'x-external-alpha-challenge':'invalid'}}),rt)).status,400);
+ const other=good(w,1);
+ assert.equal((await send(w,req(path,{cred:CRED[0],oidc:other.oidc,method:'GET'}),rt)).status,401);
+ assert.equal((await send(w,req(path+'?candidate=other',{...h,method:'GET'}),rt)).status,404);
 });

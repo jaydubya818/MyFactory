@@ -1,4 +1,5 @@
 import pg from 'pg';
+import {createPublicKey} from 'node:crypto';
 import {QueueClient} from '@vercel/queue';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {databaseConfig} from './config.mjs';
@@ -13,13 +14,28 @@ import {productionInstallation} from './production-installation.mjs';
 import {assertProductionDatabaseMarker} from './production-database.mjs';
 import {productionWorkloadIdentity} from './production-identity.mjs';
 import {productionModelProvider} from './production-model-provider.mjs';
-import {productionSigning} from './production-runtime.mjs';
+import {externalAlphaReadback,readbackSigner,assertExternalAlphaResult} from './external-alpha-readback.mjs';
 import {productionConfiguration,productionSpendPlan} from './production-execution-plan.mjs';
 import {loadPrivateSourceRegistry,registryEntryFor} from './external-alpha-registry.mjs';
 import {alphaTasksVerificationPolicy,alphaTasksVerificationPolicySha256,alphaTasksVerifierProvider} from './external-alpha-verifier.mjs';
 import sourceIdentity from './source-identity.json' with {type:'json'};
 
 const deny=code=>{throw new ExternalAlphaError(code);};
+
+export function externalAlphaSigning(env){
+ const config=JSON.parse(env.FACTORY_EXTERNAL_ALPHA_RESULT_SIGNING_JSON??'null');
+ if(!config||Object.keys(config).sort().join(',')!=='factoryId,key,privateKey'||config.factoryId!=='myfactory-external-alpha'||config.key?.factoryId!==config.factoryId||config.key.keyId!=='external-alpha-result-v1')throw Error('EXTERNAL_ALPHA_SIGNER_REQUIRED');
+ const actual=createPublicKey(config.privateKey),expected=createPublicKey(config.key.publicKey);
+ if(actual.asymmetricKeyType!=='ed25519'||!actual.export({type:'spki',format:'der'}).equals(expected.export({type:'spki',format:'der'}))||config.key.revokedAt||config.key.retiredAt||!Number.isFinite(Date.parse(config.key.activeFrom))||!Number.isFinite(Date.parse(config.key.notAfter))||Date.now()<Date.parse(config.key.activeFrom)||Date.now()>=Date.parse(config.key.notAfter))throw Error('EXTERNAL_ALPHA_SIGNER_INVALID');
+ const bytes=actual.export({type:'spki',format:'der'});
+ for(const [name,value] of Object.entries(env)){
+  if(name==='FACTORY_EXTERNAL_ALPHA_RESULT_SIGNING_JSON'||!/^FACTORY_.*RESULT_SIGNING_JSON$/.test(name)||!value)continue;
+  const other=JSON.parse(value);
+  if(bytes.equals(createPublicKey(other.privateKey).export({type:'spki',format:'der'}))||bytes.equals(createPublicKey(other.key.publicKey).export({type:'spki',format:'der'})))throw Error('EXTERNAL_ALPHA_SIGNER_REUSED');
+ }
+ if(env.FACTORY_EXTERNAL_ALPHA_RECEIPT_SIGNING_KEY&&bytes.equals(createPublicKey(env.FACTORY_EXTERNAL_ALPHA_RECEIPT_SIGNING_KEY.replaceAll('\\n','\n')).export({type:'spki',format:'der'})))throw Error('EXTERNAL_ALPHA_SIGNER_REUSED');
+ return config;
+}
 
 /** The execution plan the harness worker consumes. Source, scope and command come ONLY from the pinned installation. */
 export function externalAlphaCheckpointPlan(installation){
@@ -35,7 +51,7 @@ export function externalAlphaConfiguration(installation,verificationPolicySha256
  return Object.freeze({...productionConfiguration,commands:[...installation.checkCommands],allowedPaths:[...plan.allowedPaths],
   cloud:{...cloud,networkPolicy:'deny-all-after-pinned-harness-and-private-snapshot-v1',
    toolPolicySha256:digest({allowedPaths:plan.allowedPaths,command:plan.checkCommand,executor:productionConfiguration.executor,mode:'PRIVATE_SNAPSHOT'}),
-   contextPolicySha256:digest({source:plan.source,ownerData:false,private:true}),verificationPolicySha256}});
+   contextPolicySha256:digest({source:plan.source,ownerData:false,private:true,signingFactoryId:'myfactory-external-alpha'}),verificationPolicySha256}});
 }
 /** FactoryVersion as CloudWorkControl computes it. The operator derives installation.factoryVersion from this. */
 export const externalAlphaFactoryVersion=(installation,sourceDigest=sourceIdentity.sourceDigest,verificationPolicySha256)=>
@@ -46,21 +62,21 @@ export const externalAlphaFactoryVersion=(installation,sourceDigest=sourceIdenti
  * running build and execution configuration are EXACTLY what the pinned installation (and therefore the signed
  * authority) names: source digest and FactoryVersion. Opens no connection, calls no provider and sends nothing.
  */
-export function externalAlphaRuntimeComponents({env={},pool,queue,installation,signing,sourceDigest,signReceipt,registry,provider,verification,deploymentId=env.VERCEL_DEPLOYMENT_ID,hostInstallation}){
- if(!installation||typeof signReceipt!=='function'||!pool||!queue)deny('AUTHORITY_DISABLED');
+export function externalAlphaRuntimeComponents({env={},pool,queue,installation,signing,sourceDigest,signReceipt,signReadback,registry,provider,verification,deploymentId=env.VERCEL_DEPLOYMENT_ID,hostInstallation}){
+ if(!installation||typeof signReceipt!=='function'||typeof signReadback!=='function'||!pool||!queue)deny('AUTHORITY_DISABLED');
  if(sourceDigest!==installation.source.sourceDigest)deny('AUTHORITY_SOURCE');
  const verificationPolicy=verification?.policy??alphaTasksVerificationPolicy,verificationPolicySha256=verification?.policySha256??alphaTasksVerificationPolicySha256;
  const configuration=externalAlphaConfiguration(installation,verificationPolicySha256);
  if(digest({sourceDigest,configurationDigest:digest(configuration)})!==installation.factoryVersion)deny('AUTHORITY_FACTORY_VERSION');
  if(!/^dpl_[A-Za-z0-9]+$/.test(deploymentId??''))deny('AUTHORITY_DISABLED');
- if(signing?.factoryId==null||signing?.key?.factoryId!==signing.factoryId)deny('AUTHORITY_DISABLED');
+ if(signing?.factoryId!=='myfactory-external-alpha'||signing?.key?.factoryId!==signing.factoryId||signing.key.keyId!=='external-alpha-result-v1')deny('AUTHORITY_DISABLED');
  const clientId=installation.application.clientId,plan=externalAlphaCheckpointPlan(installation);
  const grant=Object.freeze({clientId,source:plan.source,commands:[...installation.checkCommands],allowedPaths:[...plan.allowedPaths],maxDurationMs:300000,maxSpendUsd:1,derivedRequestId:true});
  const authority=new ExternalAlphaAuthorityStore(pool,installation,{signReceipt});
- const store=new PostgresDispatchStore(pool,{maxWorks:5,workLimitError:'EXTERNAL_ALPHA_WORK_LIMIT',custodyPrefix:'factory/production',verificationPolicySha256,
+ const store=new PostgresDispatchStore(pool,{maxWorks:5,workLimitError:'EXTERNAL_ALPHA_WORK_LIMIT',custodyPrefix:'factory/production',verificationPolicySha256,strictWriterFence:true,requireVerifierPass:true,
   assertAuthority:authority.assertAuthority(),
   // Every record read or written through this store must belong to THIS slot's admission.
-  assertRecordScope:async(client,row)=>{if(row.client_id!==clientId||!await authority.ownedRow(client,row.request_id))throw new ExternalAlphaError('AUTHORITY_OWNER');}});
+  assertRecordScope:async(client,row)=>{const a=await authority.ownedRow(client,row.request_id,{currentGeneration:false});if(row.client_id!==clientId||!a||row.work_id!==a.work_id||row.work_generation!==a.work_generation||row.snapshot.factoryVersion!==installation.factoryVersion||row.snapshot.requestDigest!==digest(row.request))throw new ExternalAlphaError('AUTHORITY_OWNER');}});
  const spend=new PostgresSpendLedger(pool,{assertPaidAuthority:authority.assertPaidAuthority(),onUnknown:authority.fenceUnknownSpend()});
  const entry=registry?registryEntryFor(registry,installation):undefined;
  const assertWorkAuthorized=row=>store.transaction((client,now)=>authority.assertAuthority()(client,row.request,now,'model'));
@@ -79,25 +95,31 @@ export function externalAlphaRuntimeComponents({env={},pool,queue,installation,s
  const control=new CloudWorkControl({store,spend,provider:workProvider,queue,signing,sourceDigest,deploymentId,ownerScope:installation.ownerId,grant,configuration,
   executionSpendPlan:productionSpendPlan,executionWorkTopic:'factory-external-alpha-work-v1',verificationPolicy:{policy:verificationPolicy,policySha256:verificationPolicySha256}});
  /** Every readback carries the signed receipt (contract amendment 7). Unavailable receipt => ambiguous failure, never a bare body. */
- const readbackWithReceipt=async requestId=>{
-  const body=await control.read(requestId),rb=await authority.withClient(client=>authority.readback(client,requestId));
+ const readbackWithReceipt=async(requestId,challenge=null)=>{
+  const body=await control.read(requestId),row=await store.read(clientId,requestId),a=await authority.withClient(client=>authority.ownedRow(client,requestId)),rb=await authority.withClient(client=>authority.readback(client,requestId));
+  if(!a)throw Error('FACTORY_REQUEST_NOT_FOUND');
   if(!rb?.authorityReceipt||!rb.authorityReceiptSignature)throw Error('EXTERNAL_ALPHA_RECEIPT_UNAVAILABLE');
-  return {...body,authorityReceipt:rb.authorityReceipt,authorityReceiptSignature:rb.authorityReceiptSignature};
+  return externalAlphaReadback({body,row,authority:a,receipt:{authorityReceipt:rb.authorityReceipt,authorityReceiptSignature:rb.authorityReceiptSignature},challenge,signReadback});
  };
- return {authority,store,spend,control,provider:workProvider,verification:verificationStore,clientId,readbackWithReceipt,topics:{work:'factory-external-alpha-work-v1'}};
+ const readResult=async(requestId,challenge=null)=>{
+  if(!await authority.withClient(client=>authority.ownedRow(client,requestId)))throw Error('FACTORY_REQUEST_NOT_FOUND');
+  const out=await control.result(requestId),row=await store.read(clientId,requestId),readback=await readbackWithReceipt(requestId,challenge);
+  return out.result?{...readback,result:assertExternalAlphaResult(row,out.result)}:{...readback,pending:true,state:'PENDING',workState:readback.readbackAttestation.state};
+ };
+ return {authority,store,spend,control,provider:workProvider,verification:verificationStore,clientId,installation,readbackWithReceipt,readResult,topics:{work:'factory-external-alpha-work-v1',recovery:'factory-external-alpha-recovery-v1'}};
 }
 
 /** Production wiring for the HTTP entry. Requires every reviewed input; any gap is a denial. */
 export async function withExternalAlphaRuntime(env,installation,action,{registryLoader=loadPrivateSourceRegistry}={}){
  const hostInstallation=productionInstallation(env);
- const signing=productionSigning(env);
+ const signing=externalAlphaSigning(env);
  const pem=env.FACTORY_EXTERNAL_ALPHA_RECEIPT_SIGNING_KEY;
  if(typeof pem!=='string'||pem.length<50||pem.length>4000)deny('AUTHORITY_DISABLED');
- let signReceipt;try{signReceipt=receiptSigner(pem.replaceAll('\\n','\n'));}catch{deny('AUTHORITY_DISABLED');}
+ let signReceipt,signReadback;try{signReceipt=receiptSigner(pem.replaceAll('\\n','\n'));signReadback=readbackSigner(pem.replaceAll('\\n','\n'));}catch{deny('AUTHORITY_DISABLED');}
  let registry;try{registry=await registryLoader(env);}catch{deny('AUTHORITY_SOURCE');}
  const pool=new pg.Pool(databaseConfig(env.DATABASE_URL_UNPOOLED??env.DATABASE_URL));
  try{
   assertProductionDatabaseMarker((await pool.query('SELECT * FROM factory.environment WHERE singleton')).rows[0],hostInstallation);
-  return await action(externalAlphaRuntimeComponents({env,pool,queue:new QueueClient({region:'iad1'}),installation,signing,sourceDigest:sourceIdentity.sourceDigest,signReceipt,registry,hostInstallation}));
+  return await action(externalAlphaRuntimeComponents({env,pool,queue:new QueueClient({region:'iad1'}),installation,signing,sourceDigest:sourceIdentity.sourceDigest,signReceipt,signReadback,registry,hostInstallation}));
  }finally{await pool.end();}
 }

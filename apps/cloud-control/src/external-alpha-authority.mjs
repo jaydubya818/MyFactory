@@ -240,13 +240,15 @@ export class ExternalAlphaAuthorityStore {
  async withClient(action){const client=await this.pool.connect();try{return await action(client);}finally{client.release();}}
  /** The authority row for requestId only if it belongs to THIS installation (cohort, slot, owner, policy, client).
   * Any other caller gets null, indistinguishable from an unknown request. */
- async ownedRow(client,requestId){
+ async ownedRow(client,requestId,{currentGeneration=true}={}){
   if(typeof requestId!=='string'||!UUID.test(requestId))return null;
   const row=(await client.query('SELECT * FROM factory.external_alpha_work_authority WHERE request_id=$1',[requestId])).rows[0];
   const i=this.installation;
   if(!row||row.cohort_id!==i.cohortId||row.slot!==i.slot||row.owner_id!==i.ownerId||row.policy_sha256!==i.policySha256)return null;
   const doc=row.document;
   if(doc?.application?.clientId!==i.application.clientId||doc?.application?.projectId!==i.application.projectId)return null;
+  // A superseded Work generation cannot read or mutate the current external-alpha Result boundary.
+  if(currentGeneration&&(await client.query('SELECT 1 FROM factory.external_alpha_work_authority WHERE work_id=$1 AND work_generation>$2 LIMIT 1',[row.work_id,row.work_generation])).rowCount)return null;
   return row;
  }
  /** The deadline of an already admitted request for this slot's client, or null. Used to normalize an identical redelivery. */
@@ -311,6 +313,7 @@ export class ExternalAlphaAuthorityStore {
   const inst=this.installation;
   if(row.cohort_id!==inst.cohortId||row.slot!==inst.slot||row.owner_id!==inst.ownerId||row.policy_sha256!==inst.policySha256)deny('AUTHORITY_OWNER');
   if(request.workId!==row.work_id||request.workGeneration!==row.work_generation)deny('AUTHORITY_WORK');
+  if((await client.query('SELECT 1 FROM factory.external_alpha_work_authority WHERE work_id=$1 AND work_generation>$2 LIMIT 1',[row.work_id,row.work_generation])).rowCount)deny('AUTHORITY_WORK');
   const rev=await client.query("SELECT 1 FROM factory.external_alpha_revocation WHERE (subject_kind='AUTHORITY' AND subject=$1) OR (subject_kind='COHORT' AND subject=$2) OR (subject_kind='KEY' AND subject=$3) LIMIT 1",[row.authority_id,row.cohort_id,row.key_id]);
   if(row.state==='REVOKED'||rev.rowCount>0)deny('AUTHORITY_REVOKED');
   const paid=['prepare','claim','dispatch','model'].includes(phase);

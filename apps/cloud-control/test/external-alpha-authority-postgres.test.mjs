@@ -20,7 +20,7 @@ async function setup(t){
  const url=new URL(process.env.DATABASE_URL_UNPOOLED);assert(['localhost','127.0.0.1'].includes(url.hostname),'Disposable localhost only');
  const pool=new pg.Pool({connectionString:url.href,max:16}),schema='ea_authority_'+randomUUID().replaceAll('-','');
  await pool.query('CREATE SCHEMA '+schema);
- const rewrite=sql=>sql.replace(/\bfactory\./g,schema+'.').replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);
+ const rewrite=sql=>sql.replace(/(?<!')\bfactory\./g,schema+'.').replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);
  const isolated={connect:async()=>{const c=await pool.connect();return {query:(sql,args)=>c.query(rewrite(sql),args),release:()=>c.release()};}};
  const query=(sql,args)=>pool.query(rewrite(sql),args);
  t.after(async()=>{await pool.query('DROP SCHEMA '+schema+' CASCADE');await pool.end();});
@@ -253,4 +253,108 @@ test('racing admissions against the fence: every admission is either before the 
  const late=build(ctx);assert.equal(await code(store.consumeAtomically(late.envelope,late.prepare)),'AUTHORITY_UNKNOWN_FENCE');
  assert.equal(await count(query,"state='FENCED'")>=1,true);
  assert.equal(await count(query),1+outcomes.filter(o=>o==='ACCEPTED').length);
+});
+
+// Checkpoint A composes the real authority, dispatch, spend and canonical Result stores. Providers are deterministic.
+import {externalAlphaRuntimeComponents,externalAlphaFactoryVersion} from '../src/external-alpha-runtime.mjs';
+import {readbackSigner,READBACK_SCHEMA} from '../src/external-alpha-readback.mjs';
+import {externalAlphaIdentity} from '../src/external-alpha-control.mjs';
+import {reconcileExternalAlpha,handleExternalAlphaRecovery} from '../src/external-alpha-recovery.mjs';
+async function runtimeFixture(t){
+ const e=await setup(t),ctx=makeInstallation(e.ctx.keys,{...e.ctx.config,factoryVersion:externalAlphaFactoryVersion(e.ctx.installation,e.ctx.config.source.sourceDigest)});
+ const keys=makeKeys(),privateKey=keys.privateKey.export({type:'pkcs8',format:'pem'}),signing={factoryId:'myfactory-external-alpha',privateKey,key:{factoryId:'myfactory-external-alpha',keyId:'external-alpha-result-v1',publicKey:keys.publicKeyPem,activeFrom:'2020-01-01T00:00:00.000Z',notAfter:'2100-01-01T00:00:00.000Z'}};
+ let destroys=0,allocations=0,sends=0;
+ const c=externalAlphaRuntimeComponents({pool:e.isolated,queue:{send:async()=>{sends++;throw Error('MUST_NOT_DISPATCH');}},provider:{destroy:async()=>{destroys++;},allocate:async()=>{allocations++;throw Error('MUST_NOT_ALLOCATE');}},
+  installation:ctx.installation,signing,sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(privateKey),signReadback:readbackSigner(privateKey),deploymentId:'dpl_fixture',hostInstallation:{projectId:'prj_fixture',teamId:'team_fixture',custodyStoreId:'store_fixture'}});
+ const prepare=async options=>{const a=build(ctx,options);bindAuthorityEnvelope(a.prepare,a.envelope);await c.control.prepare(a.prepare);return{a,row:await c.store.read(c.clientId,a.prepare.requestId)};};
+ return{...e,ctx,c,prepare,keys,effects:()=>({destroys,allocations,sends})};
+}
+
+test('real PostgreSQL Result/readback remain request/run/version bound and duplicate pending reads mint nothing',{skip},async t=>{
+ const e=await runtimeFixture(t),{a,row}=await e.prepare(),challenge='a'.repeat(32);
+ const out=await e.c.readResult(a.prepare.requestId,challenge);
+ assert.equal(out.pending,true);assert.equal(out.readbackAttestation.verdict,'PENDING');assert.equal(out.readbackAttestation.requestDigest,digest(a.prepare));
+ assert.equal(out.readbackAttestation.runId,row.run_id);assert.equal(out.readbackAttestation.authoritySha256,a.envelope.authoritySha256);
+ assert(verify(null,Buffer.concat([Buffer.from(READBACK_SCHEMA),Buffer.from([0]),Buffer.from(digest(out.readbackAttestation))]),e.keys.publicKey,Buffer.from(out.readbackSignature,'base64url')));
+ await Promise.all(Array.from({length:8},()=>e.c.readResult(a.prepare.requestId,'b'.repeat(32))));
+ assert.equal((await e.query('SELECT count(*) FROM factory.intake_receipts')).rows[0].count,'1');
+ assert.equal((await e.query('SELECT count(*) FROM factory.execution_resources')).rows[0].count,'0');
+ assert.deepEqual(e.effects(),{destroys:0,allocations:0,sends:0});
+ await assert.rejects(e.c.readResult(uuid4()),/FACTORY_REQUEST_NOT_FOUND/);
+ // A snapshot cannot be transplanted across a Work generation or FactoryVersion.
+ await e.query("UPDATE factory.intake_receipts SET snapshot=jsonb_set(snapshot,'{factoryVersion}',to_jsonb($2::text)) WHERE request_id=$1",[a.prepare.requestId,'0'.repeat(64)]);
+ await assert.rejects(e.c.readResult(a.prepare.requestId),/AUTHORITY_OWNER/);
+});
+
+test('restart/concurrent durable reconciliation closes an expired unstarted intake once without dispatch or allocation',{skip},async t=>{
+ const e=await runtimeFixture(t),{a,row}=await e.prepare({deadlineMs:1200});
+ await new Promise(r=>setTimeout(r,1250));
+ await Promise.all(Array.from({length:6},()=>reconcileExternalAlpha(e.c)));
+ const result=await e.c.readResult(a.prepare.requestId,'c'.repeat(32));
+ assert.equal(result.pending,undefined);assert.equal(result.readbackAttestation.state,'CANCELLED');assert.equal(result.readbackAttestation.quiescent,true);assert.equal(result.readbackAttestation.verdict,'NONE');
+ const manifest=JSON.parse(Buffer.from(result.result.encoded,'base64url').toString('utf8'));
+ assert.equal(manifest.producer,'myfactory-external-alpha');assert.equal(manifest.execution.runId,row.run_id);assert.equal(manifest.candidate,null);
+ assert.equal((await e.query("SELECT count(*) FROM factory.events WHERE type='factory.terminal'")).rows[0].count,'1');
+ assert.equal((await e.query("SELECT count(*) FROM factory.events WHERE type='run.signed_result'")).rows[0].count,'1');
+ await reconcileExternalAlpha(e.c);assert.deepEqual(e.effects(),{destroys:0,allocations:0,sends:0});
+ assert.equal(await e.c.store.claim(e.c.clientId,externalAlphaIdentity(row)),null);
+});
+
+test('an expired old writer is fenced; recovery destroys the original resource and cannot publish a candidate or replace the writer',{skip},async t=>{
+ const e=await runtimeFixture(t),{a,row}=await e.prepare(),identity=externalAlphaIdentity(row);
+ await e.c.spend.bindAuthority({workId:identity.workId,workGeneration:identity.workGeneration,dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,factoryVersion:identity.factoryVersion,runId:identity.remoteRunId});
+ const r=await e.c.store.claim(e.c.clientId,identity),args=[r.run_id,r.lease_owner,r.lease_generation];
+ await e.c.store.recordAllocation(...args,'sbx_fixture');
+ await e.query("UPDATE factory.execution_resources SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE run_id=$1",[row.run_id]);
+ await assert.rejects(e.c.store.heartbeat(...args),/LEASE_FENCED/);
+ await assert.rejects(e.c.store.advanceResource(...args,'PREPARING'),/FENCED/);
+ await assert.rejects(e.c.store.noteResource(...args,{visibleChecksPassed:true}),/FENCED/);
+ const receipt={bytes:1,commit:'c'.repeat(40),tree:'d'.repeat(40),sha256:'a'.repeat(64),pathname:`factory/production/runs/${row.run_id}/${'a'.repeat(64)}.json`};
+ await assert.rejects(e.c.store.retainCustody(...args,receipt),/FENCED/);
+ await Promise.all(Array.from({length:4},()=>reconcileExternalAlpha(e.c)));
+ const final=await e.c.readResult(a.prepare.requestId,'d'.repeat(32));assert.equal(final.readbackAttestation.state,'CANCELLED');assert.equal(final.readbackAttestation.verdict,'NONE');
+ assert.equal((await e.query('SELECT count(*) FROM factory.execution_resources')).rows[0].count,'1');
+ assert.equal((await e.query('SELECT count(*) FROM factory.candidate_custody')).rows[0].count,'0');
+ assert.equal(e.effects().allocations,0);assert.equal(e.effects().sends,0);assert.equal(e.effects().destroys,1);
+ await assert.rejects(e.c.store.noteResource(...args,{failure:'SPOOFED'}),/FENCED/);
+ assert.equal(await e.c.store.claim(e.c.clientId,identity),null);
+});
+
+test('recovery endpoint is cron-authenticated, disabled without installations and never exposes exception content',{skip},async t=>{
+ const e=await runtimeFixture(t),env={CRON_SECRET:'x'.repeat(40),FACTORY_EXTERNAL_ALPHA_INSTALLATION:JSON.stringify([e.ctx.config]),FACTORY_EXTERNAL_ALPHA_INSTALLATION_SHA256:digest([e.ctx.installation.sha256])};
+ const req=secret=>new Request('https://fixture.invalid/api/external-alpha-recovery',{headers:secret?{authorization:'Bearer '+secret}:{}});
+ assert.equal((await handleExternalAlphaRecovery(req(),env)).status,401);
+ assert.equal((await handleExternalAlphaRecovery(req('x'.repeat(40)),{CRON_SECRET:env.CRON_SECRET})).status,404);
+ const result=await handleExternalAlphaRecovery(req(env.CRON_SECRET),env,{withRuntime:async(_env,_i,fn)=>fn(e.c)});assert.equal(result.status,200);
+ assert.deepEqual(await result.json(),{observed:0,reconciled:0,pending:0});
+ const failure=await handleExternalAlphaRecovery(req(env.CRON_SECRET),env,{withRuntime:async()=>{throw Error('private credential must never escape');}});
+ assert.equal(failure.status,503);assert.deepEqual(await failure.json(),{error:'EXTERNAL_ALPHA_RECOVERY_UNAVAILABLE'});
+});
+
+test('recovery cannot race the healthy producer-to-verifier handoff after producer cleanup',{skip},async t=>{
+ const e=await runtimeFixture(t),{row}=await e.prepare(),identity=externalAlphaIdentity(row);
+ await e.c.spend.bindAuthority({workId:identity.workId,workGeneration:identity.workGeneration,dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,factoryVersion:identity.factoryVersion,runId:identity.remoteRunId});
+ const r=await e.c.store.claim(e.c.clientId,identity),args=[r.run_id,r.lease_owner,r.lease_generation];
+ await e.c.store.recordAllocation(...args,'sbx_fixture');await e.c.store.confirmCleanup(...args,'sbx_fixture');
+ // The producer cleanup receipt is durable; the healthy original worker has not claimed its verifier yet.
+ const scans=await Promise.all(Array.from({length:8},()=>reconcileExternalAlpha(e.c)));
+ assert(scans.every(s=>s.observed===0));
+ assert.equal((await e.query("SELECT count(*) FROM factory.events WHERE type='factory.terminal'")).rows[0].count,'0');
+ assert.equal((await e.query('SELECT count(*) FROM factory.verification_resources')).rows[0].count,'0');
+ assert.deepEqual(e.effects(),{destroys:0,allocations:0,sends:0});
+});
+
+test('a newer Work generation makes the older Result boundary indistinguishable from unknown',{skip},async t=>{
+ const e=await runtimeFixture(t),first=await e.prepare({deadlineMs:1200});
+ const newer=build(e.ctx,{workId:first.a.prepare.workId,generation:2});
+ await e.c.authority.consumeAtomically(newer.envelope,newer.prepare);
+ assert.equal(await e.c.authority.withClient(client=>e.c.authority.ownedRow(client,first.a.prepare.requestId)),null);
+ assert.notEqual(await e.c.authority.withClient(client=>e.c.authority.ownedRow(client,first.a.prepare.requestId,{currentGeneration:false})),null);
+ await assert.rejects(e.c.readResult(first.a.prepare.requestId),/FACTORY_REQUEST_NOT_FOUND/);
+ await assert.rejects(e.c.store.claim(e.c.clientId,externalAlphaIdentity(first.row)),/AUTHORITY_WORK/);
+ await new Promise(r=>setTimeout(r,1250));
+ await reconcileExternalAlpha(e.c);
+ assert.equal((await e.query("SELECT count(*) FROM factory.events WHERE run_id=$1 AND type='run.signed_result'",[first.row.run_id])).rows[0].count,'1');
+ assert.equal((await e.query('SELECT count(*) FROM factory.intake_receipts')).rows[0].count,'1');
+ assert.deepEqual(e.effects(),{destroys:0,allocations:0,sends:0});
 });
