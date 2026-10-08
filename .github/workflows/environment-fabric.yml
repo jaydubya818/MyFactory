@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: jaydubya818/MyEveBot
-          ref: c0297956eb601cf332ee37c6391e391f4fa5cb89
+          ref: c9a089e1a45b9eea2477347ae1076d0afee9baa6
           path: .qualification/myeve
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -49,7 +49,8 @@ jobs:
           FACTORY_PAID_TEST_DATABASE_URL: postgres://postgres@127.0.0.1:5432/postgres
           FACTORY_POSTGRES_TEST: '1'
           DATABASE_URL_UNPOOLED: postgres://postgres@127.0.0.1:5432/postgres
-        run: node --test apps/cloud-control/test/successor-intake-postgres.test.mjs apps/cloud-control/test/cloud-startup-postgres.test.mjs apps/cloud-control/test/paid-ambiguity-postgres.test.mjs apps/cloud-control/test/alpha-owner-postgres.test.mjs apps/cloud-control/test/external-alpha-authority-postgres.test.mjs apps/cloud-control/test/external-alpha-myeve-conformance-postgres.test.mjs apps/cloud-control/test/external-alpha-delivery-postgres.test.mjs
+        run: node --test apps/cloud-control/test/successor-intake-postgres.test.mjs apps/cloud-control/test/cloud-startup-postgres.test.mjs apps/cloud-control/test/paid-ambiguity-postgres.test.mjs apps/cloud-control/test/alpha-owner-postgres.test.mjs apps/cloud-control/test/external-alpha-authority-postgres.test.mjs apps/cloud-control/test/external-alpha-myeve-conformance-postgres.test.mjs apps/cloud-control/test/external-alpha-delivery-postgres.test.mjs apps/cloud-control/test/external-alpha-host-database-postgres.test.mjs
+      - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
       - run: npm run check:producer-governance
       - run: npm run typecheck:producer
       - run: npm run typecheck
