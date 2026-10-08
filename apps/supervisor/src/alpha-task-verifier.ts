@@ -99,6 +99,7 @@ export function attestationValid(a: unknown, runner: { id: string } | undefined)
 export const supportedBaseTrees: Record<string, { id: string; kind: "QUALIFICATION_FIXTURE" | "PRODUCT" }> = {
   // Synthetic reference "Alpha Tasks" base used to qualify this verifier (apps/supervisor/test/fixtures/alpha-tasks).
   "5f354fb5032259dda67abddf5e4164c918dddaed": { id: "alpha-tasks-reference-fixture-v1", kind: "QUALIFICATION_FIXTURE" },
+  "cda2f09f2e1ff0e888cbbc9a5254bb325f6a7665": { id: "alpha-tasks-reference-fixture-v2", kind: "QUALIFICATION_FIXTURE" },
 };
 /**
  * Known-unsupported base trees with a precise reason. This public repository intentionally lists none: the real

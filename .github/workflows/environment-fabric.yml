@@ -39,6 +39,7 @@ jobs:
       # Existing local verification deliberately uses --pull=never at execution.
       # Provision its current image before tests; this is not the cloud runtime.
       - run: docker pull node:22-bookworm
+      - run: docker pull node:24-bookworm
       # EvidenceProvider static-preview tests require the locked Playwright browser.
       - run: node node_modules/playwright/cli.js install --with-deps chromium
       - run: npm test
@@ -50,6 +51,13 @@ jobs:
           FACTORY_POSTGRES_TEST: '1'
           DATABASE_URL_UNPOOLED: postgres://postgres@127.0.0.1:5432/postgres
         run: node --test apps/cloud-control/test/successor-intake-postgres.test.mjs apps/cloud-control/test/cloud-startup-postgres.test.mjs apps/cloud-control/test/paid-ambiguity-postgres.test.mjs apps/cloud-control/test/alpha-owner-postgres.test.mjs apps/cloud-control/test/external-alpha-authority-postgres.test.mjs apps/cloud-control/test/external-alpha-myeve-conformance-postgres.test.mjs apps/cloud-control/test/external-alpha-delivery-postgres.test.mjs apps/cloud-control/test/external-alpha-host-database-postgres.test.mjs
+      - name: Composed MyEve and current Factory offline journeys
+        env:
+          FACTORY_VERIFIER_DOCKER_IMAGE: node:24-bookworm
+          MYEVE_EXTERNAL_ALPHA_TEST_DATABASE: postgres://postgres@127.0.0.1:5432/postgres
+          MYFACTORY_SOURCE_ROOT: ${{ github.workspace }}
+          MYEVE_EXTERNAL_ALPHA_PRODUCTIVE_FIXTURE: '1'
+        run: npm exec --prefix .qualification/myeve --workspace apps/eve -- vitest run --fileParallelism=false lib/external-alpha/productive-journey-postgres.test.ts
       - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
       - run: npm run check:producer-governance
       - run: npm run typecheck:producer

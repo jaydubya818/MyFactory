@@ -48,13 +48,13 @@ const policy=P.externalAlphaPolicySchema.parse({version:1,kind:'TWO_EXTERNAL_OWN
  publication:false,automaticRepair:false,fallback:false});
 const allowedFiles=['src/app.js','src/store.js','test/app.test.mjs'];
 const checkCommands=['node --test test/app.test.mjs'];
-const factoryOrigin='https://myfactory-cloud-production.vercel.app';
+const factoryOrigin='https://conformance-alpha-factory.vercel.app';
 const workConfig=C.externalAlphaWorkConfigSchema.parse({allowedFiles,checkCommands,factory:{origin:factoryOrigin,trustedTeamId:'team_ConformanceFixture',receiptKeys:[{keyId,publicKey:publicKeyPem.trim()}],
  resultVerification:{factoryId:'myfactory-external-alpha',sourceDigest:policy.sourceDigest,configurationDigest:hex('configuration',64),verifierPolicySha256:hex('verifier-policy',64),
  resultKeys:[{factoryId:'myfactory-external-alpha',keyId:'external-alpha-result-v1',publicKey:resultPublicKey.trim(),activeFrom:'2020-01-01T00:00:00.000Z',notAfter:'2100-01-01T00:00:00.000Z'}]}}});
 const W=await imp('external-alpha/work-config.ts');
 W.assertExternalAlphaFactoryKeys(workConfig);
-W.assertExternalAlphaWorkBinding(policy,workConfig,{MYEVE_EXTERNAL_ALPHA_FACTORY_PIN_SHA256:W.externalAlphaFactoryPinSha256(policy,workConfig)});
+W.assertExternalAlphaWorkBinding(policy,workConfig,{MYEVE_EXTERNAL_ALPHA_FACTORY_ORIGIN:factoryOrigin,MYEVE_EXTERNAL_ALPHA_FACTORY_PIN_SHA256:W.externalAlphaFactoryPinSha256(policy,workConfig)});
 
 const canon=T.canonicalAlphaTasksWork(policy.repository,policy.ownerId);
 const work={id:uuid4('work'),scopeId:policy.ownerId,title:canon.title,objective:canon.objective,repository:canon.repository,lifecycle:'active',control:'agent',

@@ -292,7 +292,7 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
     "apps/cloud-control/src/cloud-harness-checkpoint.mjs": {
-      "sha256": "ffbcfa8ae7e73dae120ac518622c7b2b679e14eadc95a1205ac678e0803a8a62",
+      "sha256": "510b6047e1cc3f4e4ee01cf1a8caf7f9d2d988d9eb273041d8d74312f4c4b419",
       "classification": "CLOUD_HARNESS_BOUNDARY",
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
@@ -522,7 +522,7 @@
       "authorityBoundary": "Executes untrusted candidate code only in a separate permission-confined process with scrubbed environment and proven (self-tested) filesystem, network and environment isolation; reports isolation honestly so unproven isolation degrades verification to PARTIAL. No credential, publication, spend or Work authority."
     },
     "apps/supervisor/src/alpha-task-verifier.ts": {
-      "sha256": "d3345ba443b847f3063a19f12a169496f5ffb50736445006260a1ecc65f8e0ff",
+      "sha256": "0d28a6cf331034f32abdf048def1a56f9a4cf0a6c08178ac19e7552e56e769ee",
       "classification": "INDEPENDENT_ACCEPTANCE",
       "authorityBoundary": "Production requires exact host-reviewed application profile and independently proven sandbox. Hidden inputs remain in host custody; one-operation RPC replaces candidate-visible scenario execution. Production verification shares the original bounded deadline; unsupported/unproven execution remains PARTIAL."
     },

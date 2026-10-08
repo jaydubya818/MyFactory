@@ -5,7 +5,7 @@
 // It contains no hidden acceptance material.
 
 export const baseFiles = {
-  'package.json': JSON.stringify({ name: 'alpha-tasks', private: true, type: 'module', scripts: { test: 'node --test test/' } }, null, 2) + '\n',
+  'package.json': JSON.stringify({ name: 'alpha-tasks', private: true, type: 'module', scripts: { test: 'node --test' } }, null, 2) + '\n',
   'README.md': '# Alpha Tasks\n\nA small private task list.\n',
   '.github/workflows/ci.yml': 'name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n',
   'public/styles.css': 'body { font-family: sans-serif; }\n.title { font-weight: 600; }\n',
