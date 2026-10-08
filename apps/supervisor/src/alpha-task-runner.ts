@@ -15,6 +15,8 @@ export interface VerifierRunner {
   /** Writes exactly the given in-memory files (already digest-checked) into a fresh private directory. */
   workspace(files: Record<string, string>): Promise<Workspace>;
   node(ws: Workspace, args: string[], options: { timeoutMs: number }): Promise<RunResult>;
+  /** Production RPC: host retains the suite; the candidate receives one immediate operation over stdin. */
+  probe?(ws: Workspace, request: { id: string; ops: unknown[] }, options: { timeoutMs: number }): Promise<{ results?: { ok: boolean; value?: unknown }[]; timedOut?: boolean; crashed?: boolean }>;
 }
 
 const OUTPUT_LIMIT = 262_144;

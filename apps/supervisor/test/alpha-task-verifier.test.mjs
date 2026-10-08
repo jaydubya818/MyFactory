@@ -241,10 +241,11 @@ test('production mode: every malformed attestation is rejected', () => {
   assert.equal(attestationValid(attestation(), undefined), false);
 });
 
-test('production mode: a valid attestation for an allow-listed runner reaches PASS on the reference candidate', { skip: skipNoCustody }, async () => {
+test('production mode: a renamed local runner and test profile table cannot authorize a product tree', { skip: skipNoCustody }, async () => {
   if (!proven) return; // the stand-in executes through the local runner; hosts that cannot confine it cannot run this proof
   const r = await verifyAlphaTask(inputFor(correctFiles(), { mode: 'production', runner: prodRunner(runner), isolationAttestation: attestation() }));
-  assert.equal(r.verdict, 'PASS'); assert.equal(byId(r, 'runner.isolation').code, 'ISOLATION_ATTESTED');
+  assert.equal(r.verdict, 'PARTIAL'); assert.equal(byId(r, 'runner.isolation').code, 'ISOLATION_ATTESTED');
+  assert.equal(byId(r,'profile.supported').status,'INCONCLUSIVE');
   // A FAIL is still a FAIL in production mode.
   const f = await verifyAlphaTask(inputFor(Object.values(negativeFixtures())[0].files, { mode: 'production', runner: prodRunner(runner), isolationAttestation: attestation() }));
   assert.notEqual(f.verdict, 'PASS');

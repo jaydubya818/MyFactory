@@ -8,7 +8,7 @@ import {cloudVerifierPolicySha256} from './cloud-verifier-policy.mjs';
 /** Canonical Factory admission history and resource leases. Queue delivery grants
  * no authority. All mutable checks serialize with the canonical spend ledger. */
 export class PostgresDispatchStore {
-  constructor(pool,{maxWorks=8,workLimitError='STAGING_WORK_LIMIT',custodyPrefix='factory/staging',verificationPolicySha256=cloudVerifierPolicySha256,assertAuthority,assertRecordScope}={}) { if(!Number.isSafeInteger(maxWorks)||maxWorks<1||maxWorks>8||!['factory/staging','factory/production'].includes(custodyPrefix)||!/^[a-f0-9]{64}$/.test(verificationPolicySha256))throw Error('DISPATCH_CONFIGURATION_INVALID');this.assertAuthority=assertAuthority;this.assertRecordScope=assertRecordScope;this.pool=pool;this.maxWorks=maxWorks;this.workLimitError=workLimitError;this.custodyPrefix=custodyPrefix;this.verificationPolicySha256=verificationPolicySha256; }
+  constructor(pool,{maxWorks=8,workLimitError='STAGING_WORK_LIMIT',custodyPrefix='factory/staging',verificationPolicySha256=cloudVerifierPolicySha256,assertAuthority,assertRecordScope,strictWriterFence=false,requireVerifierPass=false,onDeliveryUnknown}={}) { if(!Number.isSafeInteger(maxWorks)||maxWorks<1||maxWorks>8||!['factory/staging','factory/production'].includes(custodyPrefix)||!/^[a-f0-9]{64}$/.test(verificationPolicySha256))throw Error('DISPATCH_CONFIGURATION_INVALID');this.assertAuthority=assertAuthority;this.assertRecordScope=assertRecordScope;this.pool=pool;this.maxWorks=maxWorks;this.workLimitError=workLimitError;this.custodyPrefix=custodyPrefix;this.verificationPolicySha256=verificationPolicySha256;this.strictWriterFence=strictWriterFence;this.requireVerifierPass=requireVerifierPass;this.onDeliveryUnknown=onDeliveryUnknown; }
   async transaction(action) {
     const client=await this.pool.connect();
     try {
@@ -152,7 +152,8 @@ export class PostgresDispatchStore {
     if(messageId!==null&&(typeof messageId!=='string'||!messageId.length||messageId.length>256))throw Error('INVALID_MESSAGE_ID');
     return this.transaction(async client=>{
       await this.assertRunScope(client,runId);
-      await client.query("UPDATE factory.delivery_intents SET state=$2,message_id=$3 WHERE run_id=$1 AND state='SENDING'",[runId,messageId?'ACCEPTED':'UNKNOWN',messageId]);
+      const changed=await client.query("UPDATE factory.delivery_intents SET state=$2,message_id=$3 WHERE run_id=$1 AND state='SENDING' RETURNING run_id",[runId,messageId?'ACCEPTED':'UNKNOWN',messageId]);
+      if(messageId===null&&changed.rowCount&&this.onDeliveryUnknown)await this.onDeliveryUnknown(client,runId);
       if(messageId===null){
         const row=(await client.query("SELECT i.* FROM factory.intake_receipts i JOIN factory.delivery_intents d ON d.run_id=i.run_id WHERE i.run_id=$1 AND i.client_id='sofie-production-validation' AND d.state='UNKNOWN'",[runId])).rows[0];
         if(row){
@@ -167,7 +168,7 @@ export class PostgresDispatchStore {
     if(typeof nonce!=='string'||!/^[a-f0-9]{64}$/.test(nonce)||typeof messageId!=='string'||!messageId.length||messageId.length>256)throw Error('INVALID_DELIVERY');
     return this.transaction(async client=>{
       await this.assertRunScope(client,runId);
-      const halted=await client.query("SELECT 1 FROM factory.delivery_intents d JOIN factory.intake_receipts i ON i.run_id=d.run_id WHERE d.run_id=$1 AND i.client_id='sofie-production-validation' AND d.state='UNKNOWN'",[runId]);
+      const halted=await client.query("SELECT 1 FROM factory.delivery_intents d JOIN factory.intake_receipts i ON i.run_id=d.run_id WHERE d.run_id=$1 AND (i.client_id='sofie-production-validation' OR $2::boolean) AND d.state='UNKNOWN'",[runId,!!this.onDeliveryUnknown]);
       if(halted.rowCount)throw Error('DELIVERY_BINDING_MISMATCH');
       const result=await client.query("UPDATE factory.delivery_intents SET state='DELIVERED',message_id=$4,delivered_at=COALESCE(delivered_at,clock_timestamp()) WHERE run_id=$1 AND deployment_id=$2 AND nonce_sha256=$3 AND (message_id IS NULL OR message_id=$4) RETURNING run_id",[runId,deploymentId,createHash('sha256').update(nonce).digest('hex'),messageId]);
       if(!result.rowCount)throw Error('DELIVERY_BINDING_MISMATCH');
@@ -197,10 +198,11 @@ export class PostgresDispatchStore {
   }
   async retainCustody(runId,leaseOwner,generation,receipt) {
     if(!receipt||Object.keys(receipt).sort().join(',')!=='bytes,commit,pathname,sha256,tree'||!Number.isSafeInteger(receipt.bytes)||receipt.bytes<1||receipt.bytes>256000||!/^[a-f0-9]{40}$/.test(receipt.commit)||!/^[a-f0-9]{40}$/.test(receipt.tree)||!/^[a-f0-9]{64}$/.test(receipt.sha256)||receipt.pathname!==`${this.custodyPrefix}/runs/${runId}/${receipt.sha256}.json`)throw Error('INVALID_CUSTODY_RECEIPT');
-    return this.transaction(async client=>{
+    return this.transaction(async(client,now)=>{
       await this.assertRunScope(client,runId);
       const resource=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[runId])).rows[0];
       if(!resource||resource.lease_owner!==leaseOwner||resource.lease_generation!==generation||!resource.provider_session_id)throw Error('CUSTODY_RESOURCE_MISMATCH');
+      if(this.strictWriterFence&&(resource.cleanup_confirmed||resource.cancelled_at||new Date(resource.lease_expires_at).getTime()<=now||new Date(resource.deadline).getTime()<=now))throw Error('CUSTODY_WRITER_FENCED');
       // Collection is observation, not execution authority: retain authenticated
       // bytes even if cancellation raced with storage readback.
       if(!['COLLECTING','DESTROYED'].includes(resource.state)||(await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type='factory.resource_advanced' AND payload->>'state'='COLLECTING'",[runId])).rowCount!==1)throw Error('CUSTODY_BEFORE_QUIESCENCE');
@@ -229,8 +231,19 @@ export class PostgresDispatchStore {
     if(Buffer.byteLength(canonical(evidence))>16000)throw Error('EVIDENCE_BOUND');
     return this.transaction(async client=>{
       await this.assertRunScope(client,runId);
+      if(this.strictWriterFence&&(await client.query('SELECT 1 FROM factory.execution_resources WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 AND lease_expires_at>clock_timestamp() AND deadline>clock_timestamp() AND cancelled_at IS NULL AND NOT cleanup_confirmed',[runId,leaseOwner,generation])).rowCount!==1)throw Error('RESOURCE_EVIDENCE_FENCED');
       const r=await client.query('UPDATE factory.execution_resources SET evidence=evidence||$4::jsonb,updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 RETURNING run_id',[runId,leaseOwner,generation,evidence]);
       if(!r.rowCount)throw Error('RESOURCE_EVIDENCE_MISMATCH');
+    });
+  }
+  // Cleanup observation is a host recovery action, separate from the old writer's mutable evidence.
+  async noteReconciliation(runId,leaseOwner,generation,evidence){
+    if(!this.strictWriterFence)return this.noteResource(runId,leaseOwner,generation,evidence);
+    if(canonical(evidence)!==canonical({failure:'EXECUTION_INTERRUPTED',reconciled:true}))throw Error('INVALID_RECONCILIATION_EVIDENCE');
+    return this.transaction(async client=>{
+      await this.assertRunScope(client,runId);
+      const r=await client.query('UPDATE factory.execution_resources SET evidence=evidence||$4::jsonb,updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2 AND lease_generation=$3 AND cleanup_confirmed RETURNING run_id',[runId,leaseOwner,generation,evidence]);
+      if(!r.rowCount)throw Error('RECONCILIATION_BEFORE_CLEANUP');
     });
   }
   async finalize(clientId,requestId,requestedStatus) {
@@ -249,7 +262,7 @@ export class PostgresDispatchStore {
       if(verification&&!verification.cleanup_confirmed)throw Error('VERIFIER_CLEANUP_UNPROVEN');
       const verifierUnknown=protectedRequired&&(!verification||!['PASS','FAIL'].includes(verification.outcome));
       const unresolved=(await client.query("SELECT 1 FROM factory.work_spend_operations WHERE work_id=$1 AND state IN ('reserved','dispatched','unknown') LIMIT 1",[row.work_id])).rowCount>0;
-      const status=stopped?'CANCELLED':unresolved||expired||resource?.evidence.failure||verifierUnknown?'FAILED':requestedStatus;
+      const status=stopped?'CANCELLED':unresolved||expired||resource?.evidence.failure||verifierUnknown||(this.requireVerifierPass&&verification?.outcome!=='PASS')?'FAILED':requestedStatus;
       if(status==='CANCELLED'&&!stopped)throw Error('CANCELLATION_NOT_REQUESTED');
       if(status==='COMPLETED'&&(!custody||resource.evidence.visibleChecksPassed!==true))throw Error('CANDIDATE_NOT_CHECKED');
       const finishedAt=new Date(now).toISOString(),state=status==='COMPLETED'?'ready_for_review':status.toLowerCase();

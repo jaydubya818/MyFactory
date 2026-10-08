@@ -14,7 +14,7 @@ export async function consumeCloudDelivery(runtime,payload,metadata,deploymentId
  if(recovery)row=await reconcileCloudWork(store,provider,admitted.client_id,admitted.request_id);
  else{
   const prior=await store.read(admitted.client_id,admitted.request_id);
-  if(prior.resource){
+  if(prior.resource||prior.events.some(e=>e.type==='factory.stop_requested')){
    row=prior.events.some(e=>e.type==='factory.terminal')?prior:await reconcileCloudWork(store,provider,admitted.client_id,admitted.request_id);
   }else row=await executeCloudWork(store,provider,admitted.client_id,admitted.identity,async(_row,resource)=>{
    const delaySeconds=Math.max(1,Math.ceil((new Date(resource.deadline).getTime()+30000-Date.now())/1000));

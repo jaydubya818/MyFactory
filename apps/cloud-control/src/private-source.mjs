@@ -23,7 +23,9 @@ import { canonical, sha256 } from '../../../packages/hosted-routing/src/result.t
  * error, in the snapshot, in the producer or verifier environment.
  */
 
-export const privateSourceOwner = 'jaydubya818';
+/** Compatibility fixture value only; authorization comes from the pinned registry. */
+export const privateSourceOwner = 'fixture-org';
+const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
 // Structural rule only (slot-numbered lower-case name). The actual repository names, base commits and trees are a
 // digest-pinned DEPLOY-TIME input (external-alpha-registry.mjs); this public repository carries none of them.
 export const privateSourceRepositoryPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*-[0-9]{2}$/;
@@ -46,13 +48,14 @@ export function assertPrivateSourceEffect(effect) {
  * repository, base commit and base tree must all match an entry; anything else (MyEve, Relay, MyFactory, the canary,
  * other slots) is denied. There is deliberately NO built-in default: an absent registry denies everything. */
 export function assertRegistry(registry) {
-  const entries = Object.entries(registry ?? {});
+  if (!registry || typeof registry !== 'object' || Array.isArray(registry)) throw Error('PRIVATE_SOURCE_REGISTRY');
+  const entries = Object.entries(registry);
   if (!entries.length || entries.length > 8) throw Error('PRIVATE_SOURCE_REGISTRY');
   const repos = new Set();
   for (const [slot, e] of entries) {
-    if (!/^slot-[0-9]{1,2}$/.test(slot) || e?.slot !== slot || e.owner !== privateSourceOwner || !privateSourceRepositoryPattern.test(e.repo) || !sha1.test(e.commit) || !sha1.test(e.tree) || repos.has(e.repo))
+    if (!/^slot-[0-9]{1,2}$/.test(slot) || e?.slot !== slot || !e || Object.keys(e).sort().join(',') !== 'commit,owner,repo,slot,tree' || typeof e.owner !== 'string' || typeof e.repo !== 'string' || typeof e.commit !== 'string' || typeof e.tree !== 'string' || !ownerPattern.test(e.owner) || !privateSourceRepositoryPattern.test(e.repo) || !sha1.test(e.commit) || !sha1.test(e.tree) || repos.has(`${e.owner}/${e.repo}`))
       throw Error('PRIVATE_SOURCE_REGISTRY');
-    repos.add(e.repo);
+    repos.add(`${e.owner}/${e.repo}`);
   }
   return registry;
 }
@@ -133,16 +136,20 @@ export function githubAppReadCredential({ installationId, appJwt, transport, now
 
 function run(file, args, { env, cwd, input, timeoutMs = 20000, maxBytes = fetchByteLimit + 65536, watch } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(file, args, { env, cwd, stdio: ['pipe', 'pipe', 'pipe'] });
-    const out = []; let size = 0, done = false, poll;
+    const child = spawn(file, args, { env, cwd, detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe'] });
+    const out = []; let size = 0, done = false, poll, failure;
     const finish = (error, value) => { if (done) return; done = true; clearTimeout(timer); clearInterval(poll); error ? reject(error) : resolve(value); };
-    const kill = code => { child.kill('SIGKILL'); finish(Error(code)); };
+    const kill = code => {
+      if(done || failure)return; failure=Error(code);clearTimeout(timer);clearInterval(poll);
+      // Await close before custody cleanup; terminate Git's pack/fetch children too.
+      try { if(process.platform !== 'win32' && child.pid)process.kill(-child.pid,'SIGKILL');else child.kill('SIGKILL'); } catch { child.kill('SIGKILL'); }
+    };
     const timer = setTimeout(() => kill('PRIVATE_SOURCE_TIMEOUT'), timeoutMs);
     if (watch) poll = setInterval(async () => { try { if (await watch() > fetchByteLimit) kill('PRIVATE_SOURCE_OVERSIZE'); } catch { /* directory churn */ } }, 20);
     child.stdout.on('data', c => { size += c.length; if (size > maxBytes) return kill('PRIVATE_SOURCE_OVERSIZE'); out.push(c); });
     child.stderr.on('data', () => {}); // never retained: stderr can echo URLs or headers
     child.on('error', () => finish(Error('PRIVATE_SOURCE_GIT_FAILED')));
-    child.on('close', code => code === 0 ? finish(null, Buffer.concat(out)) : finish(Error('PRIVATE_SOURCE_GIT_FAILED')));
+    child.on('close', code => failure ? finish(failure) : code === 0 ? finish(null, Buffer.concat(out)) : finish(Error('PRIVATE_SOURCE_GIT_FAILED')));
     child.stdin.on('error', () => {});
     child.stdin.end(input ?? undefined);
   });
@@ -224,7 +231,7 @@ export function gitSourceFetcher({ gitBinary = 'git', protocol = 'https', urlFor
         return { commitBytes, files };
       } catch (error) {
         throw Error(/^PRIVATE_SOURCE_[A-Z_]+$/.test(error?.message ?? '') ? error.message : 'PRIVATE_SOURCE_GIT_FAILED');
-      } finally { await rm(dir, { recursive: true, force: true }); }
+      } finally { await rm(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 }).catch(()=>{throw Error('PRIVATE_SOURCE_CLEANUP_FAILED');}); }
     },
   };
 }
@@ -278,7 +285,7 @@ export function privateSourceCustody({ put, get, storeId, prefix = 'factory/priv
     /** Never trusts a receipt: path is recomputed from slot+digest, bytes are re-digested and re-validated. */
     async read(entry, receipt) {
       if (!/^[a-f0-9]{64}$/.test(receipt?.sha256 ?? '') || receipt.path !== path(entry.slot, receipt.sha256)) throw Error('PRIVATE_SOURCE_CUSTODY_BINDING');
-      const saved = await get(receipt.path, { access: 'private', storeId, ...(await options()), useCache: false });
+      let saved;try { saved = await get(receipt.path, { access: 'private', storeId, ...(await options()), useCache: false }); } catch { throw Error('PRIVATE_SOURCE_CUSTODY_UNAVAILABLE'); }
       if (saved?.statusCode !== 200 || !saved.stream) throw Error('PRIVATE_SOURCE_CUSTODY_UNAVAILABLE');
       let bytes; try { bytes = await readAll(saved.stream, snapshotByteLimit); } catch { throw Error('PRIVATE_SOURCE_CUSTODY_READBACK'); }
       if (bytes.length !== receipt.bytes) throw Error('PRIVATE_SOURCE_CUSTODY_READBACK');

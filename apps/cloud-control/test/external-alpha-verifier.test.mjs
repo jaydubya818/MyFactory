@@ -6,7 +6,8 @@ import {makeInstallation} from './fixtures/external-alpha-authority.mjs';
 const {installation}=makeInstallation();
 const bundle={commit:'c'.repeat(40),tree:'d'.repeat(40),base:installation.source.baseSha,files:{'src/a.js':'x'},sourceFiles:{}};
 const report=(verdict,over={})=>({verdict,hiddenSuiteSha256:alphaTasksVerificationPolicy.hiddenSuiteSha256,policySha256:alphaTasksVerificationPolicy.acceptancePolicySha256,...over});
-const deps=(verdict,over={},seen=[])=>({installation,runnerFor:()=>({id:'vercel-sandbox-verifier-v1'}),attestationFor:async()=>({}),loadHidden:async()=>({}),verify:async i=>{seen.push(i);return report(verdict,over);}});
+const attestation={runnerId:'vercel-sandbox-verifier-v1',kind:'SANDBOX_DENY_ALL_V1',networkPolicy:'deny-all',filesystem:'UNPRIVILEGED_UID_WORKSPACE_READ_SCRATCH_WRITE',environment:'SCRUBBED',hiddenMaterialVisibleToCandidate:false,disposable:true,image:alphaTasksVerificationPolicy.image,sessionId:'sbx_fixture',attestedBy:'factory-host'};
+const deps=(verdict,over={},seen=[])=>({installation,runnerFor:()=>({id:'vercel-sandbox-verifier-v1'}),attestationFor:async()=>({...attestation}),loadHidden:async()=>({}),verify:async i=>{seen.push(i);return report(verdict,over);}});
 const host={projectId:'prj_fixture1'};
 /** Primes the run id through the real allocate guard, which refuses a mis-bound resource BEFORE creating any sandbox. */
 async function primed(d){
@@ -48,12 +49,12 @@ test('FAIL maps to FAIL; PARTIAL and every inconsistent report throws VERIFIER_P
 });
 
 test('missing runner, attestation host, hidden suite, or a throwing dependency is PARTIAL, never PASS',async()=>{
- for(const patch of [{runnerFor:undefined},{attestationFor:undefined},{loadHidden:undefined},{runnerFor:()=>undefined},{loadHidden:async()=>{throw Error('custody down');}}])
+ for(const patch of [{runnerFor:undefined},{attestationFor:undefined},{runnerFor:()=>undefined},{loadHidden:async()=>{throw Error('custody down');}}])
   await assert.rejects(verify(await primed({...deps('PASS'),...patch})),/VERIFIER_PARTIAL/);
- // an attestation that cannot be built is passed on as absent; the supervisor verdict (PARTIAL in production) decides
+ // A missing host attestation stops before any acceptance dependency can promote it.
  const seen=[];
  const p=await primed({...deps('PARTIAL',{},seen),attestationFor:async()=>{throw Error('no attestation');}});
- await assert.rejects(verify(p),/VERIFIER_PARTIAL/);assert.equal(seen[0].isolationAttestation,undefined);
+ await assert.rejects(verify(p),/VERIFIER_PARTIAL/);assert.equal(seen.length,0);
 });
 
 test('the deadline guard runs before and after verification',async()=>{

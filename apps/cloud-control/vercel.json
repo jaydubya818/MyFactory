@@ -109,6 +109,30 @@
       "maxDuration": 60,
       "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
     },
+    "api/external-alpha-recovery.mjs": {
+      "maxDuration": 60,
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/external-alpha-work.mjs": {
+      "maxDuration": 180,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-external-alpha-work-v1"
+        }
+      ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
+    "api/external-alpha-queue-recovery.mjs": {
+      "maxDuration": 60,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "factory-external-alpha-recovery-v1"
+        }
+      ],
+      "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
+    },
     "api/*.mjs": {
       "maxDuration": 30,
       "includeFiles": "{src/*.ts,src/cloud-harness-*.mjs,../../packages/*/src/*.ts,../supervisor/src/*.ts}"
@@ -127,5 +151,11 @@
       "destination": "/api/cloud"
     }
   ],
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "crons": [
+    {
+      "path": "/api/external-alpha-recovery",
+      "schedule": "* * * * *"
+    }
+  ]
 }

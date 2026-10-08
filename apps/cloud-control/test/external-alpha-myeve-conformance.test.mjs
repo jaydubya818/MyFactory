@@ -5,8 +5,9 @@ import {digest,canonical} from '../../../packages/hosted-routing/src/result.ts';
 import {parseCloudPrepare} from '../../../packages/contracts/src/cloud-execution.ts';
 import {criteriaSha256,tupleSha256,acceptanceCriteria,projectTask,deriveIdentifiers,validateExternalAlphaAuthority,AUTHORITY_SCHEMA,keyIdOf,RECEIPT_SCHEMA} from '../src/external-alpha-authority.mjs';
 import {loadVectors,installationOf,grantFor,applyMutation,sha,regenerateLive} from './fixtures/myeve-conformance/support.mjs';
+import {READBACK_SCHEMA} from '../src/external-alpha-readback.mjs';
 
-// Vectors are produced by RUNNING the MyEve issuer/controller code (see CONFORMANCE.md). Synthetic data only.
+// Vectors run the MyEve issuer/controller code; see docs/private-alpha/external-alpha-entry.md. Synthetic data only.
 const v=loadVectors(),inst=installationOf(v),grant=grantFor(inst),AT=v.nowMs+1000;
 const verdict=fn=>{try{fn();}catch(e){return e.code??e.message;}return 'ACCEPTED';};
 /** The Factory admission decision made before any state is written: independent validation then the request parser. */
@@ -147,18 +148,30 @@ test('every bound field of the MyEve document, envelope and prepare body is enfo
  assert.ok(resigned.filter(m=>expectedFor(m.name)!=='AUTHORITY_SIGNATURE').length===resigned.length);
 });
 
-test('Factory readback receipts: MyEve verifyReadback accepts exactly the receipts the Factory signs and rejects every tampering',()=>{
+function assertMyEveReadbackOutcomes(current){
+ const cases=current.readback.cases;
+ assert.deepEqual(cases.filter(c=>c.outcome==='ACCEPTED').map(c=>c.name),['valid','extra-passthrough-fields','unsigned-compatibility-fields']);
+ for(const c of cases){
+  if(c.outcome==='ACCEPTED')assert.deepEqual(c.verified,{state:'RUNNING',quiescent:false,spendDigest:digest(c.value.readbackAttestation.spend)},c.name);
+  else assert.ok(['EXTERNAL_ALPHA_RECEIPT_INVALID','EXTERNAL_ALPHA_READBACK_UNVERIFIED'].includes(c.outcome),c.name+': '+c.outcome);
+ }
+}
+
+test('real Factory challenged readback: MyEve accepts signed bindings and denies receipt-only or tampered attestation',()=>{
  const key=createPublicKey(v.testKey.publicKeyPem),rb=v.readback;
  assert.equal(rb.receiptDomain,RECEIPT_SCHEMA);
  const factoryVerifies=r=>{try{return verify(null,Buffer.concat([Buffer.from(RECEIPT_SCHEMA),Buffer.from([0]),Buffer.from(digest(r.authorityReceipt))]),key,Buffer.from(r.authorityReceiptSignature,'base64url'))
-  &&r.authorityReceipt.authorityId===v.identifiers.authorityId&&r.authorityReceipt.authoritySha256===v.envelope.authoritySha256&&r.authorityReceipt.requestId===v.identifiers.requestId&&r.requestId===v.identifiers.requestId;}catch{return false;}};
+  &&r.authorityReceipt.authorityId===v.identifiers.authorityId&&r.authorityReceipt.authoritySha256===v.envelope.authoritySha256&&r.authorityReceipt.requestId===v.identifiers.requestId&&r.requestId===v.identifiers.requestId
+  &&verify(null,Buffer.concat([Buffer.from(READBACK_SCHEMA),Buffer.from([0]),Buffer.from(digest(r.readbackAttestation))]),key,Buffer.from(r.readbackSignature,'base64url'))
+  &&r.readbackAttestation.challenge===rb.challenge&&r.readbackAttestation.receiptDigest===digest(r.authorityReceipt)
+  &&r.readbackAttestation.requestDigest===rb.binding.requestDigest&&r.readbackAttestation.admittedDeadline===rb.binding.admittedDeadline
+  &&r.readbackAttestation.spendDigest===digest(r.readbackAttestation.spend);}catch{return false;}};
  for(const c of rb.cases){
   // Outcomes were produced by running MyEve's own verifyReadback; the Factory's receipt format must agree on accept/reject.
   // schema-only rejections (state enum, missing/null receipt) are MyEve response-shape checks, not receipt cryptography
   if(!['unknown-state','missing-signature','null-receipt'].includes(c.name))assert.equal(factoryVerifies(c.value),c.outcome==='ACCEPTED',c.name);
-  if(c.outcome!=='ACCEPTED')assert.equal(c.outcome,'EXTERNAL_ALPHA_RECEIPT_INVALID',c.name);
  }
- assert.deepEqual(rb.cases.filter(c=>c.outcome==='ACCEPTED').map(c=>c.name),['valid','extra-passthrough-fields']);
+ assertMyEveReadbackOutcomes(v);
  assert.match(rb.cases[0].value.authorityReceiptSignature,/^[A-Za-z0-9_-]{86}$/);
 });
 
@@ -167,6 +180,7 @@ test('LIVE: a fresh MyEve checkout still produces vectors this Factory accepts',
  const live=regenerateLive(process.env.MYEVE_CHECKOUT),inst2=installationOf(live),grant2=grantFor(inst2),at=live.nowMs+1000;
  assert.deepEqual(live.installation,v.installation);
  assert.equal(live.tuple.tupleSha256,v.tuple.tupleSha256);
+ assertMyEveReadbackOutcomes(live);
  validateExternalAlphaAuthority(live.envelope,live.prepare,inst2,at);
  assert.deepEqual(parseCloudPrepare(live.prepare,grant2,at),live.prepare);
 });

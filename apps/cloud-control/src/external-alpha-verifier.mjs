@@ -1,6 +1,6 @@
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
-import {verifyAlphaTask,policySha256 as acceptancePolicySha256,HIDDEN_SUITE_SHA256,productionRunnerIds} from '../../supervisor/src/alpha-task-verifier.ts';
-import {cloudVerifierProvider} from './cloud-verifier-provider.mjs';
+import {verifyAlphaTask,loadHiddenSuite,attestationValid,policySha256 as acceptancePolicySha256,HIDDEN_SUITE_SHA256,productionRunnerIds} from '../../supervisor/src/alpha-task-verifier.ts';
+import {protectedAlphaProvider} from './protected-alpha-provider.mjs';
 import {productionVerifierPolicy} from './production-verifier-policy.mjs';
 
 /*
@@ -14,7 +14,7 @@ import {productionVerifierPolicy} from './production-verifier-policy.mjs';
  * isolation attestation for an allow-listed runner (see docs/private-alpha/external-alpha-verifier-isolation.md).
  */
 export const alphaTasksCheckId='alpha-tasks-acceptance';
-export const alphaTasksVerificationPolicy=Object.freeze({version:1,id:'alpha-tasks-priority-acceptance-v1',image:productionVerifierPolicy.image,timeoutMs:45000,network:'deny-all',
+export const alphaTasksVerificationPolicy=Object.freeze({version:1,id:'alpha-tasks-priority-acceptance-v1',image:productionVerifierPolicy.image,timeoutMs:90000,network:'deny-all',
  acceptancePolicySha256,hiddenSuiteSha256:HIDDEN_SUITE_SHA256,runnerId:productionRunnerIds[0],checks:Object.freeze([Object.freeze({id:alphaTasksCheckId,expected:Object.freeze({verdict:'PASS'})})])});
 export const alphaTasksVerificationPolicySha256=digest(alphaTasksVerificationPolicy);
 /** The only effects the host grants a private-source Work; no other effect path exists in the sandbox. */
@@ -29,13 +29,15 @@ const unavailable=()=>{throw Error('VERIFIER_PARTIAL');};
  *   loadHidden()                  -> HiddenSuite from private custody (digest-pinned; never in the sandbox filesystem)
  * Any dependency that is absent makes verification PARTIAL. Nothing here has a default that could pass.
  */
-export function alphaTasksVerifierProvider({installation,hostInstallation,providerOptions,runnerFor,attestationFor,loadHidden,verify=verifyAlphaTask}={}){
- const base=hostInstallation?cloudVerifierProvider({policy:alphaTasksVerificationPolicy,policySha256:alphaTasksVerificationPolicySha256,probe:'',projectId:hostInstallation.projectId,providerOptions}):undefined;
- let runId;
+export function alphaTasksVerifierProvider({installation,hostInstallation,providerOptions,sandboxApi,productionProfile,runnerFor,attestationFor,loadHidden=loadHiddenSuite,verify=verifyAlphaTask}={}){
+ const base=hostInstallation?protectedAlphaProvider({policy:alphaTasksVerificationPolicy,policySha256:alphaTasksVerificationPolicySha256,projectId:hostInstallation.projectId,providerOptions,sandboxApi}):undefined;
+ runnerFor??=base?.runnerFor;attestationFor??=base?.attestationFor;
+ let runId,deadline;
  return {
   async allocate(resource){
    if(!base)unavailable();
    runId=resource.run_id;
+   deadline=Date.parse(resource.deadline);
    return base.allocate(resource);
   },
   async verify(sandbox,bundle,assertActive){
@@ -45,12 +47,13 @@ export function alphaTasksVerifierProvider({installation,hostInstallation,provid
    const runner=runnerFor(sandbox);
    if(!runner)unavailable();
    const isolationAttestation=await attestationFor(sandbox,runner).catch(()=>undefined);
-   const report=await verify({mode:'production',isolationAttestation,runner,hidden,
+   if(!attestationValid(isolationAttestation,runner))unavailable();
+   const report=await verify({mode:'production',productionProfile,isolationAttestation,runner,hidden,
     // Identities come from the Factory's pinned installation and the custody row, never from the producer.
     source:{commit:installation.source.baseSha,tree:installation.source.treeSha,files:bundle.sourceFiles},
     candidate:{commit:bundle.commit,tree:bundle.tree,parent:bundle.base,files:bundle.files},
     expected:{sourceCommit:installation.source.baseSha,sourceTree:installation.source.treeSha,candidateCommit:bundle.commit,candidateTree:bundle.tree},
-    producer:{environmentId:'factory-run-'+runId},verifier:{environmentId:'factory-verify-'+runId},observedEffects:[...hostGrantedEffects],limits:{runMs:20000}});
+    producer:{environmentId:'factory-run-'+runId},verifier:{environmentId:'factory-verify-'+runId},observedEffects:[...hostGrantedEffects],limits:{runMs:Math.min(80000,deadline-Date.now())}});
    await assertActive();
    if(report.verdict==='PARTIAL')unavailable();
    if(report.hiddenSuiteSha256!==alphaTasksVerificationPolicy.hiddenSuiteSha256||report.policySha256!==alphaTasksVerificationPolicy.acceptancePolicySha256)unavailable();

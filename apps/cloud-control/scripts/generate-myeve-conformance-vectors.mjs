@@ -38,16 +38,23 @@ const privatePem=privateKey.export({type:'pkcs8',format:'pem'});
 const signer=new A.WorkAuthoritySigner(privatePem);
 const publicKeyPem=publicKey.export({type:'spki',format:'pem'});
 const keyId=A.publicKeyId(publicKey);
+const resultSeed=createHash('sha256').update('MYFACTORY-CONFORMANCE-RESULT-TEST-KEY-NEVER-PIN-IN-PRODUCTION').digest();
+const resultPublicKey=createPublicKey(createPrivateKey({key:Buffer.concat([Buffer.from('302e020100300506032b657004220420','hex'),resultSeed]),format:'der',type:'pkcs8'})).export({type:'spki',format:'pem'});
 
 const policy=P.externalAlphaPolicySchema.parse({version:1,kind:'TWO_EXTERNAL_OWNERS_V1',cohortId:uuid4('cohort'),slot:'1',ownerId:uuid4('owner'),
  projectId:'prj_ConformanceFixture1',clientId:'external-alpha-'+hex('client',32),repository:'fixture-org/myeve-alpha-workspace-01',
  baseSha:hex('base',40),treeSha:hex('tree',40),workspacePolicy:'ISOLATED_WORKSPACE_V1',dayBoundary:'UTC_MIDNIGHT',model:'openai/gpt-5.4-mini',
- provider:'vercel-ai-gateway/openai',sourceDigest:hex('source',64),factoryVersion:hex('factory',64),limits:{...P.externalAlphaLimits},
+ provider:'vercel-ai-gateway/openai',sourceDigest:hex('source',64),factoryVersion:K.digest({sourceDigest:hex('source',64),configurationDigest:hex('configuration',64)}),limits:{...P.externalAlphaLimits},
  publication:false,automaticRepair:false,fallback:false});
 const allowedFiles=['src/app.js','src/store.js','test/app.test.mjs'];
 const checkCommands=['node --test test/app.test.mjs'];
-const factoryOrigin='https://myfactory-cloud-production.vercel.app';
-const workConfig=C.externalAlphaWorkConfigSchema.parse({allowedFiles,checkCommands,factory:{origin:factoryOrigin,trustedTeamId:'team_ConformanceFixture',receiptKeys:[{keyId,publicKey:publicKeyPem.trim()}]}});
+const factoryOrigin='https://conformance-alpha-factory.vercel.app';
+const workConfig=C.externalAlphaWorkConfigSchema.parse({allowedFiles,checkCommands,factory:{origin:factoryOrigin,trustedTeamId:'team_ConformanceFixture',receiptKeys:[{keyId,publicKey:publicKeyPem.trim()}],
+ resultVerification:{factoryId:'myfactory-external-alpha',sourceDigest:policy.sourceDigest,configurationDigest:hex('configuration',64),verifierPolicySha256:hex('verifier-policy',64),
+ resultKeys:[{factoryId:'myfactory-external-alpha',keyId:'external-alpha-result-v1',publicKey:resultPublicKey.trim(),activeFrom:'2020-01-01T00:00:00.000Z',notAfter:'2100-01-01T00:00:00.000Z'}]}}});
+const W=await imp('external-alpha/work-config.ts');
+W.assertExternalAlphaFactoryKeys(workConfig);
+W.assertExternalAlphaWorkBinding(policy,workConfig,{MYEVE_EXTERNAL_ALPHA_FACTORY_ORIGIN:factoryOrigin,MYEVE_EXTERNAL_ALPHA_FACTORY_PIN_SHA256:W.externalAlphaFactoryPinSha256(policy,workConfig)});
 
 const canon=T.canonicalAlphaTasksWork(policy.repository,policy.ownerId);
 const work={id:uuid4('work'),scopeId:policy.ownerId,title:canon.title,objective:canon.objective,repository:canon.repository,lifecycle:'active',control:'agent',
@@ -56,7 +63,7 @@ const work={id:uuid4('work'),scopeId:policy.ownerId,title:canon.title,objective:
 const document=A.buildWorkAuthority({policy,work,allowedFiles,now:new Date(nowMs)});
 const envelope=signer.sign(document);
 // The REAL MyEve controller code builds the request body it sends.
-const record={envelope,requestId:document.candidateWriter.requestId,id:document.authorityId,documentSha256:envelope.authoritySha256};
+const record={envelope,requestId:document.candidateWriter.requestId,id:document.authorityId,documentSha256:envelope.authoritySha256,workId:work.id,workGeneration:work.generation,receipt:null};
 const prepare=C.prepareRequest(record,work,workConfig,nowMs);
 
 // ---- additional authorities issued by the same MyEve code ----
@@ -153,12 +160,28 @@ add('prepare:allowedPaths.widened','prepare','replace',['input','allowedPaths'],
 const {receiptSigner}=await import(pathToFileURL(resolve(new URL('../src/external-alpha-authority.mjs',import.meta.url).pathname)).href);
 const signReceipt=receiptSigner(privatePem);
 const receipt={authorityId:document.authorityId,authoritySha256:envelope.authoritySha256,requestId:document.candidateWriter.requestId,workOrderId:uuid4('work-order'),consumedAt:iso(nowMs+500)};
-const readbackBase={requestId:receipt.requestId,workOrderId:receipt.workOrderId,runId:uuid4('run'),state:'RUNNING',quiescent:false,evidenceRef:null,blocker:null,spend:null,authorityReceipt:receipt,authorityReceiptSignature:signReceipt(receipt)};
+const {externalAlphaReadback,readbackSigner}=await import(pathToFileURL(resolve(new URL('../src/external-alpha-readback.mjs',import.meta.url).pathname)).href);
+const challenge=hex('readback-challenge',48),readbackNow=nowMs+1000;
+const binding={requestDigest:K.digest(prepare),admittedDeadline:prepare.deadline};
+const spend={status:'KNOWN',currency:'USD',unit:'microUSD',workId:work.id,workGeneration:work.generation,requestId:receipt.requestId,workOrderId:receipt.workOrderId,deadline:prepare.deadline,
+ ceilingMicrousd:1000000,settledMicrousd:0,retainedMicrousd:0,availableMicrousd:1000000,cancelled:false,operations:[],contractVersion:'WORK_LEDGER_V2',pricingRevision:'fixture-pricing',
+ plannedProductiveOperations:2,plannedCompletionOperations:1,perOperationReserveMicrousd:200000,completionReserveMicrousd:300000,completionReserveRemainingMicrousd:300000,
+ productiveAllowanceRemainingMicrousd:700000,unknownExposureMicrousd:0,paidOperationsUsed:0,maxPaidOperations:3,completionOperationsUsed:0,completionOperationSlotsRemaining:1,
+ accountingComplete:true,pricingQualified:true,authorityState:'active',phase:'productive'};
+const readbackBase=externalAlphaReadback({body:{requestId:receipt.requestId,workOrderId:receipt.workOrderId,runId:uuid4('run'),state:'RUNNING',quiescent:false,evidenceRef:null,blocker:null,spend},
+ row:{request_id:receipt.requestId,work_order_id:receipt.workOrderId,run_id:uuid4('run'),work_id:work.id,work_generation:work.generation,request:prepare,
+ snapshot:{attemptNumber:1,requestDigest:binding.requestDigest,factoryVersion:policy.factoryVersion}},
+ receipt:{authorityReceipt:receipt,authorityReceiptSignature:signReceipt(receipt)},authority:{authority_id:document.authorityId,authority_sha256:envelope.authoritySha256,work_id:work.id,work_generation:work.generation,document},
+ challenge,signReadback:readbackSigner(privatePem),now:readbackNow});
 const receiptKeyMap=C.receiptKeys(workConfig);
 const otherReceipt={...receipt,workOrderId:uuid4('work-order-2')};
 const readbackCases=[
  ['valid',readbackBase],
  ['extra-passthrough-fields',{...readbackBase,snapshot:{a:1},identity:null,delivery:'x'}],
+ ['unsigned-compatibility-fields',{...readbackBase,state:'COMPLETED',quiescent:true,spend:null}],
+ ['receipt-only',(({readbackAttestation,readbackSignature,...r})=>r)(readbackBase)],
+ ['tampered-attestation',{...readbackBase,readbackAttestation:{...readbackBase.readbackAttestation,quiescent:true}}],
+ ['wrong-attested-challenge',{...readbackBase,readbackAttestation:{...readbackBase.readbackAttestation,challenge:hex('other-challenge',48)}}],
  ['signature-of-other-receipt',{...readbackBase,authorityReceiptSignature:signReceipt(otherReceipt)}],
  ['tampered-work-order',{...readbackBase,authorityReceipt:{...receipt,workOrderId:uuid4('work-order-3')}}],
  ['wrong-authority-sha',{...readbackBase,authorityReceipt:{...receipt,authoritySha256:flip(receipt.authoritySha256)}}],
@@ -168,7 +191,8 @@ const readbackCases=[
  ['missing-signature',(({authorityReceiptSignature,...r})=>r)(readbackBase)],
  ['null-receipt',{...readbackBase,authorityReceipt:null,authorityReceiptSignature:null}],
  ['unknown-state',{...readbackBase,state:'BOGUS'}],
-].map(([name,value])=>{let outcome='ACCEPTED';try{C.verifyReadback(value,record,receiptKeyMap);}catch(e){outcome=e.message;}return {name,value,outcome};});
+].map(([name,value])=>{let outcome='ACCEPTED',verified=null;try{const r=C.verifyReadback(value,record,receiptKeyMap,binding,challenge,readbackNow);
+ verified={state:r.state,quiescent:r.quiescent,spendDigest:K.digest(r.spend)};}catch(e){outcome=e.message;}return {name,value,outcome,verified};});
 
 let myeveCommit='unknown';
 try{myeveCommit=execFileSync('git',['-C',root,'rev-parse','HEAD'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();}catch{myeveCommit=arg('myeve-commit')??'unknown (no git metadata; pass --myeve-commit)';}
@@ -186,7 +210,7 @@ const vectors={
  canonicalVectors,envelope,prepare,variants:{competing,slot2:{...slot2,installation:installationView(policy2)}},
  prepareBodyBytes:Buffer.byteLength(JSON.stringify({authority:envelope,prepare})),
  mutations,
- readback:{receipt,receiptDomain:C.RECEIPT_DOMAIN,cases:readbackCases},
+ readback:{receipt,receiptDomain:C.RECEIPT_DOMAIN,challenge,binding,nowMs:readbackNow,cases:readbackCases},
 };
 writeFileSync(out,JSON.stringify(vectors,null,1)+'\n');
 console.log(JSON.stringify({out,myeveCommit:vectors.myeveCommit,mutations:vectors.mutations.length,prepareBodyBytes:vectors.prepareBodyBytes}));

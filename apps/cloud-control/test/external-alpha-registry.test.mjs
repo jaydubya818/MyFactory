@@ -26,7 +26,7 @@ test('loads an inline registry only when its digest matches',async()=>{
 
 test('rejects structurally wrong registries even when the digest matches',async()=>{
  const bad=[{...registry,kind:'x'},{...registry,extra:1},{...registry,version:2},{version:1,kind:registryKind,entries:{}},
-  {...registry,entries:{'slot-1':{...entry(1,'a'),owner:'someone-else'}}},{...registry,entries:{'slot-1':entry(1,'a'),'slot-2':{...entry(1,'d'),slot:'slot-2'}}},
+  {...registry,entries:{'slot-1':{...entry(1,'a'),owner:'../outside'}}},{...registry,entries:{'slot-1':entry(1,'a'),'slot-2':{...entry(1,'d'),slot:'slot-2'}}},
   {...registry,entries:{'slot-1':{...entry(1,'a'),commit:'zz'}}}];
  for(const b of bad){const s=JSON.stringify(b);assert.equal(await fails(loadPrivateSourceRegistry({FACTORY_EXTERNAL_ALPHA_PRIVATE_SOURCE_REGISTRY_JSON:s,FACTORY_EXTERNAL_ALPHA_PRIVATE_SOURCE_REGISTRY_SHA256:sha(s)})),'PRIVATE_SOURCE_REGISTRY');}
 });
@@ -57,4 +57,18 @@ test('the registry entry must equal the repository, commit and tree the Factory 
 test('the public module carries no default registry',async()=>{
  const m=await import('../src/private-source.mjs');
  assert.deepEqual(Object.keys(m).filter(k=>/registry/i.test(k)),['assertRegistry']);
+});
+
+
+test('configured owner is bound to the installation; names and owner syntax do not create authority',async()=>{
+ const changed=structuredClone(registry);changed.entries['slot-1'].owner='other-fixture-org';const bytes=JSON.stringify(changed);
+ const r=await loadPrivateSourceRegistry({FACTORY_EXTERNAL_ALPHA_PRIVATE_SOURCE_REGISTRY_JSON:bytes,FACTORY_EXTERNAL_ALPHA_PRIVATE_SOURCE_REGISTRY_SHA256:sha(bytes)});
+ const e=r['slot-1'];assert.equal(registryEntryFor(r,{slot:'1',source:{repository:e.owner+'/'+e.repo,baseSha:e.commit,treeSha:e.tree}}),e);
+ assert.throws(()=>registryEntryFor(r,{slot:'1',source:{repository:'fixture-org/'+e.repo,baseSha:e.commit,treeSha:e.tree}}),/PRIVATE_SOURCE_REGISTRY/);
+ for(const owner of [null,undefined,['fixture-org'],true,'../outside','owner/repo','https://fixture','-invalid','invalid-', 'x'.repeat(40)]){
+  const bad=structuredClone(changed);bad.entries['slot-1'].owner=owner;const text=JSON.stringify(bad);
+  assert.equal(await fails(loadPrivateSourceRegistry({FACTORY_EXTERNAL_ALPHA_PRIVATE_SOURCE_REGISTRY_JSON:text,FACTORY_EXTERNAL_ALPHA_PRIVATE_SOURCE_REGISTRY_SHA256:sha(text)})),'PRIVATE_SOURCE_REGISTRY');
+ }
+ const third=structuredClone(registry);third.entries['slot-3']={...entry(2,'d'),slot:'slot-3',repo:'fixture-workspace-03'};const text=JSON.stringify(third);
+ assert.equal(await fails(loadPrivateSourceRegistry({FACTORY_EXTERNAL_ALPHA_PRIVATE_SOURCE_REGISTRY_JSON:text,FACTORY_EXTERNAL_ALPHA_PRIVATE_SOURCE_REGISTRY_SHA256:sha(text)})),'PRIVATE_SOURCE_REGISTRY');
 });
