@@ -10,7 +10,7 @@ import {CloudWorkControl} from '../src/cloud-work-control.mjs';
 import {PostgresSpendLedger} from '../src/postgres-spend.mjs';
 import {productionConfiguration as configuration,productionSpendPlan} from '../src/production-execution-plan.mjs';
 import {productionVerifierPolicy as policy,productionVerifierPolicySha256 as policySha256} from '../src/production-verifier-policy.mjs';
-import {makeKeys,makeInstallation,build,uuid4} from './fixtures/external-alpha-authority.mjs';
+import {makeKeys,makeInstallation,build,uuid4,runtimePrivateSource} from './fixtures/external-alpha-authority.mjs';
 
 // Real PostgreSQL concurrency. Disposable localhost server only, private schema per run.
 const skip=process.env.FACTORY_POSTGRES_TEST!=='1';
@@ -264,7 +264,7 @@ async function runtimeFixture(t){
  const e=await setup(t),ctx=makeInstallation(e.ctx.keys,{...e.ctx.config,factoryVersion:externalAlphaFactoryVersion(e.ctx.installation,e.ctx.config.source.sourceDigest)});
  const keys=makeKeys(),privateKey=keys.privateKey.export({type:'pkcs8',format:'pem'}),signing={factoryId:'myfactory-external-alpha',privateKey,key:{factoryId:'myfactory-external-alpha',keyId:'external-alpha-result-v1',publicKey:keys.publicKeyPem,activeFrom:'2020-01-01T00:00:00.000Z',notAfter:'2100-01-01T00:00:00.000Z'}};
  let destroys=0,allocations=0,sends=0;
- const c=externalAlphaRuntimeComponents({pool:e.isolated,queue:{send:async()=>{sends++;throw Error('MUST_NOT_DISPATCH');}},provider:{destroy:async()=>{destroys++;},allocate:async()=>{allocations++;throw Error('MUST_NOT_ALLOCATE');}},
+ const c=externalAlphaRuntimeComponents({...runtimePrivateSource(ctx.installation),pool:e.isolated,queue:{send:async()=>{sends++;throw Error('MUST_NOT_DISPATCH');}},provider:{destroy:async()=>{destroys++;},allocate:async()=>{allocations++;throw Error('MUST_NOT_ALLOCATE');}},
   installation:ctx.installation,signing,sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(privateKey),signReadback:readbackSigner(privateKey),deploymentId:'dpl_fixture',hostInstallation:{projectId:'prj_fixture',teamId:'team_fixture',custodyStoreId:'store_fixture'}});
  const prepare=async options=>{const a=build(ctx,options);bindAuthorityEnvelope(a.prepare,a.envelope);await c.control.prepare(a.prepare);return{a,row:await c.store.read(c.clientId,a.prepare.requestId)};};
  return{...e,ctx,c,prepare,keys,effects:()=>({destroys,allocations,sends})};

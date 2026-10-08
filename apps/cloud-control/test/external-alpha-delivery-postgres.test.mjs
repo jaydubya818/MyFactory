@@ -10,7 +10,7 @@ import {bindAuthorityEnvelope,receiptSigner} from '../src/external-alpha-authori
 import {readbackSigner} from '../src/external-alpha-readback.mjs';
 import {productionVerifierPolicy as policy,productionVerifierPolicySha256 as policySha256} from '../src/production-verifier-policy.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
-import {makeInstallation,makeKeys,build} from './fixtures/external-alpha-authority.mjs';
+import {makeInstallation,makeKeys,build,runtimePrivateSource} from './fixtures/external-alpha-authority.mjs';
 
 const skip=process.env.FACTORY_POSTGRES_TEST!=='1';
 async function setup(t,{queueUnknown=false}={}){
@@ -27,7 +27,7 @@ async function setup(t,{queueUnknown=false}={}){
  // Deterministic provider failure fixture: executes the real lifecycle without contacting any model or sandbox provider.
  const provider={allocate:async()=>{calls.allocate++;return{currentSession:()=>({sessionId:'sbx_fixture'})};},materialize:async()=>({commit:ctx.config.source.baseSha,tree:ctx.config.source.treeSha}),execute:async()=>{calls.execute++;throw Error('DETERMINISTIC_EXECUTION_FAILURE');},destroy:async()=>{calls.destroy++;}};
  const queue={send:async(topic,payload)=>{sent.push({topic,payload});if(queueUnknown&&topic===externalAlphaWorkTopic)throw Error('ACK_LOST');return{messageId:'message-'+sent.length};}};
- const runtimeDeps={pool:isolated,queue,installation:ctx.installation,signing,sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(keys.privateKey.export({type:'pkcs8',format:'pem'})),signReadback:readbackSigner(keys.privateKey.export({type:'pkcs8',format:'pem'})),provider,verification:{policy,policySha256,provider:{}},deploymentId:'dpl_fixture'};let runtime=externalAlphaRuntimeComponents(runtimeDeps);
+ const runtimeDeps={...runtimePrivateSource(ctx.installation),pool:isolated,queue,installation:ctx.installation,signing,sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(keys.privateKey.export({type:'pkcs8',format:'pem'})),signReadback:readbackSigner(keys.privateKey.export({type:'pkcs8',format:'pem'})),provider,verification:{policy,policySha256,provider:{}},deploymentId:'dpl_fixture'};let runtime=externalAlphaRuntimeComponents(runtimeDeps);
  const env={FACTORY_EXTERNAL_ALPHA_INSTALLATION:JSON.stringify([ctx.config]),FACTORY_EXTERNAL_ALPHA_INSTALLATION_SHA256:digest([ctx.installation.sha256]),VERCEL_DEPLOYMENT_ID:'dpl_fixture'},a=build(ctx);
  await runtime.control.prepare(bindAuthorityEnvelope(a.prepare,a.envelope));
  const row=await runtime.store.read(runtime.clientId,a.prepare.requestId),identity=externalAlphaIdentity(row);
@@ -53,7 +53,11 @@ test('lost queue acknowledgment fences the consumed authority and never retries 
  const f=await setup(t,{queueUnknown:true});await f.runtime.control.dispatch(f.identity);
  const row=(await f.query('SELECT state,state_reason FROM factory.external_alpha_work_authority')).rows[0];
  assert.deepEqual(row,{state:'UNKNOWN',state_reason:'DELIVERY_UNKNOWN'});
- await assert.rejects(f.deliver(),/AUTHORITY_UNKNOWN_FENCE/);assert.equal(f.calls.allocate,0);
+ await assert.rejects(f.deliver(),/^Error: DELIVERY_BINDING_MISMATCH$/);
+ assert.deepEqual(f.calls,{allocate:0,execute:0,destroy:0});
+ assert.equal((await f.query('SELECT state FROM factory.delivery_intents')).rows[0].state,'UNKNOWN');
+ assert.deepEqual((await f.query('SELECT state,state_reason FROM factory.external_alpha_work_authority')).rows[0],row);
+ assert.equal((await f.query('SELECT count(*)::int n FROM factory.execution_resources')).rows[0].n,0);
  await assert.rejects(f.runtime.control.dispatch(f.identity),/AUTHORITY_UNKNOWN_FENCE|SPEND_AUTHORITY|Active exact Work authority/);assert.equal(f.sent.length,1);
 });
 test('foreign nonce or deployment cannot accept the stored delivery or allocate',{skip},async t=>{

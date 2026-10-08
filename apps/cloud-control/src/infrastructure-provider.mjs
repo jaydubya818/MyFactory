@@ -31,12 +31,12 @@ export function noReplayFetch(transport = fetch) {
   };
 }
 
-export function infrastructureProvider({providerOptions=async()=>({})}={}) {
+export function infrastructureProvider({providerOptions=async()=>({}),sandboxApi=Sandbox}={}) {
   const sdk = { fetch: noReplayFetch() }; // Hosted staging OIDC only; no keys enter worker.
   const signal = () => AbortSignal.timeout(15000);
   return {
     async allocate(id, remainingMs) {
-      const sandbox = await Sandbox.create({ ...allocationPlan(id, qualifiedImage, remainingMs), ...sdk, signal: AbortSignal.timeout(30000) });
+      const sandbox = await sandboxApi.create({ ...allocationPlan(id, qualifiedImage, remainingMs), ...sdk, signal: AbortSignal.timeout(30000) });
       if (sandbox.image !== qualifiedImage) throw Error('IMAGE_MISMATCH');
       return sandbox;
     },
@@ -75,7 +75,7 @@ export function infrastructureProvider({providerOptions=async()=>({})}={}) {
       const boundSdk = {...(await providerOptions()), ...sdk};
       let sandbox = knownSandbox;
       if (!sandbox) {
-        try { sandbox = await Sandbox.get({ name, resume: false, ...boundSdk, signal: signal() }); }
+        try { sandbox = await sandboxApi.get({ name, resume: false, ...boundSdk, signal: signal() }); }
         catch (error) { if (error.response?.status !== 404) throw error; }
       }
       if (sandbox) {
@@ -83,7 +83,7 @@ export function infrastructureProvider({providerOptions=async()=>({})}={}) {
         await sandbox.stop({ signal: signal() });
         await sandbox.delete({ deleteOrphanSnapshots: true, signal: signal() });
       }
-      try { await Sandbox.get({ name, resume: false, ...boundSdk, signal: signal() }); }
+      try { await sandboxApi.get({ name, resume: false, ...boundSdk, signal: signal() }); }
       catch (error) { if (error.response?.status === 404) return; throw error; }
       throw Error('CLEANUP_NOT_CONFIRMED');
     },

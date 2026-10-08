@@ -115,7 +115,7 @@ export function loadExternalAlphaInstallations(env){
  const uniq=pick=>new Set(list.map(pick)).size===list.length;
  const one=pick=>new Set(list.map(pick)).size===1;
  if(!uniq(i=>i.slot)||!uniq(i=>i.application.clientId)||!uniq(i=>i.application.projectId)||!uniq(i=>i.caller.credentialSha256)||!uniq(i=>i.ownerId)||!uniq(i=>i.caller.oidc.subject)||!uniq(i=>i.source.repository)||
-  !one(i=>i.cohortId)||!one(i=>i.factoryVersion)||!one(i=>i.source.sourceDigest)||!one(i=>digest(i.checkCommands)))deny('AUTHORITY_DISABLED');
+  !one(i=>i.cohortId)||!one(i=>i.source.sourceDigest)||!one(i=>digest(i.checkCommands)))deny('AUTHORITY_DISABLED');
  return list;
 }
 function filesOk(files,code){

@@ -168,7 +168,7 @@ export class PostgresDispatchStore {
     if(typeof nonce!=='string'||!/^[a-f0-9]{64}$/.test(nonce)||typeof messageId!=='string'||!messageId.length||messageId.length>256)throw Error('INVALID_DELIVERY');
     return this.transaction(async client=>{
       await this.assertRunScope(client,runId);
-      const halted=await client.query("SELECT 1 FROM factory.delivery_intents d JOIN factory.intake_receipts i ON i.run_id=d.run_id WHERE d.run_id=$1 AND i.client_id='sofie-production-validation' AND d.state='UNKNOWN'",[runId]);
+      const halted=await client.query("SELECT 1 FROM factory.delivery_intents d JOIN factory.intake_receipts i ON i.run_id=d.run_id WHERE d.run_id=$1 AND (i.client_id='sofie-production-validation' OR $2::boolean) AND d.state='UNKNOWN'",[runId,!!this.onDeliveryUnknown]);
       if(halted.rowCount)throw Error('DELIVERY_BINDING_MISMATCH');
       const result=await client.query("UPDATE factory.delivery_intents SET state='DELIVERED',message_id=$4,delivered_at=COALESCE(delivered_at,clock_timestamp()) WHERE run_id=$1 AND deployment_id=$2 AND nonce_sha256=$3 AND (message_id IS NULL OR message_id=$4) RETURNING run_id",[runId,deploymentId,createHash('sha256').update(nonce).digest('hex'),messageId]);
       if(!result.rowCount)throw Error('DELIVERY_BINDING_MISMATCH');

@@ -35,8 +35,8 @@ const baseFiles = { 'README.md': '# Private alpha workspace\n', 'workspace/READM
 function world(filesBy = {}) {
   const r1 = makeRepo(filesBy[1] ?? { ...baseFiles, 'slot.txt': 'one\n' }), r2 = makeRepo(filesBy[2] ?? { ...baseFiles, 'slot.txt': 'two\n' });
   const registry = Object.freeze({
-    'slot-1': Object.freeze({ slot: 'slot-1', owner: 'jaydubya818', repo: 'fixture-workspace-01', commit: r1.commit, tree: r1.tree }),
-    'slot-2': Object.freeze({ slot: 'slot-2', owner: 'jaydubya818', repo: 'fixture-workspace-02', commit: r2.commit, tree: r2.tree }),
+    'slot-1': Object.freeze({ slot: 'slot-1', owner: 'fixture-org', repo: 'fixture-workspace-01', commit: r1.commit, tree: r1.tree }),
+    'slot-2': Object.freeze({ slot: 'slot-2', owner: 'fixture-org', repo: 'fixture-workspace-02', commit: r2.commit, tree: r2.tree }),
   });
   const fetched = [];
   const fetcher = gitSourceFetcher({ protocol: 'file', testOnlyInsecureTransport: true, urlFor: e => { fetched.push(e.repo); return 'file://' + (e.repo.endsWith('01') ? r1 : r2).bare; } });
@@ -49,7 +49,7 @@ function fakeGithub(mutate = j => j) {
     calls.push({ method, url, init });
     if (method === 'POST') {
       const body = JSON.parse(init.body), token = 'ghs_' + randomBytes(12).toString('hex'); tokens.push(token);
-      return { status: 201, json: mutate({ token, expires_at: new Date(Date.now() + 3600e3).toISOString(), permissions: { contents: 'read', metadata: 'read' }, repository_selection: 'selected', repositories: [{ full_name: 'jaydubya818/' + body.repositories[0] }] }, body) };
+      return { status: 201, json: mutate({ token, expires_at: new Date(Date.now() + 3600e3).toISOString(), permissions: { contents: 'read', metadata: 'read' }, repository_selection: 'selected', repositories: [{ full_name: 'fixture-org/' + body.repositories[0] }] }, body) };
     }
     return { status: 204 };
   };
@@ -74,10 +74,10 @@ test('there is no built-in registry: an absent registry denies everything, and t
   const b = bindingOf(w.registry['slot-1']);
   for (const absent of [undefined, null, {}, []]) assert.throws(() => bindPrivateSource(b, absent), /PRIVATE_SOURCE_REGISTRY/);
   assert.throws(() => bindPrivateSource(b), /PRIVATE_SOURCE_REGISTRY/);
-  for (const bad of [{ ...w.registry, 'slot-3': { slot: 'slot-3', owner: 'jaydubya818', repo: 'MyFactory', commit: 'a'.repeat(40), tree: 'b'.repeat(40) } },
-    { 'slot-1': { slot: 'slot-1', owner: 'someone-else', repo: 'fixture-workspace-01', commit: 'a'.repeat(40), tree: 'b'.repeat(40) } },
-    { 'slot-1': { slot: 'slot-1', owner: 'jaydubya818', repo: 'Myeve', commit: 'a'.repeat(40), tree: 'b'.repeat(40) } },
-    { 'slot-1': { slot: 'slot-1', owner: 'jaydubya818', repo: 'relay', commit: 'a'.repeat(40), tree: 'b'.repeat(40) } }])
+  for (const bad of [{ ...w.registry, 'slot-3': { slot: 'slot-3', owner: 'fixture-org', repo: 'MyFactory', commit: 'a'.repeat(40), tree: 'b'.repeat(40) } },
+    { 'slot-1': { slot: 'slot-1', owner: '../outside', repo: 'fixture-workspace-01', commit: 'a'.repeat(40), tree: 'b'.repeat(40) } },
+    { 'slot-1': { slot: 'slot-1', owner: 'fixture-org', repo: 'Myeve', commit: 'a'.repeat(40), tree: 'b'.repeat(40) } },
+    { 'slot-1': { slot: 'slot-1', owner: 'fixture-org', repo: 'relay', commit: 'a'.repeat(40), tree: 'b'.repeat(40) } }])
     assert.throws(() => assertRegistry(bad), /PRIVATE_SOURCE_REGISTRY/);
 });
 
@@ -119,14 +119,14 @@ test('MyEve, Relay, MyFactory, other repositories and the canary are denied befo
     assert.equal(await codeOf(materializePrivateSource({ binding: { ...real, repo }, registry: w.registry, credential: gh.credential, fetcher: w.fetcher, custody: custodyOf(blob) })), 'PRIVATE_SOURCE_DENIED', repo);
   assert.equal(gh.calls.length, 0); assert.deepEqual(w.fetched, []);
   // The canary's pinned public source cannot be bound either: its commit is not in the registry.
-  assert.throws(() => bindPrivateSource({ slot: 'slot-1', owner: 'jaydubya818', repo: 'fixture-workspace-01', commit: '8f1d9527d480a0cb500d188874b35398b0ebcbf1', tree: '32483deb1b36516d58dee7be7ae90b927f5e8b78' }, w.registry), /PRIVATE_SOURCE_DENIED/);
+  assert.throws(() => bindPrivateSource({ slot: 'slot-1', owner: 'fixture-org', repo: 'fixture-workspace-01', commit: '8f1d9527d480a0cb500d188874b35398b0ebcbf1', tree: '32483deb1b36516d58dee7be7ae90b927f5e8b78' }, w.registry), /PRIVATE_SOURCE_DENIED/);
 });
 
 test('credential scope is verified, not assumed: broad/mis-scoped/expired tokens are refused and revoked', async () => {
   const w = world(), entry = w.registry['slot-1'];
   const bad = {
-    twoRepos: j => ({ ...j, repositories: [...j.repositories, { full_name: 'jaydubya818/Myeve' }] }),
-    wrongRepo: j => ({ ...j, repositories: [{ full_name: 'jaydubya818/fixture-workspace-02' }] }),
+    twoRepos: j => ({ ...j, repositories: [...j.repositories, { full_name: 'fixture-org/Myeve' }] }),
+    wrongRepo: j => ({ ...j, repositories: [{ full_name: 'fixture-org/fixture-workspace-02' }] }),
     allRepos: j => ({ ...j, repository_selection: 'all' }),
     writeScope: j => ({ ...j, permissions: { contents: 'write' } }),
     extraPerm: j => ({ ...j, permissions: { contents: 'read', pull_requests: 'write' } }),
@@ -146,8 +146,8 @@ test('credential scope is verified, not assumed: broad/mis-scoped/expired tokens
 
 test('only token mint/revoke may be issued: pull request creation, pushes and merges are denied before I/O', async () => {
   let io = 0; const api = guardedGithubApi(async () => { io++; return { status: 200 }; });
-  for (const [m, p] of [['POST', '/repos/jaydubya818/fixture-workspace-01/pulls'], ['PUT', '/repos/jaydubya818/fixture-workspace-01/pulls/1/merge'], ['POST', '/repos/jaydubya818/fixture-workspace-01/git/refs'],
-    ['POST', '/app/installations/1/access_tokens/../../repos'], ['GET', '/repos/jaydubya818/MyFactory'], ['DELETE', '/repos/jaydubya818/fixture-workspace-01']])
+  for (const [m, p] of [['POST', '/repos/fixture-org/fixture-workspace-01/pulls'], ['PUT', '/repos/fixture-org/fixture-workspace-01/pulls/1/merge'], ['POST', '/repos/fixture-org/fixture-workspace-01/git/refs'],
+    ['POST', '/app/installations/1/access_tokens/../../repos'], ['GET', '/repos/fixture-org/MyFactory'], ['DELETE', '/repos/fixture-org/fixture-workspace-01']])
     assert.equal(await codeOf(api(m, p, {})), 'PRIVATE_SOURCE_EFFECT_DENIED', m + p);
   assert.equal(io, 0);
   assert.deepEqual([...privateSourceEffects.denied].sort(), ['BRANCH_PUSH', 'DEPLOYMENT', 'MERGE', 'PUBLICATION', 'PULL_REQUEST_CREATE', 'SOURCE_WRITE']);
@@ -209,7 +209,7 @@ test('object-level denials: submodule, symlink, executable bit, .gitmodules, LFS
   };
   function PRIVATE_FILES() { return { ...baseFiles }; }
   for (const [name, [files, prepare]] of Object.entries(cases)) {
-    const repo = makeRepo(files, prepare), entry = { slot: 'slot-1', owner: 'jaydubya818', repo: 'fixture-workspace-01', commit: repo.commit, tree: repo.tree };
+    const repo = makeRepo(files, prepare), entry = { slot: 'slot-1', owner: 'fixture-org', repo: 'fixture-workspace-01', commit: repo.commit, tree: repo.tree };
     const fetcher = gitSourceFetcher({ protocol: 'file', testOnlyInsecureTransport: true, urlFor: () => 'file://' + repo.bare });
     const code = await codeOf(fetcher.retrieve(entry, undefined));
     assert.equal(code, ['oversizeFile', 'oversizeTotal', 'tooManyFiles', 'hugePack'].includes(name) ? 'PRIVATE_SOURCE_OVERSIZE' : 'PRIVATE_SOURCE_UNSUPPORTED_ENTRY', name);
@@ -229,7 +229,7 @@ test('regular but forbidden contents are refused at snapshot construction (LFS, 
   assert.throws(() => validateSourceFiles({ 'a.txt': '\u0000' }));
   // end-to-end: a real repository carrying an LFS pointer is never snapshotted
   const repo = makeRepo({ ...baseFiles, 'a.bin': 'version https://git-lfs.github.com/spec/v1\noid sha256:' + 'a'.repeat(64) + '\nsize 1\n' });
-  const entry = { slot: 'slot-1', owner: 'jaydubya818', repo: 'fixture-workspace-01', commit: repo.commit, tree: repo.tree };
+  const entry = { slot: 'slot-1', owner: 'fixture-org', repo: 'fixture-workspace-01', commit: repo.commit, tree: repo.tree };
   const got = await gitSourceFetcher({ protocol: 'file', testOnlyInsecureTransport: true, urlFor: () => 'file://' + repo.bare }).retrieve(entry);
   assert.throws(() => buildSnapshot(entry, got), /PRIVATE_SOURCE_LFS/);
 });
@@ -240,7 +240,7 @@ test('path traversal tree entries (.. and .git) cannot be fetched or snapshotted
   const bad = g(repo.work, ['mktree', '--missing'], `100644 blob ${blob}\t..\n100644 blob ${blob}\tok.txt\n`);
   const commit = g(repo.work, ['commit-tree', bad, '-m', 'x']);
   g(repo.work, ['update-ref', 'refs/heads/evil', commit]); g(repo.bare, ['fetch', '-q', repo.work, 'refs/heads/evil:refs/heads/evil']);
-  const entry = { slot: 'slot-1', owner: 'jaydubya818', repo: 'fixture-workspace-01', commit, tree: bad };
+  const entry = { slot: 'slot-1', owner: 'fixture-org', repo: 'fixture-workspace-01', commit, tree: bad };
   assert.match(await codeOf(gitSourceFetcher({ protocol: 'file', testOnlyInsecureTransport: true, urlFor: () => 'file://' + repo.bare }).retrieve(entry)), /^PRIVATE_SOURCE_/);
 });
 
@@ -275,7 +275,7 @@ test('digest mismatch fails closed at custody readback, snapshot validation, and
   for (const [name, bytes, code] of [
     ['tree mismatch', mut(s => { s.files['workspace/notes.md'] = 'x\n'; }), 'PRIVATE_SOURCE_TREE_MISMATCH'],
     ['extra field', mut(s => { s.note = 'x'; }), 'PRIVATE_SOURCE_SNAPSHOT_INVALID'],
-    ['other repository', mut(s => { s.repository = 'jaydubya818/Myeve'; }), 'PRIVATE_SOURCE_BINDING'],
+    ['other repository', mut(s => { s.repository = 'fixture-org/Myeve'; }), 'PRIVATE_SOURCE_BINDING'],
     ['other commit', mut(s => { s.commit = 'a'.repeat(40); }), 'PRIVATE_SOURCE_BINDING'],
     ['commit object swapped', mut(s => { s.commitBase64 = Buffer.from('tree ' + s.tree + '\n\nx').toString('base64'); }), 'PRIVATE_SOURCE_BINDING'],
     ['non-canonical', Buffer.from(JSON.stringify(JSON.parse(good), null, 1)), 'PRIVATE_SOURCE_SNAPSHOT_INVALID'],
@@ -350,8 +350,7 @@ test('private mode in the Work provider: producer network never includes GitHub;
   assert.equal(report.commit, entry.commit); assert.deepEqual(calls, ['deny-all']); assert.equal(stages.at(-1), 'SOURCE_READY');
   assert.ok(userRuns.every(c => c === 'node'), 'no git fetch / network client was run in the producer');
   // plan pointing at any other source is refused
-  const other = cloudWorkProvider({ ledger: {}, plan: { source: { ...source, commit: 'a'.repeat(40) } }, privateSource: { binding: bindingOf(entry), registry: w.registry, snapshot: out.producerInput, home: mkdtempSync(join(root, 'h-')) } });
-  assert.equal(await codeOf(other.materialize(sandbox)), 'SOURCE_MISMATCH');
+  assert.throws(() => cloudWorkProvider({ ledger: {}, plan: { source: { ...source, commit: 'a'.repeat(40) } }, privateSource: { binding: bindingOf(entry), registry: w.registry, snapshot: out.producerInput } }), /PRIVATE_SOURCE_BINDING/);
   // a denied binding cannot even construct the provider
   assert.throws(() => cloudWorkProvider({ ledger: {}, privateSource: { binding: { ...bindingOf(entry), repo: 'MyFactory' }, registry: w.registry, snapshot: out.producerInput } }), /PRIVATE_SOURCE_DENIED/);
   assert.doesNotThrow(() => cloudWorkProvider({ ledger: {} })); // existing public/canary construction unchanged
@@ -365,4 +364,37 @@ test('credential and repository contents are absent from every producer/verifier
   assert.ok(!/Authorization|x-access-token|app\.jwt/i.test(visible));
   const failing = fakeGithub(); const err = await codeOf(materializePrivateSource({ binding: bindingOf(entry), registry: w.registry, credential: failing.credential, fetcher: { retrieve: async (_e, token) => { throw Error('leak ' + token); } }, custody: custodyOf(fakeBlob()) }));
   assert.ok(!/leak|ghs_/.test(err), 'uncontrolled error text is never propagated');
+});
+
+
+test('actual private provider requires validated custody before SDK allocation; corruption never reaches transport',async()=>{
+ const w=world(),blob=fakeBlob(),gh=fakeGithub(),entry=w.registry['slot-1'];
+ const out=await materializePrivateSource({binding:bindingOf(entry),registry:w.registry,credential:gh.credential,fetcher:w.fetcher,custody:custodyOf(blob)});
+ const receipt={repository:entry.owner+'/'+entry.repo,commit:entry.commit,tree:entry.tree,path:out.receipt.path,sha256:out.receipt.sha256,bytes:out.receipt.bytes};
+ let allocations=0,sessionCommands=0;const session={sessionId:'sbx_fixture_admitted',runCommand:async()=>{sessionCommands++;},writeFiles:async()=>{},readFile:async()=>{},update:async()=>{}};
+ const sdkSandbox={currentSession:()=>session,runCommand:()=>{throw Error('SDK_AUTO_RESUME_WRAPPER_REACHED');}};
+ const sandboxApi={create:async()=>{allocations++;return sdkSandbox;}};
+ const source={repository:receipt.repository,commit:entry.commit,tree:entry.tree};
+ const provider=cloudWorkProvider({ledger:{},plan:{source},privateSource:{binding:bindingOf(entry),registry:w.registry,custody:custodyOf(blob),receipt},sandboxApi});
+ const resource={run_id:'fixture',provider_name:'factory-run-fixture',deadline:new Date(Date.now()+100000).toISOString()};
+ await assert.rejects(provider.allocate(resource),/PRIVATE_SOURCE_CUSTODY_UNAVAILABLE/);assert.equal(allocations,0);
+ const original=Buffer.from(blob.m.get(receipt.path)),bad=Buffer.from(original);bad[bad.length-2]^=1;blob.m.set(receipt.path,bad);
+ await assert.rejects(provider.prepareSource({request:{source}}),/PRIVATE_SOURCE_DIGEST_MISMATCH/);assert.equal(allocations,0);
+ blob.m.set(receipt.path,original);const notes=[];await provider.prepareSource({request:{source}},async e=>notes.push(e));
+ const admitted=await provider.allocate(resource);assert.equal(allocations,1);assert.equal(notes[0].privateSourceReceipt.sha256,receipt.sha256);
+ await admitted.runCommand({cmd:'fixture-command'});assert.equal(sessionCommands,1);
+ await assert.rejects(provider.prepareSource({request:{source:{...source,repository:'foreign/fixture-workspace-02'}}}),/PRIVATE_SOURCE_BINDING/);assert.equal(allocations,1);
+ const unsafe=privateSourceCustody({put:async()=>{},get:async()=>{throw Error('secret provider URL');},storeId:'fixture'});
+ assert.equal(await codeOf(unsafe.read(entry,receipt)),'PRIVATE_SOURCE_CUSTODY_UNAVAILABLE');
+});
+
+test('SDK-only cleanup confirms absence through injected transport after stop/delete without external contact',async()=>{
+ const calls=[];let present=true;
+ const sandbox={name:'factory-run-fixture',image:qualifiedImage,stop:async()=>calls.push('stop'),delete:async()=>{calls.push('delete');present=false;}};
+ const sandboxApi={get:async()=>{calls.push('lookup');if(present)return sandbox;throw{response:{status:404}};}};
+ const provider=cloudWorkProvider({ledger:{},sandboxApi});
+ await provider.destroy({provider_name:sandbox.name},sandbox);
+ assert.deepEqual(calls,['stop','delete','lookup']);
+ const ambiguous=cloudWorkProvider({ledger:{},sandboxApi:{get:async()=>{throw{response:{status:503}};}}});
+ await assert.rejects(ambiguous.destroy({provider_name:sandbox.name}));
 });

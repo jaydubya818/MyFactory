@@ -51,3 +51,13 @@ test('missing or unclean verifier cannot silently fall back to producer checks',
   await assert.rejects(executeCloudWork(f.store,f.provider,'client',f.identity,f.recovery));assert.equal(f.row.events.length,0);
  }
 });
+
+test('private source preflight completes after recovery scheduling and before any allocation; corruption cannot allocate',async()=>{
+ for(const corrupt of [false,true]){
+  const f=fixture();f.provider.prepareSource=async(_row,note)=>{f.effects.push('SOURCE_CHECK');if(corrupt)throw Error('PRIVATE_SOURCE_DIGEST_MISMATCH');await note({privateSourceReceipt:{sha256:'a'.repeat(64)}});};
+  await executeCloudWork(f.store,f.provider,'client',f.identity,f.recovery);
+  assert.deepEqual(f.effects.slice(0,2),['RECOVERY_ACCEPTED','SOURCE_CHECK']);
+  if(corrupt){assert(!f.effects.includes('ALLOCATE'));assert(!f.effects.includes('EXECUTE'));assert.equal(f.row.resource.evidence.failureStage,'PRIVATE_SOURCE_CUSTODY');assert.equal(f.row.resource.evidence.failure,'PRIVATE_SOURCE_DIGEST_MISMATCH');assert.equal(f.row.events.length,0);}
+  else{assert.equal(f.effects[2],'ALLOCATE');assert.equal(f.row.resource.evidence.privateSourceReceipt.sha256,'a'.repeat(64));}
+ }
+});

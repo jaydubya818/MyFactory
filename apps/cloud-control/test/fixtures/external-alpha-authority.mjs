@@ -1,3 +1,5 @@
+import {buildSnapshot} from '../../src/private-source.mjs';
+import {fileTree} from '../../src/candidate-custody.mjs';
 // Synthetic fixtures only: generated keys, opaque ids, no real owner, repository or grant.
 import {generateKeyPairSync,sign,createHash,randomBytes} from 'node:crypto';
 import {digest} from '../../../../packages/hosted-routing/src/result.ts';
@@ -12,10 +14,14 @@ export function makeKeys(){
  const {publicKey,privateKey}=generateKeyPairSync('ed25519');
  return {publicKey,privateKey,keyId:keyIdOf(publicKey),publicKeyPem:publicKey.export({type:'spki',format:'pem'})};
 }
+const syntheticSources=new Map();
 export function makeInstallation(keys=makeKeys(),over={}){
+ const files={'src/app.js':'// synthetic source '+hex(16)+'\n','test/app.test.js':'// synthetic tests\n'};
+ const tree=fileTree(files).sha,commitBytes=Buffer.from('tree '+tree+'\nauthor Fixture <fixture@invalid> 0 +0000\ncommitter Fixture <fixture@invalid> 0 +0000\n\nfixture\n');
+ const commit=createHash('sha1').update(Buffer.concat([Buffer.from('commit '+commitBytes.length+'\0'),commitBytes])).digest('hex');syntheticSources.set(commit,{files,commitBytes});
  const config={cohortId:uuid4(),slot:'1',ownerId:'owner-opaque-1',policySha256:hex(64),
   application:{clientId:'external-alpha-'+hex(32),projectId:'prj_fixture1'},
-  source:{repository:'fixture-org/fixture-workspace',baseSha:hex(40),treeSha:hex(40),sourceDigest:hex(64),allowedFiles:[...sorted]},
+  source:{repository:'fixture-org/fixture-workspace-01',baseSha:commit,treeSha:tree,sourceDigest:hex(64),allowedFiles:[...sorted]},
   factoryVersion:hex(64),checkCommands:['npm test'],
   caller:{credentialSha256:sha('fixture-credential-'+hex(16)),oidc:{issuer:'https://oidc.vercel.com/fixture-team',audience:'https://vercel.com/fixture-team',subject:'owner:fixture-team:project:fixture-tester-'+hex(8)+':environment:production',teamId:'team_Fixture1'}},
   keys:[{keyId:keys.keyId,publicKeyPem:keys.publicKeyPem,notBefore:'2020-01-01T00:00:00.000Z',notAfter:'2100-01-01T00:00:00.000Z'}],...over};
@@ -43,4 +49,14 @@ export function build(ctx,{workId=uuid4(),version=1,generation=1,issuedAt=Date.n
   input:{title,description,kind:'feature',acceptanceCriteria:[...acceptanceCriteria],checkCommands,allowedPaths:[...c.source.allowedFiles]}};
  post?.(document,prepare);
  return {envelope:signDocument(document,ctx.keys),prepare,document,ids,issuedAt};
+}
+
+/** Credential-free, real Git-object source bytes for offline runtime composition. */
+export function runtimePrivateSource(installation){
+ const [owner,repo]=installation.source.repository.split('/'),slot='slot-'+installation.slot;
+ const entry={slot,owner,repo,commit:installation.source.baseSha,tree:installation.source.treeSha};
+ const retrieved=syntheticSources.get(entry.commit);if(!retrieved)throw Error('SYNTHETIC_SOURCE_REQUIRED');
+ const snapshot=buildSnapshot(entry,retrieved);
+ const receipt={repository:installation.source.repository,commit:entry.commit,tree:entry.tree,path:`factory/private-source/${slot}/${snapshot.sha256}.json`,sha256:snapshot.sha256,bytes:snapshot.bytes.length};
+ return{registry:{[slot]:entry},snapshots:{[slot]:receipt},sourceCustody:{read:async()=>({bytes:Buffer.from(snapshot.bytes),sha256:snapshot.sha256})}};
 }

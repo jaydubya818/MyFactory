@@ -131,6 +131,11 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
     const prepare=prior?{...body.prepare,deadline:prior}:body.prepare;
     bindAuthorityEnvelope(prepare,body.authority);
     await c.control.prepare(prepare);
+    // The caller has one mutating HTTP admission. Derive execution identity
+    // from its persisted immutable prepare, then reserve delivery exactly once.
+    // A duplicate observes the durable intent; UNKNOWN never grants a resend.
+    const admitted=await c.store.read(c.clientId,prepare.requestId);
+    await c.control.dispatch(externalAlphaIdentity(admitted));
     return reply(await c.readbackWithReceipt(prepare.requestId,challenge));
    });
   }

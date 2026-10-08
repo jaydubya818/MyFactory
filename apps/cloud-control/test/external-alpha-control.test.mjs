@@ -44,7 +44,7 @@ const code=async res=>(await res.json());
 test('authorized caller dispatches on its own slot and receives a receipt-bearing readback',async()=>{
  const w=world(),rt=runtime(),{b,oidc}=good(w);
  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt);
- assert.equal(res.status,200);assert.equal(rt.calls.prepare.length,1);
+ assert.equal(res.status,200);assert.equal(rt.calls.prepare.length,1);assert.equal(rt.calls.dispatch.length,1);
  assert.equal(rt.calls.installation.slot,'1');
  assert.ok((await code(res)).authorityReceiptSignature);
 });
@@ -180,4 +180,13 @@ test('dedicated Result boundary requires exact caller ownership, GET and a bound
  const other=good(w,1);
  assert.equal((await send(w,req(path,{cred:CRED[0],oidc:other.oidc,method:'GET'}),rt)).status,401);
  assert.equal((await send(w,req(path+'?candidate=other',{...h,method:'GET'}),rt)).status,404);
+});
+
+// Admission and queue reservation are one authorized HTTP action; the engine
+// derives the identity from its own retained record, never a caller envelope.
+test('admission dispatches only after persisted prepare and fails closed when prepare is unavailable',async()=>{
+ const w=world(),rt=runtime(),{b,oidc}=good(w);
+ const original=rt.withRuntime;rt.withRuntime=(e,i,action)=>original(e,i,c=>{c.control.prepare=async()=>{throw Error('AUTHORITY_UNKNOWN_FENCE');};return action(c);});
+ const response=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt);
+ assert.equal(response.status,503);assert.equal(rt.calls.dispatch.length,0);
 });

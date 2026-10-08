@@ -18,7 +18,9 @@ export async function executeCloudWork(store,provider,clientId,identity,schedule
   // Recovery is independent of the request, browser and producer callback.
   // If its acceptance is ambiguous, no sandbox is allocated.
   await scheduleRecovery(row,resource);
-  await active();startupStage='ALLOCATION';sandbox=await provider.allocate(resource);
+  await active();
+  if(provider.prepareSource){startupStage='PRIVATE_SOURCE_CUSTODY';await provider.prepareSource(row,note);await active();}
+  startupStage='ALLOCATION';sandbox=await provider.allocate(resource);
   sessionId=sandbox.currentSession().sessionId;await store.recordAllocation(...args,sessionId);
   await active();await store.advanceResource(...args,'PREPARING');
   startupStage='SANDBOX_READINESS';

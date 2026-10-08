@@ -167,7 +167,7 @@
       "authorityBoundary": "Separate staging-only operator capability; fixed source and qualified image; durable one-slot attempt ledger, no mutation replay, bounded private artifact readback and cleanup. No canonical Work, model, publication or verifier authority."
     },
     "apps/cloud-control/src/infrastructure-provider.mjs": {
-      "sha256": "4135b2b10231f7760cc1d46f85f7d02178082895cc535bf467b1e271f53c4346",
+      "sha256": "fd01039e6faf4ee61d18b17e1cf7e37e9e64df10442607cd0f68ac11cfa0ea0c",
       "classification": "STAGING_INFRASTRUCTURE_QUALIFICATION",
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired. Optional grant flag derivedRequestId admits a deterministic version-8 requestId for external-alpha only; Work ids and all canary and production grants remain version-4 only."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "c7d0dc1bbb964339af20afcbcb7012e3d327161825ab1b171c4f6a175a435b4f",
-      "classification": "CLOUD_DISPATCH_AUTHORITY",
-      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review. Checkpoint A: dedicated signed Result/readback and cleanup-only durable reconciliation. External-alpha-only strict writer/custody fencing and verifier PASS requirement; historical callers retain existing defaults. External-alpha productive dispatch: queue is retained in runtime; unknown send acknowledgment atomically fences the exact consumed authority and resource without redispatch. Pre-allocation cancellation reconciles the original Run and retains terminal truth."
+      "sha256": "8790fdc7c2875ff62248be553e5507bae1d93997817bd9b4b1d066a88a2ffb7a",
+      "classification": "UNKNOWN_FENCE",
+      "authorityBoundary": "External-alpha ambiguous delivery remains UNKNOWN and cannot transition to DELIVERED through duplicate delivery; legacy routes retain their existing scope."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -237,9 +237,9 @@
       "authorityBoundary": "Dedicated staging controller binds canonical PostgreSQL dispatch/spend/custody with separate verifier provider; credentials remain host-side; no production admission. Read-only EvidenceProvider projection of private durable candidate bundle; independently expiring Proof credential and durable owner binding, exact Work/request/run/version/reference; no execution or publication authority. Historical unbound runs deny reads."
     },
     "apps/cloud-control/src/cloud-work-provider.mjs": {
-      "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure. Private-source mode (optional, separate): producer receives only a digest-verified credential-free snapshot, network limited to the pinned harness registry, GitHub unreachable; public canary path unchanged.",
-      "sha256": "c47e3fd1f5a2ce63e34043e6cc680b91b344642b9356f55761ae1fe780327cfe"
+      "classification": "PRODUCTIVE_EXECUTION",
+      "authorityBoundary": "Private source is independently verified and recorded before allocation; only offline immutable snapshot bytes enter an exact admitted Session. Candidate readback independently binds original source custody. Legacy canary provider behavior remains separately configured.",
+      "sha256": "522f89330bcce3de0dfddc6c3a185c1dd0d7c8c3a4a54be8e9b06216048ba390"
     },
     "apps/cloud-control/src/cloud-work-plan.mjs": {
       "sha256": "44d88ced4dd81766858dfc7bc71a86a786984084766ab36860123ef781a53c3d",
@@ -247,7 +247,7 @@
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-work-lifecycle.mjs": {
-      "sha256": "db6cbc43d2c2eea90eb34a09890758a3950c95e6d1588fb50a970b5d9958d37f",
+      "sha256": "1c6368df932b535eef14a1d44177273c38b2d8e5fa6d2a29518f1f6434ad456c",
       "classification": "CLOUD_WORK_LIFECYCLE",
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure. Checkpoint A: dedicated signed Result/readback and cleanup-only durable reconciliation. External-alpha-only strict writer/custody fencing and verifier PASS requirement; historical callers retain existing defaults."
     },
@@ -392,9 +392,9 @@
       "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
     },
     "apps/cloud-control/src/production-database.mjs": {
-      "sha256": "1ec6ba4c4b06a677f942e4ba8bd9f6af1c0fdfd47ae274ae643b3e15e9c4bdcb",
-      "classification": "PRODUCTION_INSTALLATION_BOUNDARY",
-      "authorityBoundary": "Exact production installation, owner and fresh resource binding. Readiness requires request-fresh exact production project/team/environment/expiry OIDC passed explicitly to Blob and Sandbox, with no ambient/static fallback. Infrastructure availability never admits Work. Preparation/dispatch deny before database/provider access. Operator-only initializer requires an empty schema, locks all application tables, and refuses cross-owner rebinding. No qualification grant, synthetic model or paid authority."
+      "sha256": "4d73d108e3f969185bb9b4a68e225ea2ac39caac6726e90e5f7fe65a54e828d0",
+      "classification": "SCHEMA_MIGRATION",
+      "authorityBoundary": "Explicit empty-database installation atomically registers one immutable dedicated host tuple and marker. Existing canary/synthetic initialization and markers remain separate; no request-time registration or promotion."
     },
     "apps/cloud-control/src/production-readiness.mjs": {
       "sha256": "b85f8add52f353f1900e2cce14393e956a768896bd331fbc834f4b4ee93a64a6",
@@ -512,22 +512,22 @@
       "sha256": "7a4743821a2615a09f1cd8e777f1d59ec4736665e5111803b337ac69ccb96305"
     },
     "apps/cloud-control/src/private-source.mjs": {
-      "sha256": "d036dd88336d17bd41ccf257fa85f6ac81c86939d134b1e138622450b32b7c34",
-      "classification": "PRIVATE_SOURCE_MATERIALIZATION",
-      "authorityBoundary": "Exact slot/owner/repo/base-commit/base-tree allow-list; single-repository contents:read GitHub App installation credential minted and revoked inside the materializer and never exposed to producer, verifier, logs or snapshot; https-only no-redirect retrieval with object-level denial of submodules, symlinks, LFS, executable modes, traversal and oversize; credential-free digest-addressed snapshot in private custody; producer receives only snapshot bytes offline. Effect set excludes publication, pull-request creation, push, merge and deployment. No model, spend, Work or publication authority."
+      "sha256": "1020e62e40ca0707ace73e0938a01eb8e4060e10e09728fd5a94a777dff56bdc",
+      "classification": "PRIVATE_SOURCE_CUSTODY",
+      "authorityBoundary": "Exact registry and independently recomputed Git-object custody govern immutable private snapshots. Retrieval has bounded process-group cleanup; no repository credential reaches producer, verifier, prompt or candidate."
     },
     "apps/supervisor/src/alpha-task-runner.ts": {
-      "sha256": "66929bfb010c2f28c5a1b1b7e6b89b569591ce00a1ec1ffa5875a79761b9045d",
+      "sha256": "94d46b9b2129febe30d0b57e98e3fe95c5c2b78975b3077e954c125e2e4b2deb",
       "classification": "INDEPENDENT_VERIFIER_RUNNER",
       "authorityBoundary": "Executes untrusted candidate code only in a separate permission-confined process with scrubbed environment and proven (self-tested) filesystem, network and environment isolation; reports isolation honestly so unproven isolation degrades verification to PARTIAL. No credential, publication, spend or Work authority."
     },
     "apps/supervisor/src/alpha-task-verifier.ts": {
-      "sha256": "b5bc408f855523a5ba1a7d2f1a2569817aecec116e509c3cc6e7f0f88989b7af",
-      "classification": "INDEPENDENT_ACCEPTANCE_POLICY",
-      "authorityBoundary": "Protected acceptance policy for the Alpha Tasks priority task: recomputed exact source and candidate identities, supported-base profile, allowed and prohibited paths, content scan, build, existing tests, hidden digest-bound acceptance suite held outside the repository and producer context, mapping of ten criteria to checks, producer report never consulted. Unsupported or inconclusive is PARTIAL, never PASS. Grants no publication, merge, deployment, spend or Work authority."
+      "sha256": "d3345ba443b847f3063a19f12a169496f5ffb50736445006260a1ecc65f8e0ff",
+      "classification": "INDEPENDENT_ACCEPTANCE",
+      "authorityBoundary": "Production requires exact host-reviewed application profile and independently proven sandbox. Hidden inputs remain in host custody; one-operation RPC replaces candidate-visible scenario execution. Production verification shares the original bounded deadline; unsupported/unproven execution remains PARTIAL."
     },
     "apps/cloud-control/src/external-alpha-authority.mjs": {
-      "sha256": "27db6000783196995d861fe8e726393165f84630ba9cfd9b27ce01a209c4018c",
+      "sha256": "4c0fc4150d4c09c437f68553456b7492cadbfc52ae674e9e1db4c3540f4e0cf7",
       "classification": "EXTERNAL_ALPHA_WORK_AUTHORITY_CONSUMER",
       "authorityBoundary": "Independent Factory-side validator and single consumer of the signed per-Work external-owner authority: Ed25519 signature over a Factory-pinned key set, every bound field recomputed against the Factory's own pinned installation (owner, application, cohort, slot, policy, source, allowed files, Work, criteria tuple, execution pins, effects, limits), atomic once-only consumption through unique constraints under a cohort lock, expiry, revocation and UNKNOWN fencing on every later paid phase, and Factory-side operation and micro-USD ceilings (3 operations, 1000000 micro-USD). Absent installation denies everything. Never reads canary or synthetic grants, production_work_authority, or any global enable switch. Grants no model, deployment, publication or merge authority and signs only a consumption receipt."
     },
@@ -537,22 +537,22 @@
       "authorityBoundary": "Function entry for the separate external-alpha route; delegates to handleExternalAlpha and nothing else. Distinct from the canary and production functions; reachable only through its own rewrite."
     },
     "apps/cloud-control/src/external-alpha-control.mjs": {
-      "sha256": "0c6195dfc495c83ea7b6a214f6248ddf6bdb2e743d93c5636fcce9563790466b",
-      "classification": "EXTERNAL_ALPHA_HTTP_ENTRY",
-      "authorityBoundary": "Separate HTTP handler: enabled only by a digest-pinned Factory installation (absent means deny); caller authorized by the exact per-slot tuple (sha256 of the slot bearer credential and verified Vercel OIDC issuer, audience, subject, team, project, production); canary, staging and production credentials can never authenticate; validate, then atomic consume, then CloudWorkControl prepare; read, dispatch and stop only for the slot-owned Work; bounded bodies and fixed error codes. Grants no publication, merge, deployment or additional spend authority. Checkpoint A: dedicated signed Result/readback and cleanup-only durable reconciliation. External-alpha-only strict writer/custody fencing and verifier PASS requirement; historical callers retain existing defaults."
+      "sha256": "335d1d943bd1298eec7612baa8b0218b01fdb23c199e19dcff1a3906e903187c",
+      "classification": "EXACT_DISPATCH",
+      "authorityBoundary": "After one authority preparation, derives exact persisted dispatch identity and sends once through the canonical delivery claim. Signed readback exposes admission/ambiguity without creating a fallback."
     },
     "apps/cloud-control/src/external-alpha-runtime.mjs": {
-      "sha256": "500bf7912264606c8e2b59b6b1cdd8ff274f9a8a2b1a1488dee8ebe9be3af7ef",
-      "classification": "EXTERNAL_ALPHA_RUNTIME_COMPOSITION",
-      "authorityBoundary": "Composes dispatch store, spend ledger, private-source provider and Alpha Tasks verifier only when the running source digest and FactoryVersion equal what the pinned installation names; every record is scoped to the slot admission; signed receipt on every readback. Fails closed on any gap. Checkpoint A: dedicated signed Result/readback and cleanup-only durable reconciliation. External-alpha-only strict writer/custody fencing and verifier PASS requirement; historical callers retain existing defaults. External-alpha productive dispatch: queue is retained in runtime; unknown send acknowledgment atomically fences the exact consumed authority and resource without redispatch. Pre-allocation cancellation reconciles the original Run and retains terminal truth."
+      "sha256": "682a2991f192507371deea79ece7221466ffa8e45ff6d1aa71ba812545300c8a",
+      "classification": "HOST_ACTIVATION",
+      "authorityBoundary": "Composes mandatory digest-pinned private custody and product profile, per-slot source/config FactoryVersion, dedicated registered host, independent acceptance, exact owner authority and durable ambiguity fencing before execution. Injected transports cannot bypass source validation."
     },
     "apps/cloud-control/src/external-alpha-registry.mjs": {
-      "sha256": "d12f8a5ea98382558377aac559227eea01a964de83736062b7659e3b1649f550",
+      "sha256": "3f193305344411563dba36b7281ec50c95aed514fed7f0f44ba212500e02c3a8",
       "classification": "PRIVATE_SOURCE_REGISTRY_LOADER",
       "authorityBoundary": "Loads the private-source registry from a deploy-time secret input checked against a pinned sha256 of the exact bytes (absolute, non-symlink, not group or world writable when a file). No default and no repository content. Fails closed with PRIVATE_SOURCE_REGISTRY."
     },
     "apps/cloud-control/src/external-alpha-verifier.mjs": {
-      "sha256": "a293169e6050ec1273f8fa1c87370bb433a5fdfd5b432d71b1b27c2c7ab66c0a",
+      "sha256": "a8940afa6cacb38c310b119240233564cc27c61f4eae002b4cd3e17b401e9002",
       "classification": "INDEPENDENT_ACCEPTANCE_ADAPTER",
       "authorityBoundary": "Cloud adapter for the Alpha Tasks acceptance policy as the protected verifier. Production mode requires a host-built isolation attestation for an allow-listed runner; every missing, unattested, inconsistent or PARTIAL outcome throws VERIFIER_PARTIAL so the Run can never be accepted. PASS is the only path to a PASS check."
     },
@@ -585,6 +585,36 @@
       "sha256": "dde4ef98c82db4c017c3d342011d415bea917a87dfea5444d75a8f7cba09fb6f",
       "classification": "EXECUTOR_LIFECYCLE",
       "authorityBoundary": "Platform-private external-alpha cleanup topic only; observes or destroys the original resource and signs its Result; never reclaims or replaces productive execution."
+    },
+    "apps/cloud-control/src/exact-sandbox-session.mjs": {
+      "sha256": "a6833dede03a6747503dae5a0b8f056f25c5212246f86fbb71c35e45a58fde81",
+      "classification": "RESOURCE_SESSION_FENCE",
+      "authorityBoundary": "All producer command/file/network and SDK user helpers execute through the one admitted Session. Replacement sessions fence execution; resume, timeout extension, snapshots and interactive authority are denied."
+    },
+    "apps/cloud-control/src/external-alpha-host-installation.mjs": {
+      "sha256": "cc2b3c0662c754557f12c48991697391e818ce366d63314b86f621774c63a59d",
+      "classification": "HOST_ACTIVATION",
+      "authorityBoundary": "Exact byte-pinned cohort host registration requires dedicated production project/custody/database and rejects both registered caller projects, canary/synthetic resources and ambient legacy credentials. Registration grants no Work authority."
+    },
+    "apps/cloud-control/src/external-alpha-snapshots.mjs": {
+      "sha256": "a3f2961b967f6b7b0547b831605c6bbf9a27c6817fa915addc3092c7820f2080",
+      "classification": "PRIVATE_SOURCE_CUSTODY",
+      "authorityBoundary": "Host-only exact byte-pinned receipt manifest binds slot/repository/commit/tree, custody path, byte count and snapshot digest before allocation."
+    },
+    "apps/cloud-control/src/external-alpha-verifier-profile.mjs": {
+      "sha256": "e785ff60478b6158be1667eb0f594710e7504bab31c3bebb00af690eb230435d",
+      "classification": "INDEPENDENT_ACCEPTANCE",
+      "authorityBoundary": "Digest-pinned host profile permits only reviewed application trees; candidate and test profile input cannot authorize production verification."
+    },
+    "apps/cloud-control/src/protected-alpha-provider.mjs": {
+      "sha256": "fb043b85adffad8cc88943acb2d1f5c543bfd1e54e892a45e81e787255320ec3",
+      "classification": "VERIFIER_ISOLATION",
+      "authorityBoundary": "Separate disposable verifier resources enforce exact name/image/policy/deadline, credentials-only SDK options, fresh readback, captured runner identity and confirmed destruction."
+    },
+    "apps/cloud-control/src/protected-alpha-runner.mjs": {
+      "sha256": "5783b9ef6fc2d065739de19059098d7f2024af722e9f5375ac0ed5445b16e7f3",
+      "classification": "VERIFIER_ISOLATION",
+      "authorityBoundary": "Trusted root inspection proves deny-all network, private control files, hidden proc metadata and capability-free/no-new-privileges candidate identity. Candidate sees only one public operation at a time under Node filesystem/child-process permissions, cumulative byte and deadline bounds; host retains all hidden scenarios and expectations."
     }
   }
 }

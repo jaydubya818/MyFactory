@@ -10,14 +10,18 @@ import {PostgresVerificationStore} from './postgres-verification.mjs';
 import {CloudWorkControl} from './cloud-work-control.mjs';
 import {cloudWorkProvider} from './cloud-work-provider.mjs';
 import {verifyCloudCandidate,reconcileCloudVerification} from './cloud-verification.mjs';
-import {productionInstallation} from './production-installation.mjs';
+import {externalAlphaHostInstallation} from './external-alpha-host-installation.mjs';
 import {assertProductionDatabaseMarker} from './production-database.mjs';
 import {productionWorkloadIdentity} from './production-identity.mjs';
 import {productionModelProvider} from './production-model-provider.mjs';
 import {externalAlphaReadback,readbackSigner,assertExternalAlphaResult} from './external-alpha-readback.mjs';
 import {productionConfiguration,productionSpendPlan} from './production-execution-plan.mjs';
 import {loadPrivateSourceRegistry,registryEntryFor} from './external-alpha-registry.mjs';
+import {loadPrivateSnapshots,assertPrivateSnapshotReceipt} from './external-alpha-snapshots.mjs';
+import {privateSourceCustody,validateSnapshotBytes,bindVerifierSource} from './private-source.mjs';
+import {get,put} from '@vercel/blob';
 import {alphaTasksVerificationPolicy,alphaTasksVerificationPolicySha256,alphaTasksVerifierProvider} from './external-alpha-verifier.mjs';
+import {externalAlphaVerifierProfile} from './external-alpha-verifier-profile.mjs';
 import sourceIdentity from './source-identity.json' with {type:'json'};
 
 const deny=code=>{throw new ExternalAlphaError(code);};
@@ -62,7 +66,8 @@ export const externalAlphaFactoryVersion=(installation,sourceDigest=sourceIdenti
  * running build and execution configuration are EXACTLY what the pinned installation (and therefore the signed
  * authority) names: source digest and FactoryVersion. Opens no connection, calls no provider and sends nothing.
  */
-export function externalAlphaRuntimeComponents({env={},pool,queue,installation,signing,sourceDigest,signReceipt,signReadback,registry,provider,verification,deploymentId=env.VERCEL_DEPLOYMENT_ID,hostInstallation}){
+export function externalAlphaRuntimeComponents({env={},pool,queue,installation,signing,sourceDigest,signReceipt,signReadback,registry,snapshots,sourceCustody,provider,providerFactory,verification,verifierProfile,deploymentId=env.VERCEL_DEPLOYMENT_ID,hostInstallation}){
+ if((provider&&providerFactory)||(providerFactory!==undefined&&typeof providerFactory!=='function'))deny('AUTHORITY_DISABLED');
  if(!installation||typeof signReceipt!=='function'||typeof signReadback!=='function'||!pool||!queue)deny('AUTHORITY_DISABLED');
  if(sourceDigest!==installation.source.sourceDigest)deny('AUTHORITY_SOURCE');
  const verificationPolicy=verification?.policy??alphaTasksVerificationPolicy,verificationPolicySha256=verification?.policySha256??alphaTasksVerificationPolicySha256;
@@ -85,17 +90,29 @@ export function externalAlphaRuntimeComponents({env={},pool,queue,installation,s
   // Every record read or written through this store must belong to THIS slot's admission.
   assertRecordScope:async(client,row)=>{const a=await authority.ownedRow(client,row.request_id,{currentGeneration:false});if(row.client_id!==clientId||!a||row.work_id!==a.work_id||row.work_generation!==a.work_generation||row.snapshot.factoryVersion!==installation.factoryVersion||row.snapshot.requestDigest!==digest(row.request))throw new ExternalAlphaError('AUTHORITY_OWNER');}});
  const spend=new PostgresSpendLedger(pool,{assertPaidAuthority:authority.assertPaidAuthority(),onUnknown:authority.fenceUnknownSpend()});
- const entry=registry?registryEntryFor(registry,installation):undefined;
+ let entry,receipt;try{entry=Object.freeze({...registryEntryFor(registry,installation)});receipt=Object.freeze({...assertPrivateSnapshotReceipt(entry,snapshots?.[entry.slot])});}catch{deny('AUTHORITY_SOURCE');}
+ if(!sourceCustody&&!hostInstallation?.custodyStoreId)deny('AUTHORITY_SOURCE');
+ const rawCustody=sourceCustody??privateSourceCustody({put,get,storeId:hostInstallation.custodyStoreId,options:async()=>({oidcToken:await productionWorkloadIdentity(hostInstallation)})});
+ const custody={async read(e,r){assertPrivateSnapshotReceipt(e,r);const read=await rawCustody.read(e,r);if(read.bytes?.length!==r.bytes)throw Error('PRIVATE_SOURCE_CUSTODY_BINDING');return{bytes:read.bytes,...validateSnapshotBytes(read.bytes,e,r.sha256)};}};
  const assertWorkAuthorized=row=>store.transaction((client,now)=>authority.assertAuthority()(client,row.request,now,'model'));
- const workProvider=provider??cloudWorkProvider({ledger:spend,plan,projectId:hostInstallation.projectId,custodyStore:hostInstallation.custodyStoreId,custodyPrefix:'factory/production',
+ const sourceProvider=cloudWorkProvider({ledger:spend,plan,projectId:hostInstallation?.projectId,custodyStore:hostInstallation?.custodyStoreId,custodyPrefix:'factory/production',
   providerOptions:async()=>({token:await productionWorkloadIdentity(hostInstallation),projectId:hostInstallation.projectId,teamId:hostInstallation.teamId}),
   blobOptions:async()=>({oidcToken:await productionWorkloadIdentity(hostInstallation)}),
   modelProviderForRow:row=>productionModelProvider({env,assertWorkAuthorized:()=>assertWorkAuthorized(row)}),
   // Gate 2: private-source mode. The producer receives only the digest-verified snapshot; GitHub is never reachable from it.
-  ...(entry?{privateSource:{binding:{slot:entry.slot,owner:entry.owner,repo:entry.repo,commit:entry.commit,tree:entry.tree},registry}}:{})});
+  ...(entry?{privateSource:{binding:{slot:entry.slot,owner:entry.owner,repo:entry.repo,commit:entry.commit,tree:entry.tree},registry,custody,receipt}}:{})});
+ const injectedProvider=providerFactory?.({spend,plan,privateSource:{binding:{slot:entry.slot,owner:entry.owner,repo:entry.repo,commit:entry.commit,tree:entry.tree},registry,custody,receipt},assertWorkAuthorized})??provider;
+ const workProvider=injectedProvider?{...injectedProvider,
+  async prepareSource(row,note){await sourceProvider.prepareSource(row,note);await injectedProvider.prepareSource?.(row,note);},
+  async readCustody(row){
+   if(row.resource?.evidence?.privateSourceReceipt?.sha256!==receipt.sha256)throw Error('PRIVATE_SOURCE_CUSTODY_BINDING');
+   const candidate=await injectedProvider.readCustody(row);
+   await bindVerifierSource({binding:{slot:entry.slot,owner:entry.owner,repo:entry.repo,commit:entry.commit,tree:entry.tree},registry,custody,receipt,candidate});
+   return candidate;
+  }}:sourceProvider;
  // Gate 3: independent Alpha Tasks acceptance as the protected verifier. A provider without it is not composed.
  const verificationStore=new PostgresVerificationStore(store,{policy:verificationPolicy,policySha256:verificationPolicySha256});
- const verifierProvider=verification?.provider??alphaTasksVerifierProvider({installation,hostInstallation,providerOptions:async()=>({token:await productionWorkloadIdentity(hostInstallation),projectId:hostInstallation.projectId,teamId:hostInstallation.teamId}),...verification?.deps});
+ const verifierProvider=verification?.provider??alphaTasksVerifierProvider({installation,hostInstallation,productionProfile:verifierProfile??verification?.productionProfile,providerOptions:async()=>({token:await productionWorkloadIdentity(hostInstallation),projectId:hostInstallation.projectId,teamId:hostInstallation.teamId}),...verification?.deps});
  const context=row=>({clientId:row.client_id,requestId:row.request_id,store:verificationStore,provider:verifierProvider,readCustody:()=>workProvider.readCustody(row)});
  workProvider.verifyCandidate=row=>verifyCloudCandidate(context(row));
  workProvider.reconcileVerification=row=>reconcileCloudVerification(context(row));
@@ -117,16 +134,17 @@ export function externalAlphaRuntimeComponents({env={},pool,queue,installation,s
 }
 
 /** Production wiring for the HTTP entry. Requires every reviewed input; any gap is a denial. */
-export async function withExternalAlphaRuntime(env,installation,action,{registryLoader=loadPrivateSourceRegistry}={}){
- const hostInstallation=productionInstallation(env);
+export async function withExternalAlphaRuntime(env,installation,action,{registryLoader=loadPrivateSourceRegistry,snapshotsLoader=loadPrivateSnapshots}={}){
+ const verifierProfile=externalAlphaVerifierProfile(env,installation);
+ const hostInstallation=externalAlphaHostInstallation(env,installation);
  const signing=externalAlphaSigning(env);
  const pem=env.FACTORY_EXTERNAL_ALPHA_RECEIPT_SIGNING_KEY;
  if(typeof pem!=='string'||pem.length<50||pem.length>4000)deny('AUTHORITY_DISABLED');
  let signReceipt,signReadback;try{signReceipt=receiptSigner(pem.replaceAll('\\n','\n'));signReadback=readbackSigner(pem.replaceAll('\\n','\n'));}catch{deny('AUTHORITY_DISABLED');}
- let registry;try{registry=await registryLoader(env);}catch{deny('AUTHORITY_SOURCE');}
+ let registry,snapshots;try{registry=await registryLoader(env);snapshots=await snapshotsLoader(env,registry);}catch{deny('AUTHORITY_SOURCE');}
  const pool=new pg.Pool(databaseConfig(env.DATABASE_URL_UNPOOLED??env.DATABASE_URL));
  try{
   assertProductionDatabaseMarker((await pool.query('SELECT * FROM factory.environment WHERE singleton')).rows[0],hostInstallation);
-  return await action(externalAlphaRuntimeComponents({env,pool,queue:new QueueClient({region:'iad1'}),installation,signing,sourceDigest:sourceIdentity.sourceDigest,signReceipt,signReadback,registry,hostInstallation}));
+  return await action(externalAlphaRuntimeComponents({env,pool,queue:new QueueClient({region:'iad1'}),installation,signing,sourceDigest:sourceIdentity.sourceDigest,signReceipt,signReadback,registry,snapshots,hostInstallation,verifierProfile}));
  }finally{await pool.end();}
 }

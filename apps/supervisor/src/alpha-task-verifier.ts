@@ -50,6 +50,8 @@ export interface AlphaTaskInput {
    */
   mode?: "local" | "production";
   isolationAttestation?: IsolationAttestation;
+  /** Host deployment profile. Never supplied by a Work or candidate. Exact private tree is pinned outside this repository. */
+  productionProfile?: { id: "alpha-tasks-node-json-v1"; kind: "PRODUCT"; tree: string };
   /** Test seam only; production uses the module-level profile tables. */
   profiles?: { supported?: typeof supportedBaseTrees; unsupported?: typeof unsupportedBaseTrees };
 }
@@ -92,8 +94,7 @@ export function attestationValid(a: unknown, runner: { id: string } | undefined)
 // ---- supported base trees ------------------------------------------------------------------------
 /**
  * The verifier supports exactly the base trees it has a profile for (stack: Node ESM, JSON file store,
- * node:test; evidence in docs). The two real alpha workspaces are Markdown-only: there is NO application
- * to verify, so they are listed as unsupported with the precise reason and always yield PARTIAL.
+ * node:test; evidence in docs). Private product trees use an exact host deployment profile. Unprofiled trees are PARTIAL.
  */
 export const supportedBaseTrees: Record<string, { id: string; kind: "QUALIFICATION_FIXTURE" | "PRODUCT" }> = {
   // Synthetic reference "Alpha Tasks" base used to qualify this verifier (apps/supervisor/test/fixtures/alpha-tasks).
@@ -145,8 +146,21 @@ export const hiddenSuiteDirectory = (): string | undefined => {
 };
 /** Reads each custody file ONCE, checks the pinned digest on those exact bytes, and imports from those same bytes. */
 export async function loadHiddenSuite(directory = hiddenSuiteDirectory(), pinned = HIDDEN_SUITE_SHA256): Promise<HiddenSuite> {
+  if (!directory && process.env.FACTORY_EXTERNAL_ALPHA_VERIFIER_CUSTODY_JSON) return loadHiddenSuiteSecret(process.env.FACTORY_EXTERNAL_ALPHA_VERIFIER_CUSTODY_JSON, pinned);
   if (!directory) throw new Error("VERIFIER_CUSTODY_UNAVAILABLE");
   const probe = await readFile(join(directory, "probe.mjs")), suite = await readFile(join(directory, "suite.mjs"));
+  return loadHiddenSuiteBytes(probe, suite, pinned);
+}
+/** Hosted control-plane secret only. It is never passed to sandbox allocation, source, prompts, or candidate commands. */
+export async function loadHiddenSuiteSecret(text: string, pinned = HIDDEN_SUITE_SHA256): Promise<HiddenSuite> {
+  if (typeof text !== "string" || Buffer.byteLength(text) > 65536) throw Error("VERIFIER_CUSTODY_DIGEST_MISMATCH");
+  let value: { probeBase64?: string; suiteBase64?: string }; try { value = JSON.parse(text); } catch { throw Error("VERIFIER_CUSTODY_DIGEST_MISMATCH"); }
+  if (!value || Object.keys(value).sort().join(",") !== "probeBase64,suiteBase64" || typeof value.probeBase64 !== "string" || typeof value.suiteBase64 !== "string") throw Error("VERIFIER_CUSTODY_DIGEST_MISMATCH");
+  const probe = Buffer.from(value.probeBase64, "base64"), suite = Buffer.from(value.suiteBase64, "base64");
+  if (probe.toString("base64") !== value.probeBase64 || suite.toString("base64") !== value.suiteBase64) throw Error("VERIFIER_CUSTODY_DIGEST_MISMATCH");
+  return loadHiddenSuiteBytes(probe, suite, pinned);
+}
+async function loadHiddenSuiteBytes(probe: Buffer, suite: Buffer, pinned: string): Promise<HiddenSuite> {
   const digest = sha256(JSON.stringify({ probe: sha256(probe), suite: sha256(suite) }));
   if (digest !== pinned) throw new Error("VERIFIER_CUSTODY_DIGEST_MISMATCH");
   const mod = await import("data:text/javascript;base64," + suite.toString("base64"));
@@ -193,7 +207,7 @@ const mapping: Record<string, number[]> = {
 };
 const forbiddenEffects = ["PUBLICATION", "PULL_REQUEST_CREATE", "BRANCH_PUSH", "MERGE", "DEPLOYMENT", "SOURCE_WRITE", "PACKAGE_PUBLISH", "EXTERNAL_NETWORK_WRITE"];
 
-export const policySha256 = sha256(canonical({ policyId, allowedPathPattern: allowedPathPattern.source, prohibited: prohibitedPatterns.map((p) => p.source), topics, mapping, forbiddenEffects, productionRunnerIds,
+export const policySha256 = sha256(canonical({ policyId, productionProfile: "host-pinned-node-json-v1", productionProbe: "single-operation-stdin-v1", deadline: "shared-wall-clock-v1", allowedPathPattern: allowedPathPattern.source, prohibited: prohibitedPatterns.map((p) => p.source), topics, mapping, forbiddenEffects, productionRunnerIds,
   patterns: [secretPattern.source, egressPattern.source, srcStrictPattern.source, testStrictPattern.source] }));
 
 // ---- the verifier ---------------------------------------------------------------------------------
@@ -213,7 +227,11 @@ export async function verifyAlphaTask(input: AlphaTaskInput): Promise<Acceptance
     candidateTree !== candidate.tree ? "CANDIDATE_TREE_NOT_BYTES" : candidate.tree === expected.candidateTree && candidate.commit === expected.candidateCommit && candidate.parent === source.commit ? "CANDIDATE_IDENTITY_BOUND" : "CANDIDATE_IDENTITY_MISMATCH", { tree: candidateTree });
 
   // 2. supported project
-  const profile = (input.profiles?.supported ?? supportedBaseTrees)[source.tree];
+  const productProfile = input.productionProfile;
+  const validProduct = productProfile?.id === "alpha-tasks-node-json-v1" && productProfile.kind === "PRODUCT" && productProfile.tree === source.tree &&
+    Object.keys(productProfile).sort().join(",") === "id,kind,tree" && !!source.files["src/tasks.js"] && !!source.files["src/render.js"] &&
+    !!source.files["test/tasks.test.mjs"] && !!source.files["test/render.test.mjs"] && (() => { try { return JSON.parse(source.files["package.json"] ?? "").type === "module"; } catch { return false; } })();
+  const profile = input.mode === "production" ? (validProduct ? productProfile : undefined) : (input.profiles?.supported ?? supportedBaseTrees)[source.tree];
   if (profile) add("profile.supported", "PASS", profile.id);
   else add("profile.supported", "INCONCLUSIVE", (input.profiles?.unsupported ?? unsupportedBaseTrees)[source.tree] ?? "UNSUPPORTED_BASE_TREE");
 
@@ -263,7 +281,9 @@ export async function verifyAlphaTask(input: AlphaTaskInput): Promise<Acceptance
   }
 
   add("typecheck", "NOT_APPLICABLE", "PLAIN_JAVASCRIPT_NO_TYPESCRIPT_IN_BASE");
-  const run = (ws: Workspace, args: string[], timeoutMs = 20000): Promise<RunResult> => input.runner.node(ws, args, { timeoutMs: Math.min(timeoutMs, input.limits?.runMs ?? timeoutMs) });
+  const deadline = input.mode === "production" ? Date.now() + (input.limits?.runMs ?? 20000) : Infinity;
+  const remaining = (limit: number): number => { const ms = Math.min(limit, deadline - Date.now(), input.limits?.runMs ?? limit); if (ms < 1) throw Error("VERIFIER_DEADLINE"); return ms; };
+  const run = (ws: Workspace, args: string[], timeoutMs = 20000): Promise<RunResult> => input.runner.node(ws, args, { timeoutMs: remaining(timeoutMs) });
   const dispose: Workspace[] = [];
   const open = async (files: Record<string, string>): Promise<Workspace> => { const ws = await input.runner.workspace(files); dispose.push(ws); return ws; };
   try {
@@ -289,6 +309,11 @@ export async function verifyAlphaTask(input: AlphaTaskInput): Promise<Acceptance
 
     // hidden acceptance: behaviour observed by a confined probe, judged by custody-held expectations here
     const probe = async (ws: Workspace, id: string, ops: unknown[]) => {
+      if (input.mode === "production") {
+        if (!input.runner.probe) return { crashed: true as const };
+        const out = await input.runner.probe(ws, { id, ops }, { timeoutMs: remaining(20000) });
+        return out.timedOut ? { timedOut: true as const } : out.crashed || !out.results ? { crashed: true as const } : { results: out.results };
+      }
       const nonce = "PROBE_" + randomBytes(16).toString("hex");
       const r = await run(ws, ["--input-type=module", "-e", input.hidden.probeSource, JSON.stringify({ root: ws.dir, scratch: ws.scratch, id, ops, nonce })], 20000);
       const lines = r.stdout.split("\n").filter((l) => l.startsWith(nonce + " "));
