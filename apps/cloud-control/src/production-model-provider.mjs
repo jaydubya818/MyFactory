@@ -1,6 +1,7 @@
 import {getVercelOidcToken,verifyVercelOidcToken} from '@vercel/oidc';
 import {validatePrice} from '../../supervisor/src/spend-gateway.ts';
 import {productionInstallation} from './production-installation.mjs';
+import {externalAlphaHostInstallation} from './external-alpha-host-installation.mjs';
 
 // Independently pinned production rate card; never import the deterministic
 // qualification price. Limits below deliberately bound the provider's larger
@@ -15,16 +16,26 @@ const issuer='https://oidc.vercel.com/jaydubya818',audience='https://vercel.com/
 
 /** Host-only ProviderConnection for the existing SpendGateway. Installation
  * is not execution authority: a separately bound Work authorization callback
- * must succeed on every operation before acquiring any workload credential.
- * This adapter is not yet wired into production admission. */
+ * must succeed on every operation before acquiring any workload credential. */
 export function productionModelProvider({env,assertWorkAuthorized},dependencies={getToken:getVercelOidcToken,verifyToken:verifyVercelOidcToken}){
- const installation=productionInstallation(env);
+ return boundModelProvider(()=>productionInstallation(env),assertWorkAuthorized,dependencies);
+}
+/** Dedicated external-alpha host only. No historical canary configuration can
+ * select this adapter, and the slot installation never grants Work execution. */
+export function externalAlphaModelProvider({env,installation,assertWorkAuthorized},dependencies={getToken:getVercelOidcToken,verifyToken:verifyVercelOidcToken}){
+ return boundModelProvider(()=>externalAlphaHostInstallation(env,installation),assertWorkAuthorized,dependencies);
+}
+function boundModelProvider(readInstallation,assertWorkAuthorized,dependencies){
+ const installation=readInstallation();
  if(typeof assertWorkAuthorized!=='function')throw Error('PRODUCTION_MODEL_AUTHORITY_REQUIRED');
  validatePrice(productionModelPrice);
  return {
   upstreamOrigin:new URL(productionModelEndpoint).origin,price:{...productionModelPrice},
   async authorize(){
    try{
+    // Recheck the live server environment before every credential acquisition.
+    const current=readInstallation();
+    if(current.projectId!==installation.projectId||current.teamId!==installation.teamId)throw Error();
     await assertWorkAuthorized();
     validatePrice(productionModelPrice);
     // Runtime acquisition only, without CLI project arguments or API-key fallback.

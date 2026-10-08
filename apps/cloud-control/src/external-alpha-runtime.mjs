@@ -13,7 +13,7 @@ import {verifyCloudCandidate,reconcileCloudVerification} from './cloud-verificat
 import {externalAlphaHostInstallation} from './external-alpha-host-installation.mjs';
 import {assertProductionDatabaseMarker} from './production-database.mjs';
 import {productionWorkloadIdentity} from './production-identity.mjs';
-import {productionModelProvider} from './production-model-provider.mjs';
+import {externalAlphaModelProvider} from './production-model-provider.mjs';
 import {externalAlphaReadback,readbackSigner,assertExternalAlphaResult} from './external-alpha-readback.mjs';
 import {productionConfiguration,productionSpendPlan} from './production-execution-plan.mjs';
 import {loadPrivateSourceRegistry,registryEntryFor} from './external-alpha-registry.mjs';
@@ -98,7 +98,7 @@ export function externalAlphaRuntimeComponents({env={},pool,queue,installation,s
  const sourceProvider=cloudWorkProvider({ledger:spend,plan,projectId:hostInstallation?.projectId,custodyStore:hostInstallation?.custodyStoreId,custodyPrefix:'factory/production',
   providerOptions:async()=>({token:await productionWorkloadIdentity(hostInstallation),projectId:hostInstallation.projectId,teamId:hostInstallation.teamId}),
   blobOptions:async()=>({oidcToken:await productionWorkloadIdentity(hostInstallation)}),
-  modelProviderForRow:row=>productionModelProvider({env,assertWorkAuthorized:()=>assertWorkAuthorized(row)}),
+  modelProviderForRow:row=>externalAlphaModelProvider({env,installation,assertWorkAuthorized:()=>assertWorkAuthorized(row)}),
   // Gate 2: private-source mode. The producer receives only the digest-verified snapshot; GitHub is never reachable from it.
   ...(entry?{privateSource:{binding:{slot:entry.slot,owner:entry.owner,repo:entry.repo,commit:entry.commit,tree:entry.tree},registry,custody,receipt}}:{})});
  const injectedProvider=providerFactory?.({spend,plan,privateSource:{binding:{slot:entry.slot,owner:entry.owner,repo:entry.repo,commit:entry.commit,tree:entry.tree},registry,custody,receipt},assertWorkAuthorized})??provider;

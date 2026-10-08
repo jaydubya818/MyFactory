@@ -418,8 +418,8 @@
     },
     "apps/cloud-control/src/production-model-provider.mjs": {
       "classification": "ENFORCED",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
-      "sha256": "71fd48051b2847f672b3ceec1ed3e1a8402a29ff73707e015765d75c56d487c6"
+      "authorityBoundary": "Separate canonical canary and dedicated external-alpha host loaders bind live server project/team/environment before per-Work authority and fresh verified OIDC. Shared fixed rate/endpoint/routing has no static-key fallback, model substitution or installation execution grant.",
+      "sha256": "2e1a7c3987ec0c321bbcc9d9cf0c1a3cfe602fa797d57e3a67a76c35a05f0837"
     },
     "apps/cloud-control/src/production-runtime-components.mjs": {
       "classification": "ENFORCED",
@@ -542,7 +542,7 @@
       "authorityBoundary": "After one authority preparation, derives exact persisted dispatch identity and sends once through the canonical delivery claim. Signed readback exposes admission/ambiguity without creating a fallback."
     },
     "apps/cloud-control/src/external-alpha-runtime.mjs": {
-      "sha256": "682a2991f192507371deea79ece7221466ffa8e45ff6d1aa71ba812545300c8a",
+      "sha256": "f4530977407737d0b60bd3909e12f49c322adbc579691251676b8bda3539d28f",
       "classification": "HOST_ACTIVATION",
       "authorityBoundary": "Composes mandatory digest-pinned private custody and product profile, per-slot source/config FactoryVersion, dedicated registered host, independent acceptance, exact owner authority and durable ambiguity fencing before execution. Injected transports cannot bypass source validation."
     },
