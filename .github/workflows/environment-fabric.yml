@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: jaydubya818/MyEveBot
-          ref: c9a089e1a45b9eea2477347ae1076d0afee9baa6
+          ref: 3b423442652ee6a95070eb5cfbbcbf878f1ebe6c
           path: .qualification/myeve
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
