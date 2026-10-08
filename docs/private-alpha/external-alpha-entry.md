@@ -66,3 +66,7 @@ Qualification for this increment covers real PostgreSQL expiry/restart/concurren
 
 
 Live conformance now pins the reviewed MyEve checkpoint and runs its actual issuer, prepare builder and readback verifier. Synthetic vectors include a separate Result verification key, matching source/configuration/version and installation pins, a complete ledger and nonce-challenged attestation signed by the real Factory helper. Both committed and freshly generated cases must accept the exact signed fields, reject receipt-only/tampered responses, and ignore unsigned compatibility claims. Hosted CI runs this live check and the actual PostgreSQL authority-consumption suite. Public fixture keys are derived from public test seeds and must never be installed as real trust.
+
+## Productive delivery checkpoint
+
+Dedicated platform-private work and delayed-cleanup queue callbacks resolve the exact pinned installation from durable intake and authority rows. Queue payloads carry only the original run and nonce. Duplicate callbacks observe the sole canonical resource and retained signed Result. Unknown send acknowledgment fences the consumed authority and its budget; it cannot resend or allocate. Cancellation before allocation retains CANCELLED terminal truth without contacting a provider. Productive source and protected verifier qualification remain required before activation.

@@ -8,7 +8,7 @@ import {cloudVerifierPolicySha256} from './cloud-verifier-policy.mjs';
 /** Canonical Factory admission history and resource leases. Queue delivery grants
  * no authority. All mutable checks serialize with the canonical spend ledger. */
 export class PostgresDispatchStore {
-  constructor(pool,{maxWorks=8,workLimitError='STAGING_WORK_LIMIT',custodyPrefix='factory/staging',verificationPolicySha256=cloudVerifierPolicySha256,assertAuthority,assertRecordScope,strictWriterFence=false,requireVerifierPass=false}={}) { if(!Number.isSafeInteger(maxWorks)||maxWorks<1||maxWorks>8||!['factory/staging','factory/production'].includes(custodyPrefix)||!/^[a-f0-9]{64}$/.test(verificationPolicySha256))throw Error('DISPATCH_CONFIGURATION_INVALID');this.assertAuthority=assertAuthority;this.assertRecordScope=assertRecordScope;this.pool=pool;this.maxWorks=maxWorks;this.workLimitError=workLimitError;this.custodyPrefix=custodyPrefix;this.verificationPolicySha256=verificationPolicySha256;this.strictWriterFence=strictWriterFence;this.requireVerifierPass=requireVerifierPass; }
+  constructor(pool,{maxWorks=8,workLimitError='STAGING_WORK_LIMIT',custodyPrefix='factory/staging',verificationPolicySha256=cloudVerifierPolicySha256,assertAuthority,assertRecordScope,strictWriterFence=false,requireVerifierPass=false,onDeliveryUnknown}={}) { if(!Number.isSafeInteger(maxWorks)||maxWorks<1||maxWorks>8||!['factory/staging','factory/production'].includes(custodyPrefix)||!/^[a-f0-9]{64}$/.test(verificationPolicySha256))throw Error('DISPATCH_CONFIGURATION_INVALID');this.assertAuthority=assertAuthority;this.assertRecordScope=assertRecordScope;this.pool=pool;this.maxWorks=maxWorks;this.workLimitError=workLimitError;this.custodyPrefix=custodyPrefix;this.verificationPolicySha256=verificationPolicySha256;this.strictWriterFence=strictWriterFence;this.requireVerifierPass=requireVerifierPass;this.onDeliveryUnknown=onDeliveryUnknown; }
   async transaction(action) {
     const client=await this.pool.connect();
     try {
@@ -152,7 +152,8 @@ export class PostgresDispatchStore {
     if(messageId!==null&&(typeof messageId!=='string'||!messageId.length||messageId.length>256))throw Error('INVALID_MESSAGE_ID');
     return this.transaction(async client=>{
       await this.assertRunScope(client,runId);
-      await client.query("UPDATE factory.delivery_intents SET state=$2,message_id=$3 WHERE run_id=$1 AND state='SENDING'",[runId,messageId?'ACCEPTED':'UNKNOWN',messageId]);
+      const changed=await client.query("UPDATE factory.delivery_intents SET state=$2,message_id=$3 WHERE run_id=$1 AND state='SENDING' RETURNING run_id",[runId,messageId?'ACCEPTED':'UNKNOWN',messageId]);
+      if(messageId===null&&changed.rowCount&&this.onDeliveryUnknown)await this.onDeliveryUnknown(client,runId);
       if(messageId===null){
         const row=(await client.query("SELECT i.* FROM factory.intake_receipts i JOIN factory.delivery_intents d ON d.run_id=i.run_id WHERE i.run_id=$1 AND i.client_id='sofie-production-validation' AND d.state='UNKNOWN'",[runId])).rows[0];
         if(row){

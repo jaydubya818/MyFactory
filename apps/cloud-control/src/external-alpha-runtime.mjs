@@ -75,6 +75,13 @@ export function externalAlphaRuntimeComponents({env={},pool,queue,installation,s
  const authority=new ExternalAlphaAuthorityStore(pool,installation,{signReceipt});
  const store=new PostgresDispatchStore(pool,{maxWorks:5,workLimitError:'EXTERNAL_ALPHA_WORK_LIMIT',custodyPrefix:'factory/production',verificationPolicySha256,strictWriterFence:true,requireVerifierPass:true,
   assertAuthority:authority.assertAuthority(),
+  onDeliveryUnknown:async(client,runId)=>{
+   const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
+   if(!row||!await authority.ownedRow(client,row.request_id,{currentGeneration:false}))throw new ExternalAlphaError('AUTHORITY_OWNER');
+   await client.query("UPDATE factory.external_alpha_work_authority SET state='UNKNOWN',state_reason='DELIVERY_UNKNOWN' WHERE request_id=$1 AND state='CONSUMED'",[row.request_id]);
+   await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced',cancelled_at=clock_timestamp() WHERE work_id=$1 AND work_generation=$2",[row.work_id,row.work_generation]);
+   await client.query('UPDATE factory.execution_resources SET cancelled_at=clock_timestamp(),lease_expires_at=clock_timestamp() WHERE run_id=$1',[runId]);
+  },
   // Every record read or written through this store must belong to THIS slot's admission.
   assertRecordScope:async(client,row)=>{const a=await authority.ownedRow(client,row.request_id,{currentGeneration:false});if(row.client_id!==clientId||!a||row.work_id!==a.work_id||row.work_generation!==a.work_generation||row.snapshot.factoryVersion!==installation.factoryVersion||row.snapshot.requestDigest!==digest(row.request))throw new ExternalAlphaError('AUTHORITY_OWNER');}});
  const spend=new PostgresSpendLedger(pool,{assertPaidAuthority:authority.assertPaidAuthority(),onUnknown:authority.fenceUnknownSpend()});
@@ -106,7 +113,7 @@ export function externalAlphaRuntimeComponents({env={},pool,queue,installation,s
   const out=await control.result(requestId),row=await store.read(clientId,requestId),readback=await readbackWithReceipt(requestId,challenge);
   return out.result?{...readback,result:assertExternalAlphaResult(row,out.result)}:{...readback,pending:true,state:'PENDING',workState:readback.readbackAttestation.state};
  };
- return {authority,store,spend,control,provider:workProvider,verification:verificationStore,clientId,installation,readbackWithReceipt,readResult,topics:{work:'factory-external-alpha-work-v1',recovery:'factory-external-alpha-recovery-v1'}};
+ return {authority,store,spend,queue,control,provider:workProvider,verification:verificationStore,clientId,installation,readbackWithReceipt,readResult,topics:{work:'factory-external-alpha-work-v1',recovery:'factory-external-alpha-recovery-v1'}};
 }
 
 /** Production wiring for the HTTP entry. Requires every reviewed input; any gap is a denial. */

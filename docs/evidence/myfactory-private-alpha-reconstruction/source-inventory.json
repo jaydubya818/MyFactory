@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired. Optional grant flag derivedRequestId admits a deterministic version-8 requestId for external-alpha only; Work ids and all canary and production grants remain version-4 only."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "d5aa00ecc7eb624a49a4708cdc2c56d9f4841a3c7f159e1625d30a6936d7a590",
+      "sha256": "c7d0dc1bbb964339af20afcbcb7012e3d327161825ab1b171c4f6a175a435b4f",
       "classification": "CLOUD_DISPATCH_AUTHORITY",
-      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review. Checkpoint A: dedicated signed Result/readback and cleanup-only durable reconciliation. External-alpha-only strict writer/custody fencing and verifier PASS requirement; historical callers retain existing defaults."
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review. Checkpoint A: dedicated signed Result/readback and cleanup-only durable reconciliation. External-alpha-only strict writer/custody fencing and verifier PASS requirement; historical callers retain existing defaults. External-alpha productive dispatch: queue is retained in runtime; unknown send acknowledgment atomically fences the exact consumed authority and resource without redispatch. Pre-allocation cancellation reconciles the original Run and retains terminal truth."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -223,8 +223,8 @@
     },
     "apps/cloud-control/src/cloud-queue-consumer.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
-      "sha256": "11f369eada0b68684e67c3a5d546c92e74d29cecbe8482b4aaf41efca44904ae"
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. External-alpha productive dispatch: queue is retained in runtime; unknown send acknowledgment atomically fences the exact consumed authority and resource without redispatch. Pre-allocation cancellation reconciles the original Run and retains terminal truth.",
+      "sha256": "dbed2a3c858ff1eae2b1661814bd8029eb022e0e057592d91abde45d69282fd3"
     },
     "apps/cloud-control/src/cloud-work-result.mjs": {
       "sha256": "12485ad333cf92090bd91cf16cd6643d25335086944dea175778cefc00be8332",
@@ -542,9 +542,9 @@
       "authorityBoundary": "Separate HTTP handler: enabled only by a digest-pinned Factory installation (absent means deny); caller authorized by the exact per-slot tuple (sha256 of the slot bearer credential and verified Vercel OIDC issuer, audience, subject, team, project, production); canary, staging and production credentials can never authenticate; validate, then atomic consume, then CloudWorkControl prepare; read, dispatch and stop only for the slot-owned Work; bounded bodies and fixed error codes. Grants no publication, merge, deployment or additional spend authority. Checkpoint A: dedicated signed Result/readback and cleanup-only durable reconciliation. External-alpha-only strict writer/custody fencing and verifier PASS requirement; historical callers retain existing defaults."
     },
     "apps/cloud-control/src/external-alpha-runtime.mjs": {
-      "sha256": "08fd51d0c9cb07b5a34107afda128b64d8f6d84eb597b46705868a7d6742dcb7",
+      "sha256": "500bf7912264606c8e2b59b6b1cdd8ff274f9a8a2b1a1488dee8ebe9be3af7ef",
       "classification": "EXTERNAL_ALPHA_RUNTIME_COMPOSITION",
-      "authorityBoundary": "Composes dispatch store, spend ledger, private-source provider and Alpha Tasks verifier only when the running source digest and FactoryVersion equal what the pinned installation names; every record is scoped to the slot admission; signed receipt on every readback. Fails closed on any gap. Checkpoint A: dedicated signed Result/readback and cleanup-only durable reconciliation. External-alpha-only strict writer/custody fencing and verifier PASS requirement; historical callers retain existing defaults."
+      "authorityBoundary": "Composes dispatch store, spend ledger, private-source provider and Alpha Tasks verifier only when the running source digest and FactoryVersion equal what the pinned installation names; every record is scoped to the slot admission; signed receipt on every readback. Fails closed on any gap. Checkpoint A: dedicated signed Result/readback and cleanup-only durable reconciliation. External-alpha-only strict writer/custody fencing and verifier PASS requirement; historical callers retain existing defaults. External-alpha productive dispatch: queue is retained in runtime; unknown send acknowledgment atomically fences the exact consumed authority and resource without redispatch. Pre-allocation cancellation reconciles the original Run and retains terminal truth."
     },
     "apps/cloud-control/src/external-alpha-registry.mjs": {
       "sha256": "d12f8a5ea98382558377aac559227eea01a964de83736062b7659e3b1649f550",
@@ -570,6 +570,21 @@
       "sha256": "ea36c78ad9b06c936df7ed189988c2fa1e1a037ad77d072030c2acb6eeedace6",
       "classification": "EXTERNAL_ALPHA_RECOVERY_ENTRY",
       "authorityBoundary": "Calls only cron-authenticated original-resource recovery; absent installation is disabled."
+    },
+    "apps/cloud-control/src/external-alpha-delivery.mjs": {
+      "sha256": "4c6471ae9a2fb1bc51a16f14443ac5e3e58df8190511e95167d79ae9c6b1426a",
+      "classification": "DISPATCH_ADMISSION",
+      "authorityBoundary": "Productive or cleanup queue wakeup resolves the exact digest-pinned slot from stored intake and authority. Payload supplies no owner/source/executor authority; stored nonce, deployment, Work generation, paid authority and sole resource lease govern execution. No legacy fallback or replacement dispatch."
+    },
+    "apps/cloud-control/api/external-alpha-work.mjs": {
+      "sha256": "a931a93d9ee5f0a5de16672c09111d329374fee15395449accebb52270000763",
+      "classification": "DISPATCH_ADMISSION",
+      "authorityBoundary": "Platform-private external-alpha productive topic only; durable slot/nonce/deployment/Work authority checks before canonical execution."
+    },
+    "apps/cloud-control/api/external-alpha-queue-recovery.mjs": {
+      "sha256": "dde4ef98c82db4c017c3d342011d415bea917a87dfea5444d75a8f7cba09fb6f",
+      "classification": "EXECUTOR_LIFECYCLE",
+      "authorityBoundary": "Platform-private external-alpha cleanup topic only; observes or destroys the original resource and signs its Result; never reclaims or replaces productive execution."
     }
   }
 }
