@@ -1,0 +1,26 @@
+name: MyApps Factory reference
+on:
+  push:
+    branches: [codex/myapps-foundation]
+    paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps.test.mjs', '.github/workflows/myapps-reference.yml']
+  pull_request:
+    paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps.test.mjs', '.github/workflows/myapps-reference.yml']
+permissions:
+  contents: read
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: jaydubya818/MyEveBot
+          ref: a7f16a4b56958299b28cf2fe9ac99d29d89616d6
+          path: .qualification/myeve
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test packages/app-builder/test/*.test.mjs apps/cloud-control/test/cloud-verification.test.mjs
+        env:
+          MYEVE_SOURCE_ROOT: ${{ github.workspace }}/.qualification/myeve
