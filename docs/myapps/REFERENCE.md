@@ -10,6 +10,14 @@ build and verification checks that function; package content cannot grant Work
 authority. The model provider is `deterministic/no-model`: this is a literal
 reference identity, with no model request or spending operation.
 
+The authorization callback receives `{work, appId, appVersion, appDigest,
+factoryVersion}`. It must compare these with an independently admitted owner
+intent as well as current Work version/generation/control. An active Work alone
+is insufficient. The controller also checks its real Factory Git commit and
+configuration digest. Configuration binds the exact trusted MyEve contract/store/
+CRM source bytes and actual Node/platform/architecture. Result carries that exact
+configuration, so changing the trusted runtime dependency changes FactoryVersion.
+
 The producer receives the exact declarative package on stdin, imports only the
 trusted MyEve contract, and runs with Node's permission mode and a minimal
 environment. It has no filesystem write, child process, worker or protected-test
@@ -56,7 +64,7 @@ MYEVE_SOURCE_ROOT=/path/to/qualified/MyEveBot node --test \
   apps/cloud-control/test/cloud-verification.test.mjs
 ```
 
-At the E/F checkpoint: 18 tests pass, including all pre-existing App Builder and
+At the final local checkpoint: 19 tests pass, including all pre-existing App Builder and
 preview tests, verifier continuation faults, candidate tampering, Work denial,
 duplicate build/result handling, restart, signature tampering and correlation.
 The MyEve composed qualification adds canonical PostgreSQL Work creation,
