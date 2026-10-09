@@ -11,7 +11,7 @@ export class PostgresVerificationStore{
    if(this.dispatch.assertAuthority)await this.dispatch.assertAuthority(client,row.request,now,'verifier');
    const custody=(await client.query('SELECT * FROM factory.candidate_custody WHERE run_id=$1',[row.run_id])).rows[0];
    const producer=(await client.query('SELECT * FROM factory.execution_resources WHERE run_id=$1',[row.run_id])).rows[0];
-   if(!custody||!producer?.cleanup_confirmed||producer.evidence.visibleChecksPassed!==true||producer.cancelled_at||new Date(row.deadline).getTime()<=now||!row.identity||row.snapshot.configuration?.cloud?.verificationPolicySha256!==this.policySha256)throw Error('VERIFIER_ADMISSION_DENIED');
+   if(!custody||!producer?.cleanup_confirmed||producer.evidence.visibleChecksPassed!==true||producer.cancelled_at||new Date(row.deadline).getTime()<=now||!row.identity||(row.snapshot.version===3?row.snapshot.configuration.local:row.snapshot.configuration?.cloud)?.verificationPolicySha256!==this.policySha256)throw Error('VERIFIER_ADMISSION_DENIED');
    if((await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.stop_requested','factory.terminal')",[row.run_id])).rowCount)throw Error('VERIFIER_AUTHORITY_FENCED');
    if((await client.query('SELECT 1 FROM factory.execution_resources WHERE NOT cleanup_confirmed LIMIT 1')).rowCount)throw Error('VERIFIER_ADMISSION_DENIED');
    const lease=randomUUID(),deadline=new Date(Math.min(now+this.policy.timeoutMs,new Date(row.deadline).getTime())).toISOString();

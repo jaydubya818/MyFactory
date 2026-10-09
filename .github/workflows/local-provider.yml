@@ -1,0 +1,31 @@
+name: Local provider qualification
+on:
+  push:
+    branches: [codex/local-provider-qualification]
+permissions:
+  contents: read
+jobs:
+  qualification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.18.1'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run typecheck:producer
+      - name: Existing Vercel and Result contracts
+        run: node --test packages/hosted-routing/test/*.test.mjs apps/cloud-control/test/cloud-snapshot.test.mjs apps/cloud-control/test/cloud-work-lifecycle.test.mjs apps/cloud-control/test/cloud-verification.test.mjs apps/cloud-control/test/candidate-custody.test.mjs
+      - name: Provision exact public source and image
+        run: |
+          git fetch --no-tags origin 5cd13fa1f307a0c0f42f6317d966bb3179ad77c9
+          test "$(git rev-parse FETCH_HEAD)" = 5cd13fa1f307a0c0f42f6317d966bb3179ad77c9
+          docker pull public.ecr.aws/docker/library/node@sha256:3d27e5c11e5786e309ec3e03f93ae536eb36e6e5eb3714d5eb3300a36157add0
+          docker pull postgres:17
+      - name: Actual Docker and PostgreSQL qualification
+        env:
+          MYFACTORY_FIXTURE_GIT: .git
+        run: node apps/cloud-control/scripts/qualify-local-provider.mjs

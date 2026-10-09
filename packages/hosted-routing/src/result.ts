@@ -1,3 +1,4 @@
+import { validateLocalConfiguration, validateLocalEvidence, validateLocalBinding, type LocalExecutionConfiguration, type LocalExecutionEvidence } from './local-provenance.ts';
 import { isModelReference } from '../../contracts/src/model-reference.ts';
 import { createHash, type KeyObject } from 'node:crypto';
 import { signProtocolPayload, verifyProtocolPayload } from './index.mjs';
@@ -28,9 +29,11 @@ export interface ExecutionConfiguration {
   workerProfile: string; verificationImage: string; nodeVersion: string; platform: string; architecture: string;
   commands: string[]; allowedPaths: string[]; timeoutMs: number;
   cloud?: CloudExecutionConfiguration;
+  local?: LocalExecutionConfiguration;
 }
 export interface ExecutionSnapshot {
-  version: 1 | 2; inputTree?: string; factoryId: string; factoryVersion: string; sourceDigest: string;
+  localBinding?: { ownerScope: string; delegationDigest: string; repository: string; sourceSnapshotSha256: string };
+  version: 1 | 2 | 3; inputTree?: string; factoryId: string; factoryVersion: string; sourceDigest: string;
   configurationDigest: string; configuration: ExecutionConfiguration;
   requestId: string; requestDigest: string; workOrderId: string; runId: string;
   attemptNumber: number; inputCommit: string; capturedAt: string;
@@ -45,7 +48,7 @@ export interface ResultEvidence {
   startedAt: string; finishedAt: string; logArtifactId: string;
 }
 export interface CloudVerificationEvidence {
-  version: 1; kind: 'INDEPENDENT_CLOUD_VERIFICATION'; runId: string;
+  version: 1; kind: 'INDEPENDENT_CLOUD_VERIFICATION' | 'INDEPENDENT_LOCAL_VERIFICATION'; runId: string;
   workId: string; workGeneration: number; candidateCommit: string; candidateTree: string;
   custodySha256: string; policySha256: string; image: string;
   providerSessionId: string | null; producerSessionId: string; cleanupConfirmed: true;
@@ -60,6 +63,7 @@ export interface ResultManifest {
   evidence: ResultEvidence[]; artifacts: ResultArtifact[]; evidenceDigest: string; artifactDigest: string;
   completedAt: string; issuedAt: string;
   verification?: CloudVerificationEvidence;
+  localExecution?: LocalExecutionEvidence;
 }
 export interface SignedResult {
   protocol: typeof RESULT_PROTOCOL; encoded: string; signature: string; manifestDigest: string;
@@ -106,24 +110,25 @@ function validateCloudConfiguration(c: Record<string,unknown>): void {
 
 export function validateManifest(value: unknown): asserts value is ResultManifest {
   const hasVerification=!!value&&typeof value==='object'&&Object.hasOwn(value,'verification');
-  exact(value, ['protocol','keyId','producer','operationId','execution','status','candidate','evidence','artifacts','evidenceDigest','artifactDigest','completedAt','issuedAt',...(hasVerification?['verification']:[])]);
+  exact(value, ['protocol','keyId','producer','operationId','execution','status','candidate','evidence','artifacts','evidenceDigest','artifactDigest','completedAt','issuedAt',...(hasVerification?['verification']:[]),...((value as any)?.execution?.version===3?['localExecution']:[])]);
   requireValue(value.protocol === RESULT_PROTOCOL, 'Unknown result protocol');
   text(value.keyId); text(value.producer); hash(value.operationId); hash(value.evidenceDigest); hash(value.artifactDigest);
   time(value.completedAt); time(value.issuedAt);
   requireValue(Date.parse(value.completedAt) <= Date.parse(value.issuedAt), 'Completion after issuance');
   requireValue(['COMPLETED','FAILED','CANCELLED'].includes(String(value.status)), 'Nonterminal result');
   const e = value.execution;
-  exact(e, ['version','factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','capturedAt',...((e as Record<string,unknown>)?.version===2?['inputTree']:[])]);
-  requireValue((e.version === 1 || e.version === 2) && e.factoryId === value.producer, 'Producer mismatch');
-  if(e.version===2)gitHash(e.inputTree);
+  exact(e, ['version','factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','capturedAt',...((e as Record<string,unknown>)?.version!==1?['inputTree']:[]),...((e as Record<string,unknown>)?.version===3?['localBinding']:[])]);
+  requireValue((e.version === 1 || e.version === 2 || e.version === 3) && e.factoryId === value.producer, 'Producer mismatch');
+  if(e.version===2||e.version===3)gitHash(e.inputTree);
   for (const key of ['factoryId','requestId','workOrderId','runId']) text(e[key]);
   for (const key of ['factoryVersion','sourceDigest','configurationDigest','requestDigest']) hash(e[key]);
   gitHash(e.inputCommit); time(e.capturedAt);
   requireValue(Number.isSafeInteger(e.attemptNumber) && Number(e.attemptNumber) > 0, 'Invalid attempt');
   requireValue(Date.parse(e.capturedAt) <= Date.parse(value.completedAt), 'Completion before admission');
   const c = e.configuration;
-  exact(c, ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture','commands','allowedPaths','timeoutMs',...(e.version===2?['cloud']:[])]);
+  exact(c, ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture','commands','allowedPaths','timeoutMs',...(e.version===2?['cloud']:e.version===3?['local']:[])]);
   if(e.version===2)validateCloudConfiguration(c);
+  if(e.version===3){validateLocalConfiguration(c);validateLocalBinding(e.localBinding);const b=e.localBinding as Record<string,unknown>;requireValue(b.sourceSnapshotSha256===digest({repository:b.repository,commit:e.inputCommit,tree:e.inputTree}),'Local source snapshot mismatch');}
   for (const key of ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture']) text(c[key]);
   requireValue(isModelReference(c.model), 'Invalid canonical model reference');
   for (const key of ['commands','allowedPaths']) {
@@ -175,11 +180,11 @@ export function validateManifest(value: unknown): asserts value is ResultManifes
     requireValue(canonical(value.evidence.map(c => c.command)) === canonical(c.commands), 'Missing required checks');
   }
   if(hasVerification){
-    requireValue(e.version===2&&value.candidate!==null,'Cloud verification requires a cloud candidate');
-    const candidate=value.candidate as Record<string,unknown>,cloud=c.cloud as Record<string,unknown>;
+    requireValue((e.version===2||e.version===3)&&value.candidate!==null,'Cloud verification requires a cloud candidate');
+    const candidate=value.candidate as Record<string,unknown>,cloud=(e.version===3?c.local:c.cloud) as Record<string,unknown>;
     const v=value.verification;
     exact(v,['version','kind','runId','workId','workGeneration','candidateCommit','candidateTree','custodySha256','policySha256','image','providerSessionId','producerSessionId','cleanupConfirmed','outcome','checks','startedAt','finishedAt']);
-    requireValue(v.version===1&&v.kind==='INDEPENDENT_CLOUD_VERIFICATION'&&v.runId===e.runId,'Verifier provenance mismatch');
+    requireValue(v.version===1&&v.kind===(e.version===3?'INDEPENDENT_LOCAL_VERIFICATION':'INDEPENDENT_CLOUD_VERIFICATION')&&v.runId===e.runId,'Verifier provenance mismatch');
     text(v.workId);requireValue(Number.isSafeInteger(v.workGeneration)&&Number(v.workGeneration)>0,'Verifier Work generation');
     requireValue(v.candidateCommit===candidate.commit&&v.candidateTree===candidate.tree,'Verifier candidate mismatch');
     hash(v.custodySha256);hash(v.policySha256);
@@ -193,6 +198,7 @@ export function validateManifest(value: unknown): asserts value is ResultManifes
     time(v.startedAt);time(v.finishedAt);
     requireValue(Date.parse(v.startedAt)>=Date.parse(e.capturedAt)&&Date.parse(v.startedAt)<=Date.parse(v.finishedAt)&&Date.parse(v.finishedAt)<=Date.parse(value.completedAt),'Verifier chronology mismatch');
   }
+  if(e.version===3)validateLocalEvidence(value);
   requireValue(digest(value.evidence) === value.evidenceDigest && digest(value.artifacts) === value.artifactDigest, 'Manifest digest mismatch');
 }
 
@@ -226,6 +232,7 @@ export function signResult(manifest: ResultManifest, artifacts: SignedResult['ar
 export function verifyResult(input: unknown, options: {
   keys: ResultKey[]; factoryId: string; requestId: string; workOrderId: string; runId: string;
   factoryVersion: string; now?: number; historical?: boolean;
+  localProvider?: { provider: 'local-docker'; ownerScope: string; delegationDigest: string };
 }): {manifest: ResultManifest; keyValidForCurrentUse: boolean} {
   requireValue(Buffer.byteLength(JSON.stringify(input) ?? '') <= MAX_RESULT_BYTES, 'Result size limit');
   exact(input, ['protocol','encoded','signature','manifestDigest','artifacts']);
@@ -236,6 +243,11 @@ export function verifyResult(input: unknown, options: {
   requireValue(keys.length === 1, 'Unknown or ambiguous key'); const key = keys[0];
   requireValue(verifyProtocolPayload(RESULT_PROTOCOL,input.encoded,input.signature,key.publicKey), 'Invalid signature');
   requireValue(manifest.producer === options.factoryId && manifest.execution.requestId === options.requestId && manifest.execution.workOrderId === options.workOrderId && manifest.execution.runId === options.runId && manifest.execution.factoryVersion === options.factoryVersion, 'Result correlation mismatch');
+  if (manifest.execution.version === 3) {
+    const expected = options.localProvider, binding = manifest.execution.localBinding!;
+    requireValue(expected?.provider === 'local-docker' && expected.ownerScope === binding.ownerScope
+      && expected.delegationDigest === binding.delegationDigest, 'Local provider negotiation required');
+  } else requireValue(!options.localProvider, 'Selected provider mismatch');
   const now = options.now ?? Date.now(), issued = Date.parse(manifest.issuedAt);
   time(key.activeFrom); time(key.notAfter); if (key.retiredAt) time(key.retiredAt); if (key.revokedAt) time(key.revokedAt);
   requireValue(issued >= Date.parse(key.activeFrom) && issued <= Date.parse(key.notAfter) && issued <= now, 'Key validity window');

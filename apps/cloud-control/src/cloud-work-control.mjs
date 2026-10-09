@@ -26,10 +26,10 @@ export function validationResourceState(row,now=Date.now()){
 }
 
 export class CloudWorkControl {
- constructor({store,spend,provider,queue,signing,sourceDigest,deploymentId,ownerScope,grant=cloudGrant,configuration=cloudConfiguration,executionSpendPlan=spendPlan,executionWorkTopic=workTopic,verificationPolicy}) {Object.assign(this,{store,spend,provider,queue,signing,sourceDigest,deploymentId,ownerScope,grant,configuration,executionSpendPlan,executionWorkTopic,verificationPolicy});}
+ constructor({store,spend,provider,queue,signing,sourceDigest,deploymentId,ownerScope,grant=cloudGrant,configuration=cloudConfiguration,executionSpendPlan=spendPlan,executionWorkTopic=workTopic,verificationPolicy,executionBinding}) {Object.assign(this,{store,spend,provider,queue,signing,sourceDigest,deploymentId,ownerScope,grant,configuration,executionSpendPlan,executionWorkTopic,verificationPolicy,executionBinding});}
  snapshot(request,order,run){
   const configuration=structuredClone(this.configuration),configurationDigest=digest(configuration);
-  return{version:2,inputTree:request.source.tree,factoryId:this.signing.factoryId,factoryVersion:digest({sourceDigest:this.sourceDigest,configurationDigest}),sourceDigest:this.sourceDigest,configurationDigest,configuration,requestId:request.requestId,requestDigest:digest(request),workOrderId:order.id,runId:run.id,attemptNumber:1,inputCommit:request.source.commit,capturedAt:run.startedAt};
+  return{version:configuration.local?3:2,...(configuration.local?{localBinding:this.executionBinding}:{}),inputTree:request.source.tree,factoryId:this.signing.factoryId,factoryVersion:digest({sourceDigest:this.sourceDigest,configurationDigest}),sourceDigest:this.sourceDigest,configurationDigest,configuration,requestId:request.requestId,requestDigest:digest(request),workOrderId:order.id,runId:run.id,attemptNumber:1,inputCommit:request.source.commit,capturedAt:run.startedAt};
  }
  async prepare(input){
   const row=await this.store.prepare({...this.grant,...(this.ownerScope?{ownerScope:this.ownerScope}:{})},input,(...args)=>this.snapshot(...args));

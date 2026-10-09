@@ -1,5 +1,5 @@
 import {cloudSessionSurface} from './session-surface-policy.ts';
-const requiresVerifier=row=>row.snapshot?.configuration?.cloud;
+const requiresVerifier=row=>(row.snapshot?.configuration?.cloud||row.snapshot?.configuration?.local);
 const safeCode=error=>/^[A-Z_]{3,80}$/.test(error?.message??'')?error.message:'PROVIDER_OR_STORAGE_ERROR';
 
 /** One callback may claim the canonical Run. Redelivery never starts a second

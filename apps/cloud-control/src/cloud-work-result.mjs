@@ -11,6 +11,7 @@ export function resultSigning(env) {
  if(key.asymmetricKeyType!=='ed25519'||!key.export({type:'spki',format:'der'}).equals(expected.export({type:'spki',format:'der'}))||config.key.revokedAt||config.key.retiredAt||Date.now()<Date.parse(config.key.activeFrom)||Date.now()>Date.parse(config.key.notAfter))throw Error('STAGING_RESULT_KEY_INVALID');
  return config;
 }
+import {localResultEvidence} from './local-execution-evidence.mjs';
 export function cloudResult(row,bundle,signing,{policy=cloudVerifierPolicy,policySha256=cloudVerifierPolicySha256}={}) {
  assertVerificationPolicy(policy,policySha256);
  const protectedRequired=requiresProtectedVerification(row.snapshot,policySha256);
@@ -33,15 +34,16 @@ export function cloudResult(row,bundle,signing,{policy=cloudVerifierPolicy,polic
   const v=row.verification;
   if(protectedRequired&&terminal.status==='COMPLETED'&&!v)throw Error('VERIFIER_RESULT_REQUIRED');
   if(v){
-   if(!v.cleanup_confirmed||v.run_id!==row.run_id||v.candidate_commit!==bundle.commit||v.candidate_tree!==bundle.tree||v.custody_sha256!==row.custody.artifact_sha256||v.policy_sha256!==execution.configuration.cloud?.verificationPolicySha256||v.policy_sha256!==policySha256||v.image!==policy.image)throw Error('VERIFIER_RESULT_BINDING');
+   if(!v.cleanup_confirmed||v.run_id!==row.run_id||v.candidate_commit!==bundle.commit||v.candidate_tree!==bundle.tree||v.custody_sha256!==row.custody.artifact_sha256||v.policy_sha256!==(execution.version===3?execution.configuration.local:execution.configuration.cloud)?.verificationPolicySha256||v.policy_sha256!==policySha256||v.image!==policy.image)throw Error('VERIFIER_RESULT_BINDING');
    const at=value=>new Date(value).toISOString();
-   const report={version:1,kind:'INDEPENDENT_CLOUD_VERIFICATION',runId:row.run_id,workId:row.work_id,workGeneration:row.work_generation,candidateCommit:v.candidate_commit,candidateTree:v.candidate_tree,custodySha256:v.custody_sha256,policySha256:v.policy_sha256,image:v.image,providerSessionId:v.provider_session_id,producerSessionId:row.resource.provider_session_id,cleanupConfirmed:true,outcome:v.outcome,checks:v.checks,startedAt:at(v.created_at),finishedAt:at(v.updated_at)};
+   const report={version:1,kind:execution.version===3?'INDEPENDENT_LOCAL_VERIFICATION':'INDEPENDENT_CLOUD_VERIFICATION',runId:row.run_id,workId:row.work_id,workGeneration:row.work_generation,candidateCommit:v.candidate_commit,candidateTree:v.candidate_tree,custodySha256:v.custody_sha256,policySha256:v.policy_sha256,image:v.image,providerSessionId:v.provider_session_id,producerSessionId:row.resource.provider_session_id,cleanupConfirmed:true,outcome:v.outcome,checks:v.checks,startedAt:at(v.created_at),finishedAt:at(v.updated_at)};
    if(report.providerSessionId===report.producerSessionId)throw Error('VERIFIER_ISOLATION_BINDING');
    // Independent verification is signed in the canonical Result, separately
    // from producer-visible checks. No protected inputs or expected values.
    manifest.verification=report;
   }
  }else if(terminal.candidateCommit)throw Error('RESULT_CUSTODY_REQUIRED');
+ if(execution.version===3)manifest.localExecution=localResultEvidence(row,bundle);
  manifest.evidenceDigest=digest(manifest.evidence);manifest.artifactDigest=digest(manifest.artifacts);
  return signResult(manifest,artifacts,signing.privateKey);
 }
