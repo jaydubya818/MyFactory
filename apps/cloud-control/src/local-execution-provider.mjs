@@ -10,7 +10,7 @@ import {cloudVerifierProbe} from './cloud-verifier-policy.mjs';
 import {validateLocalConfiguration,validateLocalBinding} from '../../../packages/hosted-routing/src/local-provenance.ts';
 
 const exec=promisify(execFile);
-export const localPolicy=Object.freeze({version:1,network:'none',user:'1000:1000',rootFilesystem:'read-only',capabilities:[],noNewPrivileges:true,seccomp:'docker-default',pidNamespace:'private',ipc:'private',hostMounts:false,ports:false,memoryMb:256,pids:64,vcpus:1,swapMb:256,timeoutMs:180000,tmpfsMb:96});
+export const localPolicy=Object.freeze({version:1,network:'none',user:'1000:1000',initUser:'0:0',rootFilesystem:'read-only',capabilities:[],noNewPrivileges:true,seccomp:'docker-default',pidNamespace:'private',ipc:'private',hostMounts:false,ports:false,memoryMb:256,pids:64,vcpus:1,swapMb:256,timeoutMs:180000,tmpfsMb:96});
 export const localPolicySha256=digest(localPolicy);
 export const localHarnessSha256=sha256(deterministicWorkerScript);
 export async function docker(args,options={}) {
@@ -47,7 +47,7 @@ export async function localExecutionProvider({configuration,executionBinding,req
  function validate(info,resource) {
   const h=info?.HostConfig;
   if(!h||info.Config.Labels?.[label]!==bindingDigest||info.Config.Labels?.['factory.local.owner']!==ownerDigest
-   ||info.Config.Labels?.['factory.local.run']!==resource.run_id||info.Image!==observed.runtime.imageId||info.Config.User!=='1000:1000'
+   ||info.Config.Labels?.['factory.local.run']!==resource.run_id||info.Image!==observed.runtime.imageId||info.Config.User!=='0:0'
    ||h.NetworkMode!=='none'||!h.ReadonlyRootfs||h.Privileged||h.CapAdd?.length||!h.CapDrop?.includes('ALL')
    ||!h.SecurityOpt?.includes('no-new-privileges')||h.SecurityOpt?.some(x=>x.includes('unconfined'))
    ||h.PidsLimit!==64||h.Memory!==268435456||h.MemorySwap!==268435456||h.NanoCpus!==1000000000
@@ -61,7 +61,7 @@ export async function localExecutionProvider({configuration,executionBinding,req
   const remaining=Math.min(l.resources.timeoutMs,new Date(resource.deadline).getTime()-Date.now());
   if(remaining<5000)throw Error('LOCAL_EXECUTION_EXPIRED');
   const id=await docker(['run','-d','--pull=never','--name',resource.provider_name,'--label',`${label}=${bindingDigest}`,'--label',`factory.local.owner=${ownerDigest}`,'--label',`factory.local.run=${resource.run_id}`,
-   '--network=none','--read-only','--user=1000:1000','--cap-drop=ALL','--security-opt=no-new-privileges','--pids-limit=64','--memory=256m','--memory-swap=256m','--cpus=1','--ipc=private','--log-driver=none',
+   '--network=none','--read-only','--user=0:0','--cap-drop=ALL','--security-opt=no-new-privileges','--pids-limit=64','--memory=256m','--memory-swap=256m','--cpus=1','--ipc=private','--log-driver=none',
    '--tmpfs','/home:rw,nosuid,nodev,size=64m,mode=1777','--tmpfs','/opt:rw,nosuid,nodev,size=16m,mode=1777','--tmpfs','/tmp:rw,nosuid,nodev,size=16m,mode=1777',
    '--entrypoint','sleep',l.image,String(Math.ceil(remaining/1000))]);
   if(!/^[a-f0-9]{64}$/.test(id))throw Error('LOCAL_ALLOCATION_UNKNOWN');
@@ -70,7 +70,7 @@ export async function localExecutionProvider({configuration,executionBinding,req
  }
  async function node(s,code,args=[],cwd='/tmp') {
   await current(s);
-  return docker(['exec','--workdir',cwd,s.id,'env','-i','PATH=/usr/local/bin:/usr/bin:/bin','HOME=/home/factoryproducer','node','--input-type=commonjs','-e',"if(process.versions.node.split('.')[0]!=='24')throw Error('LOCAL_NODE_RUNTIME');"+code,...args]);
+  return docker(['exec','--user','1000:1000','--workdir',cwd,s.id,'env','-i','PATH=/usr/local/bin:/usr/bin:/bin','HOME=/home/factoryproducer','node','--input-type=commonjs','-e',"if(process.versions.node.split('.')[0]!=='24'||process.getuid()!==1000)throw Error('LOCAL_NODE_RUNTIME');"+code,...args]);
  }
  async function destroy(resource,sandbox) {
   const id=sandbox?.id??resource.provider_session_id?.replace(/^sbx_/,'')??resource.provider_name;
@@ -97,10 +97,10 @@ export async function localExecutionProvider({configuration,executionBinding,req
   async quiesce(s){
    const encoded=await node(s,"const fs=require('node:fs');const fd=fs.openSync('/home/factoryproducer/candidate.json',fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);const stat=fs.fstatSync(fd);if(!stat.isFile()||stat.size>256000)throw Error('ARTIFACT_BOUND');process.stdout.write(fs.readFileSync(fd).toString('base64'));fs.closeSync(fd);");
    captured.set(s.id,Buffer.from(encoded,'base64'));
-   await docker(['pause',s.id]);if(!(await current(s)).State.Paused)throw Error('LOCAL_QUIESCENCE_UNKNOWN');return{paused:true};
+   await docker(['kill','--signal=KILL',s.id]);if((await current(s)).State.Running)throw Error('LOCAL_QUIESCENCE_UNKNOWN');return{terminated:true};
   },
   async collect(s,row,manifest){
-   const info=await current(s);if(!info.State.Paused)throw Error('LOCAL_COLLECTION_BEFORE_QUIESCENCE');
+   const info=await current(s);if(info.State.Running||info.State.Paused)throw Error('LOCAL_COLLECTION_BEFORE_QUIESCENCE');
    const dir=await dirFor(row),bytes=captured.get(s.id);
    if(!bytes)throw Error('LOCAL_CAPTURE_UNAVAILABLE');
    const v=validateCandidateBundle(bytes,row.request);

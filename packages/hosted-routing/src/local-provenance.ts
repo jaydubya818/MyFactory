@@ -52,7 +52,7 @@ export function validateLocalBinding(b: any) {
 
 export function validateLocalHostQualification(configuration: LocalExecutionConfiguration, report: any) {
  exact(report,'runtimeSha256,policySha256,checks');
- exact(report.checks,'uid,rootDenied,absent,noCredentials,caps,seccomp,noNewPrivileges,networkBlocked,resourceLimits,crossWorkFilesystem,processTreeCleanup,separatePidNamespace');
+ exact(report.checks,'uid,rootDenied,absent,noCredentials,caps,seccomp,noNewPrivileges,networkBlocked,resourceLimits,crossWorkFilesystem,processTreeCleanup,separatePidNamespace,deadlineInitProtected');
  if(report.runtimeSha256!==configuration.runtimeSha256||report.policySha256!==configuration.policySha256
   ||report.checks.uid!==1000||Object.entries(report.checks).some(([key,value])=>key!=='uid'&&value!==true))deny();
 }

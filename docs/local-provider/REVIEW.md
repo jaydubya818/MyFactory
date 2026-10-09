@@ -4,6 +4,8 @@ Security and architecture reviewers independently inspected the isolated impleme
 
 Resolved findings:
 
+- Producer quiescence terminates the complete container instead of freezing its deadline; the capless root deadline process cannot be stopped by the workload UID. Actual EPERM and cleanup probes passed.
+
 - Verifier candidate files and parent directories are root-owned; adversarial chmod, overwrite, unlink and directory replacement are denied.
 - Canonical local control assembly is included in the source identity and requires authority, queue and recovery adapters.
 - Host qualification requires exact report shape, matching runtime/policy, non-root identity and all mandatory passing checks; a matching hash alone does not qualify a failed report.
