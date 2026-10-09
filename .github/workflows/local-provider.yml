@@ -24,7 +24,8 @@ jobs:
           git fetch --no-tags origin 5cd13fa1f307a0c0f42f6317d966bb3179ad77c9
           test "$(git rev-parse FETCH_HEAD)" = 5cd13fa1f307a0c0f42f6317d966bb3179ad77c9
           docker pull public.ecr.aws/docker/library/node@sha256:3d27e5c11e5786e309ec3e03f93ae536eb36e6e5eb3714d5eb3300a36157add0
-          docker pull postgres:17
+          docker pull public.ecr.aws/docker/library/postgres:17
+          docker tag public.ecr.aws/docker/library/postgres:17 postgres:17
       - name: Actual Docker and PostgreSQL qualification
         env:
           MYFACTORY_FIXTURE_GIT: .git
