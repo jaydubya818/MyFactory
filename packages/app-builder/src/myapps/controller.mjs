@@ -132,7 +132,7 @@ export class AppReferenceController {
         .enabled === 1
     );
   }
-  async #assertAuthority(pkg) {
+  async #assertAuthority(pkg, denial = "APP_WORK_AUTHORITY_DENIED") {
     const admission = {
       work: pkg.work,
       appId: pkg.appId,
@@ -140,8 +140,12 @@ export class AppReferenceController {
       appDigest: this.#contracts.digest(pkg),
       factoryVersion: pkg.factoryVersion,
     };
-    if (!this.#enabled() || (await this.#authorize(admission)) !== true)
-      throw Error("APP_WORK_AUTHORITY_DENIED");
+    if (
+      !this.#enabled() ||
+      (await this.#authorize(admission)) !== true ||
+      !this.#enabled()
+    )
+      throw Error(denial);
     if (
       pkg.factoryVersion.sourceCommit !== this.#factoryCommit ||
       pkg.factoryVersion.configurationDigest !==
@@ -154,9 +158,20 @@ export class AppReferenceController {
     return row ? JSON.parse(row.row) : null;
   }
   #write(id, row) {
-    this.#db
-      .prepare("UPDATE runs SET row=? WHERE id=?")
-      .run(canonical(row), id);
+    this.#db.exec("BEGIN IMMEDIATE");
+    try {
+      // Serialize candidate publication with durable generation fencing, including
+      // other controller connections. UNKNOWN/cleanup records may still persist.
+      if (row.status === "CANDIDATE" && !this.#enabled())
+        throw Error("APP_WORK_AUTHORITY_DENIED");
+      this.#db
+        .prepare("UPDATE runs SET row=? WHERE id=?")
+        .run(canonical(row), id);
+      this.#db.exec("COMMIT");
+    } catch (error) {
+      this.#db.exec("ROLLBACK");
+      throw error;
+    }
   }
   async build({ creationIntent, pkg: input }) {
     const pkg = this.#contracts.validatePackage(input),
@@ -193,6 +208,7 @@ export class AppReferenceController {
     this.#db.exec("BEGIN IMMEDIATE");
     let existing;
     try {
+      if (!this.#enabled()) throw Error("APP_WORK_AUTHORITY_DENIED");
       existing = this.#read(id);
       if (existing) {
         if (existing.requestHash !== requestHash)
@@ -314,6 +330,7 @@ export class AppReferenceController {
       claim: async () => {
         this.#db.exec("BEGIN IMMEDIATE");
         try {
+          if (!this.#enabled()) throw Error("VERIFIER_AUTHORITY_FENCED");
           let record = read(),
             created = !record;
           if (!record) {
@@ -340,25 +357,15 @@ export class AppReferenceController {
         }
       },
       read: async () => read(),
-      assertActive: async () => {
-        if (
-          !this.#enabled() ||
-          (await this.#authorize({
-            work: candidate.pkg.work,
-            appId: candidate.pkg.appId,
-            appVersion: candidate.pkg.version,
-            appDigest: run.appDigest,
-            factoryVersion: candidate.pkg.factoryVersion,
-          })) !== true
-        )
-          throw Error("VERIFIER_AUTHORITY_FENCED");
-      },
+      assertActive: () =>
+        this.#assertAuthority(candidate.pkg, "VERIFIER_AUTHORITY_FENCED"),
       allocated: async (_r, _l, session) =>
         change((row) => {
           row.provider_session_id = session;
         }),
       finish: async (_r, _l, checks) =>
         change((row) => {
+          if (!this.#enabled()) throw Error("VERIFIER_AUTHORITY_FENCED");
           row.checks = checks;
           row.outcome =
             checks.length && checks.every((c) => c.result === "PASS")

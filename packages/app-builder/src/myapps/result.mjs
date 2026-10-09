@@ -157,6 +157,11 @@ export function verifyAppResult({ signed, pkg, run, keys, now }) {
     factoryVersion: digest({ sourceDigest, configurationDigest }),
     now,
   });
+  // Generic Result verification accepts truthful terminal failures too. Only a
+  // successful terminal Result may promote an App candidate to VERIFIED.
+  // Its canonical validator also requires all configured checks to have passed.
+  if (verified.manifest.status !== "COMPLETED")
+    throw Error("APP_RESULT_NOT_COMPLETED");
   const artifact = signed.artifacts.find((a) => a.id === "app-verifier");
   const report = JSON.parse(Buffer.from(artifact.base64, "base64").toString());
   if (

@@ -38,16 +38,21 @@ The controller reuses `apps/cloud-control/src/cloud-verification.mjs` for claim,
 duplicate-delivery reconciliation, outcome and cleanup semantics. Durable local
 SQLite records fence duplicate candidate production and preserve verification
 across controller restart. An interrupted BUILDING record remains UNKNOWN and
-cannot be silently rerun. Its trusted operator must reconcile the same attempt.
+cannot be silently rerun. A separately admitted Work/candidate can advance to the
+next candidate version, targeting the exact installed base (or no base for an
+initial recovery), without replacing the failed attempt or its custody history.
 Incomplete verifier cleanup cannot produce an installable result. The generation
 kill switch is durable and rechecked after producer completion and before/after
-verification; no new authority is minted by recovery.
+verification, after asynchronous authority responses, and within candidate and
+verification completion transactions; no new authority is minted by recovery.
 
 `result.mjs` uses the existing `MYFACTORY_RESULT_V1` signing, artifact hashing,
 correlation, validation and signature verification. A local App verification is
 a check artifact, never `INDEPENDENT_CLOUD_VERIFICATION`. The App Proof records
 claims separately from publication, installation and owner acceptance. Fixture
-signing keys are generated in memory by tests, never saved or shipped.
+signing keys are generated in memory by tests, never saved or shipped. Only a
+COMPLETED outer Result can establish App verification. A valid signature on a
+FAILED/CANCELLED Result with a PASS check artifact cannot promote the candidate.
 
 The MyEve reference host is a read-only compatibility dependency selected by an
 exact GitHub checkout in CI. Skill bindings use the separately owned MySkills
@@ -64,9 +69,10 @@ MYEVE_SOURCE_ROOT=/path/to/qualified/MyEveBot node --test \
   apps/cloud-control/test/cloud-verification.test.mjs
 ```
 
-At the final local checkpoint: 19 tests pass, including all pre-existing App Builder and
+After independent review remediation: 21 affected tests cover all pre-existing App Builder and
 preview tests, verifier continuation faults, candidate tampering, Work denial,
-duplicate build/result handling, restart, signature tampering and correlation.
+duplicate build/result handling, restart, signature tampering and correlation,
+failed-terminal Result denial, generation-disable races and fresh-attempt recovery.
 The MyEve composed qualification adds canonical PostgreSQL Work creation,
 canonical migrations, browser install/update and retained CRM state.
 

@@ -28,6 +28,135 @@ const pinPackage = (pkg) => ({
 });
 const myeve = process.env.MYEVE_SOURCE_ROOT;
 test(
+  "a new candidate attempt recovers UNKNOWN creation or update without replacing failed custody",
+  { skip: !myeve },
+  async () => {
+    const { makePackage } = await import(
+      pathToFileURL(resolve(myeve, "packages/myapps/test/fixtures.mjs")).href
+    );
+    for (const updating of [false, true]) {
+      const directory = mkdtempSync(join(tmpdir(), "factory-myapps-recovery-"));
+      let calls = 0,
+        denyAt = 0;
+      const controller = await AppReferenceController.open({
+        myeveRoot: myeve,
+        custodyDirectory: directory,
+        authorize: async () => ++calls !== denyAt,
+      });
+      try {
+        let base = null,
+          sourceCommit = EMPTY_APP_SOURCE_COMMIT;
+        if (updating) {
+          const installed = pinPackage(makePackage());
+          installed.source.repositoryCommit = sourceCommit;
+          const run = await controller.build({
+            creationIntent: "crm-request-1",
+            pkg: installed,
+          });
+          assert.equal(
+            (await controller.verify(installed.spec.ownerId, run.id)).status,
+            "PASS",
+          );
+          base = { version: 1, digest: run.appDigest };
+          sourceCommit = run.candidateCommit;
+        }
+        const failed = pinPackage(
+          makePackage(undefined, updating ? 2 : 1, base),
+        );
+        failed.source.repositoryCommit = sourceCommit;
+        calls = 0;
+        denyAt = 2;
+        await assert.rejects(
+          controller.build({ creationIntent: "crm-request-1", pkg: failed }),
+          /OUTCOME_UNKNOWN/,
+        );
+        denyAt = 0;
+        const repair = pinPackage(
+          makePackage(undefined, failed.version + 1, base),
+        );
+        repair.source.repositoryCommit = sourceCommit;
+        const recovered = await controller.build({
+          creationIntent: "crm-request-1",
+          pkg: repair,
+        });
+        assert.equal(
+          (await controller.verify(repair.spec.ownerId, recovered.id)).status,
+          "PASS",
+        );
+        await assert.rejects(
+          controller.build({ creationIntent: "crm-request-1", pkg: failed }),
+          /OUTCOME_UNKNOWN/,
+        );
+      } finally {
+        controller.close();
+        rmSync(directory, { recursive: true });
+      }
+    }
+  },
+);
+test(
+  "durable generation disable fences authorization pending at admission, custody and verifier completion",
+  { skip: !myeve, timeout: 10000 },
+  async () => {
+    const { makePackage } = await import(
+      pathToFileURL(resolve(myeve, "packages/myapps/test/fixtures.mjs")).href
+    );
+    for (const phase of ["verification", "admission", "custody"]) {
+      const directory = mkdtempSync(join(tmpdir(), "factory-myapps-fence-"));
+      const entered = Promise.withResolvers(),
+        release = Promise.withResolvers();
+      let calls = 0,
+        stopAt = phase === "admission" ? 1 : phase === "custody" ? 2 : 0;
+      const options = {
+        myeveRoot: myeve,
+        custodyDirectory: directory,
+        authorize: async () => {
+          if (++calls === stopAt) {
+            entered.resolve();
+            return release.promise;
+          }
+          return true;
+        },
+      };
+      const controller = await AppReferenceController.open(options),
+        fence = await AppReferenceController.open(options);
+      try {
+        const pkg = pinPackage(makePackage());
+        pkg.source.repositoryCommit = EMPTY_APP_SOURCE_COMMIT;
+        let pending;
+        if (phase === "verification") {
+          const run = await controller.build({
+            creationIntent: "crm-request-1",
+            pkg,
+          });
+          // Hold the post-child authorization, after admission/allocation/pre-child checks.
+          calls = 0;
+          stopAt = 5;
+          pending = controller.verify(pkg.spec.ownerId, run.id);
+        } else
+          pending = controller.build({ creationIntent: "crm-request-1", pkg });
+        await entered.promise;
+        fence.setEnabled(false);
+        release.resolve(true);
+        if (phase === "verification") {
+          const result = await pending;
+          assert.equal(result.status, "UNKNOWN");
+          assert.equal(result.cleanupConfirmed, true);
+        } else
+          await assert.rejects(
+            pending,
+            phase === "admission" ? /AUTHORITY_DENIED/ : /OUTCOME_UNKNOWN/,
+          );
+      } finally {
+        release.resolve(false);
+        fence.close();
+        controller.close();
+        rmSync(directory, { recursive: true });
+      }
+    }
+  },
+);
+test(
   "deterministic App candidate custody, separate verifier, duplicate delivery and restart",
   { skip: !myeve },
   async () => {
@@ -216,7 +345,8 @@ test(
   { skip: !myeve },
   async () => {
     const { generateKeyPairSync } = await import("node:crypto");
-    const { digest } = await import("../../hosted-routing/src/result.ts");
+    const { digest, signResult } =
+      await import("../../hosted-routing/src/result.ts");
     const { appResult, verifyAppResult, referenceConfiguration } =
       await import("../src/myapps/result.mjs");
     const { makePackage } = await import(
@@ -259,6 +389,20 @@ test(
       ];
       const input = { signed, pkg, run, keys, now: Date.parse(issuedAt) };
       assert.equal(verifyAppResult(input).manifest.status, "COMPLETED");
+      const manifest = JSON.parse(
+        Buffer.from(signed.encoded, "base64url").toString(),
+      );
+      for (const status of ["FAILED", "CANCELLED"]) {
+        const contradictory = signResult(
+          { ...manifest, status },
+          signed.artifacts,
+          privateKey,
+        );
+        assert.throws(
+          () => verifyAppResult({ ...input, signed: contradictory }),
+          /APP_RESULT_NOT_COMPLETED/,
+        );
+      }
       assert.throws(
         () =>
           verifyAppResult({

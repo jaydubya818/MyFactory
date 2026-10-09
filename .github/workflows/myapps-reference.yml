@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: jaydubya818/MyEveBot
-          ref: a7f16a4b56958299b28cf2fe9ac99d29d89616d6
+          ref: e0108346da75e1efe4a636dd57951a0436b745aa
           path: .qualification/myeve
       - uses: actions/setup-node@v4
         with:
