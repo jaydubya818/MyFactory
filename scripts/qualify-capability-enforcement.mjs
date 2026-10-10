@@ -1,3 +1,4 @@
+import { applyFactoryCapabilityControl } from '../apps/cloud-control/src/capability-controls.mjs';
 import assert from 'node:assert/strict';
 import { execFile as callback } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -67,6 +68,31 @@ try {
   await check('revoked Relay agent policy independently denies direct Factory admission',async()=>{
     await admin.query("UPDATE capability_control.relay_agent_evidence SET status='REVOKED'");
     await assert.rejects(store.prepare(grant,input(),snapshot),/AGENT_POLICY_UNAVAILABLE/);
+  });
+  await check('canonical revoke fences existing resources without settling UNKNOWN; pause stays pending',async()=>{
+    const controlId=randomUUID(),pauseId=randomUUID();
+    for(const [requestId,operation] of [[controlId,'revoke'],[pauseId,'pause']]) {
+      await admin.query("INSERT INTO capability_control.commands VALUES($1,$2,$3,'fixture','{}',DEFAULT)",[scope.installationId,scope.ownerId,requestId]);
+      await admin.query("INSERT INTO capability_control.control_requests(installation_id,owner_id,request_id,capability_id,revision,operation) VALUES($1,$2,$3,'myfactory',4,$4)",[scope.installationId,scope.ownerId,requestId,operation]);
+    }
+    await admin.query("INSERT INTO factory.execution_resources(run_id,provider_name,state,lease_owner,lease_expires_at,deadline,allocation_unknown) VALUES($1,'synthetic-resource','ALLOCATING',$2,clock_timestamp()+interval '1 minute',clock_timestamp()+interval '1 hour',true)",[admitted.run_id,randomUUID()]);
+    await admin.query("INSERT INTO factory.work_spend_budgets(work_id,work_generation,request_id,work_order_id,ceiling_microusd,deadline,created_at,contract_version,authority_state) VALUES($1,1,$2,$3,1000000,$4,$5,'WORK_LEDGER_V2','active')",[admitted.work_id,admitted.request_id,admitted.work_order_id,admitted.request.deadline,new Date().toISOString()]);
+    await admin.query("INSERT INTO factory.work_spend_operations(operation_id,work_id,work_generation,dispatch_identity,request_id,work_order_id,factory_version,run_id,model,pricing_revision,reserved_microusd,state,created_at,updated_at,phase) VALUES($1,$2,1,'synthetic-dispatch',$3,$4,'synthetic-version',$5,'synthetic-model','synthetic-pricing',100,'unknown',$6,$6,'productive')",[randomUUID(),admitted.work_id,admitted.request_id,admitted.work_order_id,admitted.run_id,new Date().toISOString()]);
+    const before=(await admin.query('SELECT * FROM factory.work_spend_operations')).rows;
+    assert.equal((await applyFactoryCapabilityControl(store,grant.clientId,pauseId)).reason,'SAFE_SUSPENSION_UNQUALIFIED');
+    assert.equal((await admin.query('SELECT cancelled_at FROM factory.execution_resources')).rows[0].cancelled_at,null);
+    const result=await applyFactoryCapabilityControl(store,grant.clientId,controlId);
+    assert.equal(result.status,'PENDING_BACKEND');assert.equal(result.writers,'FENCED');
+    assert.equal((await admin.query('SELECT authority_state FROM factory.work_spend_budgets')).rows[0].authority_state,'fenced');
+    const resource=(await admin.query('SELECT * FROM factory.execution_resources')).rows[0];
+    assert.ok(resource.cancelled_at);assert.equal(resource.cleanup_confirmed,false);assert.equal(resource.allocation_unknown,true);
+    assert.deepEqual((await admin.query('SELECT * FROM factory.work_spend_operations')).rows,before);
+    await applyFactoryCapabilityControl(store,grant.clientId,controlId);
+    assert.equal((await admin.query("SELECT count(*) FROM factory.events WHERE type='factory.capability_revoked'")).rows[0].count,'1');
+    await assert.rejects(applyFactoryCapabilityControl(store,'foreign-client',controlId),/INSTALLATION_UNQUALIFIED/);
+    const foreign=new PostgresDispatchStore(runtime,{capabilityBindings:{[grant.clientId]:{...scope,ownerId:'foreign-owner'}}});
+    await assert.rejects(applyFactoryCapabilityControl(foreign,grant.clientId,controlId),/CONTROL_SCOPE/);
+    await assert.rejects(applyFactoryCapabilityControl(store,grant.clientId,randomUUID()),/CONTROL_SCOPE/);
   });
   await mkdir('docs/capability-control/evidence',{recursive:true});
   await writeFile('docs/capability-control/evidence/postgres.json',JSON.stringify({passed:checks.length,checks,paidOperations:0,productionIntegration:'NOT_RUN'},null,2)+'\n');

@@ -1,3 +1,4 @@
+import { assertLocalCapabilityAdmission } from "./capability-admission.ts";
 import { claimRepairPreparation } from "./review-repair.ts";
 import {assertImplementationProgress} from './execution-context.ts';
 import {randomBytes} from 'node:crypto';
@@ -91,6 +92,7 @@ export class FactoryDispatchControl {
   const created=this.storage.transaction(()=>{
    const existing=this.storage.getIntake('gateb:'+client.id,input.requestId);
    if(existing){if(existing.input_digest!==hash)throw new ActionError('Preparation replay conflict','conflict',409);return null;}
+   assertLocalCapabilityAdmission();
    const order=input.repairWorkOrderId?claimRepairPreparation(this.storage,input.repairWorkOrderId,input,work):this.storage.createWorkOrder(work);
    this.storage.recordIntake('gateb:'+client.id,input.requestId,hash,order.id);
    this.storage.appendEvent({workOrderId:order.id,runId:null,type:'workorder.created',payload:{requestId:input.requestId,actor:'connection:'+client.id}});

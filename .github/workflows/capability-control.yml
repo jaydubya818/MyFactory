@@ -22,6 +22,7 @@ jobs:
       - run: node scripts/check-capability-sources.mjs
       - run: npm test --workspace=@mission-control/capability-control
       - run: npm run typecheck:producer
+      - run: node --test apps/supervisor/test/jobs.test.mjs apps/supervisor/test/capability-admission.test.mjs
       - run: node --test apps/cloud-control/test/alpha-owner-roster.test.mjs apps/cloud-control/test/cloud-contract.test.mjs apps/cloud-control/test/cloud-evidence.test.mjs apps/cloud-control/test/cloud-snapshot.test.mjs apps/cloud-control/test/session-surface-contract.test.mjs
       - run: CAPABILITY_TEST_POSTGRES_BIN="$(pg_config --bindir)" node scripts/qualify-capability-enforcement.mjs
       - uses: actions/upload-artifact@v4
