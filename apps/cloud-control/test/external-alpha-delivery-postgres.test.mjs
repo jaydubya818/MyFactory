@@ -11,6 +11,7 @@ import {readbackSigner} from '../src/external-alpha-readback.mjs';
 import {productionVerifierPolicy as policy,productionVerifierPolicySha256 as policySha256} from '../src/production-verifier-policy.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {makeInstallation,makeKeys,build,runtimePrivateSource} from './fixtures/external-alpha-authority.mjs';
+import {syntheticAdmissionSpendPlan} from './fixtures/admission-spend-plan.mjs';
 
 const skip=process.env.FACTORY_POSTGRES_TEST!=='1';
 async function setup(t,{queueUnknown=false}={}){
@@ -27,12 +28,19 @@ async function setup(t,{queueUnknown=false}={}){
  // Deterministic provider failure fixture: executes the real lifecycle without contacting any model or sandbox provider.
  const provider={allocate:async()=>{calls.allocate++;return{currentSession:()=>({sessionId:'sbx_fixture'})};},materialize:async()=>({commit:ctx.config.source.baseSha,tree:ctx.config.source.treeSha}),execute:async()=>{calls.execute++;throw Error('DETERMINISTIC_EXECUTION_FAILURE');},destroy:async()=>{calls.destroy++;}};
  const queue={send:async(topic,payload)=>{sent.push({topic,payload});if(queueUnknown&&topic===externalAlphaWorkTopic)throw Error('ACK_LOST');return{messageId:'message-'+sent.length};}};
- const runtimeDeps={...runtimePrivateSource(ctx.installation),pool:isolated,queue,installation:ctx.installation,signing,sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(keys.privateKey.export({type:'pkcs8',format:'pem'})),signReadback:readbackSigner(keys.privateKey.export({type:'pkcs8',format:'pem'})),provider,verification:{policy,policySha256,provider:{}},deploymentId:'dpl_fixture'};let runtime=externalAlphaRuntimeComponents(runtimeDeps);
+ const runtimeDeps={...runtimePrivateSource(ctx.installation),pool:isolated,queue,installation:ctx.installation,signing,sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(keys.privateKey.export({type:'pkcs8',format:'pem'})),signReadback:readbackSigner(keys.privateKey.export({type:'pkcs8',format:'pem'})),provider,verification:{policy,policySha256,provider:{}},deploymentId:'dpl_fixture'};
  const env={FACTORY_EXTERNAL_ALPHA_INSTALLATION:JSON.stringify([ctx.config]),FACTORY_EXTERNAL_ALPHA_INSTALLATION_SHA256:digest([ctx.installation.sha256]),VERCEL_DEPLOYMENT_ID:'dpl_fixture'},a=build(ctx);
+ // Admission-only synthetic identity: the deterministic provider throws before model execution.
+ const makeRuntime=()=>{
+  const r=externalAlphaRuntimeComponents(runtimeDeps);
+  Object.defineProperty(r.control,'executionSpendPlan',{value:syntheticAdmissionSpendPlan(a.prepare.deadline),writable:false,configurable:false});
+  return r;
+ };
+ let runtime=makeRuntime();
  await runtime.control.prepare(bindAuthorityEnvelope(a.prepare,a.envelope));
  const row=await runtime.store.read(runtime.clientId,a.prepare.requestId),identity=externalAlphaIdentity(row);
  const deliver=(payload=sent[0].payload,metadata={topicName:externalAlphaWorkTopic,region:'iad1',messageId:'message-1'})=>consumeExternalAlphaDelivery(env,payload,metadata,false,{withRuntime:async(_e,_i,action)=>action(runtime)});
- return{query,ctx,a,get runtime(){return runtime;},restart:()=>{runtime=externalAlphaRuntimeComponents(runtimeDeps);},env,calls,sent,identity,deliver};
+ return{query,ctx,a,get runtime(){return runtime;},restart:()=>{runtime=makeRuntime();},env,calls,sent,identity,deliver};
 }
 test('real admitted dispatch executes once, cleans up, signs terminal truth and replays after restart',{skip},async t=>{
  const f=await setup(t);await Promise.all(Array.from({length:6},()=>f.runtime.control.dispatch(f.identity)));

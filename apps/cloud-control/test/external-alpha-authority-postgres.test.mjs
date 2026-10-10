@@ -8,7 +8,8 @@ import {ExternalAlphaAuthorityStore,receiptSigner,bindAuthorityEnvelope,RECEIPT_
 import {PostgresDispatchStore} from '../src/postgres-dispatch.mjs';
 import {CloudWorkControl} from '../src/cloud-work-control.mjs';
 import {PostgresSpendLedger} from '../src/postgres-spend.mjs';
-import {productionConfiguration as configuration,productionSpendPlan} from '../src/production-execution-plan.mjs';
+import {productionConfiguration as configuration} from '../src/production-execution-plan.mjs';
+import {syntheticAdmissionSpendPlan} from './fixtures/admission-spend-plan.mjs';
 import {productionVerifierPolicy as policy,productionVerifierPolicySha256 as policySha256} from '../src/production-verifier-policy.mjs';
 import {makeKeys,makeInstallation,build,uuid4,runtimePrivateSource} from './fixtures/external-alpha-authority.mjs';
 
@@ -185,8 +186,8 @@ test('end to end: the real dispatch store admits only through the authority, onc
  const s=ctx.config.source,grant={clientId:ctx.config.application.clientId,source:{repository:s.repository,commit:s.baseSha,tree:s.treeSha},commands:configuration.commands,allowedPaths:files,maxDurationMs:300000,maxSpendUsd:1,derivedRequestId:true};
  const dispatch=new PostgresDispatchStore(isolated,{maxWorks:1,custodyPrefix:'factory/production',verificationPolicySha256:policySha256,assertAuthority:authority.assertAuthority()});
  const spend=new PostgresSpendLedger(isolated,{assertPaidAuthority:authority.assertPaidAuthority()});
- const control=new CloudWorkControl({store:dispatch,spend,grant,configuration,sourceDigest:ctx.config.source.sourceDigest,signing:{factoryId:'myfactory-cloud-production'},executionSpendPlan:productionSpendPlan,verificationPolicy:{policy,policySha256}});
  const a=build(ctx,{checkCommands:configuration.commands});
+ const control=new CloudWorkControl({store:dispatch,spend,grant,configuration,sourceDigest:ctx.config.source.sourceDigest,signing:{factoryId:'myfactory-cloud-production'},executionSpendPlan:syntheticAdmissionSpendPlan(a.prepare.deadline),verificationPolicy:{policy,policySha256}});
  // No envelope bound to this exact request object: nothing is admitted.
  assert.equal(await code(control.prepare(structuredClone(a.prepare))),'AUTHORITY_DISABLED');
  assert.equal((await query('SELECT count(*) FROM factory.intake_receipts')).rows[0].count,'0');
@@ -266,7 +267,13 @@ async function runtimeFixture(t){
  let destroys=0,allocations=0,sends=0;
  const c=externalAlphaRuntimeComponents({...runtimePrivateSource(ctx.installation),pool:e.isolated,queue:{send:async()=>{sends++;throw Error('MUST_NOT_DISPATCH');}},provider:{destroy:async()=>{destroys++;},allocate:async()=>{allocations++;throw Error('MUST_NOT_ALLOCATE');}},
   installation:ctx.installation,signing,sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(privateKey),signReadback:readbackSigner(privateKey),deploymentId:'dpl_fixture',hostInstallation:{projectId:'prj_fixture',teamId:'team_fixture',custodyStoreId:'store_fixture'}});
- const prepare=async options=>{const a=build(ctx,options);bindAuthorityEnvelope(a.prepare,a.envelope);await c.control.prepare(a.prepare);return{a,row:await c.store.read(c.clientId,a.prepare.requestId)};};
+ // Bind only the admission fixture dependency before intake; no model executes.
+ const prepare=async options=>{
+  const a=build(ctx,options);
+  Object.defineProperty(c.control,'executionSpendPlan',{value:syntheticAdmissionSpendPlan(a.prepare.deadline),writable:false,configurable:false});
+  bindAuthorityEnvelope(a.prepare,a.envelope);await c.control.prepare(a.prepare);
+  return{a,row:await c.store.read(c.clientId,a.prepare.requestId)};
+ };
  return{...e,ctx,c,prepare,keys,effects:()=>({destroys,allocations,sends})};
 }
 
