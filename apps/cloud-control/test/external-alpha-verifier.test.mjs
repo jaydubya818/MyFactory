@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {alphaTasksVerifierProvider,alphaTasksVerificationPolicy,alphaTasksVerificationPolicySha256,alphaTasksCheckId,hostGrantedEffects} from '../src/external-alpha-verifier.mjs';
+import {alphaTasksVerifierProvider,alphaTasksVerificationPolicy,alphaTasksVerificationPolicySha256,alphaTasksCheckId,hostGrantedEffects,alphaTasksCriterionIds} from '../src/external-alpha-verifier.mjs';
+import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {makeInstallation} from './fixtures/external-alpha-authority.mjs';
 
 const {installation}=makeInstallation();
 const bundle={commit:'c'.repeat(40),tree:'d'.repeat(40),base:installation.source.baseSha,files:{'src/a.js':'x'},sourceFiles:{}};
-const report=(verdict,over={})=>({verdict,hiddenSuiteSha256:alphaTasksVerificationPolicy.hiddenSuiteSha256,policySha256:alphaTasksVerificationPolicy.acceptancePolicySha256,...over});
+const report=(verdict,over={})=>({verdict,criteria:alphaTasksCriterionIds.map((_,i)=>({id:i+1,status:verdict==='PASS'?'PASS':verdict==='FAIL'?'FAIL':'NOT_VERIFIED'})),hiddenSuiteSha256:alphaTasksVerificationPolicy.hiddenSuiteSha256,policySha256:alphaTasksVerificationPolicy.acceptancePolicySha256,...over});
 const attestation={runnerId:'vercel-sandbox-verifier-v1',kind:'SANDBOX_DENY_ALL_V1',networkPolicy:'deny-all',filesystem:'UNPRIVILEGED_UID_WORKSPACE_READ_SCRATCH_WRITE',environment:'SCRUBBED',hiddenMaterialVisibleToCandidate:false,disposable:true,image:alphaTasksVerificationPolicy.image,sessionId:'sbx_fixture',attestedBy:'factory-host'};
 const deps=(verdict,over={},seen=[])=>({installation,runnerFor:()=>({id:'vercel-sandbox-verifier-v1'}),attestationFor:async()=>({...attestation}),loadHidden:async()=>({}),verify:async i=>{seen.push(i);return report(verdict,over);}});
 const host={projectId:'prj_fixture1'};
@@ -21,7 +22,7 @@ test('policy binds the acceptance policy, the hidden suite digest and the allow-
  assert.match(alphaTasksVerificationPolicySha256,/^[a-f0-9]{64}$/);
  assert.equal(alphaTasksVerificationPolicy.runnerId,'vercel-sandbox-verifier-v1');
  assert.equal(alphaTasksVerificationPolicy.network,'deny-all');
- assert.deepEqual(alphaTasksVerificationPolicy.checks.map(c=>c.id),[alphaTasksCheckId]);
+ assert.deepEqual(alphaTasksVerificationPolicy.checks.map(c=>c.id),[...alphaTasksCriterionIds,alphaTasksCheckId]);
  assert.deepEqual([...hostGrantedEffects],['PRIVATE_SOURCE_READ','PRIVATE_SNAPSHOT_CUSTODY_WRITE','CANDIDATE_CUSTODY_WRITE']);
 });
 
@@ -34,7 +35,7 @@ test('with no host composition, allocate and verify are PARTIAL (nothing can pas
 
 test('PASS is the only way to produce a PASS check, and the host (not the producer) supplies identities and effects',async()=>{
  const seen=[],p=await primed(deps('PASS',{},seen));
- assert.deepEqual(await verify(p),[{id:alphaTasksCheckId,result:'PASS'}]);
+ assert.deepEqual(await verify(p),[...alphaTasksCriterionIds,alphaTasksCheckId].map(id=>({id,result:'PASS',reportSha256:digest(report('PASS'))})));
  const i=seen[0];
  assert.equal(i.mode,'production');assert.deepEqual(i.observedEffects,[...hostGrantedEffects]);
  assert.equal(i.source.commit,installation.source.baseSha);assert.equal(i.source.tree,installation.source.treeSha);
@@ -42,7 +43,7 @@ test('PASS is the only way to produce a PASS check, and the host (not the produc
 });
 
 test('FAIL maps to FAIL; PARTIAL and every inconsistent report throws VERIFIER_PARTIAL',async()=>{
- assert.deepEqual(await verify(await primed(deps('FAIL'))),[{id:alphaTasksCheckId,result:'FAIL'}]);
+ assert.deepEqual(await verify(await primed(deps('FAIL'))),[...alphaTasksCriterionIds,alphaTasksCheckId].map(id=>({id,result:'FAIL',reportSha256:digest(report('FAIL'))})));
  await assert.rejects(verify(await primed(deps('PARTIAL'))),/VERIFIER_PARTIAL/);
  await assert.rejects(verify(await primed(deps('PASS',{hiddenSuiteSha256:'0'.repeat(64)}))),/VERIFIER_PARTIAL/);
  await assert.rejects(verify(await primed(deps('PASS',{policySha256:'0'.repeat(64)}))),/VERIFIER_PARTIAL/);
@@ -60,4 +61,9 @@ test('missing runner, attestation host, hidden suite, or a throwing dependency i
 test('the deadline guard runs before and after verification',async()=>{
  const p=await primed(deps('PASS'));let n=0;
  await assert.rejects(p.verify({},bundle,async()=>{if(++n===2)throw Error('LEASE_LOST');}),/LEASE_LOST/);
+});
+
+test('missing, repeated or contradictory criterion outcomes cannot pass',async()=>{
+ for(const criteria of [[],report('PASS').criteria.slice(1),report('PASS').criteria.map(()=>({id:1,status:'PASS'})),report('FAIL').criteria])
+  await assert.rejects(verify(await primed(deps('PASS',{criteria}))),/VERIFIER_PARTIAL/);
 });

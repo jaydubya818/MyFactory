@@ -1,4 +1,6 @@
 import test from 'node:test';
+// Historical qualified rate-card fixture. Runtime expiry remains enforced.
+test.mock.timers.enable({apis:['Date'],now:Date.parse('2026-10-08T23:00:00.000Z')});
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {externalAlphaModelProvider,productionModelProvider,productionModelPrice} from '../src/production-model-provider.mjs';

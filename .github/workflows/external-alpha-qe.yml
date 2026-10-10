@@ -1,0 +1,40 @@
+name: External alpha QE remediation
+on:
+  push:
+    branches: [codex/external-alpha-qe-remediation-20261009]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: public.ecr.aws/docker/library/postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+        env:
+          POSTGRES_USER: ux_fixture
+          POSTGRES_PASSWORD: local-only
+          POSTGRES_DB: blocker_fixes
+        ports: ['55491:5432']
+        options: >-
+          --health-cmd "pg_isready -U ux_fixture -d blocker_fixes"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.1
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Signed contracts, verifier evidence and local PostgreSQL isolation
+        env:
+          FACTORY_LOCAL_QE_DATABASE: postgresql://ux_fixture:local-only@localhost:55491/blocker_fixes
+        run: node --test apps/cloud-control/test/*.test.mjs packages/hosted-routing/test/*.test.mjs > qe-contracts.log 2>&1
+      - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
+      - run: npm run typecheck
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: factory-qe-${{ github.sha }}
+          path: qe-contracts.log

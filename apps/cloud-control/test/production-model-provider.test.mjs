@@ -1,4 +1,6 @@
 import test from 'node:test';
+// Historical qualified rate-card fixture. Runtime expiry remains enforced.
+test.mock.timers.enable({apis:['Date'],now:Date.parse('2026-10-08T23:00:00.000Z')});
 import assert from 'node:assert/strict';
 import {productionModelProvider,productionModelPrice} from '../src/production-model-provider.mjs';
 const installation={version:1,factoryId:'myfactory-cloud-production',environment:'production',projectId:'prj_4hfceCN8l6wN1gUyYOzZLQ7aJapK',callerProjectId:'prj_L6faw25wnFGUZtrLKBIccg8gIDLR',teamId:'team_p8z8exJRTGfOPk1GC9vUOpv3',ownerScope:'owner-private-a',custodyStoreId:'store_qBuivS8MmRxnBNnU',databaseResourceId:'dry-morning-22844424'};
@@ -42,4 +44,10 @@ test('installation alone is insufficient; qualification and wrong runtime config
  assert.throws(()=>productionModelProvider({env}),/PRODUCTION_MODEL_AUTHORITY_REQUIRED/);
  for(const patch of [{VERCEL_ENV:'preview'},{VERCEL_PROJECT_ID:installation.callerProjectId},{FACTORY_QUALIFICATION_TOKEN:'forbidden'}])
   assert.throws(()=>productionModelProvider({env:{...env,...patch},assertWorkAuthorized:async()=>{}}));
+});
+
+test('the unchanged rate card fails closed at its expiration',()=>{
+ test.mock.timers.setTime(Date.parse(productionModelPrice.validUntil));
+ try {assert.throws(()=>productionModelProvider({env,assertWorkAuthorized:async()=>{}}),/Current pinned model pricing/);}
+ finally{test.mock.timers.setTime(Date.parse('2026-10-08T23:00:00.000Z'));}
 });

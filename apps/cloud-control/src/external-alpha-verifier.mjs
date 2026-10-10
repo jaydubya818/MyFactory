@@ -1,5 +1,5 @@
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
-import {verifyAlphaTask,loadHiddenSuite,attestationValid,policySha256 as acceptancePolicySha256,HIDDEN_SUITE_SHA256,productionRunnerIds} from '../../supervisor/src/alpha-task-verifier.ts';
+import {verifyAlphaTask,loadHiddenSuite,attestationValid,policySha256 as acceptancePolicySha256,HIDDEN_SUITE_SHA256,productionRunnerIds,CRITERIA} from '../../supervisor/src/alpha-task-verifier.ts';
 import {protectedAlphaProvider} from './protected-alpha-provider.mjs';
 import {productionVerifierPolicy} from './production-verifier-policy.mjs';
 
@@ -7,15 +7,16 @@ import {productionVerifierPolicy} from './production-verifier-policy.mjs';
  * Gate 3 in the cloud: the Alpha Tasks independent acceptance policy as the PROTECTED verifier of the Factory's own
  * verification slot (PostgresVerificationStore + verifyCloudCandidate). The producer sandbox is already destroyed when
  * this runs; only custody-validated exact candidate bytes reach it. The verdict is mapped fail-closed:
- *   PASS    -> [{id, result:'PASS'}]   (the only value that can ever reach COMPLETED)
- *   FAIL    -> [{id, result:'FAIL'}]
+ *   PASS    -> ten criterion outcomes plus an aggregate PASS, sharing the report digest
+ *   FAIL    -> preserves each criterion outcome plus aggregate FAIL
  *   PARTIAL -> throws VERIFIER_PARTIAL (the store records outcome UNKNOWN; the Run is FAILED, never accepted)
  * Everything unsupported, unattested or unproven is PARTIAL. In particular the production path REQUIRES a host-built
  * isolation attestation for an allow-listed runner (see docs/private-alpha/external-alpha-verifier-isolation.md).
  */
 export const alphaTasksCheckId='alpha-tasks-acceptance';
-export const alphaTasksVerificationPolicy=Object.freeze({version:1,id:'alpha-tasks-priority-acceptance-v1',image:productionVerifierPolicy.image,timeoutMs:90000,network:'deny-all',
- acceptancePolicySha256,hiddenSuiteSha256:HIDDEN_SUITE_SHA256,runnerId:productionRunnerIds[0],checks:Object.freeze([Object.freeze({id:alphaTasksCheckId,expected:Object.freeze({verdict:'PASS'})})])});
+export const alphaTasksCriterionIds=Object.freeze(Object.keys(CRITERIA).map(Number).sort((a,b)=>a-b).map(id=>'alpha-tasks-criterion-'+id));
+export const alphaTasksVerificationPolicy=Object.freeze({version:2,id:'alpha-tasks-priority-criterion-evidence-v2',image:productionVerifierPolicy.image,timeoutMs:90000,network:'deny-all',
+ acceptancePolicySha256,hiddenSuiteSha256:HIDDEN_SUITE_SHA256,runnerId:productionRunnerIds[0],reportDigest:true,aggregateCheckId:alphaTasksCheckId,checks:Object.freeze([...alphaTasksCriterionIds,alphaTasksCheckId].map(id=>Object.freeze({id,expected:Object.freeze({verdict:'PASS'})})))});
 export const alphaTasksVerificationPolicySha256=digest(alphaTasksVerificationPolicy);
 /** The only effects the host grants a private-source Work; no other effect path exists in the sandbox. */
 export const hostGrantedEffects=Object.freeze(['PRIVATE_SOURCE_READ','PRIVATE_SNAPSHOT_CUSTODY_WRITE','CANDIDATE_CUSTODY_WRITE']);
@@ -57,7 +58,16 @@ export function alphaTasksVerifierProvider({installation,hostInstallation,provid
    await assertActive();
    if(report.verdict==='PARTIAL')unavailable();
    if(report.hiddenSuiteSha256!==alphaTasksVerificationPolicy.hiddenSuiteSha256||report.policySha256!==alphaTasksVerificationPolicy.acceptancePolicySha256)unavailable();
-   return [{id:alphaTasksCheckId,result:report.verdict==='PASS'?'PASS':'FAIL'}];
+   if(!Array.isArray(report.criteria)||report.criteria.length!==alphaTasksCriterionIds.length)unavailable();
+   const outcomes=new Map();
+   for(const criterion of report.criteria){
+    if(!Number.isInteger(criterion.id)||!Object.hasOwn(CRITERIA,criterion.id)||outcomes.has(criterion.id)||!['PASS','FAIL'].includes(criterion.status))unavailable();
+    outcomes.set(criterion.id,criterion.status);
+   }
+   const allPass=[...outcomes.values()].every(status=>status==='PASS');
+   if(!['PASS','FAIL'].includes(report.verdict)||(report.verdict==='PASS')!==allPass)unavailable();
+   const reportSha256=digest(report);
+   return [...alphaTasksCriterionIds.map((id,i)=>({id,result:outcomes.get(i+1),reportSha256})),{id:alphaTasksCheckId,result:report.verdict,reportSha256}];
   },
   destroy:(resource,sandbox)=>{if(!base)unavailable();return base.destroy(resource,sandbox);},
  };
