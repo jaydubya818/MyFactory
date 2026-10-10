@@ -6,6 +6,7 @@ import {readFile} from 'node:fs/promises';
 import {PostgresDispatchStore} from '../src/postgres-dispatch.mjs';
 import {PostgresSpendLedger} from '../src/postgres-spend.mjs';
 import {CloudWorkControl} from '../src/cloud-work-control.mjs';
+import {capabilityPolicyFixture} from './fixtures/capability-policy.mjs';
 
 test('LOCAL production race: real claim defaults, concurrent status read, zero model ledger and expiry fence',
  {skip:!process.env.FACTORY_PAID_TEST_DATABASE_URL},async t=>{
@@ -13,11 +14,13 @@ test('LOCAL production race: real claim defaults, concurrent status read, zero m
  const pool=new pg.Pool({connectionString:url.href}),schema='startup_'+randomUUID().replaceAll('-','');await pool.query('CREATE SCHEMA '+schema);
  const rewrite=s=>s.replace(/\bfactory\.(execution_resources|verification_resources|candidate_custody|delivery_intents|intake_receipts|events|work_orders|runs|work_spend_budgets|work_spend_operations)\b/g,schema+'.$1').replaceAll('IN SCHEMA factory','IN SCHEMA '+schema),query=(s,a)=>pool.query(rewrite(s),a);
  const isolated={connect:async()=>{const c=await pool.connect();return{query:(s,a)=>c.query(rewrite(s),a),release:()=>c.release()};}};
- t.after(async()=>{await pool.query('DROP SCHEMA '+schema+' CASCADE');await pool.end();});
+ let capability;
+ t.after(async()=>{await capability?.cleanup();await pool.query('DROP SCHEMA '+schema+' CASCADE');await pool.end();});
  for(const version of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification'])await query(await readFile(new URL('../migrations/'+version+'.sql',import.meta.url),'utf8'));
- const source={repository:'fixture/producer',commit:'a'.repeat(40),tree:'b'.repeat(40)},grant={clientId:'sofie-alpha-a',source,commands:['node --test'],allowedPaths:['fixture.mjs'],maxDurationMs:180000,maxSpendUsd:1};
+ const source={repository:'fixture/producer',commit:'a'.repeat(40),tree:'b'.repeat(40)},grant={clientId:'sofie-alpha-a',ownerScope:'synthetic-startup-owner',source,commands:['node --test'],allowedPaths:['fixture.mjs'],maxDurationMs:180000,maxSpendUsd:1};
  const input={protocol:'MYFACTORY_EXECUTION_V2',requestId:randomUUID(),workId:randomUUID(),workGeneration:1,repository:source.repository,source,deadline:new Date(Date.now()+170000).toISOString(),maxSpendUsd:1,input:{title:'Startup projection',description:'Disposable deterministic race reproduction',kind:'feature',acceptanceCriteria:['Pending is not UNKNOWN'],checkCommands:grant.commands,allowedPaths:grant.allowedPaths}};
- const store=new PostgresDispatchStore(isolated),spend=new PostgresSpendLedger(isolated);
+ capability=await capabilityPolicyFixture(pool,schema,isolated,{[grant.clientId]:grant.ownerScope});
+ const store=new PostgresDispatchStore(capability.pool,{capabilityBindings:capability.bindings}),spend=new PostgresSpendLedger(capability.pool);
  const row=await store.prepare(grant,input,(request,order,run)=>({requestId:request.requestId,workOrderId:order.id,runId:run.id,inputCommit:source.commit,factoryId:'fixture',factoryVersion:'c'.repeat(64)}));
  const identity={runId:randomUUID(),writerGeneration:1,dispatchIdentity:randomUUID(),workId:input.workId,workGeneration:1,factoryId:'fixture',factoryVersion:'c'.repeat(64),requestId:input.requestId,workOrderId:row.work_order_id,remoteRunId:row.run_id,repository:input.repository,baseSha:source.commit,allowedPaths:grant.allowedPaths,deadline:input.deadline};
  const binding={workId:identity.workId,workGeneration:identity.workGeneration,requestId:identity.requestId,workOrderId:identity.workOrderId,runId:row.run_id,dispatchIdentity:identity.dispatchIdentity,factoryVersion:identity.factoryVersion};

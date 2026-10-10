@@ -1,0 +1,78 @@
+{
+  "schema": "factory-pricing-qualification/v1",
+  "version": "openai-mini-20261010-v2",
+  "ownerRepository": "jaydubya818/MyFactory",
+  "supersedes": "historical-v1.json",
+  "observedAt": "2026-10-10T17:42:22Z",
+  "effectiveFrom": "2026-10-10T00:00:00.000Z",
+  "reviewBy": "2026-10-17T00:00:00.000Z",
+  "reviewPolicy": "Seven-day internal revalidation deadline; not a provider price guarantee.",
+  "authority": "PRICING_ONLY_NO_EXECUTION_GRANT",
+  "route": {
+    "provider": "openai",
+    "model": "gpt-5.4-mini",
+    "gatewayModel": "openai/gpt-5.4-mini",
+    "endpoint": "https://ai-gateway.vercel.sh/v1/responses",
+    "serviceTier": "default",
+    "currency": "USD",
+    "billingUnit": "MILLION_TOKENS",
+    "providerFallback": false,
+    "regionalProcessing": false,
+    "hostedBillableTools": false
+  },
+  "sources": [
+    {
+      "name": "openai",
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.4-mini.md",
+      "resolvedUrl": "https://developers.openai.com/api/docs/models/gpt-5.4-mini.md",
+      "retrievedAt": "2026-10-10T17:42:21.510014+00:00",
+      "sha256": "83625d2f3548c29379b3b2a44b183a26d266d2f5c3ffda7161dd19c9213a9058",
+      "bytes": 3695
+    },
+    {
+      "name": "vercel",
+      "url": "https://vercel.com/ai-gateway/models/gpt-5.4-mini",
+      "resolvedUrl": "https://vercel.com/ai-gateway/models/gpt-5.4-mini",
+      "retrievedAt": "2026-10-10T17:42:22.188806+00:00",
+      "sha256": "81d25908824a3d57c15bc416213c0022ee764ba9329dad6e1106919a676f8222",
+      "bytes": 1521031
+    },
+    {
+      "name": "vercel-pricing",
+      "url": "https://vercel.com/docs/ai-gateway/pricing",
+      "resolvedUrl": "https://vercel.com/docs/ai-gateway/pricing",
+      "retrievedAt": "2026-10-10T17:42:22.774798+00:00",
+      "sha256": "234885210ad4dbd5e6287779b9ca38506d88910c8553420d22e6e8dc751caa91",
+      "bytes": 981266
+    }
+  ],
+  "prices": {
+    "production": {
+      "revision": "production-openai-mini-20261010-v2",
+      "model": "openai/gpt-5.4-mini",
+      "validUntil": "2026-10-17T00:00:00.000Z",
+      "contextLimitTokens": 64000,
+      "outputLimitTokens": 8192,
+      "inputMicrousdPerMillion": 750000,
+      "outputMicrousdPerMillion": 4500000
+    },
+    "deterministic": {
+      "revision": "cloud-codex-deterministic-20261010-v2",
+      "model": "openai/gpt-5.4-mini",
+      "validUntil": "2026-10-17T00:00:00.000Z",
+      "contextLimitTokens": 200000,
+      "outputLimitTokens": 8192,
+      "inputMicrousdPerMillion": 750000,
+      "outputMicrousdPerMillion": 4500000
+    }
+  },
+  "unchangedAccounting": {
+    "ceilingMicrousd": 1000000,
+    "productionPerOperationReserveMicrousd": 84864,
+    "deterministicPerOperationReserveMicrousd": 186864,
+    "productiveOperations": 2,
+    "completionOperations": 1,
+    "maximumOperations": 3
+  },
+  "migration": "NONE. Existing approvals, budgets, Work and UNKNOWN exposure keep original identities and rates. New production execution-contract digest requires independent approval."
+}

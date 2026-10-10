@@ -1,0 +1,13 @@
+{
+  "passed": 6,
+  "checks": [
+    "actual Factory admission checks canonical policy and retains backend authority",
+    "direct backend call without server installation binding fails closed",
+    "disable blocks new Factory preparation while exact old replay remains observational",
+    "backend failure rolls back admission and its capability audit",
+    "revoked Relay agent policy independently denies direct Factory admission",
+    "canonical revoke fences existing resources without settling UNKNOWN; pause stays pending"
+  ],
+  "paidOperations": 0,
+  "productionIntegration": "NOT_RUN"
+}
