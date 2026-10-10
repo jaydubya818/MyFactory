@@ -19,6 +19,10 @@ The fixtures now provision synthetic policy in isolated schemas and execute admi
 
 The capability workflow now runs the startup, paid-ambiguity, owner-isolation and successor suites against disposable PostgreSQL. No assertions, accounting gates, pricing-expiry checks or runtime enrollment requirements were removed. The additional coverage intentionally exposes the unresolved pricing failures rather than reporting a misleading green scoped check.
 
+Hosted qualification at repair `5fd82ca2a43209fee106736c64c55d979fe5f122` reproduced the same 15 passing / seven pricing-failing PostgreSQL checks. The full workflow also exposed a JobManager test's approximately one-second polling limit under concurrent CI load. A temporary 1.5-second candidate-write delay reproduced that failure; a bounded ten-second elapsed-time deadline passed the same delayed fixture with every original assertion. The temporary delay was then removed and all nine JobManager/local-admission tests passed. The correction changes only test waiting and adds the last observed state to timeout diagnostics.
+
+Historical runs: [expanded capability qualification](https://github.com/jaydubya818/MyFactory/actions/runs/38073292975), [full workflow](https://github.com/jaydubya818/MyFactory/actions/runs/38073296540). Both remain failed evidence. Subsequent exact-head results belong in the PR description.
+
 ## Validation
 
 Local Node 24.18.1 qualification used existing dependencies with the same package lock, including workspace-local compiler versions. It is **not** a clean dependency-install qualification.

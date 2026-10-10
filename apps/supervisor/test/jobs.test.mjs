@@ -34,12 +34,13 @@ function deferred() {
 }
 
 async function waitForRun(storage, runId, state) {
-  for (let attempt = 0; attempt < 200; attempt += 1) {
+  const deadline = performance.now() + 10_000;
+  while (performance.now() < deadline) {
     const run = storage.getRun(runId);
     if (run?.state === state) return run;
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
-  throw new Error(`Run ${runId} did not reach ${state}`);
+  throw new Error(`Run ${runId} did not reach ${state}; last state: ${storage.getRun(runId)?.state}`);
 }
 
 async function verification(input, statuses, logs) {
