@@ -28,6 +28,7 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node scripts/check-producer-governance.mjs
+      - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
       - run: node scripts/check-capability-sources.mjs
       - run: npm test --workspace=@mission-control/capability-control
       - run: npm run typecheck:producer

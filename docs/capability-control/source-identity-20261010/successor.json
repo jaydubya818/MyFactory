@@ -1,0 +1,17 @@
+{
+  "schema": "factory-source-reconciliation/v1",
+  "authority": "ISOLATED_SOURCE_QUALIFICATION_ONLY",
+  "preservedSourceCommit": "6994fbd938afcf2b81a21cb986ccb4dda7adc7b8",
+  "historicalIdentityCommit": "2bc570e3bb363d42c2b70916ddab53a8f54388f1",
+  "historicalSourceDigest": "1c69113378ed82428d13a2f89452708204e171ac9cb952b0a725acff83844548",
+  "sourceDigest": "59d4fc1f1bd7bd5206040994e31906ea3bb3d76d3c4a0f8b26a5d407bfd03699",
+  "configurationDigest": "415f52a554e8dbdcc48019609e4611f07085622abf5c91cd67b516e978a593ae",
+  "factoryVersion": "fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b",
+  "executionContractSha256": "d7a24ed69b7d8267d4817961bd0ee22c76b6313650177b31322783dcc9d2d9a3",
+  "historicalExecutionContractSha256": "29ff7774ec7ac08a061f28fe2f81bff4a8f1124987f64a69a1b5cb8e21976b66",
+  "pricingRecord": "openai-mini-20261010-v2",
+  "changes": "Current isolated source-identity record only; historical record preserved byte-for-byte; no runtime code or pricing change",
+  "migration": "NONE; old approvals, Work, receipts, UNKNOWN and installed sources retain original identities",
+  "productionIntegration": "NOT_RUN",
+  "merge": "HOLD"
+}

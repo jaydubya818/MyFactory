@@ -1,0 +1,48 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {randomUUID} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+import {digest} from '../../../packages/hosted-routing/src/result.ts';
+import {productionAuthority} from '../src/production-authority.mjs';
+import {productionConfiguration,productionExecutionContractSha256} from '../src/production-execution-plan.mjs';
+import source from '../src/source-identity.json' with {type:'json'};
+import historical from '../../../docs/capability-control/source-identity-20261010/historical-source-identity.json' with {type:'json'};
+import successor from '../../../docs/capability-control/source-identity-20261010/successor.json' with {type:'json'};
+
+test('inventoried source and configuration resolve to the exact qualified successor',()=>{
+ const root=fileURLToPath(new URL('../../../',import.meta.url));
+ const computed=JSON.parse(execFileSync(process.execPath,['apps/cloud-control/scripts/cloud-source-identity.mjs'],{cwd:root,encoding:'utf8'}));
+ assert.deepEqual(computed,source);
+ assert.equal(source.sourceDigest,successor.sourceDigest);
+ assert.equal(digest(productionConfiguration),successor.configurationDigest);
+ assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:successor.configurationDigest}),successor.factoryVersion);
+ assert.equal(productionExecutionContractSha256,successor.executionContractSha256);
+ assert.equal(historical.sourceDigest,successor.historicalSourceDigest);
+ assert.notEqual(historical.sourceDigest,source.sourceDigest);
+});
+
+test('coherent historical source or contract grants cannot consume successor authority',async()=>{
+ const now=Date.now(),clientId='sofie-production',ownerScope='synthetic-identity-owner';
+ const request={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,deadline:new Date(now+60000).toISOString()};
+ const combinations=[
+  [historical.sourceDigest,successor.historicalExecutionContractSha256,false],
+  [historical.sourceDigest,successor.executionContractSha256,false],
+  [source.sourceDigest,successor.historicalExecutionContractSha256,false],
+  [source.sourceDigest,successor.executionContractSha256,true],
+ ];
+ for(const [sourceDigest,contractSha256,allowed] of combinations){
+  const configurationDigest=digest(productionConfiguration),factoryVersion=digest({sourceDigest,configurationDigest});
+  const template={version:1,clientId,ownerScope,environment:'CLOUD_PRODUCTION',publication:false,sourceDigest,configurationDigest,factoryVersion,contractSha256,candidateSha256:null,request:{...request,requestId:null,deadline:null}};
+  const envelope={version:1,approval:{workVersion:1,manifestTemplate:template},expiresAt:new Date(now+120000).toISOString()};
+  const authorizationSha256=digest(envelope),manifest={...template,version:2,request,authorizationEnvelope:envelope,authorizationEnvelopeSha256:authorizationSha256};
+  const row={state:'AUTHORIZED',client_id:clientId,work_id:request.workId,manifest,manifest_sha256:digest(manifest),consumed_at:null};
+  const original=JSON.stringify(row);let writes=0;
+  const client={query:async sql=>{if(sql.startsWith('UPDATE'))writes++;return {rows:[row]};}};
+  const admit=productionAuthority({installation:{ownerScope},sourceDigest:source.sourceDigest,configuration:productionConfiguration,contractSha256:productionExecutionContractSha256,clientId,authorizationSha256});
+  if(allowed)await admit(client,request,now,'prepare');
+  else await assert.rejects(admit(client,request,now,'prepare'),/PRODUCTION_WORK_NOT_AUTHORIZED/);
+  assert.equal(writes,allowed?1:0);
+  assert.equal(JSON.stringify(row),original);
+ }
+});
