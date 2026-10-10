@@ -43,3 +43,13 @@ test('installation alone is insufficient; qualification and wrong runtime config
  for(const patch of [{VERCEL_ENV:'preview'},{VERCEL_PROJECT_ID:installation.callerProjectId},{FACTORY_QUALIFICATION_TOKEN:'forbidden'}])
   assert.throws(()=>productionModelProvider({env:{...env,...patch},assertWorkAuthorized:async()=>{}}));
 });
+
+test('price expiry after construction prevents workload credential acquisition', async t=>{
+ t.mock.timers.enable({apis:['Date'],now:Date.parse(productionModelPrice.validUntil)-1000});
+ let acquisitions=0;
+ const provider=productionModelProvider({env,assertWorkAuthorized:async()=>{}},{getToken:async()=>{acquisitions++;return token;},verifyToken:async()=>({payload:claims})});
+ t.mock.timers.setTime(Date.parse(productionModelPrice.validUntil));
+ await assert.rejects(provider.authorize(),/PRODUCTION_MODEL_AUTHORITY_UNAVAILABLE/);
+ assert.equal(acquisitions,0);
+ assert.throws(()=>productionModelProvider({env,assertWorkAuthorized:async()=>{}}),/Current pinned model pricing/);
+});

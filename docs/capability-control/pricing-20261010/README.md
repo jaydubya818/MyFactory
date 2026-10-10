@@ -1,3 +1,7 @@
+# Current status
+
+Engineering source adoption is now authorized and applied. See [ADOPTION.md](ADOPTION.md) and `adoption-receipt.json`. The dated proposal below is historical; immutable record/patch/identity-impact bytes remain unchanged.
+
 # OpenAI pricing qualification — 2026-10-10 v2
 
 Status: independently reviewed pricing proposal; **NOT ADOPTED**. Runtime price records, stored source identity, approvals, FactoryVersion pins and installation settings remain unchanged by this documentation commit. PR #14 remains HOLD. The separate PR #14 qualification instruction preserves production pricing identity; an explicit adoption decision is pending.
