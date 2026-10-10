@@ -1,3 +1,4 @@
+import { assertLocalCapabilityAdmission } from "./capability-admission.ts";
 import { repairLink, repairPrompt, ReviewRepair } from "./review-repair.ts";
 import { executionContext, implementationFeedback } from "./execution-context.ts";
 import { mkdir, readFile } from "node:fs/promises";
@@ -201,6 +202,7 @@ export class JobManager {
   async prepareRun(workOrder: WorkOrder): Promise<Run> { return this.initialize(workOrder,true); }
 
   private async initialize(workOrder: WorkOrder,prepareOnly:boolean): Promise<Run> {
+    assertLocalCapabilityAdmission();
     if (this.#active) throw new ActionError("Another run is already active", "concurrency_limit", 409);
     if(repairLink(this.storage,workOrder.id)&&this.storage.listRuns(workOrder.id).length)
       throw new ActionError("Repair Work has exactly one candidate attempt","repair_needs_you",409);

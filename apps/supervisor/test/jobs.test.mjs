@@ -275,3 +275,15 @@ test("restart allows retry after the recorded host process group is absent", asy
   assert.equal(storage.getWorkOrder(order.id).state, "interrupted");
   assert.equal(storage.listEvents(order.id).at(-1).type, "run.interrupted");
 });
+
+
+test('enrolled capability installation cannot bypass admission through direct native start or preparation', async t => {
+  const previous=process.env.FACTORY_CAPABILITY_CONTROL_ENABLED;
+  process.env.FACTORY_CAPABILITY_CONTROL_ENABLED='true';
+  t.after(()=>{if(previous===undefined)delete process.env.FACTORY_CAPABILITY_CONTROL_ENABLED;else process.env.FACTORY_CAPABILITY_CONTROL_ENABLED=previous;});
+  const work=await harness(t,{preflightCodex:async()=>{throw Error('must not execute');}});
+  const order=work.storage.createWorkOrder(orderInput({kind:'feature',reproductionCommand:null,expectedFailureText:null}));
+  await assert.rejects(work.jobs.startRun(order),error=>error.code==='capability_policy_unavailable');
+  await assert.rejects(work.jobs.prepareRun(order),error=>error.code==='capability_policy_unavailable');
+  assert.equal(work.storage.listRuns(order.id).length,0);
+});

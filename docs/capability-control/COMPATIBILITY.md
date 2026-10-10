@@ -13,3 +13,24 @@ Runtime constructors have NOT been provisioned with real-owner installation bind
 Relay live policy import and cross-database revocation ordering remain unqualified. Synthetic evidence in the disposable test is not a real authorization record. Pause/revoke requests block new preparation through policy controls, but this checkpoint does not acknowledge remote resource termination or clear UNKNOWN spend.
 
 Run `node scripts/qualify-capability-enforcement.mjs`. It uses a disposable PostgreSQL instance and a restricted application role, executes real Factory preparation transactions, and performs no model, queue, sandbox, provider, publication or deployment operation.
+
+
+## Cross-system checkpoint
+
+Enrolled local installations set `FACTORY_CAPABILITY_CONTROL_ENABLED=true`.
+Both local preparation and direct JobManager initialization then deny new Work
+until a local policy adapter is qualified. Existing native execution remains
+unchanged outside enrollment. Tests call both actual entrypoints.
+
+`applyFactoryCapabilityControl` is a co-located qualification adapter for a
+server-bound client. It reads the canonical owner-scoped control request under
+the same policy and dispatch locks as admission. Pause returns PENDING_BACKEND
+because safe suspension is unqualified. Revoke appends native stop evidence,
+fences spend authority, cancels productive leases, and expires verifier leases.
+It preserves all UNKNOWN spend and allocation evidence and never fabricates a
+cleanup confirmation. Replays do not duplicate revocation events.
+
+This adapter is not wired to a live worker or remote transport. It operates on
+one bound client and cannot acknowledge completion across all clients/backends.
+Qualified cleanup invocation and authenticated owner-wide acknowledgments remain
+gates. The canonical checker remains pinned to the accepted MyEve source.
