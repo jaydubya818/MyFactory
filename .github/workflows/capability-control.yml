@@ -9,6 +9,15 @@ jobs:
   isolated-qualification:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,6 +34,12 @@ jobs:
       - run: node --test apps/supervisor/test/jobs.test.mjs apps/supervisor/test/capability-admission.test.mjs
       - run: node --test apps/cloud-control/test/alpha-owner-roster.test.mjs apps/cloud-control/test/cloud-contract.test.mjs apps/cloud-control/test/cloud-evidence.test.mjs apps/cloud-control/test/cloud-snapshot.test.mjs apps/cloud-control/test/session-surface-contract.test.mjs
       - run: CAPABILITY_TEST_POSTGRES_BIN="$(pg_config --bindir)" node scripts/qualify-capability-enforcement.mjs
+      - name: Admission, accounting and owner isolation with canonical policy
+        env:
+          FACTORY_PAID_TEST_DATABASE_URL: postgres://postgres@127.0.0.1:5432/postgres
+          FACTORY_POSTGRES_TEST: '1'
+          DATABASE_URL_UNPOOLED: postgres://postgres@127.0.0.1:5432/postgres
+        run: node --test apps/cloud-control/test/capability-policy-postgres.test.mjs apps/cloud-control/test/cloud-startup-postgres.test.mjs apps/cloud-control/test/paid-ambiguity-postgres.test.mjs apps/cloud-control/test/alpha-owner-postgres.test.mjs apps/cloud-control/test/successor-intake-postgres.test.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
