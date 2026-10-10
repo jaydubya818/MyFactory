@@ -6,8 +6,8 @@ import {productionInstallation} from './production-installation.mjs';
 // qualification price. Limits below deliberately bound the provider's larger
 // advertised context/output capacities. No model call occurs in this module.
 export const productionModelPrice=Object.freeze({
- revision:'production-openai-mini-20261003-v1',model:'openai/gpt-5.4-mini',
- validUntil:'2026-10-10T00:00:00.000Z',contextLimitTokens:64000,outputLimitTokens:8192,
+ revision:'production-openai-mini-20261010-v2',model:'openai/gpt-5.4-mini',
+ validUntil:'2026-10-17T00:00:00.000Z',contextLimitTokens:64000,outputLimitTokens:8192,
  inputMicrousdPerMillion:750000,outputMicrousdPerMillion:4500000,
 });
 export const productionModelEndpoint='https://ai-gateway.vercel.sh/v1/responses';
