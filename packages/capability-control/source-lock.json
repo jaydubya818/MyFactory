@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/jaydubya818/MissionControl",
+  "commit": "04770b83844b036080e59c9e6ea8ebb565383534",
+  "path": "packages/capability-control",
+  "files": {
+    "src/index.ts": "0fc940c6aae693d020fc8e779fed6f132c24b5d7069115cd226fb79220eed5b4",
+    "src/types.ts": "19e1b9254e0b752404aec868195903e4f185a89059d290531e5b8fd59e61d620",
+    "src/registry.ts": "6b9b33f1527b1a2af5c2ebc61e5fa6d6d66e2dbf05467661736ccc321373304b",
+    "src/resolver.ts": "082b1135e1603a479db39e2d33549c44826304807a32cd0b8d00859ea8f8fa88",
+    "package.json": "ab3bf37f1246d5e543b257e0655ed10ff6eb102896a050cfba991f6aca1d0e2d",
+    "README.md": "44c27d28404b0981e6be9080dfbe38e73b7a3246f3dc3705783e56153029d461",
+    "test/policy.test.mjs": "43b559dcc0f0004ed64cb27f99cdfc8bb123d9008400f63dbc2c03a6c3d401bc"
+  }
+}
