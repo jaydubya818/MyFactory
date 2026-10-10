@@ -29,6 +29,7 @@ jobs:
           node-version: 24.18.1
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm audit --audit-level=low
       # Existing local verification deliberately uses --pull=never at execution.
       # Provision its current image before tests; this is not the cloud runtime.
       - run: docker pull node:22-bookworm

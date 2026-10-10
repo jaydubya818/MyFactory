@@ -538,8 +538,8 @@
     },
     "packages/capability-enforcement/src/postgres.ts": {
       "classification": "CAPABILITY_ADMISSION",
-      "authorityBoundary": " Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified.",
-      "sha256": "f29a6a0cd161f5bcb77b5b59ecf26f1fe72bfe7e944acfc7fbbd6e0f163d4c30"
+      "authorityBoundary": "Canonical MyEve 9560b28d source, independently reviewed with real PostgreSQL SELECT-only receiver qualification. Exact scope, evidence, enrollment and independently retained authority witness fail closed before new admission. Uses existing policy lock and native Factory transaction; no execution grant, no restoration reset or pricing/accounting changes. External witness custody/installation approval remain required.",
+      "sha256": "8826f8166226424e4b1c59d061236de9e28fc35c2a595d2961af4d315f169209"
     },
     "apps/supervisor/src/capability-admission.ts": {
       "classification": "CAPABILITY_CONTROL",
@@ -555,6 +555,11 @@
       "sha256": "606fbecaf5f7b1b8e6924e0a25b5e88718d602e2012a712828393b04dad3c768",
       "classification": "CAPABILITY_LIFECYCLE_OBSERVATION",
       "authorityBoundary": "Typed exact native lifecycle observation only, never a portable grant or authentication mechanism. Existing enrolled Factory/Fabric transport or signed execution Result must authenticate it; MissionControl owns Mission/Attempt mapping."
+    },
+    "packages/capability-enforcement/src/recovery-witness.ts": {
+      "classification": "CAPABILITY_ADMISSION",
+      "authorityBoundary": "Canonical MyEve 9560b28d source, independently reviewed with real PostgreSQL SELECT-only receiver qualification. Exact scope, evidence, enrollment and independently retained authority witness fail closed before new admission. Uses existing policy lock and native Factory transaction; no execution grant, no restoration reset or pricing/accounting changes. External witness custody/installation approval remain required.",
+      "sha256": "a952deb07166fa0b3ca28075a25572eaeb45b020cee931505fbfb60689e487e9"
     }
   }
 }

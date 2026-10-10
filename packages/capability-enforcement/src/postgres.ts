@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { capabilityRegistry, resolveCapabilities, type PolicySnapshot } from '@mission-control/capability-control';
+import { assertRecoveryEnrollment, configuredRecoveryWitness, recoveryHead, assertRecoveryHead } from './recovery-witness.ts';
 
 export interface PolicyConnection { query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, any>[] }> }
 export class CapabilityAdmissionError extends Error {
@@ -35,6 +36,10 @@ export async function assertCapabilityAdmission(connection:PolicyConnection, raw
   if(!role || role.unsafe!==false)deny('RUNTIME_ROLE_UNQUALIFIED');
   await connection.query("SELECT set_config('myeve.capability_owner',$1,true),set_config('myeve.capability_installation',$2,true)",[scope.ownerId,scope.installationId]);
   await connection.query('SELECT capability_control.lock_admission_policy($1,$2,$3)',[scope.installationId,scope.ownerId,scope.agentId]);
+  const witness = configuredRecoveryWitness();
+  if (scope.environment === 'development' && !witness) deny('RECOVERY_WITNESS_REQUIRED');
+  await assertRecoveryEnrollment(connection, scope, witness);
+  if (witness) await assertRecoveryHead(witness, await recoveryHead(connection, scope, witness));
   const [state]=(await connection.query(`SELECT s.*,i.organization_id,i.environment,i.active,
       b.id AS binding_id,b.organization_id AS binding_organization,b.status AS binding_status,b.expires_at AS binding_expires,
       b.revision AS binding_revision,b.administration_record_id,b.membership_record_id,b.installation_record_id,b.audit_record_id,
@@ -76,7 +81,8 @@ export async function assertCapabilityAdmission(connection:PolicyConnection, raw
     if(budgets[item.id]!==undefined&&request.budgetMicros>budgets[item.id])deny(`BUDGET_EXCEEDED:${item.id}`);
   }
   return {registryVersion:capabilityRegistry.version,policyRevision:Number(state.revision),agentRevision:Number(state.agent_revision),
-    capabilityId:request.capabilityId,workId:request.workId,workGeneration:request.workGeneration,transactionId};
+    capabilityId:request.capabilityId,workId:request.workId,workGeneration:request.workGeneration,transactionId,
+    requiredCapabilities:[...required].sort()};
 }
 
 /** Invoke inside BEGIN/COMMIT; a failure rolls back the backend admission with policy checks. */

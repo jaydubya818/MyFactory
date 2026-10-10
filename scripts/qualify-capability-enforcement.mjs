@@ -23,7 +23,7 @@ try {
   await execFile(join(bin, 'initdb'), ['-D', join(directory, 'data'), '-U', 'capability_admin', '--auth-local=trust', '--auth-host=reject', '--no-locale', '-E', 'UTF8']);
   await execFile(join(bin, 'pg_ctl'), ['-D', join(directory, 'data'), '-l', join(directory, 'log'), '-o', `-k ${socket} -h '' -p 55494`, '-w', 'start']); started = true;
   admin = new pg.Pool({ host: socket, port: 55494, user: 'capability_admin', database: 'postgres' });
-  for (const name of ['migration', 'enforcement']) await admin.query(await readFile(`docs/capability-control/${name}.sql`, 'utf8'));
+  for (const name of ['migration', 'enforcement', 'decisions', 'ordering', 'lifecycle']) await admin.query(await readFile(`docs/capability-control/${name}.sql`, 'utf8'));
   await admin.query('CREATE SCHEMA factory');
   for (const version of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification']) await admin.query(await readFile(`apps/cloud-control/migrations/${version}.sql`, 'utf8'));
   await admin.query('CREATE ROLE capability_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS');
