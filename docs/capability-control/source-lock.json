@@ -1,0 +1,15 @@
+{
+  "myEveSha": "76e0d9f3ff18157128138ef75a9f7d69369386c6",
+  "missionControlSha": "04770b83844b036080e59c9e6ea8ebb565383534",
+  "files": {
+    "packages/capability-control/src/resolver.ts": "082b1135e1603a479db39e2d33549c44826304807a32cd0b8d00859ea8f8fa88",
+    "packages/capability-control/src/types.ts": "19e1b9254e0b752404aec868195903e4f185a89059d290531e5b8fd59e61d620",
+    "packages/capability-control/src/registry.ts": "6b9b33f1527b1a2af5c2ebc61e5fa6d6d66e2dbf05467661736ccc321373304b",
+    "packages/capability-control/src/index.ts": "0fc940c6aae693d020fc8e779fed6f132c24b5d7069115cd226fb79220eed5b4",
+    "packages/capability-control/package.json": "ab3bf37f1246d5e543b257e0655ed10ff6eb102896a050cfba991f6aca1d0e2d",
+    "packages/capability-enforcement/src/postgres.ts": "f29a6a0cd161f5bcb77b5b59ecf26f1fe72bfe7e944acfc7fbbd6e0f163d4c30",
+    "packages/capability-enforcement/package.json": "ef18d25946427282996f4f431d977d1546a7a68e4612a769a021e800c8a0f3e5",
+    "docs/capability-control/migration.sql": "f8006be4b484e965eac916eb77c73a331c2f8b052ab0368d5d0e29dc9cbf2a22",
+    "docs/capability-control/enforcement.sql": "f247800e7c43655c43388f70588c8015596fd6643d44a536ee6fdecb40bde767"
+  }
+}

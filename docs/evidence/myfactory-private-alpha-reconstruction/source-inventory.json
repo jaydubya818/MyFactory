@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "36ba5e55b019c1fe0aac0749ed7bba808b171815b45c57f3f67bef80b40a95b5",
+      "sha256": "62436f436b81d30beb170aafc39bb8482afb36c74c19cb9e554c2472dc066552",
       "classification": "CLOUD_DISPATCH_AUTHORITY",
-      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review."
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review. Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -510,6 +510,36 @@
       "classification": "EXACT_SUCCESSOR_ADMISSION",
       "authorityBoundary": "Digest-bound alpha-A successor only: preserves one lifetime intake, exact revoked predecessor and all historical records; no grant, model, retry, fallback or publication authority from configuration.",
       "sha256": "7a4743821a2615a09f1cd8e777f1d59ec4736665e5111803b337ac69ccb96305"
+    },
+    "apps/cloud-control/src/capability-admission.mjs": {
+      "classification": "CAPABILITY_ADMISSION",
+      "authorityBoundary": " Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified.",
+      "sha256": "73ce012e25f134cbec40e35f574f68e19f8664c2e388252d9e850fb8bbeeb518"
+    },
+    "packages/capability-control/src/resolver.ts": {
+      "classification": "CAPABILITY_ADMISSION",
+      "authorityBoundary": " Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified.",
+      "sha256": "082b1135e1603a479db39e2d33549c44826304807a32cd0b8d00859ea8f8fa88"
+    },
+    "packages/capability-control/src/types.ts": {
+      "classification": "CAPABILITY_ADMISSION",
+      "authorityBoundary": " Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified.",
+      "sha256": "19e1b9254e0b752404aec868195903e4f185a89059d290531e5b8fd59e61d620"
+    },
+    "packages/capability-control/src/registry.ts": {
+      "classification": "CAPABILITY_ADMISSION",
+      "authorityBoundary": " Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified.",
+      "sha256": "6b9b33f1527b1a2af5c2ebc61e5fa6d6d66e2dbf05467661736ccc321373304b"
+    },
+    "packages/capability-control/src/index.ts": {
+      "classification": "CAPABILITY_ADMISSION",
+      "authorityBoundary": " Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified.",
+      "sha256": "0fc940c6aae693d020fc8e779fed6f132c24b5d7069115cd226fb79220eed5b4"
+    },
+    "packages/capability-enforcement/src/postgres.ts": {
+      "classification": "CAPABILITY_ADMISSION",
+      "authorityBoundary": " Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified.",
+      "sha256": "f29a6a0cd161f5bcb77b5b59ecf26f1fe72bfe7e944acfc7fbbd6e0f163d4c30"
     }
   }
 }
