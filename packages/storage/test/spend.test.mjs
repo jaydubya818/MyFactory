@@ -179,3 +179,19 @@ test('Attempt 5 completion eligibility rejects UNKNOWN, stale generation, fenced
  assert.throws(()=>f.reserve('completion','completion'),/authority/);
  f.ledger.fenceAuthority(f.binding);assert.throws(()=>f.ledger.assertCompletionEligible(f.binding));
 });
+
+
+test('a successor price cannot reset an existing Work plan or UNKNOWN exposure', t => {
+  const f=setup(t);
+  f.reserve('original');f.ledger.markDispatched('original');f.ledger.markUnknown('original');
+  const before=f.ledger.read(f.binding.workId);
+  for (const change of [{pricingRevision:'successor-v2'}, {validUntil:new Date(Date.now()+120000).toISOString()}]) {
+    assert.throws(()=>f.ledger.createBudget(f.binding,4000,f.deadline,{...f.plan,...change}),/Work spend plan cannot reset/);
+    assert.deepEqual(f.ledger.read(f.binding.workId),before);
+  }
+  f.ledger.settle('original',30,'original-receipt',{input_tokens:10,output_tokens:10});
+  const after=f.ledger.read(f.binding.workId);
+  assert.equal(after.unknownExposureMicrousd,0);
+  assert.equal(after.operations[0].pricingRevision,f.plan.pricingRevision);
+  assert.equal(after.operations[0].actualMicrousd,30);
+});

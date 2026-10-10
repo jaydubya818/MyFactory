@@ -13,15 +13,18 @@ import {cloudEvidence,cloudEvidenceRead} from '../src/cloud-evidence.mjs';
 import {productionConfiguration as configuration,productionSourceGrant,productionSpendPlan,productionExecutionContractSha256 as contractSha256} from '../src/production-execution-plan.mjs';
 import {productionVerifierPolicy as policy,productionVerifierPolicySha256 as policySha256} from '../src/production-verifier-policy.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
+import {capabilityPolicyFixture} from './fixtures/capability-policy.mjs';
 
 test('CONNECTED three-owner exact grants, single intake, cross-owner custody/Proof denials and revocation',{skip:process.env.FACTORY_POSTGRES_TEST!=='1'},async t=>{
  const url=new URL(process.env.DATABASE_URL_UNPOOLED);assert(['localhost','127.0.0.1'].includes(url.hostname),'Disposable localhost only');
  const pool=new pg.Pool({connectionString:url.href,max:6}),schema='alpha_isolation_'+randomUUID().replaceAll('-','');await pool.query('CREATE SCHEMA '+schema);
- const rewrite=sql=>sql.replace(/\bfactory\./g,schema+'.').replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);
+ const rewrite=sql=>sql.replace(/\bfactory\.(production_work_authority|protect_production_authority|work_spend_budgets|work_spend_operations|intake_receipts|delivery_intents|verification_resources|execution_resources|candidate_custody|work_orders|runs|events)\b/g,schema+'.$1').replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);
  const query=(sql,args)=>pool.query(rewrite(sql),args),isolated={connect:async()=>{const c=await pool.connect();return {query:(sql,args)=>c.query(rewrite(sql),args),release:()=>c.release()}}};
- t.after(async()=>{await pool.query('DROP SCHEMA '+schema+' CASCADE');await pool.end()});
+ let capability;
+ t.after(async()=>{await capability?.cleanup();await pool.query('DROP SCHEMA '+schema+' CASCADE');await pool.end()});
  for(const version of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification','008-production-work-authority','009-paid-operation-release','010-three-owner-authority'])await query(await readFile(new URL('../migrations/'+version+'.sql',import.meta.url),'utf8'));
  const {env,roster}=fixture(),sourceDigest='a'.repeat(64),configurationDigest=digest(configuration),factoryVersion=digest({sourceDigest,configurationDigest}),owners=[];
+ capability=await capabilityPolicyFixture(pool,schema,isolated,Object.fromEntries(roster.owners.map(owner=>[owner.clientId,owner.ownerScope])));
  for(const o of roster.owners){
   const binding=alphaOwnerBinding(env,o.clientId),grant={...productionSourceGrant,clientId:o.clientId,ownerScope:o.ownerScope};
   const request={protocol:'MYFACTORY_EXECUTION_V2',requestId:randomUUID(),workId:randomUUID(),workGeneration:1,repository:grant.source.repository,source:grant.source,deadline:new Date(Date.now()+170000).toISOString(),maxSpendUsd:1,input:{title:'Disposable owner '+o.slot,description:'Local deterministic owner custody qualification',kind:'feature',acceptanceCriteria:['Owner-scoped custody'],allowedPaths:grant.allowedPaths,checkCommands:grant.commands}};
@@ -30,7 +33,7 @@ test('CONNECTED three-owner exact grants, single intake, cross-owner custody/Pro
   const approvalDigest=digest(envelope),manifest={...template,version:2,request,authorizationEnvelope:envelope,authorizationEnvelopeSha256:approvalDigest};
   await query("INSERT INTO factory.production_work_authority(request_id,work_id,client_id,manifest,manifest_sha256,state) VALUES($1,$2,$3,$4,$5,'AUTHORIZED')",[request.requestId,request.workId,o.clientId,manifest,digest(manifest)]);
   const assertAuthority=productionAuthority({installation:{ownerScope:o.ownerScope},sourceDigest,configuration,contractSha256,clientId:o.clientId,authorizationSha256:approvalDigest,ownerBinding:binding});
-  const store=new PostgresDispatchStore(isolated,{maxWorks:1,custodyPrefix:'factory/production',verificationPolicySha256:policySha256,assertAuthority,assertRecordScope:alphaRecordScope(binding)});
+  const store=new PostgresDispatchStore(capability.pool,{capabilityBindings:capability.bindings,maxWorks:1,custodyPrefix:'factory/production',verificationPolicySha256:policySha256,assertAuthority,assertRecordScope:alphaRecordScope(binding)});
   const control=new CloudWorkControl({store,spend:new PostgresSpendLedger(isolated),grant,configuration,sourceDigest,signing:{factoryId:'myfactory-cloud-production'},executionSpendPlan:productionSpendPlan,verificationPolicy:{policy,policySha256}});
   const [a,b]=await Promise.all([control.prepare(request),control.prepare(request)]);assert.equal(a.runId,b.runId);
   owners.push({binding,grant,request,store,control,assertAuthority,prepared:a});
