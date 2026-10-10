@@ -10,7 +10,7 @@ export async function capabilityPolicyFixture(admin, factorySchema, isolated, ow
   const suffix = randomUUID().replaceAll('-', '');
   const schema = `capability_test_${suffix}`, role = `capability_runtime_${suffix}`;
   const rewrite = sql => sql.replaceAll('capability_control', schema);
-  for (const name of ['migration', 'enforcement']) {
+  for (const name of ['migration', 'enforcement', 'decisions', 'ordering', 'lifecycle']) {
     const sql = await readFile(new URL(`../../../../docs/capability-control/${name}.sql`, import.meta.url), 'utf8');
     await admin.query(rewrite(sql));
   }

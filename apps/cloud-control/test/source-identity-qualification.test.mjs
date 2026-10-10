@@ -9,7 +9,8 @@ import {productionConfiguration,productionExecutionContractSha256} from '../src/
 import source from '../src/source-identity.json' with {type:'json'};
 import historical from '../../../docs/capability-control/source-identity-20261010/historical-source-identity.json' with {type:'json'};
 import predecessor from '../../../docs/capability-control/source-identity-20261010/successor.json' with {type:'json'};
-import successor from '../../../docs/capability-control/source-identity-20261010/lifecycle-successor.json' with {type:'json'};
+import lifecycle from '../../../docs/capability-control/source-identity-20261010/lifecycle-successor.json' with {type:'json'};
+import successor from '../../../docs/capability-control/source-identity-20261010/recovery-successor.json' with {type:'json'};
 
 test('inventoried source and configuration resolve to the exact qualified successor',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
@@ -21,8 +22,8 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(productionExecutionContractSha256,successor.executionContractSha256);
  assert.equal(historical.sourceDigest,successor.historicalSourceDigest);
  assert.notEqual(historical.sourceDigest,source.sourceDigest);
- assert.equal(predecessor.factoryVersion,successor.predecessorFactoryVersion);
- assert.equal(predecessor.sourceDigest,successor.predecessorSourceDigest);
+ assert.equal(lifecycle.factoryVersion,successor.predecessorFactoryVersion);
+ assert.equal(lifecycle.sourceDigest,successor.predecessorSourceDigest);
  assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
 });
 
@@ -30,6 +31,7 @@ test('coherent historical source or contract grants cannot consume successor aut
  const now=Date.now(),clientId='sofie-production',ownerScope='synthetic-identity-owner';
  const request={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,deadline:new Date(now+60000).toISOString()};
  const combinations=[
+  [lifecycle.sourceDigest,lifecycle.executionContractSha256,false],
   [predecessor.sourceDigest,predecessor.executionContractSha256,false],
   [historical.sourceDigest,successor.historicalExecutionContractSha256,false],
   [historical.sourceDigest,successor.executionContractSha256,false],

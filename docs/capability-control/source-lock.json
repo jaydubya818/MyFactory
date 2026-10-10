@@ -1,5 +1,5 @@
 {
-  "myEveSha": "76e0d9f3ff18157128138ef75a9f7d69369386c6",
+  "myEveSha": "9560b28dd7cab6f5d3166fbe909f5a6e02ca8b39",
   "missionControlSha": "04770b83844b036080e59c9e6ea8ebb565383534",
   "files": {
     "packages/capability-control/src/resolver.ts": "082b1135e1603a479db39e2d33549c44826304807a32cd0b8d00859ea8f8fa88",
@@ -7,9 +7,16 @@
     "packages/capability-control/src/registry.ts": "6b9b33f1527b1a2af5c2ebc61e5fa6d6d66e2dbf05467661736ccc321373304b",
     "packages/capability-control/src/index.ts": "0fc940c6aae693d020fc8e779fed6f132c24b5d7069115cd226fb79220eed5b4",
     "packages/capability-control/package.json": "ab3bf37f1246d5e543b257e0655ed10ff6eb102896a050cfba991f6aca1d0e2d",
-    "packages/capability-enforcement/src/postgres.ts": "f29a6a0cd161f5bcb77b5b59ecf26f1fe72bfe7e944acfc7fbbd6e0f163d4c30",
+    "packages/capability-enforcement/src/postgres.ts": "8826f8166226424e4b1c59d061236de9e28fc35c2a595d2961af4d315f169209",
     "packages/capability-enforcement/package.json": "ef18d25946427282996f4f431d977d1546a7a68e4612a769a021e800c8a0f3e5",
     "docs/capability-control/migration.sql": "f8006be4b484e965eac916eb77c73a331c2f8b052ab0368d5d0e29dc9cbf2a22",
-    "docs/capability-control/enforcement.sql": "f247800e7c43655c43388f70588c8015596fd6643d44a536ee6fdecb40bde767"
+    "docs/capability-control/enforcement.sql": "f247800e7c43655c43388f70588c8015596fd6643d44a536ee6fdecb40bde767",
+    "packages/capability-enforcement/src/recovery-witness.ts": "a952deb07166fa0b3ca28075a25572eaeb45b020cee931505fbfb60689e487e9",
+    "docs/capability-control/decisions.sql": "6fd713c6846f6fcbd278c281b98e2b769c7b72adb451b556e104b266980e8360",
+    "docs/capability-control/ordering.sql": "bc71cff8f8638a009f0590801faea2114f41827c1d7d86436c8239f4e2cdb899",
+    "docs/capability-control/lifecycle.sql": "d715e3f381e1181f47dcb9df027215deeb01f0d8f0f100533c50ac69e50580c4"
+  },
+  "consumerPackaging": {
+    "packages/capability-enforcement/package.json": "Retained Factory-only private manifest exposing the co-located postgres entrypoint. Hash is local integrity, not a claim of byte identity with the broader MyEve package manifest."
   }
 }

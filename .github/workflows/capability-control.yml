@@ -27,6 +27,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm audit --audit-level=low
       - run: node scripts/check-producer-governance.mjs
       - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
       - run: node scripts/check-capability-sources.mjs

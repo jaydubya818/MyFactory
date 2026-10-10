@@ -1,0 +1,20 @@
+{
+  "schema": "factory-recovery-successor/v1",
+  "authority": "ISOLATED_SOURCE_QUALIFICATION_ONLY",
+  "preservedSourceCommit": "dc8d864a695bc451e96d1a4a8563f09e515e9030",
+  "historicalIdentityCommit": "2bc570e3bb363d42c2b70916ddab53a8f54388f1",
+  "historicalSourceDigest": "1c69113378ed82428d13a2f89452708204e171ac9cb952b0a725acff83844548",
+  "sourceDigest": "f898b8f5b9cb3e33e8cd46d6ee1f97be607618644498446a2833389e9941b47d",
+  "configurationDigest": "415f52a554e8dbdcc48019609e4611f07085622abf5c91cd67b516e978a593ae",
+  "factoryVersion": "0d804895789aae6cf0fa2c6666a06b9001737f22ab8cdc9981f7cd32e7f6715f",
+  "executionContractSha256": "d7a24ed69b7d8267d4817961bd0ee22c76b6313650177b31322783dcc9d2d9a3",
+  "historicalExecutionContractSha256": "29ff7774ec7ac08a061f28fe2f81bff4a8f1124987f64a69a1b5cb8e21976b66",
+  "pricingRecord": "openai-mini-20261010-v2",
+  "changes": "Adopt exact MyEve recovery witness and privileged enrollment checks; source-map-js1.2.1\u21921.2.2 security fix. Pricing, configuration, spending ceilings and execution contract unchanged.",
+  "migration": "Additive isolated capability tables only. Historical fed1724f and lifecycle49c8aa versions, approvals, Work and UNKNOWN retain original identities. New source requires its own approval.",
+  "productionIntegration": "NOT_RUN",
+  "merge": "HOLD",
+  "predecessorFactoryVersion": "49c8aa7993608c9f5051daf06354c3eafc83aad904f3d3a804256f8dddfb1e13",
+  "predecessorSourceDigest": "a6d12836dc3894d6f4fad4a214f50e5de96e81aaa95dda3d583a8cc4a2b970f4",
+  "qualification": "SOURCE_AND_DETERMINISTIC_TESTS_ONLY; authenticated remote activation NOT_RUN"
+}
