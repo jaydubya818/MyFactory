@@ -30,6 +30,9 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm audit --audit-level=low
+      # The generated preview deliberately installs offline; provision its own locked cache first.
+      - run: npm ci --prefix templates/feedback-hub --ignore-scripts --no-audit --no-fund
+      - run: npm audit --prefix templates/feedback-hub --audit-level=low
       # Existing local verification deliberately uses --pull=never at execution.
       # Provision its current image before tests; this is not the cloud runtime.
       - run: docker pull node:22-bookworm
