@@ -49,7 +49,7 @@ export interface CloudVerificationEvidence {
   workId: string; workGeneration: number; candidateCommit: string; candidateTree: string;
   custodySha256: string; policySha256: string; image: string;
   providerSessionId: string | null; producerSessionId: string; cleanupConfirmed: true;
-  outcome: 'PASS' | 'FAIL' | 'UNKNOWN'; checks: {id:string; result:'PASS'|'FAIL'}[];
+  outcome: 'PASS' | 'FAIL' | 'UNKNOWN'; checks: {id:string; result:'PASS'|'FAIL'; reportSha256?:string}[];
   startedAt: string; finishedAt: string;
 }
 export interface ResultManifest {
@@ -188,7 +188,7 @@ export function validateManifest(value: unknown): asserts value is ResultManifes
     requireValue(v.providerSessionId!==v.producerSessionId&&(v.providerSessionId===null||/^sbx_[A-Za-z0-9_-]+$/.test(String(v.providerSessionId))),'Verifier isolation mismatch');
     requireValue(['PASS','FAIL','UNKNOWN'].includes(String(v.outcome))&&Array.isArray(v.checks)&&v.checks.length<=20,'Verifier outcome');
     const ids=new Set();
-    for(const check of v.checks){exact(check,['id','result']);text(check.id);requireValue(!ids.has(check.id)&&['PASS','FAIL'].includes(String(check.result)),'Verifier check');ids.add(check.id);}
+    for(const check of v.checks){exact(check,['id','result',...(Object.hasOwn(check,'reportSha256')?['reportSha256']:[])]);if(Object.hasOwn(check,'reportSha256'))hash(check.reportSha256);text(check.id);requireValue(!ids.has(check.id)&&['PASS','FAIL'].includes(String(check.result)),'Verifier check');ids.add(check.id);}
     requireValue(v.outcome==='UNKNOWN'||(v.providerSessionId!==null&&v.checks.length>0&&((v.outcome==='PASS')===v.checks.every(check=>check.result==='PASS'))),'Contradictory verifier outcome');
     time(v.startedAt);time(v.finishedAt);
     requireValue(Date.parse(v.startedAt)>=Date.parse(e.capturedAt)&&Date.parse(v.startedAt)<=Date.parse(v.finishedAt)&&Date.parse(v.finishedAt)<=Date.parse(value.completedAt),'Verifier chronology mismatch');

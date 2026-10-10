@@ -18,7 +18,9 @@ export async function executeCloudWork(store,provider,clientId,identity,schedule
   // Recovery is independent of the request, browser and producer callback.
   // If its acceptance is ambiguous, no sandbox is allocated.
   await scheduleRecovery(row,resource);
-  await active();startupStage='ALLOCATION';sandbox=await provider.allocate(resource);
+  await active();
+  if(provider.prepareSource){startupStage='PRIVATE_SOURCE_CUSTODY';await provider.prepareSource(row,note);await active();}
+  startupStage='ALLOCATION';sandbox=await provider.allocate(resource);
   sessionId=sandbox.currentSession().sessionId;await store.recordAllocation(...args,sessionId);
   await active();await store.advanceResource(...args,'PREPARING');
   startupStage='SANDBOX_READINESS';
@@ -72,6 +74,6 @@ export async function reconcileCloudWork(store,provider,clientId,requestId,now=D
  await store.confirmCleanup(r.run_id,r.lease_owner,r.lease_generation,r.provider_session_id);
  if(requiresVerifier(row))await provider.reconcileVerification(await store.read(clientId,requestId));
  // Expired producer authority is never recovered by starting a new worker.
- await store.noteResource(r.run_id,r.lease_owner,r.lease_generation,{failure:'EXECUTION_INTERRUPTED',reconciled:true});
+ await (store.noteReconciliation??store.noteResource).call(store,r.run_id,r.lease_owner,r.lease_generation,{failure:'EXECUTION_INTERRUPTED',reconciled:true});
  await store.finalize(clientId,requestId,'FAILED');return store.read(clientId,requestId);
 }

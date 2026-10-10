@@ -1,0 +1,4473 @@
+{
+ "kind": "MYEVE_EXTERNAL_ALPHA_CONFORMANCE_VECTORS_V1",
+ "synthetic": true,
+ "generator": "apps/cloud-control/scripts/generate-myeve-conformance-vectors.mjs",
+ "myeveCommit": "c0297956eb601cf332ee37c6391e391f4fa5cb89",
+ "nowMs": 1791374400000,
+ "issuedAt": "2026-10-07T12:00:00.000Z",
+ "testKey": {
+  "purpose": "TEST ONLY: seed is public in the generator; never pin in a real installation",
+  "keyId": "d2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAUgmMKNtY+nb4RvC6yuxP4986tTEpfAhHgB9u7wrR5PM=\n-----END PUBLIC KEY-----\n"
+ },
+ "policy": {
+  "version": 1,
+  "kind": "TWO_EXTERNAL_OWNERS_V1",
+  "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+  "slot": "1",
+  "ownerId": "2d595df2-881b-4753-8343-2d1efb333772",
+  "projectId": "prj_ConformanceFixture1",
+  "clientId": "external-alpha-90f954de5747728c17629ef8dd8f40f2",
+  "repository": "fixture-org/myeve-alpha-workspace-01",
+  "baseSha": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+  "treeSha": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+  "workspacePolicy": "ISOLATED_WORKSPACE_V1",
+  "dayBoundary": "UTC_MIDNIGHT",
+  "model": "openai/gpt-5.4-mini",
+  "provider": "vercel-ai-gateway/openai",
+  "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+  "factoryVersion": "36ebe13464e49468c1d36f4ffd10980d7a758adbb749766ba46a8f2472233ce5",
+  "limits": {
+   "days": 5,
+   "chatTurnsPerDay": 10,
+   "chatOperationsPerTurn": 2,
+   "chatMicrousd": 100000,
+   "worksPerDay": 1,
+   "workOperations": 5,
+   "workMicrousd": 1300000,
+   "factoryOperations": 3,
+   "factoryMicrousd": 1000000,
+   "productiveSeconds": 180,
+   "ownerDailyMicrousd": 2300000,
+   "ownerLifetimeMicrousd": 11500000,
+   "cohortDailyMicrousd": 4600000,
+   "cohortLifetimeMicrousd": 23000000,
+   "candidates": 1,
+   "writers": 1,
+   "cleanupSeconds": 1200
+  },
+  "publication": false,
+  "automaticRepair": false,
+  "fallback": false
+ },
+ "workConfig": {
+  "allowedFiles": [
+   "src/app.js",
+   "src/store.js",
+   "test/app.test.mjs"
+  ],
+  "checkCommands": [
+   "node --test test/app.test.mjs"
+  ],
+  "factoryOrigin": "https://myfactory-cloud-production.vercel.app"
+ },
+ "installation": {
+  "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+  "slot": "1",
+  "ownerId": "2d595df2-881b-4753-8343-2d1efb333772",
+  "policySha256": "1229196116e4ed8727dafba9a8a37dd6df4de97aca85a91b406081fa9e269e0e",
+  "application": {
+   "clientId": "external-alpha-90f954de5747728c17629ef8dd8f40f2",
+   "projectId": "prj_ConformanceFixture1"
+  },
+  "source": {
+   "repository": "fixture-org/myeve-alpha-workspace-01",
+   "baseSha": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+   "treeSha": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+   "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+   "allowedFiles": [
+    "src/app.js",
+    "src/store.js",
+    "test/app.test.mjs"
+   ]
+  },
+  "factoryVersion": "36ebe13464e49468c1d36f4ffd10980d7a758adbb749766ba46a8f2472233ce5",
+  "checkCommands": [
+   "node --test test/app.test.mjs"
+  ]
+ },
+ "tuple": {
+  "project": {
+   "name": "Alpha Tasks",
+   "task": "add a Priority field (exactly Low|Medium|High) shown on the task list"
+  },
+  "criteria": [
+   "Existing tasks still display and function",
+   "Creating or editing a task supports exactly Low, Medium and High",
+   "Priority persists after reload",
+   "The task list displays each task's priority",
+   "An invalid priority is rejected",
+   "Existing tests pass",
+   "Focused tests cover creation, editing, persistence, display and invalid input",
+   "No unrelated product or UI changes",
+   "No production deployment or external publication",
+   "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+  ],
+  "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+  "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577",
+  "title": "Alpha Tasks: add a Priority field",
+  "objective": "In the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list.",
+  "objectiveSha256": "42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e"
+ },
+ "allowedFilesSha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1",
+ "identifiers": {
+  "idempotencyKey": "d82c7344db1a8a35ebe9fe6891b0eb2649088910e19763ebf3d83fc26c64649c",
+  "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+  "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+  "writerId": "78c75fa2-b348-8619-a7c2-83e2a5dae0f4",
+  "derivation": {
+   "idempotencyKeyInput": {
+    "kind": "EXTERNAL_ALPHA_WORK_AUTHORITY_KEY_V1",
+    "policySha256": "1229196116e4ed8727dafba9a8a37dd6df4de97aca85a91b406081fa9e269e0e",
+    "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+    "workVersion": 1,
+    "workGeneration": 1,
+    "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577"
+   },
+   "requestSeed": "EXTERNAL_ALPHA_REQUEST_V1:d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+   "writerSeed": "EXTERNAL_ALPHA_WRITER_V1:d82c7344-db1a-8a35-abe9-fe6891b0eb26"
+  }
+ },
+ "work": {
+  "id": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+  "version": 1,
+  "generation": 1
+ },
+ "canonicalDocument": "{\"allowedEffects\":[\"candidate.create\",\"repository.read\",\"sandbox.write\",\"verification.request\"],\"application\":{\"clientId\":\"external-alpha-90f954de5747728c17629ef8dd8f40f2\",\"projectId\":\"prj_ConformanceFixture1\"},\"authorityId\":\"d82c7344-db1a-8a35-abe9-fe6891b0eb26\",\"candidateWriter\":{\"candidateSlot\":1,\"requestId\":\"5027ac1a-9ce3-8a48-aaa6-9839e22378e5\",\"writerId\":\"78c75fa2-b348-8619-a7c2-83e2a5dae0f4\"},\"cohortId\":\"fbf3d8f0-4e07-4419-8c3f-45dc339ee003\",\"environment\":\"CLOUD_PRODUCTION\",\"executionProvider\":\"MYFACTORY_CLOUD_EXECUTION_V2\",\"expiresAt\":\"2026-10-07T12:04:50.000Z\",\"factoryVersion\":\"36ebe13464e49468c1d36f4ffd10980d7a758adbb749766ba46a8f2472233ce5\",\"forbiddenEffects\":[\"deploy\",\"merge\",\"production\",\"publication\",\"repository.admin\",\"secrets.mutate\",\"workflows.mutate\"],\"harness\":{\"id\":\"myfactory-cloud-harness\",\"version\":\"1\"},\"idempotencyKey\":\"d82c7344db1a8a35ebe9fe6891b0eb2649088910e19763ebf3d83fc26c64649c\",\"issuedAt\":\"2026-10-07T12:00:00.000Z\",\"limits\":{\"candidates\":1,\"factory\":{\"microusd\":1000000,\"operations\":3},\"productiveSeconds\":180,\"work\":{\"microusd\":1300000,\"operations\":5},\"writers\":1},\"model\":{\"id\":\"openai/gpt-5.4-mini\",\"provider\":\"vercel-ai-gateway/openai\"},\"notBefore\":\"2026-10-07T12:00:00.000Z\",\"ownerId\":\"2d595df2-881b-4753-8343-2d1efb333772\",\"policySha256\":\"1229196116e4ed8727dafba9a8a37dd6df4de97aca85a91b406081fa9e269e0e\",\"project\":{\"criteriaSha256\":\"266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466\",\"name\":\"Alpha Tasks\",\"task\":\"add a Priority field (exactly Low|Medium|High) shown on the task list\",\"tupleSha256\":\"22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577\"},\"schema\":\"MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1\",\"singleUse\":true,\"slot\":\"1\",\"source\":{\"allowedFiles\":[\"src/app.js\",\"src/store.js\",\"test/app.test.mjs\"],\"allowedFilesSha256\":\"2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1\",\"baseSha\":\"61aced4d0f652562b3208686ff38cb3e17ee7057\",\"repository\":\"fixture-org/myeve-alpha-workspace-01\",\"sourceDigest\":\"67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387\",\"treeSha\":\"55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d\"},\"verifier\":{\"criteriaSha256\":\"266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466\",\"id\":\"independent-exact-artifact-verifier\",\"trustProducer\":false,\"verifiesExactArtifact\":true},\"work\":{\"criteriaCount\":10,\"criteriaSha256\":\"266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466\",\"generation\":1,\"id\":\"8b91dfcd-c435-4932-80cd-b9e2a31e4bb4\",\"objectiveSha256\":\"42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e\",\"title\":\"Alpha Tasks: add a Priority field\",\"version\":1}}",
+ "signedBytesHex": "4d594556455f45585445524e414c5f414c5048415f574f524b5f415554484f524954595f56310064626563326464316362373939653764383862383966333730313131333462633335653931396161393438383033333164373965646538663237386137383963",
+ "canonicalVectors": [
+  {
+   "name": "key-order",
+   "value": {
+    "b": 1,
+    "a": {
+     "d": [
+      3,
+      2,
+      1
+     ],
+     "c": null
+    },
+    "A": true
+   },
+   "canonical": "{\"A\":true,\"a\":{\"c\":null,\"d\":[3,2,1]},\"b\":1}",
+   "sha256": "d2ac2dbe63e525b808f32f519848bb5ea3c64350a73112b37cc1bbaf5f73755b"
+  },
+  {
+   "name": "utf16-order",
+   "value": {
+    "😀": 1,
+    "ﬁ": 2,
+    "z": 3,
+    "é": 4,
+    "Z": 5,
+    "": 6,
+    "a10": 7,
+    "a9": 8
+   },
+   "canonical": "{\"\":6,\"Z\":5,\"a10\":7,\"a9\":8,\"z\":3,\"é\":4,\"😀\":1,\"ﬁ\":2}",
+   "sha256": "97c158bcb15db4a2b2e6c9fc60900004a63a592b1742a6746681718e84c5a3b7"
+  },
+  {
+   "name": "escapes",
+   "value": {
+    "s": "quote \" backslash \\ newline \n tab \t nul \u0000 del  unicode     emoji 🚀"
+   },
+   "canonical": "{\"s\":\"quote \\\" backslash \\\\ newline \\n tab \\t nul \\u0000 del  unicode     emoji 🚀\"}",
+   "sha256": "b99add69feed3ec2a4cba55651ca6e9b2892f518af672f9701ab30d172db408e"
+  },
+  {
+   "name": "numbers",
+   "value": {
+    "ints": [
+     0,
+     -1,
+     1,
+     9007199254740991
+    ],
+    "decimals": [
+     0.5,
+     1.25,
+     1e+21,
+     1e-7,
+     0
+    ],
+    "nested": {
+     "n": 1
+    }
+   },
+   "canonical": "{\"decimals\":[0.5,1.25,1e+21,1e-7,0],\"ints\":[0,-1,1,9007199254740991],\"nested\":{\"n\":1}}",
+   "sha256": "f2864c0a2bc4c3709db4bc6f4c309005237f2cbe47728a151ae5d974cebb4080"
+  },
+  {
+   "name": "empty",
+   "value": {
+    "a": [],
+    "b": {},
+    "c": ""
+   },
+   "canonical": "{\"a\":[],\"b\":{},\"c\":\"\"}",
+   "sha256": "12db860d7676bcec84a4ea9fa9a3e39e8931c41b10d064b23ced53f06e15caae"
+  },
+  {
+   "name": "arrays-keep-order",
+   "value": {
+    "list": [
+     "b",
+     "a",
+     [
+      "d",
+      "c"
+     ],
+     {
+      "y": 1,
+      "x": 2
+     }
+    ]
+   },
+   "canonical": "{\"list\":[\"b\",\"a\",[\"d\",\"c\"],{\"x\":2,\"y\":1}]}",
+   "sha256": "1a47c8600a340666173b8c5939715bafb7547a19fdbff3aeefdc8d6c9e5f61dd"
+  },
+  {
+   "name": "authority-subset",
+   "value": {
+    "version": 1,
+    "files": [
+     "src/app.js",
+     "src/store.js",
+     "test/app.test.mjs"
+    ]
+   },
+   "canonical": "{\"files\":[\"src/app.js\",\"src/store.js\",\"test/app.test.mjs\"],\"version\":1}",
+   "sha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1"
+  },
+  {
+   "name": "integer-like-keys-known-divergence",
+   "expectDivergence": true,
+   "value": {
+    "9": "b",
+    "10": "a"
+   },
+   "canonical": "{\"9\":\"b\",\"10\":\"a\"}",
+   "sha256": "32c76047634ee8d61aeb727dee6fcb2507b60cc4fe6ecce96d04274d6a9c8c03"
+  }
+ ],
+ "envelope": {
+  "document": {
+   "schema": "MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1",
+   "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+   "idempotencyKey": "d82c7344db1a8a35ebe9fe6891b0eb2649088910e19763ebf3d83fc26c64649c",
+   "singleUse": true,
+   "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+   "slot": "1",
+   "ownerId": "2d595df2-881b-4753-8343-2d1efb333772",
+   "policySha256": "1229196116e4ed8727dafba9a8a37dd6df4de97aca85a91b406081fa9e269e0e",
+   "application": {
+    "clientId": "external-alpha-90f954de5747728c17629ef8dd8f40f2",
+    "projectId": "prj_ConformanceFixture1"
+   },
+   "source": {
+    "repository": "fixture-org/myeve-alpha-workspace-01",
+    "baseSha": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+    "treeSha": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+    "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+    "allowedFiles": [
+     "src/app.js",
+     "src/store.js",
+     "test/app.test.mjs"
+    ],
+    "allowedFilesSha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1"
+   },
+   "work": {
+    "id": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+    "version": 1,
+    "generation": 1,
+    "title": "Alpha Tasks: add a Priority field",
+    "objectiveSha256": "42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e",
+    "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+    "criteriaCount": 10
+   },
+   "project": {
+    "name": "Alpha Tasks",
+    "task": "add a Priority field (exactly Low|Medium|High) shown on the task list",
+    "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+    "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577"
+   },
+   "environment": "CLOUD_PRODUCTION",
+   "executionProvider": "MYFACTORY_CLOUD_EXECUTION_V2",
+   "harness": {
+    "id": "myfactory-cloud-harness",
+    "version": "1"
+   },
+   "factoryVersion": "36ebe13464e49468c1d36f4ffd10980d7a758adbb749766ba46a8f2472233ce5",
+   "model": {
+    "provider": "vercel-ai-gateway/openai",
+    "id": "openai/gpt-5.4-mini"
+   },
+   "limits": {
+    "work": {
+     "operations": 5,
+     "microusd": 1300000
+    },
+    "factory": {
+     "operations": 3,
+     "microusd": 1000000
+    },
+    "productiveSeconds": 180,
+    "candidates": 1,
+    "writers": 1
+   },
+   "candidateWriter": {
+    "candidateSlot": 1,
+    "writerId": "78c75fa2-b348-8619-a7c2-83e2a5dae0f4",
+    "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5"
+   },
+   "verifier": {
+    "id": "independent-exact-artifact-verifier",
+    "verifiesExactArtifact": true,
+    "trustProducer": false,
+    "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466"
+   },
+   "allowedEffects": [
+    "candidate.create",
+    "repository.read",
+    "sandbox.write",
+    "verification.request"
+   ],
+   "forbiddenEffects": [
+    "deploy",
+    "merge",
+    "production",
+    "publication",
+    "repository.admin",
+    "secrets.mutate",
+    "workflows.mutate"
+   ],
+   "issuedAt": "2026-10-07T12:00:00.000Z",
+   "notBefore": "2026-10-07T12:00:00.000Z",
+   "expiresAt": "2026-10-07T12:04:50.000Z"
+  },
+  "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+  "signature": "80J2NbXnr-Kb5hE0HVK1U01zPsn777BNwJAQ4jm1yC-OL89soYTIG6vhKSfAOTEcBXOkpw6cgKD23zjHOOT-Aw",
+  "keyId": "d2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e"
+ },
+ "prepare": {
+  "protocol": "MYFACTORY_EXECUTION_V2",
+  "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+  "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+  "workGeneration": 1,
+  "repository": "fixture-org/myeve-alpha-workspace-01",
+  "deadline": "2026-10-07T12:03:00.000Z",
+  "maxSpendUsd": 1,
+  "source": {
+   "repository": "fixture-org/myeve-alpha-workspace-01",
+   "commit": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+   "tree": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d"
+  },
+  "input": {
+   "title": "Alpha Tasks: add a Priority field",
+   "description": "In the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list.",
+   "kind": "feature",
+   "acceptanceCriteria": [
+    "Existing tasks still display and function",
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication",
+    "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+   ],
+   "checkCommands": [
+    "node --test test/app.test.mjs"
+   ],
+   "allowedPaths": [
+    "src/app.js",
+    "src/store.js",
+    "test/app.test.mjs"
+   ]
+  }
+ },
+ "variants": {
+  "competing": {
+   "envelope": {
+    "document": {
+     "schema": "MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1",
+     "authorityId": "7f6a9b5e-da94-8bef-ae4a-6a8b730bdbef",
+     "idempotencyKey": "7f6a9b5eda948bef2e4a6a8b730bdbef9aad9b47f1e2943d37c43ae44fe9bf98",
+     "singleUse": true,
+     "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+     "slot": "1",
+     "ownerId": "2d595df2-881b-4753-8343-2d1efb333772",
+     "policySha256": "1229196116e4ed8727dafba9a8a37dd6df4de97aca85a91b406081fa9e269e0e",
+     "application": {
+      "clientId": "external-alpha-90f954de5747728c17629ef8dd8f40f2",
+      "projectId": "prj_ConformanceFixture1"
+     },
+     "source": {
+      "repository": "fixture-org/myeve-alpha-workspace-01",
+      "baseSha": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+      "treeSha": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+      "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+      "allowedFiles": [
+       "src/app.js",
+       "src/store.js",
+       "test/app.test.mjs"
+      ],
+      "allowedFilesSha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1"
+     },
+     "work": {
+      "id": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "version": 2,
+      "generation": 1,
+      "title": "Alpha Tasks: add a Priority field",
+      "objectiveSha256": "42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e",
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+      "criteriaCount": 10
+     },
+     "project": {
+      "name": "Alpha Tasks",
+      "task": "add a Priority field (exactly Low|Medium|High) shown on the task list",
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+      "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577"
+     },
+     "environment": "CLOUD_PRODUCTION",
+     "executionProvider": "MYFACTORY_CLOUD_EXECUTION_V2",
+     "harness": {
+      "id": "myfactory-cloud-harness",
+      "version": "1"
+     },
+     "factoryVersion": "36ebe13464e49468c1d36f4ffd10980d7a758adbb749766ba46a8f2472233ce5",
+     "model": {
+      "provider": "vercel-ai-gateway/openai",
+      "id": "openai/gpt-5.4-mini"
+     },
+     "limits": {
+      "work": {
+       "operations": 5,
+       "microusd": 1300000
+      },
+      "factory": {
+       "operations": 3,
+       "microusd": 1000000
+      },
+      "productiveSeconds": 180,
+      "candidates": 1,
+      "writers": 1
+     },
+     "candidateWriter": {
+      "candidateSlot": 1,
+      "writerId": "1420e41f-8754-863f-a83d-c7ba7f5765ca",
+      "requestId": "add3c43f-dbe8-8133-a825-75e2cb19a6e4"
+     },
+     "verifier": {
+      "id": "independent-exact-artifact-verifier",
+      "verifiesExactArtifact": true,
+      "trustProducer": false,
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466"
+     },
+     "allowedEffects": [
+      "candidate.create",
+      "repository.read",
+      "sandbox.write",
+      "verification.request"
+     ],
+     "forbiddenEffects": [
+      "deploy",
+      "merge",
+      "production",
+      "publication",
+      "repository.admin",
+      "secrets.mutate",
+      "workflows.mutate"
+     ],
+     "issuedAt": "2026-10-07T12:00:00.000Z",
+     "notBefore": "2026-10-07T12:00:00.000Z",
+     "expiresAt": "2026-10-07T12:04:50.000Z"
+    },
+    "authoritySha256": "f51b5a7eb1afb7afc0a8aed799d378b3220d149dab8c89c6483ebfb41dd4f910",
+    "signature": "Zp2EoYwNBLXlbzFCOUcP7-6HL3tH9vuM9Cti-B52JZ28KDsJFeBXq6iBdTNe7BAsumPOlmZS2dTv433vOLT_DQ",
+    "keyId": "d2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e"
+   },
+   "prepare": {
+    "protocol": "MYFACTORY_EXECUTION_V2",
+    "requestId": "add3c43f-dbe8-8133-a825-75e2cb19a6e4",
+    "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+    "workGeneration": 1,
+    "repository": "fixture-org/myeve-alpha-workspace-01",
+    "deadline": "2026-10-07T12:03:00.000Z",
+    "maxSpendUsd": 1,
+    "source": {
+     "repository": "fixture-org/myeve-alpha-workspace-01",
+     "commit": "61aced4d0f652562b3208686ff38cb3e17ee7057",
+     "tree": "55a6bc40c227c94c6b4dfbc0c64497c9e3e2642d"
+    },
+    "input": {
+     "title": "Alpha Tasks: add a Priority field",
+     "description": "In the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list.",
+     "kind": "feature",
+     "acceptanceCriteria": [
+      "Existing tasks still display and function",
+      "Creating or editing a task supports exactly Low, Medium and High",
+      "Priority persists after reload",
+      "The task list displays each task's priority",
+      "An invalid priority is rejected",
+      "Existing tests pass",
+      "Focused tests cover creation, editing, persistence, display and invalid input",
+      "No unrelated product or UI changes",
+      "No production deployment or external publication",
+      "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+     ],
+     "checkCommands": [
+      "node --test test/app.test.mjs"
+     ],
+     "allowedPaths": [
+      "src/app.js",
+      "src/store.js",
+      "test/app.test.mjs"
+     ]
+    }
+   }
+  },
+  "slot2": {
+   "envelope": {
+    "document": {
+     "schema": "MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1",
+     "authorityId": "493751d7-d0cb-8d9f-a1ea-c6803d683963",
+     "idempotencyKey": "493751d7d0cb8d9fd1eac6803d6839630d381e670b4f40fc14af225b18c92ef9",
+     "singleUse": true,
+     "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+     "slot": "2",
+     "ownerId": "2b30a09d-7410-4f2f-8e8f-e8c5403c126d",
+     "policySha256": "35a7893920546177fcc03ed0ad0b8551e037f5316264442b645f202a3b9f8a09",
+     "application": {
+      "clientId": "external-alpha-e10dfbf90b2cd18a560a603af0e06e1f",
+      "projectId": "prj_ConformanceFixture2"
+     },
+     "source": {
+      "repository": "fixture-org/myeve-alpha-workspace-02",
+      "baseSha": "e600ce856f9a16d220d301fa5d8bb05421fdff3a",
+      "treeSha": "d814088d6ab2df015ed5b41c2f1282a5f9ddf26b",
+      "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+      "allowedFiles": [
+       "src/app.js",
+       "src/store.js",
+       "test/app.test.mjs"
+      ],
+      "allowedFilesSha256": "2f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1"
+     },
+     "work": {
+      "id": "83e52ffb-ad84-434d-8035-d9994ca30542",
+      "version": 1,
+      "generation": 1,
+      "title": "Alpha Tasks: add a Priority field",
+      "objectiveSha256": "42ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e",
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+      "criteriaCount": 10
+     },
+     "project": {
+      "name": "Alpha Tasks",
+      "task": "add a Priority field (exactly Low|Medium|High) shown on the task list",
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+      "tupleSha256": "22768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577"
+     },
+     "environment": "CLOUD_PRODUCTION",
+     "executionProvider": "MYFACTORY_CLOUD_EXECUTION_V2",
+     "harness": {
+      "id": "myfactory-cloud-harness",
+      "version": "1"
+     },
+     "factoryVersion": "36ebe13464e49468c1d36f4ffd10980d7a758adbb749766ba46a8f2472233ce5",
+     "model": {
+      "provider": "vercel-ai-gateway/openai",
+      "id": "openai/gpt-5.4-mini"
+     },
+     "limits": {
+      "work": {
+       "operations": 5,
+       "microusd": 1300000
+      },
+      "factory": {
+       "operations": 3,
+       "microusd": 1000000
+      },
+      "productiveSeconds": 180,
+      "candidates": 1,
+      "writers": 1
+     },
+     "candidateWriter": {
+      "candidateSlot": 1,
+      "writerId": "04d00552-59b2-86fb-ad4f-d924d40fd53c",
+      "requestId": "d08ccc01-659f-8de3-af49-9bf980f3d16b"
+     },
+     "verifier": {
+      "id": "independent-exact-artifact-verifier",
+      "verifiesExactArtifact": true,
+      "trustProducer": false,
+      "criteriaSha256": "266874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466"
+     },
+     "allowedEffects": [
+      "candidate.create",
+      "repository.read",
+      "sandbox.write",
+      "verification.request"
+     ],
+     "forbiddenEffects": [
+      "deploy",
+      "merge",
+      "production",
+      "publication",
+      "repository.admin",
+      "secrets.mutate",
+      "workflows.mutate"
+     ],
+     "issuedAt": "2026-10-07T12:00:00.000Z",
+     "notBefore": "2026-10-07T12:00:00.000Z",
+     "expiresAt": "2026-10-07T12:04:50.000Z"
+    },
+    "authoritySha256": "87c7924283dc58d952048badfa544a1690d7e4b4ff8be791b87803037bcea90f",
+    "signature": "YzvcS2HntO1JdWNA-RJg9hltQRojbD1zSgZvG5yCoRGyoRrwT_c_nwO5zXnss7OQTcenznhRwWEZgSxfGzwiAw",
+    "keyId": "d2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e"
+   },
+   "prepare": {
+    "protocol": "MYFACTORY_EXECUTION_V2",
+    "requestId": "d08ccc01-659f-8de3-af49-9bf980f3d16b",
+    "workId": "83e52ffb-ad84-434d-8035-d9994ca30542",
+    "workGeneration": 1,
+    "repository": "fixture-org/myeve-alpha-workspace-02",
+    "deadline": "2026-10-07T12:03:00.000Z",
+    "maxSpendUsd": 1,
+    "source": {
+     "repository": "fixture-org/myeve-alpha-workspace-02",
+     "commit": "e600ce856f9a16d220d301fa5d8bb05421fdff3a",
+     "tree": "d814088d6ab2df015ed5b41c2f1282a5f9ddf26b"
+    },
+    "input": {
+     "title": "Alpha Tasks: add a Priority field",
+     "description": "In the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list.",
+     "kind": "feature",
+     "acceptanceCriteria": [
+      "Existing tasks still display and function",
+      "Creating or editing a task supports exactly Low, Medium and High",
+      "Priority persists after reload",
+      "The task list displays each task's priority",
+      "An invalid priority is rejected",
+      "Existing tests pass",
+      "Focused tests cover creation, editing, persistence, display and invalid input",
+      "No unrelated product or UI changes",
+      "No production deployment or external publication",
+      "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+     ],
+     "checkCommands": [
+      "node --test test/app.test.mjs"
+     ],
+     "allowedPaths": [
+      "src/app.js",
+      "src/store.js",
+      "test/app.test.mjs"
+     ]
+    }
+   },
+   "installation": {
+    "cohortId": "fbf3d8f0-4e07-4419-8c3f-45dc339ee003",
+    "slot": "2",
+    "ownerId": "2b30a09d-7410-4f2f-8e8f-e8c5403c126d",
+    "policySha256": "35a7893920546177fcc03ed0ad0b8551e037f5316264442b645f202a3b9f8a09",
+    "application": {
+     "clientId": "external-alpha-e10dfbf90b2cd18a560a603af0e06e1f",
+     "projectId": "prj_ConformanceFixture2"
+    },
+    "source": {
+     "repository": "fixture-org/myeve-alpha-workspace-02",
+     "baseSha": "e600ce856f9a16d220d301fa5d8bb05421fdff3a",
+     "treeSha": "d814088d6ab2df015ed5b41c2f1282a5f9ddf26b",
+     "sourceDigest": "67d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+     "allowedFiles": [
+      "src/app.js",
+      "src/store.js",
+      "test/app.test.mjs"
+     ]
+    },
+    "factoryVersion": "36ebe13464e49468c1d36f4ffd10980d7a758adbb749766ba46a8f2472233ce5",
+    "checkCommands": [
+     "node --test test/app.test.mjs"
+    ]
+   }
+  }
+ },
+ "prepareBodyBytes": 4210,
+ "mutations": [
+  {
+   "name": "document:schema",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "schema"
+   ],
+   "value": "xYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1",
+   "authoritySha256": "b3c947ef74aa22b205ee98b6e0062f0f06477488546de2e9417f6a43f6d14f66",
+   "signature": "JzyGYpm3zrCUFfpsV5qoBMwXRgohJcmri5fpKVS6h_BPKVLqgmJu5q4OCG5SOL_FVRvr0FCgMFm3MgguqCdFBQ"
+  },
+  {
+   "name": "document:authorityId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "authorityId"
+   ],
+   "value": "e82c7344-db1a-8a35-abe9-fe6891b0eb26",
+   "authoritySha256": "050dba1e728372648ab3a5642f154ebdc6664f411024e6d1993d1f565f442814",
+   "signature": "mspOLAQEGAC3f_fYQswAr7-n7e62hdiuHMK-2o_3cXCNHmLORcGmy-QWbK_4oK2S8xjIUIFogvz7rfEa3ezuDA"
+  },
+  {
+   "name": "document:idempotencyKey",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "idempotencyKey"
+   ],
+   "value": "e82c7344db1a8a35ebe9fe6891b0eb2649088910e19763ebf3d83fc26c64649c",
+   "authoritySha256": "8b5bdb07d289d00e4df10871241e3d8059365fa42e69f6f05a65b70555de8d95",
+   "signature": "uU3Lo7w-zW8R1m5IgPLfws7jCT-_Vt31hB9uwc0670FWXLkbEiAHKll5eSMbG-hQjvBfiO0tksHrWLTNbfFoDA"
+  },
+  {
+   "name": "document:singleUse",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "singleUse"
+   ],
+   "value": false,
+   "authoritySha256": "df17890e96ca8237879472ba4c17ec1d7d8f8d744fcdc8e3acb1c5853e056482",
+   "signature": "PBMVHRxJtICu_jMDbNHlfiujqidJZYH-DpYB_KvwtbsZkhceNtP0ml-JbKrFIqPk9ccAhGILPzQ7qAUoW3RhDw"
+  },
+  {
+   "name": "document:cohortId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "cohortId"
+   ],
+   "value": "0bf3d8f0-4e07-4419-8c3f-45dc339ee003",
+   "authoritySha256": "a15aa020e608683900d8a0020046dde0abce13dc6e4f7920c864da72c4d1c3dd",
+   "signature": "gynH8QIdJq5wmpf0q9CTqZjsbWOPRuu6_Dt11AsitH21yWaJ6XAzv5Vga21lCR89Gr5h_UlZ_lHtB8TQvVCLAQ"
+  },
+  {
+   "name": "document:slot",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "slot"
+   ],
+   "value": "2",
+   "authoritySha256": "d46f3eb58e872896e102ce718b25e13749a314dbeefe7b8fde56bb54bdf25b0e",
+   "signature": "gnFDl094uRhd-h4-2EDvG9KA9OCOMIKO1CX9TG5aIfT3-FkPQLfdOHfFjHlbrjpsiVc84J4sUi4E1adAUyXeAw"
+  },
+  {
+   "name": "document:ownerId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "ownerId"
+   ],
+   "value": "3d595df2-881b-4753-8343-2d1efb333772",
+   "authoritySha256": "c9177a6302708cf1f7150d3a41b5e948a542cd2d6d8d22488d76ca4c1cae033f",
+   "signature": "G9WvTWGT7wvJ9o_kFDhBoknh0H61rEpr0JO7FECD9twX4LzHs6LH28lj8ZMhKJJlI3FmpPkE5CXElhOAxN5hBw"
+  },
+  {
+   "name": "document:policySha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "policySha256"
+   ],
+   "value": "2229196116e4ed8727dafba9a8a37dd6df4de97aca85a91b406081fa9e269e0e",
+   "authoritySha256": "0830deadb74922b929e648e680b3854ed50a40f54c680b8fcba97ba9456fe5f2",
+   "signature": "Oq0o8dkCYhir53asIEg_gbatSJGSw-qE4_b0Y_Pz7FmBtbxGxCqCMuEyMh9VbuO2uDAs8F_Nsd1dHuYKO_9pAA"
+  },
+  {
+   "name": "document:application.clientId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "application",
+    "clientId"
+   ],
+   "value": "fxternal-alpha-90f954de5747728c17629ef8dd8f40f2",
+   "authoritySha256": "e0b3385cd0ba15924afa23fe54866a656cd66f0b7c70b0baefa5f6213d3b9f0f",
+   "signature": "pf48SsSL7JVvkFSRe9S3do5CHcVoGn0yC9Pphldd6qaZavR4kkOTjcP9aNjk7N20BNYoLGB4bBT1U6Eyq-VRDQ"
+  },
+  {
+   "name": "document:application.projectId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "application",
+    "projectId"
+   ],
+   "value": "xrj_ConformanceFixture1",
+   "authoritySha256": "9c1311823cc230178f9adfc5d6b5f7fa0bda54fa77e6105a774866c5abf4234c",
+   "signature": "zHaKPu6CjGupoCQ6NInHMxWQ6QQOaArUTYRBlVZgQjzOiaodnwZQ0OpBCX0VMn6hUGTwhcgGwWhfNA6i42-DCQ"
+  },
+  {
+   "name": "document:source.repository",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "repository"
+   ],
+   "value": "0ixture-org/myeve-alpha-workspace-01",
+   "authoritySha256": "fc0d4e6390cad87d36fff7a4414826df355884450363b06c45519afaf89759a4",
+   "signature": "-Se2GYrWz3lIPzeLagjHLOQhwPRmmDwBMYBpnsiMPG9K2aDrgDKHMoUKKG7OaSEZXPebY8pG0hU3oywxa_quDQ"
+  },
+  {
+   "name": "document:source.baseSha",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "baseSha"
+   ],
+   "value": "71aced4d0f652562b3208686ff38cb3e17ee7057",
+   "authoritySha256": "5db5fe2f41c7235a5d1028c9a8a6ffb343a3f0afa36a0f84b04812cbe8d00c9f",
+   "signature": "ITesi4fNbbvoY6oZV2qFbFiFM0WOyHxbrJ_A_QoS6F-FUVao-6hlIBtRupkjsKGmjcZgDTbVee0HhyL3DLiwDw"
+  },
+  {
+   "name": "document:source.treeSha",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "treeSha"
+   ],
+   "value": "65a6bc40c227c94c6b4dfbc0c64497c9e3e2642d",
+   "authoritySha256": "988396ce17185c0f8f4502660c8f465c139011bdf9153c9ab08c2de54f45c342",
+   "signature": "dIArJOAuhAibPHv-zgPN2jq_rQNAYRg9K1o2vXkFM1SorLhC64AK0GCl2D6rwRtumFU67HIxnufWqE3iA5tKAw"
+  },
+  {
+   "name": "document:source.sourceDigest",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "sourceDigest"
+   ],
+   "value": "77d69fba78f7de3ee762f1ad39857a6987677b7a5fd14fdc1b2b49db5a7a0387",
+   "authoritySha256": "3b24833ccdc631e61737c64774e4ac5ed527424c8e166b0d9827e5b5fa4eff7c",
+   "signature": "gp-B7QZeTg2cIfvX2ZKkwo2W9BOL8CMC2VcwFYqRg_RyzWiJpDlAHmeP6xljwP9kMFp87StIdswlupnQ0vT5Bw"
+  },
+  {
+   "name": "document:source.allowedFiles.0",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "allowedFiles",
+    0
+   ],
+   "value": "xrc/app.js",
+   "authoritySha256": "eaec1e0a3e7fb4aa4ab65564d5964dde43feeef411bded3f944da9129003c3ed",
+   "signature": "JvcZY9swuP1Fkha45Irsn27kELFatz6nu9zYBmKxGDLFB6S-w0jr7tQ3_UrRtyAEKvxx_NL7UdjIPlEpfPi8Aw"
+  },
+  {
+   "name": "document:source.allowedFiles.1",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "allowedFiles",
+    1
+   ],
+   "value": "xrc/store.js",
+   "authoritySha256": "68b3d6c888e96f3b00c98a2b042b9ee671027fa89d98a17254ceec6144328c20",
+   "signature": "flHm9o3TDol7kp0qojeRUMHtht_JFCZhxEyU6NN90Djb7MXekj1zNwezlLNoi18G4m6GVdMkMBnBQNgDGy7XBw"
+  },
+  {
+   "name": "document:source.allowedFiles.2",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "allowedFiles",
+    2
+   ],
+   "value": "xest/app.test.mjs",
+   "authoritySha256": "c2533ef1ca84848ae34dc25cc95cb6aaa93f4451508763873abeb65ee06b92de",
+   "signature": "j02PPUORH3bSAJcJDbvXThzZwJ2vJeuqgBfU4ZXULrLtQh2kjLphBOCZQLd-md_YzUmwxs57U7peNFNSDCbqCQ"
+  },
+  {
+   "name": "document:source.allowedFilesSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "source",
+    "allowedFilesSha256"
+   ],
+   "value": "3f570bd873eccaa600cb85960b784524952e8c58cdb69a6907d68915607a62d1",
+   "authoritySha256": "a0536a9d7378c23888951a29472c56fcffaff80ebf3c8cab3916e4cff7e35db7",
+   "signature": "L9wJ32l9QPUlRHGzHryU3VKen9Ddzl_yA40TmqLTB3KKewhlyvYI5IN9atgRQ4HjgFRPS46EDlq-MDQFBH95CQ"
+  },
+  {
+   "name": "document:work.id",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "id"
+   ],
+   "value": "9b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+   "authoritySha256": "d748c2f4e6c0d5f7fba4c3ba43306d37e3aac12ca70db49db0917dd52c6ad878",
+   "signature": "3ggPEmsozmjPZCTPmSK-vmzpwxj8aSwuWa1ehEJIcLO0gIN7c9UHFjEggkJbiTvQRmtPzrYk_GYCNHduhYjYAw"
+  },
+  {
+   "name": "document:work.version",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "version"
+   ],
+   "value": 2,
+   "authoritySha256": "ddf884897e5e329b9be5594987c63ec798be852a5b77c42e4f49a686244c88b7",
+   "signature": "iJkRaz15I35QtG_b4dnmRmTiMxX-AGWZaDDIdNBHoDQYKXb3wwThTRh666JItr7KB49yVuVEzXjlOhy54ncyBg"
+  },
+  {
+   "name": "document:work.generation",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "generation"
+   ],
+   "value": 2,
+   "authoritySha256": "9bb5cbbf9587130c5cad345719f39a8a6e55874d743ebb90077c75b4405ab181",
+   "signature": "UMDhmf00aoY4dlHoBmP9bifXCXQA3T847C3h4pvkjFqBqvZridFLMfvezdQgXuEGlAJatPN6jQ9TYpnDGEfwAQ"
+  },
+  {
+   "name": "document:work.title",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "title"
+   ],
+   "value": "xlpha Tasks: add a Priority field",
+   "authoritySha256": "274bb493d2b78095e0093878fb12eb7119b1c0aa07d5cec0d94977f6344ac0f2",
+   "signature": "JYABpJ4rgsWV7UVP6ihkBbpmM4UHlxfj4yZLMbL8ZsVnJ0P8xG7kkJ60PatqqmsINLeQXsTdRvTvtux_XeJOCQ"
+  },
+  {
+   "name": "document:work.objectiveSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "objectiveSha256"
+   ],
+   "value": "52ec6496242fe68b65a0257c1d8ca7179956352153b72365b04e0a1afcc90e3e",
+   "authoritySha256": "7736890272d3ed8b691df648e863c569d4e7b1753923848c9c042c17bd820c69",
+   "signature": "E4phM3YvxLR1DjApV9MzJ2GTgsNrgPjDqj-ddkZ9Fc7dVmiqsmpbbu9-43qRIvql_Ej_uIoXlbbDGH_EfRhICg"
+  },
+  {
+   "name": "document:work.criteriaSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "criteriaSha256"
+   ],
+   "value": "366874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+   "authoritySha256": "befd222cfbd35861c7436f972082ef025a56159b9f8dda2414f330a38fbc2731",
+   "signature": "wd4jctXzOYqlRnQDcOEayC35rHPc6hj7gVqmFv0Phozc9Dw9vdLmRIzosmt1p6z2_SM84sFA6jyyuBnTLcO8Cw"
+  },
+  {
+   "name": "document:work.criteriaCount",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "work",
+    "criteriaCount"
+   ],
+   "value": 11,
+   "authoritySha256": "18a3fd8082e3d177428bfe1e7d9fc52d1abc133df08e35467a6089cf59d0e1bd",
+   "signature": "2bTg_hmg13ySIxgRAs2TBzUP-ZaA-KxLpNWfnp3JgdQkLx_bKWaYqjLbKG6HbbRQx2oFzX2olha4he0e3DoICg"
+  },
+  {
+   "name": "document:project.name",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "project",
+    "name"
+   ],
+   "value": "xlpha Tasks",
+   "authoritySha256": "e90ce76a3942c32e323be8150f62bf215bd40a349d458f1561b2b9332305c471",
+   "signature": "0R28utXfMAgemdn0ZN7d47SFNzLBfh_rXSsIvBTdrK22rWY0uGfyl_Zw3acS_hbuD4nKJv8dS5eqM1L_Xb2WBA"
+  },
+  {
+   "name": "document:project.task",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "project",
+    "task"
+   ],
+   "value": "bdd a Priority field (exactly Low|Medium|High) shown on the task list",
+   "authoritySha256": "0fe08cfb99f16427b6ecc6ac3a45ce3fabc95cacd8d3397a745207c1f98ea710",
+   "signature": "pVZkNd0nylHGDVuvgIidOXAQ1VoFq8fVYNxHOjDitX0K6zdHWsfy_de8eO0LX9xR6mS_mxLVOgGw3GmZIBXsCw"
+  },
+  {
+   "name": "document:project.criteriaSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "project",
+    "criteriaSha256"
+   ],
+   "value": "366874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+   "authoritySha256": "8cc2e304fc6fc764539e2adfd9a2542588de86e9ebcd2470e29d6dab4dd70d06",
+   "signature": "uFyFK28YFuPdPOlv27ogAUkVKth8J6FgYHulr_tagkhAmkmvglrZovWls09H1r1KswWDeqpk8vEANXPu1a10DQ"
+  },
+  {
+   "name": "document:project.tupleSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "project",
+    "tupleSha256"
+   ],
+   "value": "32768f0af6d9aa49f6f0c6553bf1a44ee7599377c1b1935904b998167bf70577",
+   "authoritySha256": "5ab45530939b0ebaaa8dd723a4805885dbaea7e85cb4295b06cb6c3b10ad339e",
+   "signature": "7bQcuiEn095Q5k-ggSzLkDYFH61yNXkpNiBFOFQ1UmhnNdNj5WLqxHRAgacbdEWK24oUBgLSGRwxhgY50HmvCg"
+  },
+  {
+   "name": "document:environment",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "environment"
+   ],
+   "value": "xLOUD_PRODUCTION",
+   "authoritySha256": "83b6f3c3bb6cf2a8a6bac174ae133e24af2f29576e606804757c53ada83af4ae",
+   "signature": "Iyi8IPkizJrLzT2YKqMOnuwkjD4RzYf0I7Y057AoXmbf9b9VcCOI5-0fkL69e8qQZ1Lt_vFbfIMK6LD1cBGXCg"
+  },
+  {
+   "name": "document:executionProvider",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "executionProvider"
+   ],
+   "value": "xYFACTORY_CLOUD_EXECUTION_V2",
+   "authoritySha256": "e30c124fc00b549c10e4675a7d82c4f31759c9fdfab02cf89d74b117b98a4445",
+   "signature": "q-Uq5KK__wdiXeO1fmC-t8tc5I-HvR7Paqqo3xuNLEeSJG6xO1Y5dT7tKJKcLkyaexBDL62T6PMxALfnUoDYAw"
+  },
+  {
+   "name": "document:harness.id",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "harness",
+    "id"
+   ],
+   "value": "xyfactory-cloud-harness",
+   "authoritySha256": "28729ae5093d2a8ee44335f63a87661bea1a53c4a61a2da2455c936e7c038bfb",
+   "signature": "2NzHg2NM3vjWVLO2jzpy-3hxK0G-a7TTCAKtweeZq2ICcM5SkdTlnQ2EcHIJjgOqgNUJN04bBJvUxtwArs2lBw"
+  },
+  {
+   "name": "document:harness.version",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "harness",
+    "version"
+   ],
+   "value": "2",
+   "authoritySha256": "48a1c3ec8a78cc1680f12e4b73007a902926a9b5f882b2b38b438d9b9fb48df4",
+   "signature": "E-ZMiIYfGPe-xWxzelaxmq46oIgBhG3qrht63XTKEk1XpOyaMwJFvaNQ1_ZPduO4ED1IB141Lw6fcf5elXoiCA"
+  },
+  {
+   "name": "document:factoryVersion",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "factoryVersion"
+   ],
+   "value": "46ebe13464e49468c1d36f4ffd10980d7a758adbb749766ba46a8f2472233ce5",
+   "authoritySha256": "9f16a0e4ddb834761e6b06d82f2088398bb7ae2807cf942255e1a72930ac4402",
+   "signature": "vdc5DLx1uQ1NenH2tztrPxGwbdojO4XQo2lNHk5raTlRdOS-fRruglbBs0pSDbjiPqeEwM_QpM4Ejk0CNDeFCQ"
+  },
+  {
+   "name": "document:model.provider",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "model",
+    "provider"
+   ],
+   "value": "xercel-ai-gateway/openai",
+   "authoritySha256": "6e9b3e474a7a15ad3899f4b2d6edfd617cffd37a2faee40697dc30e499e9a68e",
+   "signature": "cdtb-X1XBG0p1jvslRZD2JSn9z4dsfMWwspJL9fF5xTeH_Hqbdrxvc4Wk9eVYkfWHmTiS3AxEU0Xsm8Y8_qlBQ"
+  },
+  {
+   "name": "document:model.id",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "model",
+    "id"
+   ],
+   "value": "xpenai/gpt-5.4-mini",
+   "authoritySha256": "ba3a2e182d16ee619f3f41161bd4afb2d9473bde171257f355296900546423cc",
+   "signature": "5stG3svrHPHhlbLKunP5buV0beSZdN5nbwGUuEj_biEbs-iAlN2tPuubdgNUYoERaEBIo4YKAkAslNNB4N0qAw"
+  },
+  {
+   "name": "document:limits.work.operations",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "work",
+    "operations"
+   ],
+   "value": 6,
+   "authoritySha256": "d922e646d47bbf8ec5e46cbd08687625391a33a3d1d58b48256c78ed62a125aa",
+   "signature": "JnJT-jBLdfF6WWZ7dP9dEzG2nt7TPc9BGVf3yEvblroi5oNbpdqI5JBMKArimALjrsz5lvDAo2nwnuVeeMlQCQ"
+  },
+  {
+   "name": "document:limits.work.microusd",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "work",
+    "microusd"
+   ],
+   "value": 1300001,
+   "authoritySha256": "7312d97739a38c0037d1d5f84672b7621499a49ec790ac55bd33388daea6a017",
+   "signature": "stMa1wJRI95eGiygfGtwI5sF2YBMsly-rTUrNpAvHqQCHm4ZopzpkkYFNyFK5zeEoWMg77r8mUasg3FNpE7tAw"
+  },
+  {
+   "name": "document:limits.factory.operations",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "factory",
+    "operations"
+   ],
+   "value": 4,
+   "authoritySha256": "5c955cb597d6310d3f26691661525ad14272062f37e0f900d7c4c4b2bf25fbea",
+   "signature": "xNU4J6C_sbMdBoxA6SxjcfsaHGFxbS2jCYbJ8yf2spAizJ8ntLvIq-jUB16r7h91Q_5bkVTObV-bAFXqRhJpBw"
+  },
+  {
+   "name": "document:limits.factory.microusd",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "factory",
+    "microusd"
+   ],
+   "value": 1000001,
+   "authoritySha256": "c9ea9863b861b4f779b16c91b6f8400413c959700efa7374374afece92027a7f",
+   "signature": "hZIwdPkszt3-5j1OkDYZ9T9Bi8VO5uMTEKsDFVXDLcydRueqFdgfe_Fv-BfXJsR8yIwipZ0fHLE-w2AKz53SDw"
+  },
+  {
+   "name": "document:limits.productiveSeconds",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "productiveSeconds"
+   ],
+   "value": 181,
+   "authoritySha256": "635dcb06128740685c008c9d902bbe431beb6253fd655ef9b01e1575c91a4d05",
+   "signature": "Z1Um79FT-tA2IEqdwl-5YdC3Io0UpS9-aKDvq4Dsc-B97VtbStB3nd0ZebqrDFTZGumuLmnCaJkk3Lp-CwgGBA"
+  },
+  {
+   "name": "document:limits.candidates",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "candidates"
+   ],
+   "value": 2,
+   "authoritySha256": "002fad73b5fb831f14ed0aa391a9789cf5efbe10ebdf93437d8de422f5010d6a",
+   "signature": "5059-XONKJrPRNPY5y4X5noFu8BOYF9gzb8LSYRmLO6fCQ-9jcYJWaTSrNO4Lcv_FQd-x-xUoFz5936SvVFrCg"
+  },
+  {
+   "name": "document:limits.writers",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "limits",
+    "writers"
+   ],
+   "value": 2,
+   "authoritySha256": "0f76ad2e1281fb0c85fcf01e8681568a8900e7079084ec3c618121413ffe516e",
+   "signature": "MXt8b11-4kKIPXMGxUyYHh5xcCAEes82ltfPaAzQ0xo4XxQ8HhYpz41BgOEqMU67INU9Ia6F6YQSzrzj5KxsBg"
+  },
+  {
+   "name": "document:candidateWriter.candidateSlot",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "candidateWriter",
+    "candidateSlot"
+   ],
+   "value": 2,
+   "authoritySha256": "4f9b1995870f78d8fd95a1c1f9ab1f528b6bde7eab06284ce4b56af9f395ac5e",
+   "signature": "u64c-tfw1kiS8dS4wE9j2ozDE1L9OyNav0I8Br56qmBVVqSKrHehofB5xwipisRuPaXhVIW7rYn5ywbjuIdKBQ"
+  },
+  {
+   "name": "document:candidateWriter.writerId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "candidateWriter",
+    "writerId"
+   ],
+   "value": "88c75fa2-b348-8619-a7c2-83e2a5dae0f4",
+   "authoritySha256": "924c347c4d575a078890627b72091892bf2617392906999be248612535d9fb7b",
+   "signature": "MIT3wepjdqiyRWmri0s9HbyChtvbIV9ggrF0ff0NHr2WDqsKXY6BPQuNI9elWeHXI9CO7jqSxqpI87T2ENdhDQ"
+  },
+  {
+   "name": "document:candidateWriter.requestId",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "candidateWriter",
+    "requestId"
+   ],
+   "value": "6027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+   "authoritySha256": "ab79a4ee418599ee032c8f02061c763cc41fe7ffae0e0951b418b10c002f84bf",
+   "signature": "iX71TW1PVQGqYt4V89Fy0e794PBpUM08M0bh-GgIQZsrC_-H7xa1uxmfgoaEEy0UteBcl0sIXhcXDKlikzIVCw"
+  },
+  {
+   "name": "document:verifier.id",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "verifier",
+    "id"
+   ],
+   "value": "xndependent-exact-artifact-verifier",
+   "authoritySha256": "5cc9248ff17338f2ecf546d1b7fbff7194292fdfe9bd9631649930f74b9b62d4",
+   "signature": "kS2HXoaqfLVsTrH-0mNShVy6Mezvlmjt9L7YkVA4XeGL-K5pFjleH3ubFddyLXnEo-Svn0X3CKE6BUq5GiKpBw"
+  },
+  {
+   "name": "document:verifier.verifiesExactArtifact",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "verifier",
+    "verifiesExactArtifact"
+   ],
+   "value": false,
+   "authoritySha256": "94701898952d6e9426c2929a087bf86be53a0e9d530ee3e18d5ab7dacf521df2",
+   "signature": "mhm-zKp40hqNbdASJ8JrnL8SbqwG3NIRc2IX4tYwmBnuF9WWfw8HoT0G1l2IEXMo1VtxNK7kU1QQ9zLS_5dSDQ"
+  },
+  {
+   "name": "document:verifier.trustProducer",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "verifier",
+    "trustProducer"
+   ],
+   "value": true,
+   "authoritySha256": "7576c2f435453ca4e1a5802f658c927d64ee25ace476ef94dee61bb7c559e52a",
+   "signature": "OMMcxfQLnIQ2Z_bCpXe0FfW6GJXgxk5boLC743lVCBQELOaAcVJK8c6xBvhcwh04Yfhs4-R6xLQeWQSpdBEpCQ"
+  },
+  {
+   "name": "document:verifier.criteriaSha256",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "verifier",
+    "criteriaSha256"
+   ],
+   "value": "366874e4e72dcce0f02ff58bedf56801d6e9906080ed6e7b987dc6537a20b466",
+   "authoritySha256": "40639802c2a5ac06320043771cd095c68f2eb6caddd35e45cae3d324b003862d",
+   "signature": "xs8p5nKBdECXy3bgBrS1YDIvfAaoAU8XRapOWPFICEAZHWel9VDBmiPvl6N4qYFr24kYTfignhCXPQU6PKOtAw"
+  },
+  {
+   "name": "document:allowedEffects.0",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "allowedEffects",
+    0
+   ],
+   "value": "dandidate.create",
+   "authoritySha256": "36758eb70a7793f82aed7aab66165794e065a18868605fc941ffa989a0b54f0a",
+   "signature": "hW2JoQFz8i9BHzh1z9EC0AcLsbO5NwWRL-D0QS-nBGKfkxe4nG4JiQz3vmGbp-WTpeJGjR_6X7OV5uOyBaswDQ"
+  },
+  {
+   "name": "document:allowedEffects.1",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "allowedEffects",
+    1
+   ],
+   "value": "xepository.read",
+   "authoritySha256": "56710e6fd345e53911052f54ef7e029f130a3a59186a4dd50747134022073c43",
+   "signature": "APCyYNyUD1HZsDoP4r9A0aO_oykC-UZrn0JMrpppxUsWfHc-c7ozLgvoyMYzCegGgi-MY-tPeiUK49hC091sCg"
+  },
+  {
+   "name": "document:allowedEffects.2",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "allowedEffects",
+    2
+   ],
+   "value": "xandbox.write",
+   "authoritySha256": "66205bb5cc9bc614414f45caa7da13f5a6333a52f4cebe8cc0045d7a5c0bb9dc",
+   "signature": "MDTW3I4sJChMjKPigdcuDISKblTKIsycTMpaJrFiDdTVDwYhmowMDVwdxHRGBX1JKj_HoKeJgEwksp2MtKJ-CA"
+  },
+  {
+   "name": "document:allowedEffects.3",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "allowedEffects",
+    3
+   ],
+   "value": "xerification.request",
+   "authoritySha256": "a61d4a7c90a1dcae5653d3e3c5553d20331e11ebf432f9870b5682d91e7dc6b5",
+   "signature": "vh4XXBaaYiAHew2PPVw6fMsL5LaR4qMw1wOOoHvSQhT-Bgg7E-A7Qi2ozJnJUCv0uKy7WXnWCnvocBGhg18gAg"
+  },
+  {
+   "name": "document:forbiddenEffects.0",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    0
+   ],
+   "value": "eeploy",
+   "authoritySha256": "d307a4669c1d6b0b80538d53b2a7fe9ed170976badbd40e85292a3f694ea8114",
+   "signature": "caaTKyxyyHXl27VnaLNQzrCr_3k-DkWldLfr2HWpTcaX51AHGC9zXcCg8wTM21U6ADZImIzVAA4dEgaeoSRNCQ"
+  },
+  {
+   "name": "document:forbiddenEffects.1",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    1
+   ],
+   "value": "xerge",
+   "authoritySha256": "56c72b768c4e4de1d1f240659d56f6a58856afb9130ff1b6885d970a7c7b0033",
+   "signature": "1SCyYNFBJnnldm97_PFCpiN-3TCRWACKI_zmqmY3pNQ8eil-E3nmNuwPF_6q8GhJzmvs2ovIwwsJ8AxvlOGwDg"
+  },
+  {
+   "name": "document:forbiddenEffects.2",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    2
+   ],
+   "value": "xroduction",
+   "authoritySha256": "4e93526a6f8e3fcbafa7b40a352158825bcc3bf935dee32f531f295fc49a8e46",
+   "signature": "0hrkUhqAjTpxUgZmCUYfXMeNAmWW4vU7P9lgXMbMlxID3qaYMmvDtISH5CBY-2vjeSIn53jx1dko1zTAFMDbBg"
+  },
+  {
+   "name": "document:forbiddenEffects.3",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    3
+   ],
+   "value": "xublication",
+   "authoritySha256": "fc0db482938841ed7b298564a9b62d242868253daab37a138249376ea818ad4a",
+   "signature": "QoQAD64OVYaS5HPRioyDUVaW0kMy4q2YLKxvnfg6wtGABCLBtZAVgZjdQK0sZ90fbcn6t658XQj-5VhazbqsAQ"
+  },
+  {
+   "name": "document:forbiddenEffects.4",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    4
+   ],
+   "value": "xepository.admin",
+   "authoritySha256": "a1afa6b1b1e41610ad162c9825e4d1c67927c5e1a51279c363cc1228c4f3b618",
+   "signature": "xCxtl7FVBawwZ6-dW3C--3IFfxr68XzN9U5CGqIcnZQT1YnMEkYpKxI-AXqV1T1_ELwsjo1tr4dT6EkiCEfDBQ"
+  },
+  {
+   "name": "document:forbiddenEffects.5",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    5
+   ],
+   "value": "xecrets.mutate",
+   "authoritySha256": "b9a92929c14beb17cd371381ec969653031485fe53d54c3e85da5e1b302439b2",
+   "signature": "E7jMO4RK0IfODZs3AWc9GCqmCo0A6_xJPX2qjYBkq4X8iPA8r0mDzQM9d1fEwT4MVEHPkPS7-wqW4rxfAi21AA"
+  },
+  {
+   "name": "document:forbiddenEffects.6",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "forbiddenEffects",
+    6
+   ],
+   "value": "xorkflows.mutate",
+   "authoritySha256": "d5ed27c166e888a2f4de30bffdfaa02fb290ebf77068ef62bb0db74beced4de3",
+   "signature": "SmckuxQdFrmtlLXBd5g9UbY9J5KufeQ-Rp2nXGa9UM74Th-o8-zvqEoK72Hz4i5x-KuPmjKKUQUN9aHnZSX7Ag"
+  },
+  {
+   "name": "document:issuedAt",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "issuedAt"
+   ],
+   "value": "2026-10-07T12:00:01.000Z",
+   "authoritySha256": "51ded4d4edf2c25d900535077100e485be1a485f6112071ef89709de8f471753",
+   "signature": "FTxwo62wIfuKXiu61CIFPXeNnzjwxYBfb5H2bdfjmKSsr5u0IJEBOusav2hGUjxsVUl1ajccEk7uuuld5cLpDw"
+  },
+  {
+   "name": "document:notBefore",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "notBefore"
+   ],
+   "value": "2026-10-07T12:00:01.000Z",
+   "authoritySha256": "d19d8b701a4ef23e38b470bc850257651c3d07fce07d02986ff838a76cb35f63",
+   "signature": "PqmfSVWuNZJYfqPkv0Dzb-kHy_TgW5ikaR7R-5GJvLlPoqEKXoXNvn10755k_6FU55eSyRkKFlfcc7tSTiIWDQ"
+  },
+  {
+   "name": "document:expiresAt",
+   "target": "document",
+   "op": "set",
+   "path": [
+    "expiresAt"
+   ],
+   "value": "2026-10-07T12:04:51.000Z",
+   "authoritySha256": "7d200dffac29945c112fd75285094755c5f2efc87ab2282ddfaf0ee2038eb768",
+   "signature": "kyZyTO59gC0VTQiKYOhkTagQvulWUvdbtq77Jnx56PyYcba-2EMQAmOwsHVRoFGjwSyQW0r9kM7V6_yM-mkkDQ"
+  },
+  {
+   "name": "document:+unknown@root",
+   "target": "document",
+   "op": "unknown",
+   "path": [],
+   "authoritySha256": "effc0ec03312d093826d78ed8d15fb875f2d61c79701c821397f24e46e852243",
+   "signature": "Jc7hCO9dlPVC4L4dLXd_z2RkJLWeRTbIzAzb57M0yWk8XzzECkQ5Uc8cZjlTlEHl9dKwKJtTgBhbpskRp3ZrAg"
+  },
+  {
+   "name": "document:+unknown@application",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "application"
+   ],
+   "authoritySha256": "f16b6e3637107ff4b27afeabd840f1034c1d9dfb19bad2e2206ec8cc3ef9d543",
+   "signature": "d8IOwNl3CaBYHIhMJ-_N13gtBkJWPA3c2AEQHwNxHY38Inah4MNE_xH-kVuZuT5hholOdlQa4AdKCaIifpPZCQ"
+  },
+  {
+   "name": "document:+unknown@source",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "source"
+   ],
+   "authoritySha256": "77d37a91cfa735d50ca64c6c8e5dbab8bd2f871df22b70dda2af1631a9275d76",
+   "signature": "McFr4fYJMp3C2v2levRPrzBVrIORjBMlZgiI7qvT2m0GEP7PCTGXfLSzbuY_xCBS2O9TTAfN-bABOHPEgtyaBw"
+  },
+  {
+   "name": "document:+unknown@work",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "work"
+   ],
+   "authoritySha256": "f03fdbc802875eb9446e2c8457841842b74d376c52ba4bdd669f9a1aed668524",
+   "signature": "sp_0a73H8Ms6ED0TKmmzZaUEWj_rCfH7VH9jfdPigv9LDFPWXh4OFU4jh0CN37LkXey71hLFgBUc3jbpmz6WCA"
+  },
+  {
+   "name": "document:+unknown@project",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "project"
+   ],
+   "authoritySha256": "8e9b3c9e6e13738af3b2283f2ab257ed015466049f3284b844f89126a646634f",
+   "signature": "AVDMaNGGt6g5qFu5VajTEPgDrtvrgGsQtKzJXId2uIHwo4HnCC_Jqdb0OKT0sVijLdD2CI2uBERKrPwjW1X6BQ"
+  },
+  {
+   "name": "document:+unknown@harness",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "harness"
+   ],
+   "authoritySha256": "94c621b60c55e8f77dc6b7e99d7f2cdb0df85fb543cae655c7af48644a4a8c1a",
+   "signature": "ixwdlBKVhnBEoZuiUlLkJXI0f4Xk20sruThn564oQtXOvUEZxYvE0m967FxmXLpmBYQ_aO10ZSTu2GFroi4gCg"
+  },
+  {
+   "name": "document:+unknown@model",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "model"
+   ],
+   "authoritySha256": "918c22300eeaa50b170eb98b828053ab40d40e2d1eabb2e0d7b96d3ac603094e",
+   "signature": "4OvWb0FVTwiF4uwR2ZjreFLCSmTuE0rSXJvjxNBqr_K-R9E2k5nbH4_7ZJV3oKBhlz2G0-rxi-2dbM_RO-8TDA"
+  },
+  {
+   "name": "document:+unknown@limits.work",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "limits",
+    "work"
+   ],
+   "authoritySha256": "d2a0a9327c24477193d34a2538291ce55851e12c1ed6f4322d50efcd9783df90",
+   "signature": "TXEAifJRwzpZy0R8fHf54xqPVLuLPD5n4TE4GvXNmR-6y3JftHJUIdxd8r7-U_mc2J8vjfQtQJ4VynBeB2QXCA"
+  },
+  {
+   "name": "document:+unknown@limits.factory",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "limits",
+    "factory"
+   ],
+   "authoritySha256": "4a31c2b07f24db7bda7a1eb028f11c7c7da1347c1bd6ed343f46e6bd7bff8b8e",
+   "signature": "xlR_AQ8Irz2_3p1OW-CvNiPsQIt9kOSgELN7k7KzF2ffP3MD7mKAdcOQbpoOimbRirn21w6fp4RTsjq3zd_bBg"
+  },
+  {
+   "name": "document:+unknown@limits",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "limits"
+   ],
+   "authoritySha256": "3837ca19bc319184e592800737c0c5397eb53ab8e5e0a133591ed52092cf173f",
+   "signature": "td0mnRBnrhlHZD850YmwKoJ9GdVj-BhcevF6KuH1kn2fYBQSWxe5AxY_FOL0c37vEeUL70nUawiGtdpjIcfnCw"
+  },
+  {
+   "name": "document:+unknown@candidateWriter",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "candidateWriter"
+   ],
+   "authoritySha256": "dc0ab0fc4961ec4c724f7de9000e8df26e784f4b09c2cdf21d54d1a6c905d33d",
+   "signature": "t6qSKo3j7CTRruEZzCvSFUWJmV1unBvR4NAFNWKqPAAqLr4h4IDlfcbHxR6iL80tC5icFS0LBOB4nBZ3gcnyDA"
+  },
+  {
+   "name": "document:+unknown@verifier",
+   "target": "document",
+   "op": "unknown",
+   "path": [
+    "verifier"
+   ],
+   "authoritySha256": "0cb4a791c3e257f359ce9a369ea32b23d17532188e9230459d8a4d62be359eff",
+   "signature": "1Iu3qlexh9z7Q4dIwLkt4Jx_tD1_sClVBWJ_XiomxZo20mSGV2ZWDcO4-LKIMe_D0IaHDsBSJhhqPz-58YdKBQ"
+  },
+  {
+   "name": "document:-schema",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "schema"
+   ],
+   "authoritySha256": "77d8b459180cc51cdd7cb5548691bb3f49d8ddae52a35347c0fd0d5d4b49fadf",
+   "signature": "IZ7XwEu6rSM5l5yQ8VereSaa_SnpYBT56mFeYF1s9AWC7Q5U74x8tBKUO_0g_JF1SeOLWPLO6zCf3_JbU2LADw"
+  },
+  {
+   "name": "document:-authorityId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "authorityId"
+   ],
+   "authoritySha256": "1fe4f7dd6de456a18814a9eb3b477e4b0da6e0177b51852233e1bbffce529a48",
+   "signature": "mkj-rmIu2EkLm8BeteeGCw3tG88A8Q3omlax_-CTbqHechgF7eV4JDeZKS2S2KhbKh9X9YVz84SC1ZdUFsq_AQ"
+  },
+  {
+   "name": "document:-idempotencyKey",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "idempotencyKey"
+   ],
+   "authoritySha256": "22beb3c3b8cd4f8e18b669eb51952843d830f8e2d2ff415cf3bf52a9ce351958",
+   "signature": "7pupjirVE91J_AGTI3aLgG9ZBvrh9Wu1inTBa7so4u4q8Fk8Qfs_lX52xKJYOcxVVXvcmk-zKZb1pECucjUtCQ"
+  },
+  {
+   "name": "document:-singleUse",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "singleUse"
+   ],
+   "authoritySha256": "43f83b4463dbe89fcbf56ee5ede9de284655b2a12da951317a04ef76baeb8444",
+   "signature": "o1CEUsiWOQk69f45AzRpAIWZjTJB9N8f12hebGQmMHoC6nsIYrFzSCUPvk5-F1CPMplf_OQLVmnaOcJRrb5xAw"
+  },
+  {
+   "name": "document:-cohortId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "cohortId"
+   ],
+   "authoritySha256": "72865436942770e548b255952ecdfd7fcd58b82eaa78e7232bfa8830291e3b9e",
+   "signature": "HWYeVccOx0hT3ryIc6jvQYBJIS3zefd2VvgLeQxNCEamQhX3KZXJCQUWNCjL2DkN0t-dELJtaBeIrbvyQr9UDg"
+  },
+  {
+   "name": "document:-slot",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "slot"
+   ],
+   "authoritySha256": "f3b02c7558915af7d46b53afcadd76ff6a4265ab20e29fac25fd15b8290d7a79",
+   "signature": "cHrML6wedDiGK7lrIoZRz-o2QyQv_TYvaqtitUHEBaq7sa3ooz4s62PueAZYwQnS_8a6BGFcl3C2EWyRjqu_CA"
+  },
+  {
+   "name": "document:-ownerId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "ownerId"
+   ],
+   "authoritySha256": "b1349caf2509d0bb9b46d3e97957d91cc0ed8572549192ef44fe253ec7adc663",
+   "signature": "Wu90_V47cXjY2Mb9dgl1y7FliGWYT25lbYhP5_bLYHte1hfVrdh1tXyg4SxpizaPDxMsyGS0iHr3x5I7nukuAw"
+  },
+  {
+   "name": "document:-policySha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "policySha256"
+   ],
+   "authoritySha256": "c249d919d3fb29050205d55b5bca08578206e2bb52afc78a2cc935dc8f51ad52",
+   "signature": "xbBY2_jqFWKsZC5_ASS75Ps0N3ucxxVMrancHjpQsSd8B1t4Eht1NSBVfEUGxVuvVfokw5QoNzvg3yir8DyPDg"
+  },
+  {
+   "name": "document:-application.clientId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "application",
+    "clientId"
+   ],
+   "authoritySha256": "05f6b82db0546e9e0e347be04b47c7218d59ec07367251f5229ee31a7f36de3f",
+   "signature": "BcntjYnakv2cliPQNJT5EOKL1OZDIE9jyrdAxsnPNzILR66n5m_9oZqvogP9Rcr6rzFsIkJtEjcbTlWhsRnGCg"
+  },
+  {
+   "name": "document:-application.projectId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "application",
+    "projectId"
+   ],
+   "authoritySha256": "e69822581e0ae1c3c1dfb668a9d762b88ef66c116f0c95010b9c27a8fd8db95c",
+   "signature": "VhfMBoKnqZ2kpTde_GitrCEezfqUb8VAFkI1ssxJ8NovhmTPZehZbf02odmaISO7YlqDZWo5_M3DU_Oi31gpAA"
+  },
+  {
+   "name": "document:-source.repository",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "repository"
+   ],
+   "authoritySha256": "882f1bc2751b5ead215a2e04320cc095b9d9bff8f8d24a0faf0f308b3fea36ce",
+   "signature": "OFPRcx_yn8MBy_aFgwcF67TpDHTeuEsRCFblw3B2aFR6WoiOIFp5TbEmifKDoiLN7m1PSWP1Pb5awehrC81pCQ"
+  },
+  {
+   "name": "document:-source.baseSha",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "baseSha"
+   ],
+   "authoritySha256": "db31c4f916ff4f98d9b30bdabfbc7e60ef5e4b37fb846684f82adc3cfa6005f6",
+   "signature": "BSqrcZjiQzncOicJPl4U-Aw0855py38TuLXrcBPpIhtYm3i3HWvnNdAlCLEYoC6VySzMECdNF-mQ5vpztdqZDw"
+  },
+  {
+   "name": "document:-source.treeSha",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "treeSha"
+   ],
+   "authoritySha256": "bb0c70587b5bd83ed3ccc13d2f8972dfe021ebf236bdca45c6c692e7f9e73ee3",
+   "signature": "7SIlxLN3bJJkVMtlH4u1pcyMKiSf4tnGHs_XaIDKRj5SaktXK7XRWjGNZBc9gZGgxQ1FOoNo9s3uRYYGguryCw"
+  },
+  {
+   "name": "document:-source.sourceDigest",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "sourceDigest"
+   ],
+   "authoritySha256": "1f464f8e4ec14c02483964300df3866b8a59985d8fe909e9e31e87e66b0d02d6",
+   "signature": "Rg9QZyL78aMYCtj4t8sVYfSAn3927m_STWSqPw_n6YvF8832HPN9oJAJJQUy9XL_6SO8suERNM1YtMh-oY1xCQ"
+  },
+  {
+   "name": "document:-source.allowedFilesSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "allowedFilesSha256"
+   ],
+   "authoritySha256": "3a3fe6c0800b93cd908e0d877f4b856bdcd3161b1c620961072bf6a2be89b031",
+   "signature": "DVPt87CdsR_5esbDQk1e9RyWgDB54Il5LJarjK693flKghtztBJd0UOfgKsLBOAkA-AeDqshnHTbTKZwMwX2Dw"
+  },
+  {
+   "name": "document:-work.id",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "id"
+   ],
+   "authoritySha256": "b6f85b65a9ea4beb3fa9323f8b1cb601e9108f96fdf12ecfa77373ff372c9b11",
+   "signature": "7Y3-H6mGlt5an6chvU-RlMEoSSzME9Ibv1rusEt_5fgY2gp9ij3fad9ePLNotv06XK1mHnfeTyPYqjX4JhqeDg"
+  },
+  {
+   "name": "document:-work.version",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "version"
+   ],
+   "authoritySha256": "8b596475d6136ae0a69fd6dd13593e0be74d9dafa4a3f0eb2658ff8aa9d4c8fe",
+   "signature": "AcPNRHii12K49dPmqADnBbF7IsjCfV29vO-C95aUQjOeNVTPRES_vkWFLQSESN9_WjGTIneXXj15c37YoxB5Aw"
+  },
+  {
+   "name": "document:-work.generation",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "generation"
+   ],
+   "authoritySha256": "80862119fd6a829d52f7985d073588c4c80582bfd2a51c5bd231cbea04fbd963",
+   "signature": "_EUxMStYWCKXGRWhtGb9eY7B0qZP4tdNHJ2HcSUyCrAGdCl8ocz18hM7x-x6BCt5D7K6qQZL9arMBOSIIDv1CA"
+  },
+  {
+   "name": "document:-work.title",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "title"
+   ],
+   "authoritySha256": "4ef25a9c2b31455f492a5c8610f11338d6ebfbe13c652274c81929d3faacd647",
+   "signature": "sAbSV7ypmBvfFAaqXW_MR_KangOiSmqiwWkZOCNHI1IVxG-BWV-lHM2VkDaavCQKfe0cGPvQQ0IarOlSy0eABA"
+  },
+  {
+   "name": "document:-work.objectiveSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "objectiveSha256"
+   ],
+   "authoritySha256": "f288b5e5c5ecda0c4760db2f114ec72ec6d00a91bf32728ea778cd87ab3b67c0",
+   "signature": "B_nqnCJ-aqu3V61UBNpe7hynp6lnk7mYL4EnrMsJkcG-XWGFSOKIjZA9EA0s7uHbt8xgumSfnnyycV6ztJX_Cg"
+  },
+  {
+   "name": "document:-work.criteriaSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "criteriaSha256"
+   ],
+   "authoritySha256": "80c254c1d47fac1128f8385d147ad51748dc60af1e70f89d7458ee3e1a061e7a",
+   "signature": "PnkqHCA_wwy6-8RmKsfkv4JIxrgnX2s-yu5OM5IfKjSatMtCcrm9uRJwY_8bl4cGuc0Ys4QP2td59FUUBBvcDQ"
+  },
+  {
+   "name": "document:-work.criteriaCount",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "work",
+    "criteriaCount"
+   ],
+   "authoritySha256": "40d12464ccac1f4d5fbea6d227b75623c2f0ea4d327eb679dd37831583c77ed7",
+   "signature": "F2QU9342xxS5K8CfRAIq-gsyJbL1w7jI1f-BoJN6eGBRMJMvK0mVqCRB_3vshzL_QdW9llnZ-wriY2DTmDK5Bg"
+  },
+  {
+   "name": "document:-project.name",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "project",
+    "name"
+   ],
+   "authoritySha256": "8b39b8185475e312b67e87b5d91bb14a4994b368484218295a72f3ee7b69c17a",
+   "signature": "WOzQ10Leaw7HGEfiytVt9-eVkT-Y1Cir5U9mZF7g-0jvJJeI1gbvLJuvDrScH6qgJ4RKzuX9Zbqo0qHDbVBPCg"
+  },
+  {
+   "name": "document:-project.task",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "project",
+    "task"
+   ],
+   "authoritySha256": "d5036bdfa485b83e0406c63376ac05cdfc83402da5c873af1b7d5c00f6769e50",
+   "signature": "lC3mXucjBSFCJn1kdIsKnmV_9ygJMw5vdgI7x9rLSMlv76XuEF1hGYH5zjCUlu2tDZTHPw-gQDx37CkJCeF_Bg"
+  },
+  {
+   "name": "document:-project.criteriaSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "project",
+    "criteriaSha256"
+   ],
+   "authoritySha256": "f113dc88688313e8f55c28265b55f9d7b6f02cd7e972795b8acb892c6eef734d",
+   "signature": "aQk2zJT6PWubzqiugPHm5x2sBrFbMlEtgTO86r7uT783sxY5ULznAxe-BlXmp4D-Dj-7-NgnMetnN_bmFEe0Ag"
+  },
+  {
+   "name": "document:-project.tupleSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "project",
+    "tupleSha256"
+   ],
+   "authoritySha256": "f5bcd0a657706906c663074958c4ef05378ce95b60402716d85d07cf212d4648",
+   "signature": "kOSmz7cZpMR21MMmJl-VJRg8B8WYaX9tc4D3CwdZaQDZrBxmUpEopSoZROZSt6m4_4H9ju9wc-WGi-2D-AtxCg"
+  },
+  {
+   "name": "document:-environment",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "environment"
+   ],
+   "authoritySha256": "0bb3f5e43d33bc10dd3d3ec56268bd84247721b6de093872721570cb2ae190a8",
+   "signature": "4qKTN8WRcG3jqI7wL2VU5B17oLLHY96MLPDfZJcoEhuSsfy8Nl3SoyGcZC6E2pA6fmET7-cr9DZAGKgwplA2AQ"
+  },
+  {
+   "name": "document:-executionProvider",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "executionProvider"
+   ],
+   "authoritySha256": "239c82a1ec3f8fa0271b629e96c7fdc21af5582be5d2566379a569cefff67935",
+   "signature": "MOs5kb1DkOvzxzv1FFZq8nGWWJVTnvggexBLRC3PcSL3pYmUU9Fn7JfoaN7YjhY2NvaTVPSpi47qCwS2euC-Cg"
+  },
+  {
+   "name": "document:-harness.id",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "harness",
+    "id"
+   ],
+   "authoritySha256": "5a15a417498b92ee08f8797e0b2a89139654fbd71f664df8737487da3caa29d6",
+   "signature": "7QL0XEAjVtmv1v9aaS_APzqKFrR6-JXYaKgdrCvO8cGDnfofkxdr-t5GCniNraBtNa0eWwi3JFiF6RDaRt7WCA"
+  },
+  {
+   "name": "document:-harness.version",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "harness",
+    "version"
+   ],
+   "authoritySha256": "ee1c32e74303b7e1251c69c0d647d63f0a26c0baf686aab5741f31d43930a5ae",
+   "signature": "fH_fjm6YKzize6BCbKVZoVHFn7AT43QXQhgMZcjG-h1dYpnMEKygR7fj3HvGqC_N8ddSyl5qhP0uyQ-J6Z7gBQ"
+  },
+  {
+   "name": "document:-factoryVersion",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "factoryVersion"
+   ],
+   "authoritySha256": "4ffeedfe9ab76fbb9f6e630eda46845dfdb32704404afd861eb5dffbc19bf927",
+   "signature": "3einIwGn7w78i6b7ZUv8IsdhLdEulIbu0pSNRpHbc6Gltl1CBCfmcsYnwBrFL41a5EhrZn2skTCv4_xK_mbxCg"
+  },
+  {
+   "name": "document:-model.provider",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "model",
+    "provider"
+   ],
+   "authoritySha256": "4b940666d83a36956eb49cf8eef12e0f948a5bbdecf57c2eb787e3d636bcbe5a",
+   "signature": "EWqE5Y2sdqsh-mA__PrnE-N0QtykNAyUYzVQTsNOA8PSN9eDdzwyrLU9t1yjX8ogPXM_Ojo8HN3BNzuyImH2BA"
+  },
+  {
+   "name": "document:-model.id",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "model",
+    "id"
+   ],
+   "authoritySha256": "fb1a7dceb0d98e001e52d5db0c9ed5293661afff11f4b5df2829552470a70a61",
+   "signature": "IKYmPDGnRpDjHiIYfoJjKNjhSR5wwVGzaqQ-wQVUjAjEt_iZ8t6m_LdppbTA04AyBXJBAnKZIMqxfGZm2nfcAA"
+  },
+  {
+   "name": "document:-limits.work.operations",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "work",
+    "operations"
+   ],
+   "authoritySha256": "d8a26a975ad9e9fefb3f7241be9aadddadee1a8690c935798592d0e360ce0d1a",
+   "signature": "xiXhig2fICRi2YkeIhJ1AX7IceWL9cL2fa8v5XCYL_vNJxEaDANWR87zR-RUthIAvrE6WVodTuqXpJe5qumJBA"
+  },
+  {
+   "name": "document:-limits.work.microusd",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "work",
+    "microusd"
+   ],
+   "authoritySha256": "667354505b3beea957ffc846381173dde7e0752f59947fcd5692658b13c99ab3",
+   "signature": "NERQTxlhbzCuVGPQn0xYSvbBZIB1j4HcbGlEqWhQfRuVbiHZB6aZvwRshAFX8ftJt1tgR0UM3N1z6oCuQTVyAQ"
+  },
+  {
+   "name": "document:-limits.factory.operations",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "factory",
+    "operations"
+   ],
+   "authoritySha256": "7967469b9990345d05ae8c2a721fdf6459b175d222e3109fe8126d95306228e1",
+   "signature": "TB6dpDsTHqZPvRLlJgI9jFws3U-DZwUuGgeuR5LtAByycQWKC7HvEfRWLTdNsvTCOJAWwv_r6-d3oXEVN4eGCg"
+  },
+  {
+   "name": "document:-limits.factory.microusd",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "factory",
+    "microusd"
+   ],
+   "authoritySha256": "0004e3c49fc62e69232588533ecbaa758d6159e5160f96baa8a0f8e65ffbf8a2",
+   "signature": "SzHGjyRZDEV8Qij8kVhz7DYOsK_0Q4jkt4Lj5C6yndnriZU9Qr6XsuK0DohrPbGzk7Iry7cTxn4VJ3fzolflAQ"
+  },
+  {
+   "name": "document:-limits.productiveSeconds",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "productiveSeconds"
+   ],
+   "authoritySha256": "1a9cc5515e7f319a40428d2276aeb19fbdad316221229b72af900908b28336cb",
+   "signature": "VK127PS8p1QRje-w8QJ5worDQUHQNeJ-jzgmjQaeZLEL7ynmggvyL9SF5q1ls8vmVwWkkSwR_mRkFJ7NO8R1Aw"
+  },
+  {
+   "name": "document:-limits.candidates",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "candidates"
+   ],
+   "authoritySha256": "911bc2cb06e9769dd1da941ceb729904ed6c4913f27050c535b92174cd028e81",
+   "signature": "P_3rYX-O5xtsj3EaLYNeksd-6Hw3MOOnfBGRYyiSetMMkjwb2e_sw-oGBY6IZFMKdD6AilBoX6dN4lOo5J5_BA"
+  },
+  {
+   "name": "document:-limits.writers",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "limits",
+    "writers"
+   ],
+   "authoritySha256": "bd8598115eb3809f34abe6df9f16fb924455eda5fe194dfe53ee39d771c71718",
+   "signature": "N0rvL_FgDtplu5lJgZ8QWwRCUA5JUj9VauLXfnzp1jwY6sDFkFOJBGMMW1gF9BjY9oOPUuYsDoCsE8JLKevLCQ"
+  },
+  {
+   "name": "document:-candidateWriter.candidateSlot",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "candidateWriter",
+    "candidateSlot"
+   ],
+   "authoritySha256": "fc4e8fdb8dd9e5d6e378b80250d8371e0648a8331c029c603a9bdcad68f5f8e7",
+   "signature": "AIybuM3TYmqb51-2-NivpLNJ84wFXpt_wvpnZm8upCFm0YH4irFyv902HRMTTvFhOA8xReeeRczeQo6icsadAw"
+  },
+  {
+   "name": "document:-candidateWriter.writerId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "candidateWriter",
+    "writerId"
+   ],
+   "authoritySha256": "53d799b475e049018cfbdf62f2a4720d1a12d21ab7d627e7c04f648ca795252c",
+   "signature": "7wFBUS9KDhpYepuBt3wc5lS2uEAtXhEHM18y6UeO6VXCROtQmkRXlMz5LGWlsCHXutIUY3mowyFDmRzUZ4BBCg"
+  },
+  {
+   "name": "document:-candidateWriter.requestId",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "candidateWriter",
+    "requestId"
+   ],
+   "authoritySha256": "30866cc648fe3a72751afae28121813e81a894208fb5c8f30485b284be043434",
+   "signature": "EzcRum5HzomY2036Sf9IHjOj71aCxoolpNS1fk6ZYSlJ8YUUzcBHr0F8t_zdurHm3nZoaNtR0tZaXTaNwAfrCg"
+  },
+  {
+   "name": "document:-verifier.id",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "verifier",
+    "id"
+   ],
+   "authoritySha256": "34a5338d23b1082fba7edccc3cf36f02bd13911c3f5674b70a3bfd4a99ccb6ae",
+   "signature": "cN2-Fv1QPfOLGTLl2ldmZk4166x0iulQw1odf5q_pczSQZ8zjDr0jnI9OuR5kPFVp3x-kK6VK11VdSfGaDNQCA"
+  },
+  {
+   "name": "document:-verifier.verifiesExactArtifact",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "verifier",
+    "verifiesExactArtifact"
+   ],
+   "authoritySha256": "a0f9fdb693fd4e6c96baa33353e2e9a46a6847c8584b2a9172a2953f296f5d11",
+   "signature": "5iGW0xMBjKbvJ41WIcVBxRV72dGxt1mM7mjP4-J9TfpCvwSg_kPmSszsXeX_wXDlMQTeN9J0p_oXWmGshoUrAQ"
+  },
+  {
+   "name": "document:-verifier.trustProducer",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "verifier",
+    "trustProducer"
+   ],
+   "authoritySha256": "db5a23438bc3d51ce55853777477cc5edbef38f522197358b7b71628b0700601",
+   "signature": "_6AFx7GwBCo7xeEfZD162GUc3PPb375u5TkyyEQ4unXVcSXZnWOvVD5xBNNAKppIB3PDzGtqV5Wlix9hO54mBQ"
+  },
+  {
+   "name": "document:-verifier.criteriaSha256",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "verifier",
+    "criteriaSha256"
+   ],
+   "authoritySha256": "66ecce44c7885482ba60425d326340d6cd0fe967bd6b4f56a40a7cf34f73da41",
+   "signature": "FcKZBIho_nGIz6X1jS_wTt9wwwCjpIMiNyvqSB0VDfnWO1vXzE-uXDyQqfiNJM36Ov4cufg9QT_7MkGkIWgzDA"
+  },
+  {
+   "name": "document:-issuedAt",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "issuedAt"
+   ],
+   "authoritySha256": "d658f3ddded6cbb165801b3c692f4e7a09a133c284d585d6c4c89f9f27d47265",
+   "signature": "MXW-clbn_oZEwBOcOj-1FVnjoXAfuFtfRrdwLvHWldQTlB_-hNkAHq_sqBN-ONdwAwxUZ4P6vONCGg8HTnaHCA"
+  },
+  {
+   "name": "document:-notBefore",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "notBefore"
+   ],
+   "authoritySha256": "dcf4404a72ff175bcf3940517c0a01cf48396ef908983ec9330602a477ccb19e",
+   "signature": "XOv_tiQ5u-ROcOLZ2apo6Ltr20RE1leRZg18OcJI4aMD22P2ccDXQ_HQ4kv1E8MtbS2PpYNvN4nmExsc6yYPDg"
+  },
+  {
+   "name": "document:-expiresAt",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "expiresAt"
+   ],
+   "authoritySha256": "b5619e1bfcae3e9a046811eb714e76b783ec8b18d7e3bd68c9cdf5e9dbe4e87e",
+   "signature": "r7w5ZpJeEsoXaiQf8CYSLHgsNxsp0q1hvH781nZUocb4HZbqroZgbdCYRQvyhYMhIJxLgN0zlvLe8u2Ra024Dw"
+  },
+  {
+   "name": "document:-source.allowedFiles",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "source",
+    "allowedFiles"
+   ],
+   "authoritySha256": "935db79e6db9c433b140750b42c4c46576ed464cbcc4fa38378f37bcbcea72b6",
+   "signature": "USM3QZz_VD2460Z5s1ILR_wL23U2O08lZ0ipIy1RC-GntmKaigBW02DLoHjzh05ME4xyYyFmOZC9RdCP-oe1Dw"
+  },
+  {
+   "name": "document:source.allowedFiles.dropped-last",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "source",
+    "allowedFiles"
+   ],
+   "value": [
+    "src/app.js",
+    "src/store.js"
+   ],
+   "authoritySha256": "4f084d710345c9598ae6e69ceee2e5c865764ce5945c634b755791c53a03c613",
+   "signature": "bjxsiOt8HiBHWbZ_nViN-WJJDDGvyCr_kjWSnkB0YYD8KPBrhDml5jMSZ4ll_ykFsnvZALCusB9mVm822fY6Aw"
+  },
+  {
+   "name": "document:source.allowedFiles.reversed",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "source",
+    "allowedFiles"
+   ],
+   "value": [
+    "test/app.test.mjs",
+    "src/store.js",
+    "src/app.js"
+   ],
+   "authoritySha256": "8cdcb998b470e4983d1582d90154c61bba799ebc1b15e3cf8843d7030ce3c995",
+   "signature": "h9SgWmeCGQJATblgTGXw0GNtC_3PQVJPiX3KMwZE2nHPO6QmyBUfcR9VIoCTyNXM8e6HMCPf3J4vhxW7KhoGCA"
+  },
+  {
+   "name": "document:source.allowedFiles.extended",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "source",
+    "allowedFiles"
+   ],
+   "value": [
+    "src/app.js",
+    "src/store.js",
+    "test/app.test.mjs",
+    "extra"
+   ],
+   "authoritySha256": "8cf2b589a7738f521bdbb48ac296a91dd6c7a5f0f8fe63a5387325e9c0f42aab",
+   "signature": "6U9_q_qUkESLZXjXVIgzDNezyWaZxFyLBXYQJ7LBnzskv0c1Rm5HX_b16HP8rYW34Q-aq3Eb_rLd-g2BEmuoCw"
+  },
+  {
+   "name": "document:-allowedEffects",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "allowedEffects"
+   ],
+   "authoritySha256": "1165c75a740267358a17b88a487f9b8f48171d9ab3dcdf557f7ba18494ae0ad9",
+   "signature": "irZmDhFL2AWpogB8cxCkHPie_P996Ub3wVe-ZbtNCHfvko1Uwkn74DoeMw1MSqZu7uUJseEgXoL3m9LG9t5TDQ"
+  },
+  {
+   "name": "document:allowedEffects.dropped-last",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "allowedEffects"
+   ],
+   "value": [
+    "candidate.create",
+    "repository.read",
+    "sandbox.write"
+   ],
+   "authoritySha256": "a396db3318475ac72a0ec8e98ceb54e4e6d9e9b992e81e4792691e466a3cf091",
+   "signature": "5KABtGocxdNJnJGlHThRpr1Yv16VsqsUq8TgUAjy3aFxWFTe0sTThyVZAVeNVHjwhTd2LXNFJfOUYka4khZjCA"
+  },
+  {
+   "name": "document:allowedEffects.reversed",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "allowedEffects"
+   ],
+   "value": [
+    "verification.request",
+    "sandbox.write",
+    "repository.read",
+    "candidate.create"
+   ],
+   "authoritySha256": "6413d5cd371c0573f20f4fc3ee546982d3ce55976e20ba6567260eec6edbc9e3",
+   "signature": "91ystcDGPZxNGTSPyna2oWgRoWaL08OysM5RYvwWelceEbkZ42l8T3kBKfPKoRUzevq0TFxh61P1b3gQvYubBg"
+  },
+  {
+   "name": "document:allowedEffects.extended",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "allowedEffects"
+   ],
+   "value": [
+    "candidate.create",
+    "repository.read",
+    "sandbox.write",
+    "verification.request",
+    "extra"
+   ],
+   "authoritySha256": "e22467bed67b79ea64c20dbc2ced6124f43fbbc48bc6442451e653b851bdf20b",
+   "signature": "H7Tv5hMQsqOba2pgvukoYwTldLDROM1s2UrLZYyzKbOR3JmLbc950voMyDIFScIIunAYUvvxksGvIHzdHNLnAQ"
+  },
+  {
+   "name": "document:-forbiddenEffects",
+   "target": "document",
+   "op": "delete",
+   "path": [
+    "forbiddenEffects"
+   ],
+   "authoritySha256": "9de88bc823cabdb857774c3c4aff6544191721e524b649ce9ff4b6301c41eace",
+   "signature": "VrQEgxQBD62mJEoKDXZM6w5W19Ob_CjZoi_BZpRb2h1Q9KBK1aP9lvH1yg98qLYPEw0cM08Pz1jKYlpGoSIkDg"
+  },
+  {
+   "name": "document:forbiddenEffects.dropped-last",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "forbiddenEffects"
+   ],
+   "value": [
+    "deploy",
+    "merge",
+    "production",
+    "publication",
+    "repository.admin",
+    "secrets.mutate"
+   ],
+   "authoritySha256": "08dca4fd5c8accda685bbd0bf5e9d3f24247e6d42c4375771689d3e54f909828",
+   "signature": "tBq0H18G0rPqBbvCniEeXYubvZubmgPncXxbMnHfHceaahlpGbQV3eId3EW6sIvxaRzkwJzLoDg7yYV579AKDw"
+  },
+  {
+   "name": "document:forbiddenEffects.reversed",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "forbiddenEffects"
+   ],
+   "value": [
+    "workflows.mutate",
+    "secrets.mutate",
+    "repository.admin",
+    "publication",
+    "production",
+    "merge",
+    "deploy"
+   ],
+   "authoritySha256": "49006542e1f2eee27e1c5f2c99269e8e6ba232416401cbfb9a3de167edc55d09",
+   "signature": "VFYbB3QTr15nwjiMYravdU6-5RsjODN_dbQeRb7wEz28v2yzHn4TJLc_6J27syGV-uHR1QIcO9y6wdQ7eoEGCw"
+  },
+  {
+   "name": "document:forbiddenEffects.extended",
+   "target": "document",
+   "op": "replace",
+   "path": [
+    "forbiddenEffects"
+   ],
+   "value": [
+    "deploy",
+    "merge",
+    "production",
+    "publication",
+    "repository.admin",
+    "secrets.mutate",
+    "workflows.mutate",
+    "extra"
+   ],
+   "authoritySha256": "10c069f8a3fdfe3415ef049af0c22aafdf88344dec80d6da18a9be90b7bc7b38",
+   "signature": "nAeHrY4OmZeQoAwzGwhLlHGfr-5nHK14wgNv6sB3AW0Wi0Vp87r9R4TBQGV3y7Rp620fwLjrhcr3_tt8zzpPBw"
+  },
+  {
+   "name": "envelope:authoritySha256",
+   "target": "envelope",
+   "op": "set",
+   "path": [
+    "authoritySha256"
+   ],
+   "value": "ebec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c"
+  },
+  {
+   "name": "envelope:signature",
+   "target": "envelope",
+   "op": "set",
+   "path": [
+    "signature"
+   ],
+   "value": "90J2NbXnr-Kb5hE0HVK1U01zPsn777BNwJAQ4jm1yC-OL89soYTIG6vhKSfAOTEcBXOkpw6cgKD23zjHOOT-Aw"
+  },
+  {
+   "name": "envelope:keyId",
+   "target": "envelope",
+   "op": "set",
+   "path": [
+    "keyId"
+   ],
+   "value": "e2d4a6b487139ea4ffc40336148e5dd5500568b1c35b84fe916d123902a03d1e"
+  },
+  {
+   "name": "prepare:protocol",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "protocol"
+   ],
+   "value": "xYFACTORY_EXECUTION_V2"
+  },
+  {
+   "name": "prepare:requestId",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "requestId"
+   ],
+   "value": "6027ac1a-9ce3-8a48-aaa6-9839e22378e5"
+  },
+  {
+   "name": "prepare:workId",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "workId"
+   ],
+   "value": "9b91dfcd-c435-4932-80cd-b9e2a31e4bb4"
+  },
+  {
+   "name": "prepare:workGeneration",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "workGeneration"
+   ],
+   "value": 2
+  },
+  {
+   "name": "prepare:repository",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "repository"
+   ],
+   "value": "0ixture-org/myeve-alpha-workspace-01"
+  },
+  {
+   "name": "prepare:deadline",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "deadline"
+   ],
+   "value": "2026-10-07T12:03:01.000Z"
+  },
+  {
+   "name": "prepare:maxSpendUsd",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "maxSpendUsd"
+   ],
+   "value": 2
+  },
+  {
+   "name": "prepare:source.repository",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "source",
+    "repository"
+   ],
+   "value": "0ixture-org/myeve-alpha-workspace-01"
+  },
+  {
+   "name": "prepare:source.commit",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "source",
+    "commit"
+   ],
+   "value": "71aced4d0f652562b3208686ff38cb3e17ee7057"
+  },
+  {
+   "name": "prepare:source.tree",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "source",
+    "tree"
+   ],
+   "value": "65a6bc40c227c94c6b4dfbc0c64497c9e3e2642d"
+  },
+  {
+   "name": "prepare:input.title",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "title"
+   ],
+   "value": "xlpha Tasks: add a Priority field"
+  },
+  {
+   "name": "prepare:input.description",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "description"
+   ],
+   "value": "xn the Alpha Tasks project, add a Priority field (exactly Low|Medium|High) shown on the task list."
+  },
+  {
+   "name": "prepare:input.kind",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "kind"
+   ],
+   "value": "0eature"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.0",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    0
+   ],
+   "value": "xxisting tasks still display and function"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.1",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    1
+   ],
+   "value": "xreating or editing a task supports exactly Low, Medium and High"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.2",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    2
+   ],
+   "value": "xriority persists after reload"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.3",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    3
+   ],
+   "value": "xhe task list displays each task's priority"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.4",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    4
+   ],
+   "value": "xn invalid priority is rejected"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.5",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    5
+   ],
+   "value": "xxisting tests pass"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.6",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    6
+   ],
+   "value": "xocused tests cover creation, editing, persistence, display and invalid input"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.7",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    7
+   ],
+   "value": "xo unrelated product or UI changes"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.8",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    8
+   ],
+   "value": "xo production deployment or external publication"
+  },
+  {
+   "name": "prepare:input.acceptanceCriteria.9",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "acceptanceCriteria",
+    9
+   ],
+   "value": "xn independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+  },
+  {
+   "name": "prepare:input.checkCommands.0",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "checkCommands",
+    0
+   ],
+   "value": "xode --test test/app.test.mjs"
+  },
+  {
+   "name": "prepare:input.allowedPaths.0",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "allowedPaths",
+    0
+   ],
+   "value": "xrc/app.js"
+  },
+  {
+   "name": "prepare:input.allowedPaths.1",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "allowedPaths",
+    1
+   ],
+   "value": "xrc/store.js"
+  },
+  {
+   "name": "prepare:input.allowedPaths.2",
+   "target": "prepare",
+   "op": "set",
+   "path": [
+    "input",
+    "allowedPaths",
+    2
+   ],
+   "value": "xest/app.test.mjs"
+  },
+  {
+   "name": "prepare:+unknown@root",
+   "target": "prepare",
+   "op": "unknown",
+   "path": []
+  },
+  {
+   "name": "prepare:+unknown@source",
+   "target": "prepare",
+   "op": "unknown",
+   "path": [
+    "source"
+   ]
+  },
+  {
+   "name": "prepare:+unknown@input",
+   "target": "prepare",
+   "op": "unknown",
+   "path": [
+    "input"
+   ]
+  },
+  {
+   "name": "prepare:-protocol",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "protocol"
+   ]
+  },
+  {
+   "name": "prepare:-requestId",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "requestId"
+   ]
+  },
+  {
+   "name": "prepare:-workId",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "workId"
+   ]
+  },
+  {
+   "name": "prepare:-workGeneration",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "workGeneration"
+   ]
+  },
+  {
+   "name": "prepare:-repository",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "repository"
+   ]
+  },
+  {
+   "name": "prepare:-deadline",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "deadline"
+   ]
+  },
+  {
+   "name": "prepare:-maxSpendUsd",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "maxSpendUsd"
+   ]
+  },
+  {
+   "name": "prepare:-source.repository",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "source",
+    "repository"
+   ]
+  },
+  {
+   "name": "prepare:-source.commit",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "source",
+    "commit"
+   ]
+  },
+  {
+   "name": "prepare:-source.tree",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "source",
+    "tree"
+   ]
+  },
+  {
+   "name": "prepare:-input.title",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "title"
+   ]
+  },
+  {
+   "name": "prepare:-input.description",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "description"
+   ]
+  },
+  {
+   "name": "prepare:-input.kind",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "kind"
+   ]
+  },
+  {
+   "name": "prepare:-input.acceptanceCriteria",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ]
+  },
+  {
+   "name": "prepare:-input.checkCommands",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "checkCommands"
+   ]
+  },
+  {
+   "name": "prepare:-input.allowedPaths",
+   "target": "prepare",
+   "op": "delete",
+   "path": [
+    "input",
+    "allowedPaths"
+   ]
+  },
+  {
+   "name": "prepare:checkCommands.extended",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "checkCommands"
+   ],
+   "value": [
+    "node --test test/app.test.mjs",
+    "node -e 1"
+   ]
+  },
+  {
+   "name": "prepare:acceptanceCriteria.reordered",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ],
+   "value": [
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Existing tasks still display and function",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication",
+    "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer"
+   ]
+  },
+  {
+   "name": "prepare:acceptanceCriteria.dropped",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ],
+   "value": [
+    "Existing tasks still display and function",
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication"
+   ]
+  },
+  {
+   "name": "prepare:acceptanceCriteria.added",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ],
+   "value": [
+    "Existing tasks still display and function",
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication",
+    "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer",
+    "An extra criterion"
+   ]
+  },
+  {
+   "name": "prepare:acceptanceCriteria.reworded-trailing-space",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "acceptanceCriteria"
+   ],
+   "value": [
+    "Existing tasks still display and function",
+    "Creating or editing a task supports exactly Low, Medium and High",
+    "Priority persists after reload",
+    "The task list displays each task's priority",
+    "An invalid priority is rejected",
+    "Existing tests pass",
+    "Focused tests cover creation, editing, persistence, display and invalid input",
+    "No unrelated product or UI changes",
+    "No production deployment or external publication",
+    "An independent verifier checks the exact resulting source and artifact against these criteria rather than trusting the producer "
+   ]
+  },
+  {
+   "name": "prepare:allowedPaths.unsorted",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "allowedPaths"
+   ],
+   "value": [
+    "test/app.test.mjs",
+    "src/store.js",
+    "src/app.js"
+   ]
+  },
+  {
+   "name": "prepare:allowedPaths.widened",
+   "target": "prepare",
+   "op": "replace",
+   "path": [
+    "input",
+    "allowedPaths"
+   ],
+   "value": [
+    "src/app.js",
+    "src/store.js",
+    "test/app.test.mjs",
+    "src/extra.js"
+   ]
+  }
+ ],
+ "readback": {
+  "receipt": {
+   "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+   "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+   "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+   "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+   "consumedAt": "2026-10-07T12:00:00.500Z"
+  },
+  "receiptDomain": "MYFACTORY_EXTERNAL_ALPHA_RECEIPT_V1",
+  "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+  "binding": {
+   "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+   "admittedDeadline": "2026-10-07T12:03:00.000Z"
+  },
+  "nowMs": 1791374401000,
+  "cases": [
+   {
+    "name": "valid",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "ACCEPTED",
+    "verified": {
+     "state": "RUNNING",
+     "quiescent": false,
+     "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120"
+    }
+   },
+   {
+    "name": "extra-passthrough-fields",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA",
+     "snapshot": {
+      "a": 1
+     },
+     "identity": null,
+     "delivery": "x"
+    },
+    "outcome": "ACCEPTED",
+    "verified": {
+     "state": "RUNNING",
+     "quiescent": false,
+     "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120"
+    }
+   },
+   {
+    "name": "unsigned-compatibility-fields",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "COMPLETED",
+     "quiescent": true,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": null,
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "ACCEPTED",
+    "verified": {
+     "state": "RUNNING",
+     "quiescent": false,
+     "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120"
+    }
+   },
+   {
+    "name": "receipt-only",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg"
+    },
+    "outcome": "EXTERNAL_ALPHA_READBACK_UNVERIFIED",
+    "verified": null
+   },
+   {
+    "name": "tampered-attestation",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": true,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_READBACK_UNVERIFIED",
+    "verified": null
+   },
+   {
+    "name": "wrong-attested-challenge",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "e5a70da31d2a7f0c63b1e5bf90932367d4f3d61dd8b42106",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_READBACK_UNVERIFIED",
+    "verified": null
+   },
+   {
+    "name": "signature-of-other-receipt",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "9IGuUwMqM2LPX8H1v4f8FvbZ21-KepgpTKhOb7vIoqY3_u5rtjsCV03hzDlw5Ecsz8lpiskjZ71A7v5asPlcCA",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID",
+    "verified": null
+   },
+   {
+    "name": "tampered-work-order",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "116e89b3-dc9d-48b9-83bf-404f2a427047",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID",
+    "verified": null
+   },
+   {
+    "name": "wrong-authority-sha",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "ebec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID",
+    "verified": null
+   },
+   {
+    "name": "wrong-authority-id",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "522bbf2a-00a6-4e62-8f13-fe3848279a2b",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID",
+    "verified": null
+   },
+   {
+    "name": "wrong-receipt-request",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "1f2ec411-9721-42e3-83e5-7b00c9327a7e",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID",
+    "verified": null
+   },
+   {
+    "name": "wrong-body-request",
+    "value": {
+     "requestId": "1f2ec411-9721-42e3-83e5-7b00c9327a7e",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID",
+    "verified": null
+   },
+   {
+    "name": "missing-signature",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID",
+    "verified": null
+   },
+   {
+    "name": "null-receipt",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "RUNNING",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": null,
+     "authorityReceiptSignature": null,
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID",
+    "verified": null
+   },
+   {
+    "name": "unknown-state",
+    "value": {
+     "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+     "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+     "state": "BOGUS",
+     "quiescent": false,
+     "evidenceRef": null,
+     "blocker": null,
+     "spend": {
+      "status": "KNOWN",
+      "currency": "USD",
+      "unit": "microUSD",
+      "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+      "workGeneration": 1,
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "deadline": "2026-10-07T12:03:00.000Z",
+      "ceilingMicrousd": 1000000,
+      "settledMicrousd": 0,
+      "retainedMicrousd": 0,
+      "availableMicrousd": 1000000,
+      "cancelled": false,
+      "operations": [],
+      "contractVersion": "WORK_LEDGER_V2",
+      "pricingRevision": "fixture-pricing",
+      "plannedProductiveOperations": 2,
+      "plannedCompletionOperations": 1,
+      "perOperationReserveMicrousd": 200000,
+      "completionReserveMicrousd": 300000,
+      "completionReserveRemainingMicrousd": 300000,
+      "productiveAllowanceRemainingMicrousd": 700000,
+      "unknownExposureMicrousd": 0,
+      "paidOperationsUsed": 0,
+      "maxPaidOperations": 3,
+      "completionOperationsUsed": 0,
+      "completionOperationSlotsRemaining": 1,
+      "accountingComplete": true,
+      "pricingQualified": true,
+      "authorityState": "active",
+      "phase": "productive"
+     },
+     "authorityReceipt": {
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "consumedAt": "2026-10-07T12:00:00.500Z"
+     },
+     "authorityReceiptSignature": "BwRonDr5Hsq0BzhbDP6NTSt_wXyafASEG82aWuX1m2NyXnxPt6v-WjWMn8Dn652B7pc0x6mH2xsd5TWJCEMwCg",
+     "readbackAttestation": {
+      "schema": "MYFACTORY_EXTERNAL_ALPHA_READBACK_V1",
+      "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+      "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+      "runId": "a561340f-59d9-4362-80a0-b5fc107ff518",
+      "attemptNumber": 1,
+      "requestDigest": "3a8d167bda77430f318532ee45560b744d9475ffaca9026c74b81c082faf4724",
+      "admittedDeadline": "2026-10-07T12:03:00.000Z",
+      "authorityId": "d82c7344-db1a-8a35-abe9-fe6891b0eb26",
+      "authoritySha256": "dbec2dd1cb799e7d88b89f37011134bc35e919aa94880331d79ede8f278a789c",
+      "receiptDigest": "b7c74187d7437db55121522194354edda1584ec3b19fc41776499cf5652e3d5f",
+      "state": "RUNNING",
+      "quiescent": false,
+      "evidenceRef": null,
+      "blocker": null,
+      "spend": {
+       "status": "KNOWN",
+       "currency": "USD",
+       "unit": "microUSD",
+       "workId": "8b91dfcd-c435-4932-80cd-b9e2a31e4bb4",
+       "workGeneration": 1,
+       "requestId": "5027ac1a-9ce3-8a48-aaa6-9839e22378e5",
+       "workOrderId": "1f7ad562-e83b-409a-80c1-332eaf7de6f1",
+       "deadline": "2026-10-07T12:03:00.000Z",
+       "ceilingMicrousd": 1000000,
+       "settledMicrousd": 0,
+       "retainedMicrousd": 0,
+       "availableMicrousd": 1000000,
+       "cancelled": false,
+       "operations": [],
+       "contractVersion": "WORK_LEDGER_V2",
+       "pricingRevision": "fixture-pricing",
+       "plannedProductiveOperations": 2,
+       "plannedCompletionOperations": 1,
+       "perOperationReserveMicrousd": 200000,
+       "completionReserveMicrousd": 300000,
+       "completionReserveRemainingMicrousd": 300000,
+       "productiveAllowanceRemainingMicrousd": 700000,
+       "unknownExposureMicrousd": 0,
+       "paidOperationsUsed": 0,
+       "maxPaidOperations": 3,
+       "completionOperationsUsed": 0,
+       "completionOperationSlotsRemaining": 1,
+       "accountingComplete": true,
+       "pricingQualified": true,
+       "authorityState": "active",
+       "phase": "productive"
+      },
+      "spendDigest": "6b9f728eb49adeb66fbe40aa8aa823adfa509041406aef4df42a508b79962120",
+      "verdict": "PENDING",
+      "challenge": "d37ac0a7d0ba8b2c772052df5eb0b09ea3970409913a789b",
+      "issuedAt": "2026-10-07T12:00:01.000Z",
+      "expiresAt": "2026-10-07T12:02:01.000Z"
+     },
+     "readbackSignature": "cKy-WxN9a2b7VcipvSFCb0hGU5VcjE7sxwu2rJjWqoxuUen9EV4iDwSriSIh5pGEasOzr0NNu0AbHgd1QJ5YBA"
+    },
+    "outcome": "EXTERNAL_ALPHA_RECEIPT_INVALID",
+    "verified": null
+   }
+  ]
+ }
+}

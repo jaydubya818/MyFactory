@@ -16,6 +16,9 @@ for(let attempt=0;attempt<8;attempt++){
 // without root, network or host credentials. Custody validation is performed
 // independently by the host against the immutable admitted source and scope.
 export function checkpointScript({source,allowedPaths,checkCommand,testPath,commitMessage,authorName,authorEmail}){
+ const check=checkCommand==='npm test'?{cmd:'npm',args:['test']}:
+  typeof testPath==='string'&&testPath.length>0&&checkCommand===`node --test ${testPath}`?{cmd:'node',args:['--test',testPath]}:null;
+ if(!check)throw Error('CHECK_COMMAND_UNSUPPORTED');
  return `
 const fs=require('node:fs'),cp=require('node:child_process'),crypto=require('node:crypto');
 if(process.getuid()===0)throw Error('CHECKPOINT_IDENTITY');
@@ -29,7 +32,7 @@ const changed=text(['diff','--no-ext-diff','--no-textconv','--name-only',base,tr
 if(!changed.length||changed.some(path=>!${JSON.stringify(allowedPaths)}.includes(path)))throw Error('CANDIDATE_SCOPE');
 const filesAt=ref=>Object.fromEntries(text(['ls-tree','-r','--name-only',ref]).split('\\n').map(path=>[path,git(['show',ref+':'+path]).toString('utf8')]));
 const sourceFiles=filesAt(base),files=filesAt(tree);
-const startedAt=new Date().toISOString(),check=cp.spawnSync('node',['--test',${JSON.stringify(testPath)}],{env,encoding:'utf8',timeout:15000,maxBuffer:64000}),finishedAt=new Date().toISOString();
+const startedAt=new Date().toISOString(),check=cp.spawnSync(${JSON.stringify(check.cmd)},${JSON.stringify(check.args)},{env,shell:false,encoding:'utf8',timeout:15000,maxBuffer:64000}),finishedAt=new Date().toISOString();
 if(check.error||check.signal||!Number.isInteger(check.status))throw Error('CHECK_INDETERMINATE');
 git(['add','--all']);if(text(['write-tree'])!==tree||text(['rev-parse','HEAD'])!==base)throw Error('CHECK_MUTATED_TREE');
 const commit=text(['commit-tree',tree,'-p',base,'-m',${JSON.stringify(commitMessage)}]);
