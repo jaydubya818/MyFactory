@@ -1,7 +1,7 @@
 name: MyApps Factory reference
 on:
   push:
-    branches: [codex/myapps-foundation, codex/myapps-phase2, codex/myapps-phase3-readiness, codex/myapps-phase3b-reconciliation]
+    branches: [codex/myapps-foundation, codex/myapps-phase2, codex/myapps-phase3-readiness, codex/myapps-phase3b-reconciliation, codex/myapps-allowance-successor-20261010]
     paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps.test.mjs', '.github/workflows/myapps-reference.yml']
   pull_request:
     paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps.test.mjs', '.github/workflows/myapps-reference.yml']
