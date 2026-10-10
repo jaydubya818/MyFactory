@@ -8,10 +8,12 @@ import {PostgresVerificationStore} from '../src/postgres-verification.mjs';
 import {cloudVerifierPolicy,cloudVerifierPolicySha256} from '../src/cloud-verifier-policy.mjs';
 import {assertStagingEnvironment,databaseConfig,stagingProjectId} from '../src/config.mjs';
 
-test('CONNECTED independent verifier admission, concurrency, fencing and cleanup',{skip:process.env.FACTORY_POSTGRES_TEST!=='1',timeout:120000},async t=>{
- assertStagingEnvironment(process.env);
- const pool=new pg.Pool({...databaseConfig(process.env.DATABASE_URL_UNPOOLED),max:5});
- assert.equal((await pool.query('SELECT project_id FROM factory.environment WHERE singleton')).rows[0].project_id,stagingProjectId);
+test('CONNECTED independent verifier admission, concurrency, fencing and cleanup',{skip:process.env.FACTORY_POSTGRES_TEST!=='1'&&!process.env.FACTORY_PAID_TEST_DATABASE_URL,timeout:120000},async t=>{
+ const local=process.env.FACTORY_PAID_TEST_DATABASE_URL;
+ if(local)assert(['localhost','127.0.0.1'].includes(new URL(local).hostname));
+ else assertStagingEnvironment(process.env);
+ const pool=new pg.Pool({...local?{connectionString:local}:databaseConfig(process.env.DATABASE_URL_UNPOOLED),max:5});
+ if(!local)assert.equal((await pool.query('SELECT project_id FROM factory.environment WHERE singleton')).rows[0].project_id,stagingProjectId);
  const schema='factory_test_'+randomUUID().replaceAll('-','');await pool.query(`CREATE SCHEMA ${schema}`);
  const isolate=sql=>sql.replace(/\bfactory\.(verification_resources|candidate_custody|delivery_intents|intake_receipts|events|execution_resources|work_orders|runs|work_spend_budgets|work_spend_operations)\b/g,schema+'.$1');
  t.after(async()=>{await pool.query(`DROP SCHEMA ${schema} CASCADE`);await pool.end();});
@@ -53,6 +55,12 @@ test('CONNECTED independent verifier admission, concurrency, fencing and cleanup
   await query('UPDATE factory.intake_receipts SET snapshot=$2 WHERE run_id=$1',[f.run,{configuration:{cloud:{verificationPolicySha256:cloudVerifierPolicySha256}}}]);
   await dispatch.transaction(async client=>dispatch.event(client,await dispatch.record(client,'fixture',f.request),'factory.stop_requested',{}));
   await assert.rejects(store.claim('fixture',f.request),/AUTHORITY_FENCED/);
+ });
+ await t.test('pause at producer cleanup checkpoint prevents a new verifier allocation',async()=>{
+  const f=await fixture();
+  await dispatch.transaction(async client=>dispatch.event(client,await dispatch.record(client,'fixture',f.request),'factory.capability_pause_requested',{}));
+  await assert.rejects(store.claim('fixture',f.request),/AUTHORITY_FENCED/);
+  assert.equal(await store.read('fixture',f.request),null);
  });
  await t.test('cancellation races late success; cleanup cannot authorize a result',async()=>{
   const f=await fixture(),r=(await store.claim('fixture',f.request)).record;await store.allocated(f.run,r.lease_owner,'sbx_cancelled');

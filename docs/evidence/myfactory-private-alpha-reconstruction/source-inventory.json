@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "62436f436b81d30beb170aafc39bb8482afb36c74c19cb9e554c2472dc066552",
+      "sha256": "1af79caeb20201be6b8009697cf2997b0a6a8ddf30782d92d2576aa010d40a75",
       "classification": "CLOUD_DISPATCH_AUTHORITY",
-      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review. Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified."
+      "authorityBoundary": "Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review. Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified. Lifecycle successor: exact owner/organization/installation/agent binding, revision-targeted control replay, safe pre-allocation pause, producer and verifier cleanup acknowledgments with UNKNOWN accounting preserved. Remote enrollment and installed-source qualification are not implied; independent final review required."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -247,9 +247,9 @@
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-work-lifecycle.mjs": {
-      "sha256": "664516a7be5f480c05844dc6658b37b881b0559b9d4e8cb3e7a3c293b29c839c",
+      "sha256": "c1675fa7a04575f07a9b0356751d23a3d9012fd50975382319e1fc54dddceadc",
       "classification": "CLOUD_WORK_LIFECYCLE",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure. Lifecycle successor: exact owner/organization/installation/agent binding, revision-targeted control replay, safe pre-allocation pause, producer and verifier cleanup acknowledgments with UNKNOWN accounting preserved. Remote enrollment and installed-source qualification are not implied; independent final review required."
     },
     "apps/cloud-control/api/cloud-recovery.mjs": {
       "classification": "STAGING_CLOUD_EXECUTION",
@@ -337,9 +337,9 @@
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/postgres-verification.mjs": {
-      "sha256": "df52aa07e6adfd42ab66354240d70681f96ea4a698faa88ce772e264039b45ff",
+      "sha256": "d93468b48820db3291924b7b3410885a116fffdf68b20a455cdb8a889fdfc030",
       "classification": "CLOUD_PROTECTED_VERIFICATION",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Lifecycle successor: pause at the producer-cleanup checkpoint fences new verifier allocation under the same transaction lock. Existing verifier execution is preserved until its qualified cleanup."
     },
     "packages/contracts/src/environment.ts": {
       "sha256": "1844f841db35c591b227dec0a6486c91badbbed2fb2135d6895723f0e69bc8ae",
@@ -548,8 +548,13 @@
     },
     "apps/cloud-control/src/capability-controls.mjs": {
       "classification": "CAPABILITY_CONTROL",
-      "authorityBoundary": " Capability checkpoint: deny unqualified enrolled local admission; canonical co-located revoke fences only exact-owner client resources and spend authority, preserves UNKNOWN and reports pending cleanup. Independent read-only review plus native and PostgreSQL boundary tests; no production activation.",
-      "sha256": "2a5eec8030e711cf5a146d65f8938f2de934df78b48b50bd8802d6773cb979e1"
+      "authorityBoundary": " Capability checkpoint: deny unqualified enrolled local admission; canonical co-located revoke fences only exact-owner client resources and spend authority, preserves UNKNOWN and reports pending cleanup. Independent read-only review plus native and PostgreSQL boundary tests; no production activation. Lifecycle successor: exact owner/organization/installation/agent binding, revision-targeted control replay, safe pre-allocation pause, producer and verifier cleanup acknowledgments with UNKNOWN accounting preserved. Remote enrollment and installed-source qualification are not implied; independent final review required.",
+      "sha256": "17dc5e33ef3d6e907e5869a385439f8425d138827805b31de7c9c0c39490296d"
+    },
+    "packages/contracts/src/capability-lifecycle.ts": {
+      "sha256": "606fbecaf5f7b1b8e6924e0a25b5e88718d602e2012a712828393b04dad3c768",
+      "classification": "CAPABILITY_LIFECYCLE_OBSERVATION",
+      "authorityBoundary": "Typed exact native lifecycle observation only, never a portable grant or authentication mechanism. Existing enrolled Factory/Fabric transport or signed execution Result must authenticate it; MissionControl owns Mission/Attempt mapping."
     }
   }
 }

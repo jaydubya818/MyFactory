@@ -1,4 +1,4 @@
-import { applyFactoryCapabilityControl } from '../apps/cloud-control/src/capability-controls.mjs';
+import { applyFactoryCapabilityControl, reconcileFactoryCapabilityControl } from '../apps/cloud-control/src/capability-controls.mjs';
 import assert from 'node:assert/strict';
 import { execFile as callback } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -8,6 +8,8 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { capabilityRegistry } from '@mission-control/capability-control';
+import { PostgresVerificationStore } from '../apps/cloud-control/src/postgres-verification.mjs';
+import { cloudVerifierPolicy, cloudVerifierPolicySha256 } from '../apps/cloud-control/src/cloud-verifier-policy.mjs';
 import { PostgresDispatchStore } from '../apps/cloud-control/src/postgres-dispatch.mjs';
 import { CLOUD_EXECUTION_PROTOCOL } from '../packages/contracts/src/cloud-execution.ts';
 
@@ -71,6 +73,7 @@ try {
   });
   await check('canonical revoke fences existing resources without settling UNKNOWN; pause stays pending',async()=>{
     const controlId=randomUUID(),pauseId=randomUUID();
+    await admin.query('UPDATE capability_control.owner_state SET revision=4');
     for(const [requestId,operation] of [[controlId,'revoke'],[pauseId,'pause']]) {
       await admin.query("INSERT INTO capability_control.commands VALUES($1,$2,$3,'fixture','{}',DEFAULT)",[scope.installationId,scope.ownerId,requestId]);
       await admin.query("INSERT INTO capability_control.control_requests(installation_id,owner_id,request_id,capability_id,revision,operation) VALUES($1,$2,$3,'myfactory',4,$4)",[scope.installationId,scope.ownerId,requestId,operation]);
@@ -81,7 +84,8 @@ try {
     const before=(await admin.query('SELECT * FROM factory.work_spend_operations')).rows;
     assert.equal((await applyFactoryCapabilityControl(store,grant.clientId,pauseId)).reason,'SAFE_SUSPENSION_UNQUALIFIED');
     assert.equal((await admin.query('SELECT cancelled_at FROM factory.execution_resources')).rows[0].cancelled_at,null);
-    const result=await applyFactoryCapabilityControl(store,grant.clientId,controlId);
+    const [result,duplicate]=await Promise.all([applyFactoryCapabilityControl(store,grant.clientId,controlId),applyFactoryCapabilityControl(store,grant.clientId,controlId)]);
+    assert.deepEqual(result,duplicate);
     assert.equal(result.status,'PENDING_BACKEND');assert.equal(result.writers,'FENCED');
     assert.equal((await admin.query('SELECT authority_state FROM factory.work_spend_budgets')).rows[0].authority_state,'fenced');
     const resource=(await admin.query('SELECT * FROM factory.execution_resources')).rows[0];
@@ -93,6 +97,81 @@ try {
     const foreign=new PostgresDispatchStore(runtime,{capabilityBindings:{[grant.clientId]:{...scope,ownerId:'foreign-owner'}}});
     await assert.rejects(applyFactoryCapabilityControl(foreign,grant.clientId,controlId),/CONTROL_SCOPE/);
     await assert.rejects(applyFactoryCapabilityControl(store,grant.clientId,randomUUID()),/CONTROL_SCOPE/);
+  });
+  await check('cleanup acknowledgments are retry-safe, preserve UNKNOWN, and exclude newer admissions',async()=>{
+    const controlId=(await admin.query("SELECT request_id FROM capability_control.control_requests WHERE operation='revoke'")).rows[0].request_id;
+    const resource=(await admin.query('SELECT * FROM factory.execution_resources')).rows[0];
+    await store.recordAllocation(resource.run_id,resource.lease_owner,resource.lease_generation,'sbx_synthetic');
+    const before=(await admin.query('SELECT * FROM factory.work_spend_operations')).rows;
+    let stopped=0;
+    const unavailable={destroy:async()=>{stopped++;throw Error('BACKEND_TIMEOUT');}};
+    const pending=await reconcileFactoryCapabilityControl(store,unavailable,grant.clientId,controlId);
+    assert.equal(pending.status,'PENDING_BACKEND');assert.equal(pending.receipts[0].resourceStop,'STOP_UNKNOWN');
+    assert.equal((await admin.query('SELECT cleanup_confirmed FROM factory.execution_resources')).rows[0].cleanup_confirmed,false);
+    const confirmed=await reconcileFactoryCapabilityControl(store,{destroy:async()=>{stopped++;}},grant.clientId,controlId);
+    assert.equal(confirmed.status,'ACKNOWLEDGED');assert.equal(confirmed.receipts[0].resourceStop,'STOP_CONFIRMED');
+    const again=await reconcileFactoryCapabilityControl(store,{destroy:async()=>{throw Error('MUST_NOT_STOP_TWICE');}},grant.clientId,controlId);
+    assert.deepEqual(again,confirmed);assert.equal(stopped,2);
+    assert.deepEqual((await admin.query('SELECT * FROM factory.work_spend_operations')).rows,before);
+    await assert.rejects(store.heartbeat(resource.run_id,resource.lease_owner,resource.lease_generation),/LEASE_FENCED/);
+    await admin.query("UPDATE capability_control.owner_state SET revision=5,controls='{}'");
+    await admin.query("UPDATE capability_control.relay_agent_evidence SET status='ACTIVE'");
+    const newer=await store.prepare(grant,input(),snapshot);
+    const replay=await applyFactoryCapabilityControl(store,grant.clientId,controlId);
+    assert.deepEqual(replay.runIds,[admitted.run_id]);
+    assert.equal((await admin.query("SELECT count(*) FROM factory.events WHERE run_id=$1 AND type='factory.stop_requested'",[newer.run_id])).rows[0].count,'0');
+    await admin.query('UPDATE capability_control.owner_state SET revision=3');
+    await assert.rejects(applyFactoryCapabilityControl(store,grant.clientId,controlId),/POLICY_RESTORED/);
+    await admin.query('UPDATE capability_control.owner_state SET revision=6');
+    const pauseId=randomUUID();
+    await admin.query("INSERT INTO capability_control.commands VALUES($1,$2,$3,'fixture','{}',DEFAULT)",[scope.installationId,scope.ownerId,pauseId]);
+    await admin.query("INSERT INTO capability_control.control_requests(installation_id,owner_id,request_id,capability_id,revision,operation) VALUES($1,$2,$3,'myfactory',6,'pause')",[scope.installationId,scope.ownerId,pauseId]);
+    const paused=await applyFactoryCapabilityControl(store,grant.clientId,pauseId);
+    assert.equal(paused.status,'ACKNOWLEDGED');assert.equal(paused.suspension,'PAUSE_CONFIRMED');
+    assert.equal(paused.receipts.find(receipt=>receipt.runId===newer.run_id).resourceStop,'NOT_ALLOCATED');
+    const identity={workId:newer.work_id,workGeneration:1,requestId:newer.request_id,repository:newer.request.repository,deadline:newer.deadline instanceof Date?newer.deadline.toISOString():newer.request.deadline,factoryId:newer.snapshot.factoryId,factoryVersion:newer.snapshot.factoryVersion,workOrderId:newer.work_order_id,remoteRunId:newer.run_id,baseSha:newer.request.source.commit,allowedPaths:newer.request.input.allowedPaths,runId:randomUUID(),dispatchIdentity:randomUUID(),writerGeneration:1};
+    identity.deadline=newer.request.deadline;
+    assert.equal(await store.claim(grant.clientId,identity),null);
+    await assert.rejects(store.reserveDelivery(grant.clientId,identity,'dpl_synthetic','a'.repeat(64)),/WORK_FENCED/);
+    const rebound=new PostgresDispatchStore(runtime,{capabilityBindings:{[grant.clientId]:{...scope,agentId:'other-agent'}}});
+    const wrongAgent=await applyFactoryCapabilityControl(rebound,grant.clientId,pauseId);
+    assert.equal(wrongAgent.status,'PENDING_BACKEND');assert.equal(wrongAgent.inventoryComplete,false);assert.equal(wrongAgent.receipts.length,0);
+  });
+  await check('verifier cleanup timeout after producer cleanup durably retains UNKNOWN until exact recovery',async()=>{
+    const controlId=(await admin.query("SELECT request_id FROM capability_control.control_requests WHERE operation='revoke'")).rows[0].request_id;
+    const lease=randomUUID(),session='sbx_verifier_recovery';
+    await admin.query('UPDATE factory.intake_receipts SET snapshot=snapshot||$2::jsonb WHERE run_id=$1',[admitted.run_id,{configuration:{cloud:{verificationPolicySha256:cloudVerifierPolicySha256}}}]);
+    await admin.query("UPDATE factory.execution_resources SET evidence=evidence-'cleanup' WHERE run_id=$1",[admitted.run_id]);
+    await admin.query("INSERT INTO factory.verification_resources(run_id,lease_owner,lease_expires_at,deadline,provider_name,provider_session_id,candidate_commit,candidate_tree,custody_sha256,policy_sha256,image,state) VALUES($1,$2,clock_timestamp()-interval '1 minute',clock_timestamp()+interval '1 hour','synthetic-verifier',$3,$4,$5,$6,$7,$8,'RUNNING')",[admitted.run_id,lease,session,'a'.repeat(40),'b'.repeat(40),'c'.repeat(64),cloudVerifierPolicySha256,cloudVerifierPolicy.image]);
+    const before=(await admin.query('SELECT * FROM factory.work_spend_operations')).rows;
+    const pending=await reconcileFactoryCapabilityControl(store,{reconcileVerification:async()=>{throw Error('READBACK_TIMEOUT');}},grant.clientId,controlId);
+    assert.equal(pending.status,'PENDING_BACKEND');assert.equal(pending.receipts[0].resourceStop,'STOP_UNKNOWN');
+    assert.equal((await admin.query('SELECT cleanup_confirmed FROM factory.execution_resources WHERE run_id=$1',[admitted.run_id])).rows[0].cleanup_confirmed,true);
+    const verifier=(await admin.query('SELECT * FROM factory.verification_resources WHERE run_id=$1',[admitted.run_id])).rows[0];
+    assert.equal(verifier.failure,'VERIFIER_CLEANUP_UNKNOWN');assert.equal(verifier.cleanup_confirmed,false);
+    const restartedStore=new PostgresDispatchStore(runtime,{capabilityBindings:bindings});
+    assert.equal((await applyFactoryCapabilityControl(restartedStore,grant.clientId,controlId)).receipts[0].resourceStop,'STOP_UNKNOWN');
+    const verification=new PostgresVerificationStore(restartedStore);
+    const recovered=await reconcileFactoryCapabilityControl(restartedStore,{reconcileVerification:async()=>verification.cleanup(admitted.run_id,lease,session)},grant.clientId,controlId);
+    assert.equal(recovered.status,'ACKNOWLEDGED');assert.equal(recovered.receipts[0].resourceStop,'STOP_CONFIRMED');
+    assert.deepEqual((await admin.query('SELECT * FROM factory.work_spend_operations')).rows,before);
+  });
+  await check('historical unbound Runs stay pending without starving exactly bound current Work',async()=>{
+    const legacy=await store.prepare(grant,input(),snapshot),current=await store.prepare(grant,input(),snapshot);
+    // Reconstruct the earlier source's actual persisted owner-only event shape.
+    await admin.query("UPDATE factory.events SET payload=payload-'installationId'-'organizationId'-'agentId' WHERE run_id=$1 AND type='factory.owner_scope_bound'",[legacy.run_id]);
+    const before=(await admin.query('SELECT type,payload FROM factory.events WHERE run_id=$1 ORDER BY id',[legacy.run_id])).rows;
+    const controlId=randomUUID();
+    await admin.query('UPDATE capability_control.owner_state SET revision=7');
+    await admin.query("INSERT INTO capability_control.commands VALUES($1,$2,$3,'fixture','{}',DEFAULT)",[scope.installationId,scope.ownerId,controlId]);
+    await admin.query("INSERT INTO capability_control.control_requests(installation_id,owner_id,request_id,capability_id,revision,operation) VALUES($1,$2,$3,'myfactory',7,'revoke')",[scope.installationId,scope.ownerId,controlId]);
+    const result=await applyFactoryCapabilityControl(store,grant.clientId,controlId);
+    assert.equal(result.status,'PENDING_BACKEND');assert.equal(result.inventoryComplete,false);assert.equal(result.writers,'PARTIALLY_FENCED');
+    assert.deepEqual(result.unqualifiedRuns,[{runId:legacy.run_id,requestId:legacy.request_id,status:'PENDING_BACKEND',reason:'CAPABILITY_OWNER_SCOPE_UNQUALIFIED'}]);
+    assert.equal(result.receipts.find(receipt=>receipt.runId===current.run_id).status,'ACKNOWLEDGED');
+    assert.equal((await admin.query("SELECT count(*) FROM factory.events WHERE run_id=$1 AND type='factory.capability_revoked'",[current.run_id])).rows[0].count,'1');
+    assert.deepEqual((await admin.query('SELECT type,payload FROM factory.events WHERE run_id=$1 ORDER BY id',[legacy.run_id])).rows,before);
+    assert.deepEqual(await applyFactoryCapabilityControl(store,grant.clientId,controlId),result);
   });
   await mkdir('docs/capability-control/evidence',{recursive:true});
   await writeFile('docs/capability-control/evidence/postgres.json',JSON.stringify({passed:checks.length,checks,paidOperations:0,productionIntegration:'NOT_RUN'},null,2)+'\n');

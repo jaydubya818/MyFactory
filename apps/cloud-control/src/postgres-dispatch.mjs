@@ -41,7 +41,7 @@ export class PostgresDispatchStore {
       const capabilityScope=factoryCapabilityScope(this.capabilityBindings,grant);
       // Replay cannot change any admission input.
       const prior=(await client.query('SELECT * FROM factory.intake_receipts WHERE client_id=$1 AND request_id=$2',[grant.clientId,input?.requestId])).rows[0];
-      if(prior){const binding=(await client.query("SELECT payload FROM factory.events WHERE run_id=$1 AND type='factory.owner_scope_bound'",[prior.run_id])).rows;if(binding.length!==1||binding[0].payload.ownerScope!==capabilityScope.ownerId)throw Error('CAPABILITY_OWNER_SCOPE_CHANGED');if(this.assertRecordScope)await this.assertRecordScope(client,prior);if(prior.input_digest!==digest(input))throw Error('PREPARATION_REPLAY_CONFLICT');return prior;}
+      if(prior){const binding=(await client.query("SELECT payload FROM factory.events WHERE run_id=$1 AND type='factory.owner_scope_bound'",[prior.run_id])).rows;if(binding.length!==1||binding[0].payload.ownerScope!==capabilityScope.ownerId||binding[0].payload.installationId!==capabilityScope.installationId||binding[0].payload.organizationId!==capabilityScope.organizationId||binding[0].payload.agentId!==capabilityScope.agentId)throw Error('CAPABILITY_OWNER_SCOPE_CHANGED');if(this.assertRecordScope)await this.assertRecordScope(client,prior);if(prior.input_digest!==digest(input))throw Error('PREPARATION_REPLAY_CONFLICT');return prior;}
       const request=parseCloudPrepare(input,grant,now);
       const capabilityEvidence=await assertFactoryCapability(client,this.capabilityBindings,grant,request);
       const count=Number((await client.query('SELECT count(*) FROM factory.intake_receipts WHERE client_id=$1',[grant.clientId])).rows[0].count),successor=authority?.successorIntake;
@@ -63,7 +63,7 @@ export class PostgresDispatchStore {
       await client.query('INSERT INTO factory.intake_receipts(client_id,request_id,work_id,work_generation,input_digest,work_order_id,run_id,request,snapshot,deadline) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[grant.clientId,request.requestId,request.workId,request.workGeneration,digest(request),workOrderId,runId,request,snapshot,request.deadline]);
       const row=await this.record(client,grant.clientId,request.requestId);
       await this.event(client,row,'factory.prepare_requested',request);
-      if(grant.ownerScope)await this.event(client,row,'factory.owner_scope_bound',{ownerScope:grant.ownerScope,workId:request.workId,workGeneration:request.workGeneration,repository:request.repository,requestId:request.requestId});
+      if(grant.ownerScope)await this.event(client,row,'factory.owner_scope_bound',{ownerScope:grant.ownerScope,installationId:capabilityScope.installationId,organizationId:capabilityScope.organizationId,agentId:capabilityScope.agentId,workId:request.workId,workGeneration:request.workGeneration,repository:request.repository,requestId:request.requestId});
       await this.event(client,row,'run.execution_snapshot',snapshot);
       await this.event(client,row,'factory.capability_admitted',capabilityEvidence);
       await assertFactoryCapability(client,this.capabilityBindings,grant,request);
@@ -82,7 +82,7 @@ export class PostgresDispatchStore {
     return this.transaction(async(client,now)=>{
       const row=await this.record(client,clientId,identity.requestId);this.assertIdentity(row,identity);
       if(this.assertAuthority)await this.assertAuthority(client,row.request,now,'claim');
-      const prior=await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.dispatch_claimed','factory.stop_requested','factory.terminal')",[row.run_id]);
+      const prior=await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.dispatch_claimed','factory.stop_requested','factory.capability_pause_requested','factory.terminal')",[row.run_id]);
       if(prior.rowCount)return null;
       if(new Date(row.deadline).getTime()<=now)throw Error('WORK_DEADLINE_EXPIRED');
       if((await client.query('SELECT 1 FROM factory.verification_resources WHERE NOT cleanup_confirmed LIMIT 1')).rowCount)throw Error('VERIFIER_RESOURCE_UNRESOLVED');
@@ -145,7 +145,7 @@ export class PostgresDispatchStore {
       const previous=(await client.query('SELECT * FROM factory.delivery_intents WHERE run_id=$1',[row.run_id])).rows[0];
       if(previous)return{created:false,intent:previous};
       if(new Date(row.deadline).getTime()<=now)throw Error('WORK_DEADLINE_EXPIRED');
-      if((await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.stop_requested','factory.terminal')",[row.run_id])).rowCount)throw Error('WORK_FENCED');
+      if((await client.query("SELECT 1 FROM factory.events WHERE run_id=$1 AND type IN ('factory.stop_requested','factory.capability_pause_requested','factory.terminal')",[row.run_id])).rowCount)throw Error('WORK_FENCED');
       const budget=(await client.query('SELECT * FROM factory.work_spend_budgets WHERE work_id=$1',[row.work_id])).rows[0];
       assertSpendBinding(budget,{workId:identity.workId,workGeneration:identity.workGeneration,dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,factoryVersion:identity.factoryVersion,runId:identity.remoteRunId},'productive',now);
       await client.query('UPDATE factory.intake_receipts SET identity=$3 WHERE client_id=$1 AND request_id=$2',[clientId,identity.requestId,identity]);
