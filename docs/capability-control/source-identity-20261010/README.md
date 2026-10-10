@@ -1,0 +1,11 @@
+# Factory source identity reconciliation — 2026-10-10
+
+Owner-authorized isolated source qualification only. PR14 remains DRAFT/HOLD; no installation, approval, execution grant or historical Work is migrated.
+
+The stored `1c691133…` identity matches its last write at `2bc570e3bb363d42c2b70916ddab53a8f54388f1`. The first drift is `61a62f0c02b8a074cd42babca669f469e1858580`: capability admission introduced/changed nine inventoried inputs without updating source-identity.json. `195b1d1` changed four more inputs for revocation/local admission. `6994fbd` changed two pricing sources. `source-history.json` records every exact file hash and computed/stored digest at all four commits. This is stale generated metadata, not a hash algorithm or accounting defect.
+
+The historical source record is preserved byte-for-byte in `historical-source-identity.json` and Git history. Only the current isolated checkout's stored digest changes to `59d4fc1f1bd7bd5206040994e31906ea3bb3d76d3c4a0f8b26a5d407bfd03699`. No inventoried runtime or configuration source changes, so the independently reviewed computed FactoryVersion remains `fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b`. `successor.json` binds exact configuration, pricing and execution-contract digests. The existing scanner excludes its generated JSON output, preventing a self-referential digest.
+
+The successor is qualified as a source/configuration identity, not an executable installation. Runtime source and FactoryVersion checks deny old coherent grants; contract checks independently deny the historical pricing contract. Regression tests check source drift, exact current identity, historical metadata retention, old source/FactoryVersion and old-contract rejection before consumption, and exact synthetic successor acceptance. Existing historical admission and UNKNOWN accounting tests remain mandatory.
+
+CI now runs the existing source-identity checker. Historical grants and source digests are not rewritten. Operators must qualify exact installation/owner/configuration and issue fresh authority through normal approval before any separate production activation. Pricing still expires October17UTC. Fresh local clone/install remains blocked by the60GB storage condition. See PR for final exact-source test/CI/review evidence.
