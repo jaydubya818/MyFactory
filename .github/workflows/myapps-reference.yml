@@ -1,7 +1,7 @@
 name: MyApps Factory reference
 on:
   push:
-    branches: [codex/myapps-foundation]
+    branches: [codex/myapps-foundation, codex/myapps-phase2]
     paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps.test.mjs', '.github/workflows/myapps-reference.yml']
   pull_request:
     paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps.test.mjs', '.github/workflows/myapps-reference.yml']
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: jaydubya818/MyEveBot
-          ref: e0108346da75e1efe4a636dd57951a0436b745aa
+          ref: 43b78e1bda72a212ff64046ff2e8283ae6b22fc5
           path: .qualification/myeve
       - uses: actions/setup-node@v4
         with:

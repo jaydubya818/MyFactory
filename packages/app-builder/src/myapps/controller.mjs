@@ -67,6 +67,20 @@ function child(script, args, input, readPaths) {
     },
   );
 }
+// Deterministic UUID keeps the existing EvidenceProvider run binding wire-compatible.
+function appRunId(binding) {
+  const h = factoryDigest(binding).slice(0, 32).split("");
+  h[12] = "8";
+  h[16] = "8";
+  const value = h.join("");
+  return [
+    value.slice(0, 8),
+    value.slice(8, 12),
+    value.slice(12, 16),
+    value.slice(16, 20),
+    value.slice(20),
+  ].join("-");
+}
 /** Reference adapter inside existing MyFactory. No model, network, publication or deployment provider. */
 export class AppReferenceController {
   #db;
@@ -176,7 +190,7 @@ export class AppReferenceController {
   async build({ creationIntent, pkg: input }) {
     const pkg = this.#contracts.validatePackage(input),
       hash = this.#contracts.digest(pkg),
-      id = factoryDigest({
+      id = appRunId({
         owner: pkg.spec.ownerId,
         work: pkg.work,
         app: pkg.appId,

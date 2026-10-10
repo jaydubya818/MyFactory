@@ -1,3 +1,4 @@
+import { proofEvidenceReference } from "../../../verification/src/evidence.ts";
 import {
   canonical,
   digest,
@@ -174,4 +175,71 @@ export function verifyAppResult({ signed, pkg, run, keys, now }) {
   )
     throw Error("APP_RESULT_BINDING");
   return { manifest: verified.manifest, verification: report };
+}
+
+/** Existing EvidenceProvider envelopes, derived only from an independently authenticated Result.
+ * Retrieval remains owner-scoped by the caller; this grants no publication or installation. */
+export function appEvidence({
+  signed,
+  pkg,
+  run,
+  keys,
+  now,
+  ownerId,
+  repository,
+}) {
+  if (
+    ownerId !== pkg.work.ownerId ||
+    !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)
+  )
+    throw Error("APP_UNAVAILABLE");
+  const { manifest } = verifyAppResult({ signed, pkg, run, keys, now });
+  const patch = signed.artifacts.find(
+    (a) => a.id === manifest.candidate.patchArtifactId,
+  );
+  const entries = [
+    [
+      "TestEvidence",
+      "application/json",
+      Buffer.from(
+        JSON.stringify(
+          manifest.evidence.map((c) => ({
+            command: c.command,
+            status: c.status,
+            exitCode: c.exitCode,
+            candidateCommit: c.candidateCommit,
+          })),
+        ),
+      ),
+    ],
+    ["DiffEvidence", "text/x-diff", Buffer.from(patch.base64, "base64")],
+  ];
+  return entries.map(([kind, mediaType, bytes]) => {
+    const hash = sha256(bytes);
+    const ref = {
+      id: kind + "-" + hash,
+      kind,
+      mediaType,
+      workOrderId: pkg.work.workId,
+      runId: run.id,
+      candidateCommit: run.candidateCommit,
+      factoryVersion: manifest.execution.factoryVersion,
+      sha256: hash,
+      size: bytes.length,
+      collectedAt: manifest.issuedAt,
+      source: "myapps-signed-result",
+    };
+    return {
+      scope: {
+        ownerScope: ownerId,
+        repository,
+        workId: pkg.work.workId,
+        workGeneration: pkg.work.workGeneration,
+        requestId: run.id,
+      },
+      ref,
+      proofReference: proofEvidenceReference(ref),
+      base64: bytes.toString("base64"),
+    };
+  });
 }

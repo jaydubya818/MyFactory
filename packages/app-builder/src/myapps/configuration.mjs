@@ -8,14 +8,20 @@ export const referenceConfiguration = (myeveRoot) => ({
   executor: "declarative-app-template",
   executorVersion:
     "1+myeve-" +
-    digest(
-      Object.fromEntries(
-        ["contracts.ts", "store.ts", "crm.ts"].map((name) => [
+    digest({
+      ...Object.fromEntries(
+        ["contracts.ts", "store.ts", "crm.ts", "preview.ts"].map((name) => [
           name,
           sha256(readFileSync(resolve(myeveRoot, "packages/myapps/src", name))),
         ]),
       ),
-    ),
+      ...Object.fromEntries(
+        ["runtime.ts", "api.ts", "workflow.ts", "hosting.ts"].map((name) => [
+          "integration/" + name,
+          sha256(readFileSync(resolve(myeveRoot, "apps/eve/lib/myapps", name))),
+        ]),
+      ),
+    }),
   skillRevision: "none",
   workerProfile: "reference-process",
   verificationImage: "trusted-host-node24-reference",

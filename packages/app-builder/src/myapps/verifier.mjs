@@ -50,7 +50,15 @@ const crm = new Crm(store, principal);
 try {
   // Install into the verifier's disposable reference store, never the owner registry.
   // Successor verification needs its exact base; its compatibility is checked separately below.
-  const runnable = { ...pkg, version: 1, base: null };
+  const runnable = {
+    ...pkg,
+    version: 1,
+    base: null,
+    migration:
+      pkg.spec.schema.version === 2
+        ? { kind: "add-priority", fromSchema: 1, toSchema: 2 }
+        : { kind: "identity", fromSchema: 1, toSchema: 1 },
+  };
   const hash = digest(runnable);
   store.register(process.argv[3], runnable);
   store.recordVerification(principal.ownerId, pkg.appId, 1, {
@@ -174,13 +182,27 @@ try {
       /APP_UNAVAILABLE/,
     ),
   );
-  check("migration-compatibility", () =>
-    assert.deepEqual(pkg.migration, {
-      kind: "identity",
-      fromSchema: 1,
-      toSchema: 1,
-    }),
-  );
+  check("migration-compatibility", () => {
+    validatePackage(pkg);
+    if (pkg.spec.schema.version === 2) {
+      const current = crm.query(pkg.appId, 1, hash, "getLead", {
+        leadId: lead.id,
+      });
+      const changed = crm.action(
+        pkg.appId,
+        1,
+        hash,
+        "updateLead",
+        {
+          leadId: lead.id,
+          expectedRevision: current.revision,
+          patch: { priority: "High" },
+        },
+        "priority",
+      );
+      assert.equal(changed.priority, "High");
+    }
+  });
 } catch {
   checks.push({ id: "runtime-start", result: "FAIL" });
 } finally {
