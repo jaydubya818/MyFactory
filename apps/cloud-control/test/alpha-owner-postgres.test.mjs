@@ -1,3 +1,4 @@
+import {syntheticAdmissionSpendPlan} from './fixtures/admission-spend-plan.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
@@ -10,7 +11,7 @@ import {PostgresDispatchStore} from '../src/postgres-dispatch.mjs';
 import {PostgresSpendLedger} from '../src/postgres-spend.mjs';
 import {CloudWorkControl} from '../src/cloud-work-control.mjs';
 import {cloudEvidence,cloudEvidenceRead} from '../src/cloud-evidence.mjs';
-import {productionConfiguration as configuration,productionSourceGrant,productionSpendPlan,productionExecutionContractSha256 as contractSha256} from '../src/production-execution-plan.mjs';
+import {productionConfiguration as configuration,productionSourceGrant,productionExecutionContractSha256 as contractSha256} from '../src/production-execution-plan.mjs';
 import {productionVerifierPolicy as policy,productionVerifierPolicySha256 as policySha256} from '../src/production-verifier-policy.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 
@@ -31,8 +32,13 @@ test('CONNECTED three-owner exact grants, single intake, cross-owner custody/Pro
   await query("INSERT INTO factory.production_work_authority(request_id,work_id,client_id,manifest,manifest_sha256,state) VALUES($1,$2,$3,$4,$5,'AUTHORIZED')",[request.requestId,request.workId,o.clientId,manifest,digest(manifest)]);
   const assertAuthority=productionAuthority({installation:{ownerScope:o.ownerScope},sourceDigest,configuration,contractSha256,clientId:o.clientId,authorizationSha256:approvalDigest,ownerBinding:binding});
   const store=new PostgresDispatchStore(isolated,{maxWorks:1,custodyPrefix:'factory/production',verificationPolicySha256:policySha256,assertAuthority,assertRecordScope:alphaRecordScope(binding)});
-  const control=new CloudWorkControl({store,spend:new PostgresSpendLedger(isolated),grant,configuration,sourceDigest,signing:{factoryId:'myfactory-cloud-production'},executionSpendPlan:productionSpendPlan,verificationPolicy:{policy,policySha256}});
+  const control=new CloudWorkControl({store,spend:new PostgresSpendLedger(isolated),grant,configuration,sourceDigest,signing:{factoryId:'myfactory-cloud-production'},executionSpendPlan:syntheticAdmissionSpendPlan(request.deadline),verificationPolicy:{policy,policySha256}});
   const [a,b]=await Promise.all([control.prepare(request),control.prepare(request)]);assert.equal(a.runId,b.runId);
+  const expiredWork=randomUUID();
+  await assert.rejects(new PostgresSpendLedger(isolated).createBudget(
+   {workId:expiredWork,workGeneration:1,requestId:randomUUID(),workOrderId:a.workOrderId},
+   1000000,request.deadline,syntheticAdmissionSpendPlan(new Date(0).toISOString())),/Qualified pricing has expired/);
+  assert.equal((await query('SELECT count(*) FROM factory.work_spend_budgets WHERE work_id=$1',[expiredWork])).rows[0].count,'0');
   owners.push({binding,grant,request,store,control,assertAuthority,prepared:a});
  }
  assert.equal((await query('SELECT count(*) FROM factory.intake_receipts')).rows[0].count,'3');
