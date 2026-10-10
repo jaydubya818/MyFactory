@@ -1,0 +1,33 @@
+{
+  "baselineSha": "030b1a51017f3159436b93817ed2d5bf6ae18288",
+  "baseline": {
+    "passed": 169,
+    "failed": 16,
+    "skipped": 10
+  },
+  "candidate": {
+    "passed": 169,
+    "failed": 16,
+    "skipped": 10
+  },
+  "sameFailingTestNames": true,
+  "failures": [
+    "\u2716 LOCAL production UNKNOWN retains full exposure and never retries; revocation prevents identity acquisition",
+    "\u2716 LOCAL production adapter + canonical V2 gateway settles productive and completion with exact rates, fresh identity and no fallback",
+    "\u2716 denied Work never acquires identity and never exposes the underlying error",
+    "\u2716 deterministic cloud transport retains canonical reservations, checkpoint and completion accounting",
+    "\u2716 production adapter rechecks Work authority and verifies fresh exact Factory production identity on every operation",
+    "\u2716 production provider overwrites caller routing, retention, BYOK and service tier",
+    "\u2716 rejects incompatible verified production claim {\"aud\":\"other\"}",
+    "\u2716 rejects incompatible verified production claim {\"environment\":\"development\"}",
+    "\u2716 rejects incompatible verified production claim {\"environment\":\"preview\"}",
+    "\u2716 rejects incompatible verified production claim {\"exp\":\"9999999999\"}",
+    "\u2716 rejects incompatible verified production claim {\"exp\":TIME}",
+    "\u2716 rejects incompatible verified production claim {\"exp\":TIME}",
+    "\u2716 rejects incompatible verified production claim {\"iss\":\"https://untrusted.invalid\"}",
+    "\u2716 rejects incompatible verified production claim {\"owner_id\":\"team_other\"}",
+    "\u2716 rejects incompatible verified production claim {\"project_id\":\"prj_L6faw25wnFGUZtrLKBIccg8gIDLR\"}",
+    "\u2716 signature failures and absent tokens cannot fall back to ambient static credentials"
+  ],
+  "limitation": "Historical pinned pricing expires against current clock. No runtime pricing or authority changed. Full suite remains FAIL; scoped capability CI is separate."
+}

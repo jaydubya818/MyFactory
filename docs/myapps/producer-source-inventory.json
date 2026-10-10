@@ -1,0 +1,30 @@
+{
+  "baseline": "8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f",
+  "sources": {
+    "packages/app-builder/src/myapps/configuration.mjs": {
+      "sha256": "ce0f43f1cf8d2ab3dc6c300170cc21caac42d9533134568e0490bc06f152aef6",
+      "classification": "ENVIRONMENT_CONTRACT",
+      "authorityBoundary": "Binds trusted MyEve contract/runtime dependencies by content hashes into deterministic reference configuration. Describes execution identity; grants no admission, paid execution, installation or publication authority."
+    },
+    "packages/app-builder/src/myapps/controller.mjs": {
+      "sha256": "6b297c100bd37e9fe30c949418f40e533635e3da98aa8417915c73d5d02c4b93",
+      "classification": "EXECUTOR_LIFECYCLE",
+      "authorityBoundary": "Requires injected Work authorization and exact FactoryVersion binding; maintains owner-scoped candidate custody, idempotent requests and durable UNKNOWN fencing. Runs bounded producer/verifier subprocesses, requires producer cessation and verifier cleanup, and grants no model, network, installation or deployment authority."
+    },
+    "packages/app-builder/src/myapps/producer.mjs": {
+      "sha256": "3f2ed1597592e3e6bea8d122e12b010973e25dcc37b26b54d481cf749ebf45ed",
+      "classification": "EXECUTION_PROVIDER_CONTRACT",
+      "authorityBoundary": "Validates bounded inert JSON against trusted contracts and emits canonical declarative package bytes. Runs under controller-imposed permissions; does not execute generated code or confer verification, installation or publication authority."
+    },
+    "packages/app-builder/src/myapps/result.mjs": {
+      "sha256": "54c5db6d369b2af36c4c042416211a4d28e75e9ffc5dda9ef122f69d05e99504",
+      "classification": "SIGNED_PROVENANCE",
+      "authorityBoundary": "Signs and verifies exact candidate/configuration-bound reference Results and owner-scoped evidence. Promotion requires authenticated completed Result, matching package/candidate and confirmed verifier cleanup; conveys no installation, publication or production qualification grant."
+    },
+    "packages/app-builder/src/myapps/verifier.mjs": {
+      "sha256": "c330175a554eff221b48cdb2408f0fef2297d1665b38ea80f4ca0de319984b19",
+      "classification": "PROTECTED_VERIFICATION",
+      "authorityBoundary": "Independently checks package digest, declarative runtime behavior, owner isolation and denied effects using trusted MyEve modules in a disposable reference store. Emits bounded check outcomes; its synthetic installation is confined to that store and grants no owner-registry or production authority."
+    }
+  }
+}

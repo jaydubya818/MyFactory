@@ -1,0 +1,20 @@
+{
+  "schema": "myapps-main-reconciliation-qualification/v1",
+  "authority": "ISOLATED_SOURCE_QUALIFICATION_ONLY",
+  "mainCommit": "aad23a8757b351c1e30851128120469d4c30b202",
+  "preparationCommit": "e3ad57c33c7cb774f0ff5c8c5fc278d40c874d5a",
+  "sourceDigest": "2b161cfd196ea20fbb71fbc3701b9882e57a2345e3adf325dba35219c1e59c06",
+  "configurationDigest": "415f52a554e8dbdcc48019609e4611f07085622abf5c91cd67b516e978a593ae",
+  "factoryVersion": "888a1e8febb9a932f474ac7d66aa3d8daff6f84699a2afdacb598621fe665db3",
+  "executionContractSha256": "d7a24ed69b7d8267d4817961bd0ee22c76b6313650177b31322783dcc9d2d9a3",
+  "predecessorFactoryVersion": "0d804895789aae6cf0fa2c6666a06b9001737f22ab8cdc9981f7cd32e7f6715f",
+  "predecessorSourceDigest": "f898b8f5b9cb3e33e8cd46d6ee1f97be607618644498446a2833389e9941b47d",
+  "historicalSourceDigest": "1c69113378ed82428d13a2f89452708204e171ac9cb952b0a725acff83844548",
+  "historicalExecutionContractSha256": "29ff7774ec7ac08a061f28fe2f81bff4a8f1124987f64a69a1b5cb8e21976b66",
+  "pricingRecord": "openai-mini-20261010-v2",
+  "qualification": "NONPRODUCTION SOURCE AND DETERMINISTIC TESTS ONLY",
+  "productionIntegration": "NOT_RUN",
+  "merge": "HOLD",
+  "deployment": "HOLD",
+  "installedAuthority": "NONE; all existing signed approvals retain their original identities"
+}

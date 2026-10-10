@@ -1,10 +1,10 @@
 name: MyApps Factory reference
 on:
   push:
-    branches: [codex/myapps-foundation, codex/myapps-phase2, codex/myapps-phase3-readiness, codex/myapps-phase3b-reconciliation]
-    paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps.test.mjs', '.github/workflows/myapps-reference.yml']
+    branches: [main, codex/myapps-foundation, codex/myapps-phase2, codex/myapps-phase3-readiness, codex/myapps-phase3b-reconciliation, codex/myapps-allowance-successor-20261010]
+    paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps*.test.mjs', 'packages/app-builder/scripts/qualify-myapps-identity.mjs', '.github/workflows/myapps-reference.yml']
   pull_request:
-    paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps.test.mjs', '.github/workflows/myapps-reference.yml']
+    paths: ['packages/app-builder/src/myapps/**', 'packages/app-builder/test/myapps*.test.mjs', 'packages/app-builder/scripts/qualify-myapps-identity.mjs', '.github/workflows/myapps-reference.yml']
 permissions:
   contents: read
 jobs:
@@ -12,10 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
           repository: jaydubya818/MyEveBot
-          ref: 500f17a463682b6e4a2c445f99a04fcf77eaea74
+          ref: 92af63f10195ba1ab41560b9cbcd9b4210147556
           path: .qualification/myeve
       - uses: actions/setup-node@v4
         with:

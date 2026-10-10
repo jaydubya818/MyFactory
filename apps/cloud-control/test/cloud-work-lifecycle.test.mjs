@@ -51,3 +51,18 @@ test('missing or unclean verifier cannot silently fall back to producer checks',
   await assert.rejects(executeCloudWork(f.store,f.provider,'client',f.identity,f.recovery));assert.equal(f.row.events.length,0);
  }
 });
+
+
+test('revocation recovery cannot finalize while an independent verifier is still unclean',async()=>{
+ const f=fixture('allocate');await executeCloudWork(f.store,f.provider,'client',f.identity,f.recovery);
+ f.row.snapshot={configuration:{cloud:{verificationPolicySha256:cloudVerifierPolicySha256}}};
+ f.row.resource.provider_session_id='sbx_test';
+ let attempts=0;
+ f.provider.reconcileVerification=async()=>{attempts++;throw Error('VERIFIER_CLEANUP_UNPROVEN');};
+ await assert.rejects(reconcileCloudWork(f.store,f.provider,'client','request'),/VERIFIER_CLEANUP_UNPROVEN/);
+ assert.equal(f.row.resource.cleanup_confirmed,true);assert.equal(f.row.events.length,0);assert.equal(attempts,1);
+ f.provider.reconcileVerification=async()=>{attempts++;return {cleanup_confirmed:true};};
+ await reconcileCloudWork(f.store,f.provider,'client','request');
+ assert.equal(attempts,2);assert.equal(f.row.events.length,1);
+ assert.equal(f.effects.filter(effect=>effect==='DESTROY').length,1);
+});

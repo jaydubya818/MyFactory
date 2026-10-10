@@ -7,6 +7,12 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 const inventory=JSON.parse(readFileSync(join(root,'docs/evidence/myfactory-private-alpha-reconstruction/source-inventory.json'),'utf8'));
 const baseline=inventory.baseline;
 if(baseline!=='8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f')throw Error('Unexpected reconstruction baseline');
+const myappsInventory=JSON.parse(readFileSync(join(root,'docs/myapps/producer-source-inventory.json'),'utf8'));
+if(myappsInventory.baseline!==baseline)throw Error('Unexpected MyApps inventory baseline');
+for(const file of Object.keys(myappsInventory.sources)){
+ if(Object.hasOwn(inventory.sources,file))throw Error(`Duplicate source ownership: ${file}`);
+}
+const sources={...inventory.sources,...myappsInventory.sources};
 const paths=[];
 function walk(dir){for(const f of readdirSync(dir,{withFileTypes:true})){const path=join(dir,f.name);if(f.isDirectory())walk(path);else if(/\.(ts|mjs|js)$/.test(f.name))paths.push(relative(root,path));}}
 walk(join(root,'apps/supervisor/src'));
@@ -23,10 +29,10 @@ for(const file of paths){
  try{previous=hash(execFileSync('git',['show',`${baseline}:${file}`],{cwd:root,maxBuffer:5_000_000,stdio:['ignore','pipe','ignore']}));}catch{}
  if(current!==previous){
   changed.push(file);
-  const entry=inventory.sources[file];
+  const entry=sources[file];
   if(!entry||entry.sha256!==current||!entry.classification||!entry.authorityBoundary)throw Error(`Unreviewed producer source: ${file}`);
  }
 }
-const listed=Object.keys(inventory.sources).sort();
+const listed=Object.keys(sources).sort();
 if(JSON.stringify(changed.sort())!==JSON.stringify(listed))throw Error('Stale or missing source inventory');
 console.log(`Reconstruction producer governance PASS: ${listed.length} reviewed changed runtime sources; UNKNOWN=0`);

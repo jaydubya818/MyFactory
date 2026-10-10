@@ -1,0 +1,1 @@
+{"name":"@myeve/capability-enforcement","version":"0.1.0","private":true,"type":"module","exports":"./src/postgres.ts","dependencies":{"@mission-control/capability-control":"*","zod":"4.4.3"}}

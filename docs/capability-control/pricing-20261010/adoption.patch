@@ -1,0 +1,134 @@
+diff --git a/apps/cloud-control/src/cloud-harness-plan.mjs b/apps/cloud-control/src/cloud-harness-plan.mjs
+index 566602b..5edd117 100644
+--- a/apps/cloud-control/src/cloud-harness-plan.mjs
++++ b/apps/cloud-control/src/cloud-harness-plan.mjs
+@@ -1,5 +1,5 @@
+ // Exact existing harness version, not an alternative adapter or paid-model grant.
+ export const cloudHarnessIdentity=Object.freeze({id:'myfactory-codex',version:'0.157.0',workerProfile:'container',model:'openai/gpt-5.4-mini',sessionSurface:'HEADLESS'});
+ export const cloudCodexPackage=Object.freeze({url:'https://registry.npmjs.org/@openai/codex/-/codex-0.157.0-linux-x64.tgz',integrity:'sha512-3TEPslRaNmlgJST5xMJJ9ZWXW1hr4RlVEpF0tO4NULNGj4b5naWlHa6PlSRiDpnMz322aJkz0uvyyKqc37rLJQ==',maxCompressedBytes:160000000,maxUnpackedBytes:420000000});
+-export const cloudHarnessPrice=Object.freeze({revision:'cloud-codex-deterministic-v1',model:cloudHarnessIdentity.model,validUntil:'2026-10-09T00:00:00.000Z',contextLimitTokens:200000,outputLimitTokens:8192,inputMicrousdPerMillion:750000,outputMicrousdPerMillion:4500000});
++export const cloudHarnessPrice=Object.freeze({revision:'cloud-codex-deterministic-20261010-v2',model:cloudHarnessIdentity.model,validUntil:'2026-10-17T00:00:00.000Z',contextLimitTokens:200000,outputLimitTokens:8192,inputMicrousdPerMillion:750000,outputMicrousdPerMillion:4500000});
+ export const cloudHarnessSpendPlan=Object.freeze({version:'WORK_LEDGER_V2',pricingRevision:cloudHarnessPrice.revision,model:cloudHarnessPrice.model,validUntil:cloudHarnessPrice.validUntil,perOperationReserveMicrousd:186864,plannedProductiveOperations:2,plannedCompletionOperations:1,maxPaidOperations:3,completionReserveMicrousd:186864});
+diff --git a/apps/cloud-control/src/production-model-provider.mjs b/apps/cloud-control/src/production-model-provider.mjs
+index 025bef0..83b9ac4 100644
+--- a/apps/cloud-control/src/production-model-provider.mjs
++++ b/apps/cloud-control/src/production-model-provider.mjs
+@@ -6,8 +6,8 @@ import {productionInstallation} from './production-installation.mjs';
+ // qualification price. Limits below deliberately bound the provider's larger
+ // advertised context/output capacities. No model call occurs in this module.
+ export const productionModelPrice=Object.freeze({
+- revision:'production-openai-mini-20261003-v1',model:'openai/gpt-5.4-mini',
+- validUntil:'2026-10-10T00:00:00.000Z',contextLimitTokens:64000,outputLimitTokens:8192,
++ revision:'production-openai-mini-20261010-v2',model:'openai/gpt-5.4-mini',
++ validUntil:'2026-10-17T00:00:00.000Z',contextLimitTokens:64000,outputLimitTokens:8192,
+  inputMicrousdPerMillion:750000,outputMicrousdPerMillion:4500000,
+ });
+ export const productionModelEndpoint='https://ai-gateway.vercel.sh/v1/responses';
+diff --git a/apps/cloud-control/test/production-model-provider.test.mjs b/apps/cloud-control/test/production-model-provider.test.mjs
+index b25a117..0750736 100644
+--- a/apps/cloud-control/test/production-model-provider.test.mjs
++++ b/apps/cloud-control/test/production-model-provider.test.mjs
+@@ -43,3 +43,13 @@ test('installation alone is insufficient; qualification and wrong runtime config
+  for(const patch of [{VERCEL_ENV:'preview'},{VERCEL_PROJECT_ID:installation.callerProjectId},{FACTORY_QUALIFICATION_TOKEN:'forbidden'}])
+   assert.throws(()=>productionModelProvider({env:{...env,...patch},assertWorkAuthorized:async()=>{}}));
+ });
++
++test('price expiry after construction prevents workload credential acquisition', async t=>{
++ t.mock.timers.enable({apis:['Date'],now:Date.parse(productionModelPrice.validUntil)-1000});
++ let acquisitions=0;
++ const provider=productionModelProvider({env,assertWorkAuthorized:async()=>{}},{getToken:async()=>{acquisitions++;return token;},verifyToken:async()=>({payload:claims})});
++ t.mock.timers.setTime(Date.parse(productionModelPrice.validUntil));
++ await assert.rejects(provider.authorize(),/PRODUCTION_MODEL_AUTHORITY_UNAVAILABLE/);
++ assert.equal(acquisitions,0);
++ assert.throws(()=>productionModelProvider({env,assertWorkAuthorized:async()=>{}}),/Current pinned model pricing/);
++});
+diff --git a/packages/storage/test/spend.test.mjs b/packages/storage/test/spend.test.mjs
+index 286454c..36e2284 100644
+--- a/packages/storage/test/spend.test.mjs
++++ b/packages/storage/test/spend.test.mjs
+@@ -179,3 +179,19 @@ test('Attempt 5 completion eligibility rejects UNKNOWN, stale generation, fenced
+  assert.throws(()=>f.reserve('completion','completion'),/authority/);
+  f.ledger.fenceAuthority(f.binding);assert.throws(()=>f.ledger.assertCompletionEligible(f.binding));
+ });
++
++
++test('a successor price cannot reset an existing Work plan or UNKNOWN exposure', t => {
++  const f=setup(t);
++  f.reserve('original');f.ledger.markDispatched('original');f.ledger.markUnknown('original');
++  const before=f.ledger.read(f.binding.workId);
++  for (const change of [{pricingRevision:'successor-v2'}, {validUntil:new Date(Date.now()+120000).toISOString()}]) {
++    assert.throws(()=>f.ledger.createBudget(f.binding,4000,f.deadline,{...f.plan,...change}),/Work spend plan cannot reset/);
++    assert.deepEqual(f.ledger.read(f.binding.workId),before);
++  }
++  f.ledger.settle('original',30,'original-receipt',{input_tokens:10,output_tokens:10});
++  const after=f.ledger.read(f.binding.workId);
++  assert.equal(after.unknownExposureMicrousd,0);
++  assert.equal(after.operations[0].pricingRevision,f.plan.pricingRevision);
++  assert.equal(after.operations[0].actualMicrousd,30);
++});
+diff --git a/apps/cloud-control/test/pricing-qualification.test.mjs b/apps/cloud-control/test/pricing-qualification.test.mjs
+new file mode 100644
+index 0000000..e2d3a04
+--- /dev/null
++++ b/apps/cloud-control/test/pricing-qualification.test.mjs
+@@ -0,0 +1,60 @@
++import test from 'node:test';
++import {randomUUID} from 'node:crypto';
++import {digest} from '../../../packages/hosted-routing/src/result.ts';
++import {productionAuthority} from '../src/production-authority.mjs';
++import assert from 'node:assert/strict';
++import current from '../../../docs/capability-control/pricing-20261010/20261010-v2.json' with {type:'json'};
++import historical from '../../../docs/capability-control/pricing-20261010/historical-v1.json' with {type:'json'};
++import {validatePrice} from '../../supervisor/src/spend-gateway.ts';
++import {productionModelPrice} from '../src/production-model-provider.mjs';
++import {cloudHarnessPrice} from '../src/cloud-harness-plan.mjs';
++import {productionExecutionContract,productionExecutionContractSha256} from '../src/production-execution-plan.mjs';
++
++for (const kind of ['production','deterministic']) test(`${kind}: successor preserves exact model, rates, limits and conservative reserve`, () => {
++  const before=historical.prices[kind],after=current.prices[kind];
++  assert.deepEqual(kind==='production'?productionModelPrice:cloudHarnessPrice,after);
++  for (const key of ['model','contextLimitTokens','outputLimitTokens','inputMicrousdPerMillion','outputMicrousdPerMillion']) assert.equal(after[key],before[key],key);
++  assert.notEqual(after.revision,before.revision);
++  const ceilMillion=value=>(value+999999n)/1000000n;
++  const reserve=ceilMillion(BigInt(after.contextLimitTokens)*BigInt(after.inputMicrousdPerMillion))+ceilMillion(BigInt(after.outputLimitTokens)*BigInt(after.outputMicrousdPerMillion));
++  assert.equal(reserve,BigInt(current.unchangedAccounting[kind+'PerOperationReserveMicrousd']));
++});
++
++test('both historical prices remain expired; successor also fails closed at its review deadline', t => {
++  t.mock.timers.enable({apis:['Date'],now:Date.parse(current.effectiveFrom)});
++  for (const kind of ['production','deterministic']) {
++    assert.throws(()=>validatePrice(historical.prices[kind]),/Current pinned model pricing/);
++    assert.doesNotThrow(()=>validatePrice(current.prices[kind]));
++  }
++  t.mock.timers.setTime(Date.parse(current.reviewBy));
++  for (const price of Object.values(current.prices)) assert.throws(()=>validatePrice(price),/Current pinned model pricing/);
++});
++
++test('successor changes approval contract identity without widening the approved spending envelope', () => {
++  assert.notEqual(productionExecutionContractSha256,historical.productionContract.executionContractSha256);
++  assert.equal(productionExecutionContract.maxSpendMicrousd,historical.productionContract.ceiling);
++  for (const key of ['perOperationReserveMicrousd','plannedProductiveOperations','plannedCompletionOperations','maxPaidOperations','completionReserveMicrousd']) {
++    assert.equal(productionExecutionContract.spendPlan[key],historical.productionContract.spendPlan[key],key);
++  }
++  assert.equal(productionExecutionContract.publication,false);
++  assert.equal(productionExecutionContract.merge,false);
++});
++
++
++test('an exact old approval cannot authorize the successor execution contract', async () => {
++  const now=Date.now(),configuration={synthetic:'pricing-boundary'},sourceDigest='a'.repeat(64),ownerScope='synthetic-owner',clientId='sofie-production';
++  const configurationDigest=digest(configuration),factoryVersion=digest({sourceDigest,configurationDigest});
++  const request={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,deadline:new Date(now+60000).toISOString()};
++  const template={version:1,clientId,ownerScope,environment:'CLOUD_PRODUCTION',publication:false,sourceDigest,configurationDigest,factoryVersion,
++    contractSha256:historical.productionContract.executionContractSha256,candidateSha256:null,request:{...request,requestId:null,deadline:null}};
++  const envelope={version:1,approval:{workVersion:1,manifestTemplate:template},expiresAt:new Date(now+120000).toISOString()};
++  const authorizationSha256=digest(envelope),manifest={...template,version:2,request,authorizationEnvelope:envelope,authorizationEnvelopeSha256:authorizationSha256};
++  const row={state:'AUTHORIZED',client_id:clientId,work_id:request.workId,manifest,manifest_sha256:digest(manifest),consumed_at:null};
++  let consumed=0;
++  const client={query:async sql=>{if(sql.startsWith('UPDATE'))consumed++;return {rows:[row]};}};
++  const options={installation:{ownerScope},sourceDigest,configuration,clientId,authorizationSha256};
++  await productionAuthority({...options,contractSha256:template.contractSha256})(client,request,now,'prepare');
++  assert.equal(consumed,1);
++  await assert.rejects(productionAuthority({...options,contractSha256:productionExecutionContractSha256})(client,request,now,'prepare'),/PRODUCTION_WORK_NOT_AUTHORIZED/);
++  assert.equal(consumed,1);
++});

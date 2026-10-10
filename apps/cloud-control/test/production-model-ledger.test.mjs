@@ -1,4 +1,6 @@
 import test from 'node:test';
+// Historical qualified rate-card fixture. Runtime expiry remains enforced.
+test.mock.timers.enable({apis:['Date'],now:Date.parse('2026-10-08T23:00:00.000Z')});
 import assert from 'node:assert/strict';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -31,6 +33,7 @@ function fixture(t){
 }
 test('LOCAL production adapter + canonical V2 gateway settles productive and completion with exact rates, fresh identity and no fallback',async t=>{
  const f=fixture(t);assert.equal((await f.gateway('productive').fetch(f.request())).status,200);
+ test.mock.timers.tick(1);
  f.ledger.assertCompletionEligible(f.binding);f.ledger.beginCompletion(f.binding);
  assert.equal((await f.gateway('completion').fetch(f.request())).status,200);f.ledger.assertCompleted(f.binding);
  const spend=f.ledger.read(f.binding.workId);assert.equal(spend.operations.length,2);assert(spend.operations.every(op=>op.state==='settled'&&op.reservedMicrousd===84864&&op.actualMicrousd===53));

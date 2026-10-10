@@ -1,4 +1,6 @@
 import test from 'node:test';
+// Historical qualified rate-card fixture. Runtime expiry remains enforced.
+test.mock.timers.enable({apis:['Date'],now:Date.parse('2026-10-08T23:00:00.000Z')});
 import assert from 'node:assert/strict';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
@@ -21,7 +23,7 @@ test('deterministic cloud transport retains canonical reservations, checkpoint a
  const gateway=new SpendGateway({ledger,binding,price:cloudHarnessPrice,childToken,phase:'productive',upstreamOrigin:'https://deterministic.factory.invalid',upstreamApiKey:'deterministic-only',upstreamFetch:deterministicHarnessResponse({phase:'productive',currentSource:'export function projectSlug(value) { return value; }\n'}),productiveCheckpointAfter:1,onProductiveBoundary:()=>{boundary=true;}});
  const body=JSON.stringify({model:cloudHarnessIdentity.model,stream:true,input:'Bounded task',tools:[{name:'apply_patch',type:'custom'}]});
  let replies=[];
- await relayHarnessRequests({readRequest:async id=>Buffer.from(JSON.stringify({id,body})),writeResponse:async(id,bytes)=>replies.push(JSON.parse(bytes)),gateway,childToken,deadline:Date.now()+10000,finished:()=>replies.length===2,onBoundary:()=>boundary});
+ await relayHarnessRequests({readRequest:async id=>Buffer.from(JSON.stringify({id,body})),writeResponse:async(id,bytes)=>{replies.push(JSON.parse(bytes));test.mock.timers.tick(1);},gateway,childToken,deadline:Date.now()+10000,finished:()=>replies.length===2,onBoundary:()=>boundary});
  assert.deepEqual(replies.map(x=>x.kind),['response','yield']);
  assert.match(Buffer.from(replies[0].bodyBase64,'base64').toString(),/custom_tool_call/);
  let spend=ledger.read(binding.workId);assert.equal(spend.operations.length,1);assert.equal(spend.operations[0].state,'settled');assert.equal(spend.operations[0].actualMicrousd,0);assert.equal(spend.operations[0].reservedMicrousd,186864);
