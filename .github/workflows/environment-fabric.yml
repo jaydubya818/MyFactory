@@ -22,12 +22,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: jaydubya818/MyEveBot
-          ref: 3b423442652ee6a95070eb5cfbbcbf878f1ebe6c
+          ref: 977438094ad830f6cb80523a890ca9188f32febe
           path: .qualification/myeve
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -42,6 +43,7 @@ jobs:
       - run: docker pull node:24-bookworm
       # EvidenceProvider static-preview tests require the locked Playwright browser.
       - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: node --test apps/cloud-control/test/admission-spend-plan.test.mjs
       - run: npm test
         env:
           MYEVE_CHECKOUT: ${{ github.workspace }}/.qualification/myeve
