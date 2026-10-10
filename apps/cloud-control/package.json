@@ -15,7 +15,8 @@
     "@vercel/queue": "0.7.0",
     "@vercel/sandbox": "3.5.1",
     "diff": "8.0.4",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "@myeve/capability-enforcement": "*"
   },
   "devDependencies": {
     "@types/node": "24.13.6",

@@ -1,8 +1,9 @@
 import test from 'node:test';
-// Historical qualified rate-card fixture. Runtime expiry remains enforced.
-test.mock.timers.enable({apis:['Date'],now:Date.parse('2026-10-08T23:00:00.000Z')});
 import assert from 'node:assert/strict';
 import {productionModelProvider,productionModelPrice} from '../src/production-model-provider.mjs';
+// Unit-only clock bound to the imported card; runtime expiry remains enforced.
+const pricingFixtureTime=Date.parse(productionModelPrice.validUntil)-86400000;
+test.mock.timers.enable({apis:['Date'],now:pricingFixtureTime});
 const installation={version:1,factoryId:'myfactory-cloud-production',environment:'production',projectId:'prj_4hfceCN8l6wN1gUyYOzZLQ7aJapK',callerProjectId:'prj_L6faw25wnFGUZtrLKBIccg8gIDLR',teamId:'team_p8z8exJRTGfOPk1GC9vUOpv3',ownerScope:'owner-private-a',custodyStoreId:'store_qBuivS8MmRxnBNnU',databaseResourceId:'dry-morning-22844424'};
 const env={VERCEL:'1',VERCEL_ENV:'production',VERCEL_PROJECT_ID:installation.projectId,VERCEL_ORG_ID:installation.teamId,FACTORY_PRODUCTION_INSTALLATION:JSON.stringify(installation)};
 const claims={project_id:installation.projectId,owner_id:installation.teamId,environment:'production',iss:'https://oidc.vercel.com/jaydubya818',aud:'https://vercel.com/jaydubya818',exp:Math.floor(Date.now()/1000)+600};
@@ -49,5 +50,16 @@ test('installation alone is insufficient; qualification and wrong runtime config
 test('the unchanged rate card fails closed at its expiration',()=>{
  test.mock.timers.setTime(Date.parse(productionModelPrice.validUntil));
  try {assert.throws(()=>productionModelProvider({env,assertWorkAuthorized:async()=>{}}),/Current pinned model pricing/);}
- finally{test.mock.timers.setTime(Date.parse('2026-10-08T23:00:00.000Z'));}
+ finally{test.mock.timers.setTime(pricingFixtureTime);}
+});
+test('price expiry after construction prevents workload credential acquisition',async()=>{
+ test.mock.timers.setTime(Date.parse(productionModelPrice.validUntil)-1000);
+ try{
+  let acquisitions=0;
+  const provider=productionModelProvider({env,assertWorkAuthorized:async()=>{}},{getToken:async()=>{acquisitions++;return token;},verifyToken:async()=>({payload:claims})});
+  test.mock.timers.setTime(Date.parse(productionModelPrice.validUntil));
+  await assert.rejects(provider.authorize(),/PRODUCTION_MODEL_AUTHORITY_UNAVAILABLE/);
+  assert.equal(acquisitions,0);
+  assert.throws(()=>productionModelProvider({env,assertWorkAuthorized:async()=>{}}),/Current pinned model pricing/);
+ }finally{test.mock.timers.setTime(pricingFixtureTime);}
 });

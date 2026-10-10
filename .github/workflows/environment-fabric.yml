@@ -30,6 +30,10 @@ jobs:
           node-version: 24.18.1
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm audit --audit-level=low
+      # The generated preview deliberately installs offline; provision its own locked cache first.
+      - run: npm ci --prefix templates/feedback-hub --ignore-scripts --no-audit --no-fund
+      - run: npm audit --prefix templates/feedback-hub --audit-level=low
       # Existing local verification deliberately uses --pull=never at execution.
       # Provision its current image before tests; this is not the cloud runtime.
       - run: docker pull node:22-bookworm
@@ -43,6 +47,7 @@ jobs:
           DATABASE_URL_UNPOOLED: postgres://postgres@127.0.0.1:5432/postgres
         run: node --test apps/cloud-control/test/successor-intake-postgres.test.mjs apps/cloud-control/test/cloud-startup-postgres.test.mjs apps/cloud-control/test/paid-ambiguity-postgres.test.mjs apps/cloud-control/test/alpha-owner-postgres.test.mjs
       - run: npm run check:producer-governance
+      - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
       - run: npm run typecheck:producer
       - run: npm run typecheck
       - run: npm run build
