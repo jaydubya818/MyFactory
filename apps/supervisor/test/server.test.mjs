@@ -231,7 +231,7 @@ test("explicit local preview serves generated UI and its action API, then stops 
   const startedResponse = await invoke("builder.preview.start", { workOrderId: id });
   assert.equal(startedResponse.status, 200);
   const { result: started } = await startedResponse.json();
-  assert.equal(started.status, "running");
+  assert.equal(started.status, "running", started.error);
   assert.match(started.url, /^http:\/\/127\.0\.0\.1:\d+\/?$/);
   const live = await (await fetch(`${origin}/api/work-orders/${id}/preview`)).json();
   assert.equal(live.status, "running");
