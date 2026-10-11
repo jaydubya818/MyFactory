@@ -1,0 +1,94 @@
+name: External alpha frozen-source pricing qualification
+on:
+  push:
+    branches: [codex/external-alpha-pricing-backport-20261011]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qualification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: jaydubya818/MyEveBot
+          ref: 4cceb253d21f28b17f645bd88d90a6b764ddc073
+          path: .qualification/myeve
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: jaydubya818/relay
+          ref: 8a8678d675adc8ac7f799d7660071de2256bb231
+          path: .qualification/relay
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.18.1
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix .qualification/myeve --ignore-scripts --no-audit --no-fund
+      - name: Disposable PostgreSQL with verified TLS (no installed databases)
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/pricing-ca"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj /CN=localhost \
+            -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1' \
+            -keyout "$RUNNER_TEMP/pricing-ca/server.key" -out "$RUNNER_TEMP/pricing-ca/server.crt"
+          chmod 600 "$RUNNER_TEMP/pricing-ca/server.key"
+          docker run -d --name pricing-postgres -e POSTGRES_USER=ux_fixture -e POSTGRES_PASSWORD=local-only \
+            -e POSTGRES_DB=blocker_fixes -p 127.0.0.1:55591:5432 -v "$RUNNER_TEMP/pricing-ca:/fixture:ro" \
+            public.ecr.aws/docker/library/postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3 \
+            bash -c 'cp /fixture/server.key /var/lib/postgresql/server.key && cp /fixture/server.crt /var/lib/postgresql/server.crt && chown postgres:postgres /var/lib/postgresql/server.* && chmod 600 /var/lib/postgresql/server.key && exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key'
+          ready=0
+          for attempt in $(seq 1 30); do
+            if docker exec pricing-postgres pg_isready -h 127.0.0.1 -U ux_fixture -d blocker_fixes; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then docker logs pricing-postgres; exit 1; fi
+          docker exec -i pricing-postgres psql -v ON_ERROR_STOP=1 --single-transaction -U ux_fixture -d blocker_fixes -f - < apps/cloud-control/migrations/001-staging-boundary.sql
+      - name: All cloud, routing and storage regressions including real PostgreSQL
+        env:
+          NODE_EXTRA_CA_CERTS: ${{ runner.temp }}/pricing-ca/server.crt
+          FACTORY_LOCAL_QE_DATABASE: postgresql://ux_fixture:local-only@localhost:55591/blocker_fixes
+          FACTORY_PAID_TEST_DATABASE_URL: postgresql://ux_fixture:local-only@localhost:55591/blocker_fixes
+          FACTORY_POSTGRES_TEST: '1'
+          DATABASE_URL_UNPOOLED: postgresql://ux_fixture:local-only@localhost:55591/blocker_fixes
+          VERCEL_PROJECT_ID: prj_IRXTY6HOzS2q9wRPdabsJnmddzl4
+          VERCEL_ENV: preview
+        run: node --test apps/cloud-control/test/*.test.mjs packages/hosted-routing/test/*.test.mjs packages/storage/test/*.test.mjs > pricing-factory.log 2>&1
+      - name: Provision offline verifier transport (private custody remains absent)
+        run: docker pull docker.io/library/node@sha256:3d27e5c11e5786e309ec3e03f93ae536eb36e6e5eb3714d5eb3300a36157add0
+      - name: Exact MyEve composition, original six failures, accounting and isolation
+        env:
+          MYEVE_VALIDATION_POSTGRES_URL: postgresql://ux_fixture:local-only@localhost:55591/blocker_fixes
+          MYEVE_EXTERNAL_ALPHA_TEST_DATABASE: postgresql://ux_fixture:local-only@localhost:55591/blocker_fixes
+          MYFACTORY_SOURCE_ROOT: ${{ github.workspace }}
+          MYRELAY_SOURCE_ROOT: ${{ github.workspace }}/.qualification/relay
+          MYEVE_EXTERNAL_ALPHA_PRODUCTIVE_FIXTURE: '1'
+          FACTORY_VERIFIER_DOCKER_IMAGE: docker.io/library/node@sha256:3d27e5c11e5786e309ec3e03f93ae536eb36e6e5eb3714d5eb3300a36157add0
+        run: |
+          npm exec --prefix .qualification/myeve --workspace apps/eve -- vitest run --fileParallelism=false \
+            lib/engineering/production-validation-postgres.test.ts lib/engineering/production-validation-halt.test.ts \
+            lib/web-session-postgres.test.ts lib/external-alpha/allowance-postgres.test.ts \
+            lib/external-alpha/accounting-postgres.test.ts lib/external-alpha/shared-accounting-postgres.test.ts \
+            lib/external-alpha/work-authority-postgres.test.ts lib/external-alpha/work-controller-postgres.test.ts \
+            lib/external-alpha/result-ingestion-postgres.test.ts lib/external-alpha/productive-journey-postgres.test.ts \
+            lib/relay/installation-validation.test.ts lib/external-alpha/work-config.test.ts \
+            lib/external-alpha/work-action.test.ts > pricing-myeve.log 2>&1
+      - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
+      - run: npm run typecheck
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: external-alpha-pricing-${{ github.sha }}
+          path: |
+            pricing-factory.log
+            pricing-myeve.log
+      - name: Remove disposable qualification resources
+        if: always()
+        run: docker rm -f pricing-postgres || true

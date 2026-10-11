@@ -74,7 +74,7 @@
     "packages/hosted-routing/src/result.ts": {
       "classification": "NOT_APPLICABLE",
       "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory. Consolidated boundary: Strict legacy snapshot V1 unchanged. Optional cloud-only independent verification is signature-bound, exact-shaped, candidate/policy/resource/chronology checked, and grants no readiness or publication by itself. Fabric boundary: Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory. Consolidated boundary: Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory.",
-      "sha256": "9f3ad70fad6310d9c46f9393db03e63c9af9a79b7ee0d55412916a6870209369"
+      "sha256": "9935c61e8c2684d2288ea5a483d804607e901985b71daa56612138720d32cf17"
     },
     "apps/supervisor/src/git.ts": {
       "sha256": "5969e10d9dd82a0413c56d25d4e92bb2deca2b749d1654e5d00bd04c419639d0",
@@ -312,7 +312,7 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
     },
     "apps/cloud-control/src/cloud-harness-plan.mjs": {
-      "sha256": "2a3815b4ccda8cf8c5515715a3dd29bd19c3ccd6c91f0c80cd92be275759f44e",
+      "sha256": "4c0aaeb3ecc526753e9f89dfaeaf979272e44c8d5312b4a644053424d5387671",
       "classification": "CLOUD_HARNESS_BOUNDARY",
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
@@ -337,7 +337,7 @@
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/postgres-verification.mjs": {
-      "sha256": "df52aa07e6adfd42ab66354240d70681f96ea4a698faa88ce772e264039b45ff",
+      "sha256": "069add839624515d0b2bc3c02bace2e85e4273e169f8c7eae016a5db482b40b8",
       "classification": "CLOUD_PROTECTED_VERIFICATION",
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
@@ -419,7 +419,7 @@
     "apps/cloud-control/src/production-model-provider.mjs": {
       "classification": "ENFORCED",
       "authorityBoundary": "Separate canonical canary and dedicated external-alpha host loaders bind live server project/team/environment before per-Work authority and fresh verified OIDC. Shared fixed rate/endpoint/routing has no static-key fallback, model substitution or installation execution grant.",
-      "sha256": "2e1a7c3987ec0c321bbcc9d9cf0c1a3cfe602fa797d57e3a67a76c35a05f0837"
+      "sha256": "15271169e311e56cf046e4ad1873520825f3f6704d8834f75a8b3ce0534a7bb1"
     },
     "apps/cloud-control/src/production-runtime-components.mjs": {
       "classification": "ENFORCED",
@@ -552,7 +552,7 @@
       "authorityBoundary": "Loads the private-source registry from a deploy-time secret input checked against a pinned sha256 of the exact bytes (absolute, non-symlink, not group or world writable when a file). No default and no repository content. Fails closed with PRIVATE_SOURCE_REGISTRY."
     },
     "apps/cloud-control/src/external-alpha-verifier.mjs": {
-      "sha256": "a8940afa6cacb38c310b119240233564cc27c61f4eae002b4cd3e17b401e9002",
+      "sha256": "b69237ba935e9971e4e234e4b5ccdfec5c8b454c336ccda17e60cac81a303a96",
       "classification": "INDEPENDENT_ACCEPTANCE_ADAPTER",
       "authorityBoundary": "Cloud adapter for the Alpha Tasks acceptance policy as the protected verifier. Production mode requires a host-built isolation attestation for an allow-listed runner; every missing, unattested, inconsistent or PARTIAL outcome throws VERIFIER_PARTIAL so the Run can never be accepted. PASS is the only path to a PASS check."
     },

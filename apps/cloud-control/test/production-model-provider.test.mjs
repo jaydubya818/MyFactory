@@ -51,3 +51,16 @@ test('the unchanged rate card fails closed at its expiration',()=>{
  try {assert.throws(()=>productionModelProvider({env,assertWorkAuthorized:async()=>{}}),/Current pinned model pricing/);}
  finally{test.mock.timers.setTime(Date.parse('2026-10-08T23:00:00.000Z'));}
 });
+
+// Unit-only boundary clock. Integration qualification uses the real clock.
+test('successor expiry after construction prevents workload credential acquisition', async()=>{
+ test.mock.timers.setTime(Date.parse(productionModelPrice.validUntil)-1000);
+ let acquisitions=0;
+ try {
+  const provider=productionModelProvider({env,assertWorkAuthorized:async()=>{}},{getToken:async()=>{acquisitions++;return token;},verifyToken:async()=>({payload:claims})});
+  test.mock.timers.setTime(Date.parse(productionModelPrice.validUntil));
+  await assert.rejects(provider.authorize(),/PRODUCTION_MODEL_AUTHORITY_UNAVAILABLE/);
+  assert.equal(acquisitions,0);
+  assert.throws(()=>productionModelProvider({env,assertWorkAuthorized:async()=>{}}),/Current pinned model pricing/);
+ } finally {test.mock.timers.setTime(Date.parse('2026-10-08T23:00:00.000Z'));}
+});
