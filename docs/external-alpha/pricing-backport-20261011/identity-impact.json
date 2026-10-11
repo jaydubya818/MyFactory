@@ -1,0 +1,20 @@
+{
+  "status": "PREPARED_BACKPORT_NOT_INSTALLED",
+  "baseCommit": "18e59dbedbe04275858327ca47d2bd7ec01a407c",
+  "myEveCommit": "4cceb253d21f28b17f645bd88d90a6b764ddc073",
+  "canonicalPricingEvidenceCommit": "ff8d464e111e40bb81ad642b4c91ce2df7f33f03",
+  "canonicalPricingRecordSha256": "e3cfa939291ea235bdd6920f386459177de08deb266cee63c56717eba824e0bf",
+  "oldSourceDigest": "bdc1ee6744ca72b43c65f80f5c0d72f6e39945da2d4e5f28b996ff9b94711200",
+  "newSourceDigest": "fb92947fa4822c225ea5d1924eec21a148fe185a91d37fc72d04a763fbde4982",
+  "productionConfigurationDigestUnchanged": "415f52a554e8dbdcc48019609e4611f07085622abf5c91cd67b516e978a593ae",
+  "oldProductionFactoryVersion": "4503f36fd00221bc83e144da75dbdb16230d32471083fcf4c36a8c7db7428873",
+  "newProductionFactoryVersion": "acfb2f660011edb2ee4ce482245a4d97df249e5bce161b39cafe13ec962e9cbc",
+  "oldProductionContract": "29ff7774ec7ac08a061f28fe2f81bff4a8f1124987f64a69a1b5cb8e21976b66",
+  "newProductionContract": "d7a24ed69b7d8267d4817961bd0ee22c76b6313650177b31322783dcc9d2d9a3",
+  "externalAlphaFactoryVersion": "Must derive separately for each approved installation: digest({sourceDigest:newSourceDigest,configurationDigest:digest(externalAlphaConfiguration(installation))}). Do not reuse the production canary identity or silently replace any installed pin.",
+  "migration": "NONE",
+  "existingWork": "No reset, grant conversion, replay, release or accounting rewrite. Original operation identities/rates remain necessary for settlement; UNKNOWN stays reserved.",
+  "installation": "UNCHANGED; separately approved successor installation/source/configuration/FactoryVersion/Work envelope required",
+  "publication": false,
+  "paidAuthorityCreated": false
+}

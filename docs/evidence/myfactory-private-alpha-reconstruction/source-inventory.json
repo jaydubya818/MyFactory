@@ -312,7 +312,7 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
     },
     "apps/cloud-control/src/cloud-harness-plan.mjs": {
-      "sha256": "2a3815b4ccda8cf8c5515715a3dd29bd19c3ccd6c91f0c80cd92be275759f44e",
+      "sha256": "4c0aaeb3ecc526753e9f89dfaeaf979272e44c8d5312b4a644053424d5387671",
       "classification": "CLOUD_HARNESS_BOUNDARY",
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
@@ -419,7 +419,7 @@
     "apps/cloud-control/src/production-model-provider.mjs": {
       "classification": "ENFORCED",
       "authorityBoundary": "Separate canonical canary and dedicated external-alpha host loaders bind live server project/team/environment before per-Work authority and fresh verified OIDC. Shared fixed rate/endpoint/routing has no static-key fallback, model substitution or installation execution grant.",
-      "sha256": "2e1a7c3987ec0c321bbcc9d9cf0c1a3cfe602fa797d57e3a67a76c35a05f0837"
+      "sha256": "15271169e311e56cf046e4ad1873520825f3f6704d8834f75a8b3ce0534a7bb1"
     },
     "apps/cloud-control/src/production-runtime-components.mjs": {
       "classification": "ENFORCED",
