@@ -3,8 +3,8 @@ import {randomUUID} from 'node:crypto';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {productionAuthority} from '../src/production-authority.mjs';
 import assert from 'node:assert/strict';
-import current from '../../../docs/capability-control/pricing-20261010/20261010-v2.json' with {type:'json'};
-import historical from '../../../docs/capability-control/pricing-20261010/historical-v1.json' with {type:'json'};
+import current from '../../../docs/external-alpha/pricing-backport-20261011/20261010-v2.json' with {type:'json'};
+import historical from '../../../docs/external-alpha/pricing-backport-20261011/historical-v1.json' with {type:'json'};
 import {validatePrice} from '../../supervisor/src/spend-gateway.ts';
 import {productionModelPrice} from '../src/production-model-provider.mjs';
 import {cloudHarnessPrice} from '../src/cloud-harness-plan.mjs';
@@ -57,4 +57,26 @@ test('an exact old approval cannot authorize the successor execution contract', 
   assert.equal(consumed,1);
   await assert.rejects(productionAuthority({...options,contractSha256:productionExecutionContractSha256})(client,request,now,'prepare'),/PRODUCTION_WORK_NOT_AUTHORIZED/);
   assert.equal(consumed,1);
+});
+
+import impact from '../../../docs/external-alpha/pricing-backport-20261011/identity-impact.json' with {type:'json'};
+import sourceIdentity from '../src/source-identity.json' with {type:'json'};
+import {externalAlphaFactoryVersion,externalAlphaConfiguration,externalAlphaRuntimeComponents} from '../src/external-alpha-runtime.mjs';
+import {loadVectors,installationOf} from './fixtures/myeve-conformance/support.mjs';
+
+test('separate successor identity preserves configuration; an old installation cannot authorize it', () => {
+ assert.equal(sourceIdentity.sourceDigest,'88d5cac68592267b3630b439614a057f94601f34f63323209721e9f1e3d503cb');
+ assert.equal(impact.newSourceDigest,'fb92947fa4822c225ea5d1924eec21a148fe185a91d37fc72d04a763fbde4982');
+ const old=structuredClone(installationOf(loadVectors()));
+ old.source={...old.source,sourceDigest:impact.oldSourceDigest};
+ old.factoryVersion=externalAlphaFactoryVersion(old,impact.oldSourceDigest);
+ const successor={...old,source:{...old.source,sourceDigest:sourceIdentity.sourceDigest}};
+ assert.deepEqual(externalAlphaConfiguration(successor),externalAlphaConfiguration(old));
+ const version=externalAlphaFactoryVersion(successor,sourceIdentity.sourceDigest);
+ assert.notEqual(version,old.factoryVersion);
+ let effects=0;
+ const deps={pool:{query:()=>{effects++;throw Error('UNREACHABLE');}},queue:{send:()=>{effects++;throw Error('UNREACHABLE');}},signReceipt:()=>{effects++;throw Error('UNREACHABLE');},signReadback:()=>{effects++;throw Error('UNREACHABLE');},sourceDigest:sourceIdentity.sourceDigest};
+ assert.throws(()=>externalAlphaRuntimeComponents({...deps,installation:old}),e=>e.code==='AUTHORITY_SOURCE');
+ assert.throws(()=>externalAlphaRuntimeComponents({...deps,installation:successor}),e=>e.code==='AUTHORITY_FACTORY_VERSION');
+ assert.equal(effects,0);
 });
