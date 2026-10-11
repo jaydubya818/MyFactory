@@ -50,7 +50,7 @@ jobs:
             sleep 1
           done
           if [ "$ready" -ne 1 ]; then docker logs pricing-postgres; exit 1; fi
-          docker exec -i pricing-postgres psql -U ux_fixture -d blocker_fixes < apps/cloud-control/migrations/001-staging-boundary.sql
+          docker exec -i pricing-postgres psql -v ON_ERROR_STOP=1 --single-transaction -U ux_fixture -d blocker_fixes < apps/cloud-control/migrations/001-staging-boundary.sql
       - name: All cloud, routing and storage regressions including real PostgreSQL
         env:
           NODE_EXTRA_CA_CERTS: ${{ runner.temp }}/pricing-ca/server.crt
