@@ -1,0 +1,10 @@
+{
+  "status": "LOCAL_CANDIDATE_NOT_INSTALLED",
+  "releaseLine": "60915bcceca042fdf54fa677bc95e0eb24908429",
+  "pricingEvidence": "a9c84224bfb87c187ebb97cd10d20fa5c73d56a7",
+  "sourceDigest": "88d5cac68592267b3630b439614a057f94601f34f63323209721e9f1e3d503cb",
+  "runtimeChanged": false,
+  "historicalEvidence": "docs/external-alpha/pricing-backport-20261011 preserved byte-for-byte",
+  "installationFactoryVersions": "NOT_DERIVED",
+  "mergeDeploymentMigrationPaidExecutionTesterActivation": "NOT_AUTHORIZED"
+}

@@ -20,8 +20,11 @@ export interface CloudSourceGrant {
   allowedPaths: string[];
   maxDurationMs: number;
   maxSpendUsd: number;
+  /** External-alpha only: the requestId is a deterministic version-8 uuid derived from the signed authority. */
+  derivedRequestId?: true;
 }
 const uuid = (value: unknown): value is string => typeof value==='string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
+const derivedUuid = (value: unknown): value is string => typeof value==='string' && /^[a-f0-9]{8}-[a-f0-9]{4}-8[a-f0-9]{3}-a[a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
 function exact(value: unknown, keys: string[]): asserts value is Record<string,unknown> {
   if(!value || typeof value!=='object' || Array.isArray(value) || Object.getPrototypeOf(value)!==Object.prototype || Object.keys(value).sort().join(',')!==keys.sort().join(',')) throw Error('INVALID_CLOUD_REQUEST');
 }
@@ -30,7 +33,7 @@ function texts(value: unknown, max: number): asserts value is string[] {
 }
 export function parseCloudPrepare(value: unknown, grant: CloudSourceGrant, now: number): CloudPrepareRequest {
   exact(value,['protocol','requestId','workId','workGeneration','repository','deadline','maxSpendUsd','source','input']);
-  if(value.protocol!==CLOUD_EXECUTION_PROTOCOL||!uuid(value.requestId)||!uuid(value.workId)||!Number.isSafeInteger(value.workGeneration)||Number(value.workGeneration)<1||Buffer.byteLength(JSON.stringify(value))>32000)throw Error('INVALID_CLOUD_REQUEST');
+  if(value.protocol!==CLOUD_EXECUTION_PROTOCOL||!(uuid(value.requestId)||(grant.derivedRequestId===true&&derivedUuid(value.requestId)))||!uuid(value.workId)||!Number.isSafeInteger(value.workGeneration)||Number(value.workGeneration)<1||Buffer.byteLength(JSON.stringify(value))>32000)throw Error('INVALID_CLOUD_REQUEST');
   const deadline=typeof value.deadline==='string'?Date.parse(value.deadline):NaN;
   if(!Number.isFinite(deadline)||deadline<=now||deadline>now+grant.maxDurationMs||typeof value.maxSpendUsd!=='number'||!Number.isFinite(value.maxSpendUsd)||value.maxSpendUsd<=0||value.maxSpendUsd>grant.maxSpendUsd)throw Error('CLOUD_ENVELOPE_EXCEEDED');
   exact(value.source,['repository','commit','tree']);

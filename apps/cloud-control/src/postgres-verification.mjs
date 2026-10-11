@@ -31,7 +31,9 @@ export class PostgresVerificationStore{
  });}
  async finish(runId,leaseOwner,checks){
   const expected=this.policy.checks.map(check=>check.id);
-  if(!Array.isArray(checks)||checks.length!==expected.length||checks.some((c,i)=>!c||Object.keys(c).sort().join(',')!=='id,result'||c.id!==expected[i]||!['PASS','FAIL'].includes(c.result)))throw Error('VERIFIER_CHECK_BINDING');
+  if(!Array.isArray(checks)||checks.length!==expected.length||checks.some((c,i)=>!c||!['id,result','id,reportSha256,result'].includes(Object.keys(c).sort().join(','))||(c.reportSha256!==undefined&&!/^[a-f0-9]{64}$/.test(c.reportSha256))||c.id!==expected[i]||!['PASS','FAIL'].includes(c.result)))throw Error('VERIFIER_CHECK_BINDING');
+  if(this.policy.reportDigest && (checks.some(c=>!/^[a-f0-9]{64}$/.test(c.reportSha256??''))||new Set(checks.map(c=>c.reportSha256)).size!==1))throw Error('VERIFIER_REPORT_BINDING');
+  if(this.policy.aggregateCheckId && (checks.at(-1).id!==this.policy.aggregateCheckId || (checks.at(-1).result==='PASS')!==checks.slice(0,-1).every(c=>c.result==='PASS')))throw Error('VERIFIER_REPORT_BINDING');
   return this.dispatch.transaction(async(client,now)=>{
    if(this.dispatch.assertAuthority){const row=(await client.query('SELECT request FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];await this.dispatch.assertAuthority(client,row?.request,now,'verifier');}
    const outcome=checks.every(c=>c.result==='PASS')?'PASS':'FAIL';
