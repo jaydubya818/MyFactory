@@ -44,10 +44,12 @@ jobs:
             -e POSTGRES_DB=blocker_fixes -p 127.0.0.1:55591:5432 -v "$RUNNER_TEMP/pricing-ca:/fixture:ro" \
             public.ecr.aws/docker/library/postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3 \
             bash -c 'cp /fixture/server.key /var/lib/postgresql/server.key && cp /fixture/server.crt /var/lib/postgresql/server.crt && chown postgres:postgres /var/lib/postgresql/server.* && chmod 600 /var/lib/postgresql/server.key && exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key'
+          ready=0
           for attempt in $(seq 1 30); do
-            if docker exec pricing-postgres pg_isready -h 127.0.0.1 -U ux_fixture -d blocker_fixes; then break; fi
+            if docker exec pricing-postgres pg_isready -h 127.0.0.1 -U ux_fixture -d blocker_fixes; then ready=1; break; fi
             sleep 1
           done
+          if [ "$ready" -ne 1 ]; then docker logs pricing-postgres; exit 1; fi
           docker exec -i pricing-postgres psql -U ux_fixture -d blocker_fixes < apps/cloud-control/migrations/001-staging-boundary.sql
       - name: All cloud, routing and storage regressions including real PostgreSQL
         env:
@@ -60,7 +62,7 @@ jobs:
           VERCEL_ENV: preview
         run: node --test apps/cloud-control/test/*.test.mjs packages/hosted-routing/test/*.test.mjs packages/storage/test/*.test.mjs > pricing-factory.log 2>&1
       - name: Provision offline verifier transport (private custody remains absent)
-        run: docker pull public.ecr.aws/docker/library/node:24-bookworm@sha256:3d27e5c11e5786e309ec3e03f93ae536eb36e6e5eb3714d5eb3300a36157add0
+        run: docker pull docker.io/library/node@sha256:3d27e5c11e5786e309ec3e03f93ae536eb36e6e5eb3714d5eb3300a36157add0
       - name: Exact MyEve composition, original six failures, accounting and isolation
         env:
           MYEVE_VALIDATION_POSTGRES_URL: postgresql://ux_fixture:local-only@localhost:55591/blocker_fixes
@@ -68,7 +70,7 @@ jobs:
           MYFACTORY_SOURCE_ROOT: ${{ github.workspace }}
           MYRELAY_SOURCE_ROOT: ${{ github.workspace }}/.qualification/relay
           MYEVE_EXTERNAL_ALPHA_PRODUCTIVE_FIXTURE: '1'
-          FACTORY_VERIFIER_DOCKER_IMAGE: public.ecr.aws/docker/library/node@sha256:3d27e5c11e5786e309ec3e03f93ae536eb36e6e5eb3714d5eb3300a36157add0
+          FACTORY_VERIFIER_DOCKER_IMAGE: docker.io/library/node@sha256:3d27e5c11e5786e309ec3e03f93ae536eb36e6e5eb3714d5eb3300a36157add0
         run: |
           npm exec --prefix .qualification/myeve --workspace apps/eve -- vitest run --fileParallelism=false \
             lib/engineering/production-validation-postgres.test.ts lib/engineering/production-validation-halt.test.ts \
