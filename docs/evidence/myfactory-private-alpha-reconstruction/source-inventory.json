@@ -74,7 +74,7 @@
     "packages/hosted-routing/src/result.ts": {
       "classification": "NOT_APPLICABLE",
       "authorityBoundary": "Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory. Consolidated boundary: Strict legacy snapshot V1 unchanged. Optional cloud-only independent verification is signature-bound, exact-shaped, candidate/policy/resource/chronology checked, and grants no readiness or publication by itself. Fabric boundary: Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory. Consolidated boundary: Pure canonical model-reference validation; no execution, provider selection, spending or publication authority. Canonical model grammar shared across executor, snapshot, pricing, ledger and result validation; identifiers remain unchanged and exact policy pinning remains mandatory.",
-      "sha256": "9f3ad70fad6310d9c46f9393db03e63c9af9a79b7ee0d55412916a6870209369"
+      "sha256": "9935c61e8c2684d2288ea5a483d804607e901985b71daa56612138720d32cf17"
     },
     "apps/supervisor/src/git.ts": {
       "sha256": "5969e10d9dd82a0413c56d25d4e92bb2deca2b749d1654e5d00bd04c419639d0",
@@ -337,7 +337,7 @@
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/postgres-verification.mjs": {
-      "sha256": "df52aa07e6adfd42ab66354240d70681f96ea4a698faa88ce772e264039b45ff",
+      "sha256": "069add839624515d0b2bc3c02bace2e85e4273e169f8c7eae016a5db482b40b8",
       "classification": "CLOUD_PROTECTED_VERIFICATION",
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
@@ -552,7 +552,7 @@
       "authorityBoundary": "Loads the private-source registry from a deploy-time secret input checked against a pinned sha256 of the exact bytes (absolute, non-symlink, not group or world writable when a file). No default and no repository content. Fails closed with PRIVATE_SOURCE_REGISTRY."
     },
     "apps/cloud-control/src/external-alpha-verifier.mjs": {
-      "sha256": "a8940afa6cacb38c310b119240233564cc27c61f4eae002b4cd3e17b401e9002",
+      "sha256": "b69237ba935e9971e4e234e4b5ccdfec5c8b454c336ccda17e60cac81a303a96",
       "classification": "INDEPENDENT_ACCEPTANCE_ADAPTER",
       "authorityBoundary": "Cloud adapter for the Alpha Tasks acceptance policy as the protected verifier. Production mode requires a host-built isolation attestation for an allow-listed runner; every missing, unattested, inconsistent or PARTIAL outcome throws VERIFIER_PARTIAL so the Run can never be accepted. PASS is the only path to a PASS check."
     },
