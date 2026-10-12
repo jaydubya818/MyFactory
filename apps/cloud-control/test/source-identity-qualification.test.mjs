@@ -14,7 +14,8 @@ import recovery from '../../../docs/capability-control/source-identity-20261010/
 
 import preparation from '../../../docs/myapps/current-main-source-qualification.json' with {type:'json'};
 
-import successor from '../../../docs/myapps/current-main-composition-qualification.json' with {type:'json'};
+import composition from '../../../docs/myapps/current-main-composition-qualification.json' with {type:'json'};
+import successor from '../../../docs/capability-control/retained-control-20261012/successor.json' with {type:'json'};
 
 test('inventoried source and configuration resolve to the exact qualified successor',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
@@ -28,10 +29,12 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.notEqual(historical.sourceDigest,source.sourceDigest);
  assert.equal(lifecycle.factoryVersion,recovery.predecessorFactoryVersion);
  assert.equal(recovery.factoryVersion,preparation.predecessorFactoryVersion);
- assert.equal(preparation.factoryVersion,successor.predecessorFactoryVersion);
+ assert.equal(preparation.factoryVersion,composition.predecessorFactoryVersion);
+ assert.equal(composition.factoryVersion,successor.predecessorFactoryVersion);
  assert.equal(lifecycle.sourceDigest,recovery.predecessorSourceDigest);
  assert.equal(recovery.sourceDigest,preparation.predecessorSourceDigest);
- assert.equal(preparation.sourceDigest,successor.predecessorSourceDigest);
+ assert.equal(preparation.sourceDigest,composition.predecessorSourceDigest);
+ assert.equal(composition.sourceDigest,successor.predecessorSourceDigest);
  assert.equal(successor.authority,'ISOLATED_SOURCE_QUALIFICATION_ONLY');
  assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
 });
@@ -40,6 +43,7 @@ test('coherent historical source or contract grants cannot consume successor aut
  const now=Date.now(),clientId='sofie-production',ownerScope='synthetic-identity-owner';
  const request={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,deadline:new Date(now+60000).toISOString()};
  const combinations=[
+  [composition.sourceDigest,composition.executionContractSha256,false],
   [successor.compatibilityBaseSourceDigest,successor.executionContractSha256,false],
   [preparation.sourceDigest,preparation.executionContractSha256,false],
   [recovery.sourceDigest,recovery.executionContractSha256,false],

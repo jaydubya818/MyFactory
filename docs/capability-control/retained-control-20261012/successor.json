@@ -1,0 +1,21 @@
+{
+  "schema": "factory-retained-control-source-qualification/v1",
+  "authority": "ISOLATED_SOURCE_QUALIFICATION_ONLY",
+  "baseCommit": "e36c92e1968a6fa5ffc72b3de3ad1cfebaa6e816",
+  "runtimeCandidateCommit": "18f226e70c169e3cf76b599f4fb65d712cf4ba40",
+  "sourceDigest": "14e9984eb50322e79103424bbcf135ea4dfe955f25ec545d0e7996c5ed62f684",
+  "configurationDigest": "415f52a554e8dbdcc48019609e4611f07085622abf5c91cd67b516e978a593ae",
+  "factoryVersion": "49513ee18e5e8eb0405578221f1bdfabcbf41d4347c291f6b8292538b9963678",
+  "executionContractSha256": "d7a24ed69b7d8267d4817961bd0ee22c76b6313650177b31322783dcc9d2d9a3",
+  "predecessorFactoryVersion": "b5d64b538842d49b0a8140ef49145ffa4e44fa601dd6016ed6efc180c0bf7f29",
+  "predecessorSourceDigest": "88d5cac68592267b3630b439614a057f94601f34f63323209721e9f1e3d503cb",
+  "historicalSourceDigest": "1c69113378ed82428d13a2f89452708204e171ac9cb952b0a725acff83844548",
+  "historicalExecutionContractSha256": "29ff7774ec7ac08a061f28fe2f81bff4a8f1124987f64a69a1b5cb8e21976b66",
+  "compatibilityBaseSourceDigest": "10a82f6797147a15068cd388d272f8790bec0a3969c52d4d7600029dbc2cf14d",
+  "qualification": "BOUNDED C2 LOCAL SOURCE CANDIDATE; exact final commit and test receipts recorded externally",
+  "compatibilityScope": "Retained authenticated control scope in the co-located qualification adapter only. Production receivers, canonical mappings, policy delivery and durable hosted witness remain unqualified.",
+  "productionIntegration": "NOT_RUN",
+  "merge": "HOLD",
+  "deployment": "HOLD",
+  "installedAuthority": "NONE; original approvals and installation-specific FactoryVersions retain their original identities"
+}

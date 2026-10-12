@@ -35,10 +35,16 @@ test('retained Factory capability controls use disposable PostgreSQL and no prov
   const rewrite=sql=>sql.replace(/\bfactory\.(verification_resources|candidate_custody|delivery_intents|intake_receipts|events|execution_resources|work_orders|runs|work_spend_budgets|work_spend_operations)\b/g,`${schema}.$1`).replaceAll('IN SCHEMA factory',`IN SCHEMA ${schema}`);
   for(const name of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification'])await admin.query(rewrite(await readFile(new URL(`../migrations/${name}.sql`,import.meta.url),'utf8')));
   const isolated={connect:async()=>{const client=await admin.connect();return{query:(sql,args)=>client.query(rewrite(sql),args),release:()=>client.release()};}};
-  const capability=await capabilityPolicyFixture(admin,schema,isolated,{'client-a':'owner-a','client-b':'owner-b'});
+  let policy;
+  const fixtureAdmin={query:(sql,args)=>{
+   const created=sql.match(/CREATE SCHEMA(?: IF NOT EXISTS)? (capability_test_[a-f0-9]+)/);
+   if(created){assert.equal(policy,undefined);policy=created[1];}
+   return admin.query(sql,args);
+  }};
+  const capability=await capabilityPolicyFixture(fixtureAdmin,schema,isolated,{'client-a':'owner-a','client-b':'owner-b'});
   t.after(async()=>{await capability.cleanup();await admin.query(`DROP SCHEMA ${schema} CASCADE`);});
-  const schemas=(await admin.query("SELECT nspname FROM pg_namespace WHERE nspname LIKE 'capability_test_%'")).rows;assert.equal(schemas.length,1);
-  const policy=schemas[0].nspname,scope=capability.bindings['client-a'];
+  assert.match(policy,/^capability_test_[a-f0-9]+$/);
+  const scope=capability.bindings['client-a'];
   const store=new PostgresDispatchStore(capability.pool,{capabilityBindings:capability.bindings});
   const source={repository:'fixture/retained-control',commit:'a'.repeat(40),tree:'b'.repeat(40)};
   const grant={clientId:'client-a',ownerScope:scope.ownerId,source,commands:['node --test'],allowedPaths:['fixture.mjs'],maxDurationMs:120000,maxSpendUsd:1};
@@ -89,7 +95,7 @@ test('retained Factory capability controls use disposable PostgreSQL and no prov
    pending=applyFactoryCapabilityControl(store,'client-a',id).then(value=>({value}),error=>({error}));
    const deadline=Date.now()+5000;let waiting=false;
    while(Date.now()<deadline){
-    waiting=(await f.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE 'SELECT %lock_admission_policy%' ")).rowCount>0;
+    waiting=(await f.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE 'SELECT capability_control.lock_admission_policy%' ")).rowCount>0;
     if(waiting)break;await new Promise(resolve=>setTimeout(resolve,10));
    }
    assert(waiting,'control must reach the canonical policy lock before the late fixture commit');

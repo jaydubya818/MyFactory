@@ -61,11 +61,12 @@ test('an exact old approval cannot authorize the successor execution contract', 
 
 import impact from '../../../docs/external-alpha/pricing-backport-20261011/identity-impact.json' with {type:'json'};
 import sourceIdentity from '../src/source-identity.json' with {type:'json'};
+import currentSuccessor from '../../../docs/capability-control/retained-control-20261012/successor.json' with {type:'json'};
 import {externalAlphaFactoryVersion,externalAlphaConfiguration,externalAlphaRuntimeComponents} from '../src/external-alpha-runtime.mjs';
 import {loadVectors,installationOf} from './fixtures/myeve-conformance/support.mjs';
 
 test('separate successor identity preserves configuration; an old installation cannot authorize it', () => {
- assert.equal(sourceIdentity.sourceDigest,'88d5cac68592267b3630b439614a057f94601f34f63323209721e9f1e3d503cb');
+ assert.equal(sourceIdentity.sourceDigest,currentSuccessor.sourceDigest);
  assert.equal(impact.newSourceDigest,'fb92947fa4822c225ea5d1924eec21a148fe185a91d37fc72d04a763fbde4982');
  const old=structuredClone(installationOf(loadVectors()));
  old.source={...old.source,sourceDigest:impact.oldSourceDigest};
