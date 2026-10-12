@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync, existsSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {join, dirname} from 'node:path';
-import {tmpdir} from 'node:os';
+import {tmpdir, homedir} from 'node:os';
+import {generateReleaseRecord} from './generate.mjs';
 import {assessRelease, filesDigest, sha256, COORDINATION_FILES} from './validate.mjs';
 import {retainedEvidenceDependencies, retainedEvidenceBinding, validateEvidenceSelection} from './retained-evidence.mjs';
 import {INSTALLATION_FIELDS, GOLDEN_STAGES, NEGATIVE_CASES, JOURNEY_IDENTITIES, pointerValue, verifyGoldenReceipt} from './installation-evidence.mjs';
@@ -220,4 +221,17 @@ test('explicit current receipts preserve their recorded sources, bounded checks 
  for(const pin of current){const bound=retainedEvidenceBinding(pin.id,{sha256:pin.recordSha256});assert.deepEqual(bound.dependencies,pin.dependencies);assert.deepEqual(bound.checks,pin.checks);assert.equal(bound.reviewer,pin.reviewer??null);assert(Object.isFrozen(bound.checks));assert.throws(()=>retainedEvidenceBinding(pin.id,{sha256:'0'.repeat(64)}),/PROVENANCE_UNQUALIFIED/);}
  const relay=current.find(pin=>pin.id==='relay-review');assert.equal(retainedEvidenceBinding(relay.id,{sha256:relay.recordSha256}).reviewer,'Codex:independent-existing-capability-workstream');
  const hosted=current.find(pin=>pin.id==='relay-hosted');assert(!Object.hasOwn(hosted.dependencies,'myeve.source'));assert(hosted.checks.some(check=>check.includes('frozen-myeve14f-and-consumer80')));
+});
+
+
+test('generator rejects output outside canonical temporary roots before creating files',t=>{
+  // Own only this fresh PUBLIC fixture under the user home, outside approved
+  // output roots. No existing home contents or private inputs are read.
+  const dir=mkdtempSync(join(homedir(),'coordination-output-boundary-public-'));
+  t.after(()=>rmSync(dir,{recursive:true,force:true}));
+  const outputDirectory=join(dir,'output');
+  // A missing PUBLIC input proves rejection precedes both output creation and
+  // input reads. Removing the confinement guard creates output and throws ENOENT.
+  assert.throws(()=>generateReleaseRecord({base:join(dir,'missing-public-input'),roots:{},outputDirectory}),/^Error: GENERATOR_OUTPUT_NOT_TEMPORARY$/);
+  assert.equal(existsSync(outputDirectory),false);
 });
