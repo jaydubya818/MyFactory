@@ -1,0 +1,1128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Unified beta release coordination record; never execution authority",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "releaseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recordedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "const": "COORDINATION_ONLY"
+    },
+    "canonicalAuthorizationPackage": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "root",
+        "path",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repository": {
+            "type": "string",
+            "minLength": 1
+          },
+          "branch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceSha": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          },
+          "parentShas": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            }
+          },
+          "sourceLineage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "currentPr": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceRoot": {
+            "type": "string",
+            "minLength": 1
+          },
+          "adoption": {
+            "type": "string",
+            "enum": [
+              "CANDIDATE",
+              "REHEARSAL",
+              "ACCEPTED"
+            ]
+          },
+          "runtimeIdentity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contractVersion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "factoryVersion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pricingId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pricingExpiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "migrations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "file": {
+                  "type": "object",
+                  "properties": {
+                    "root": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "root",
+                    "path",
+                    "sha256"
+                  ],
+                  "additionalProperties": false
+                },
+                "requires": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "file",
+                "requires"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "hostedEvidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "independentReview": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "deploymentEligibility": {
+            "const": "HELD"
+          },
+          "activationEligibility": {
+            "const": "HELD"
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "repository",
+          "branch",
+          "sourceSha",
+          "parentShas",
+          "sourceLineage",
+          "currentPr",
+          "sourceRoot",
+          "adoption",
+          "runtimeIdentity",
+          "contractVersion",
+          "factoryVersion",
+          "pricingId",
+          "pricingExpiresAt",
+          "migrations",
+          "dependencies",
+          "hostedEvidence",
+          "independentReview",
+          "evidence",
+          "deploymentEligibility",
+          "activationEligibility",
+          "blockers"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SOURCE",
+              "FILES",
+              "VALUE"
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "root": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "root": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "root",
+                "path",
+                "sha256"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "canonicalRecord": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "root": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "root",
+                  "path",
+                  "sha256"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pointer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "value",
+          "root",
+          "files",
+          "canonicalRecord",
+          "pointer"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "consumer": {
+            "type": "string",
+            "minLength": 1
+          },
+          "input": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "consumer",
+          "input",
+          "expected",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_RUN",
+              "NOT_QUALIFIED"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "UNIT",
+              "POSTGRES",
+              "COMPOSED",
+              "BROWSER",
+              "FRESH_CLONE",
+              "HOSTED",
+              "REVIEW",
+              "INSTALLED",
+              "LIVE",
+              "CUSTODY",
+              "CONTROLS"
+            ]
+          },
+          "record": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "root": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "root",
+                  "path",
+                  "sha256"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dependencies": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "suiteIdentity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environmentIdentity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reviewer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "implementationOwner": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "NOT_RUN",
+                    "NOT_QUALIFIED"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "blockedBy": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "scope",
+          "record",
+          "dependencies",
+          "required",
+          "suiteIdentity",
+          "environmentIdentity",
+          "reviewer",
+          "implementationOwner",
+          "expiresAt",
+          "checks",
+          "blockedBy",
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ownership": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project": {
+            "type": "string",
+            "minLength": 1
+          },
+          "objective": {
+            "type": "string",
+            "minLength": 1
+          },
+          "implementationOwner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verificationOwner": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repositories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "branch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "HELD",
+              "COMPLETE"
+            ]
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "requiredQualification": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "releaseImpact": {
+            "type": "string",
+            "minLength": 1
+          },
+          "approvalRequirements": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "BRANCH",
+                    "CONTRACT",
+                    "FACTORY_VERSION",
+                    "PRICING",
+                    "MIGRATION"
+                  ]
+                },
+                "key": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "kind",
+                "key",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "taskId",
+          "project",
+          "objective",
+          "implementationOwner",
+          "verificationOwner",
+          "repositories",
+          "branch",
+          "state",
+          "dependencies",
+          "requiredQualification",
+          "releaseImpact",
+          "approvalRequirements",
+          "claims"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "installations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "string",
+            "enum": [
+              "PLATFORM_OWNER",
+              "TESTER_1",
+              "TESTER_2"
+            ]
+          },
+          "canonicalRecord": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "root": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "root",
+                  "path",
+                  "sha256"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "canonicalPointers": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "identity": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ownerBinding": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "clerkApplication": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "missionControlWorkspace": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "myappsRegistry": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "relayConfiguration": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "capabilityPolicy": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "factoryVersion": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "identity",
+                  "ownerBinding",
+                  "clerkApplication",
+                  "missionControlWorkspace",
+                  "myappsRegistry",
+                  "relayConfiguration",
+                  "capabilityPolicy",
+                  "factoryVersion"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ownerBinding": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "clerkApplication": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missionControlWorkspace": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "myappsRegistry": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relayConfiguration": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capabilityPolicy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "factoryVersion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "qualificationEvidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "slot",
+          "canonicalRecord",
+          "canonicalPointers",
+          "identity",
+          "ownerBinding",
+          "clerkApplication",
+          "missionControlWorkspace",
+          "myappsRegistry",
+          "relayConfiguration",
+          "capabilityPolicy",
+          "factoryVersion",
+          "qualificationEvidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "goldenJourney": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_RUN",
+            "NOT_QUALIFIED"
+          ]
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "negativeCases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "status",
+        "evidence",
+        "stages",
+        "negativeCases"
+      ],
+      "additionalProperties": false
+    },
+    "authorization": {
+      "type": "object",
+      "properties": {
+        "record": {
+          "type": "object",
+          "properties": {
+            "root": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "root",
+            "path",
+            "sha256"
+          ],
+          "additionalProperties": false
+        },
+        "development": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "qualification": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "production": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "holds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "custodyOwner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "custodyRetryAuthorized": {
+          "const": false
+        },
+        "productionAuthorized": {
+          "const": false
+        },
+        "pricingRenewal": {
+          "type": "object",
+          "properties": {
+            "record": {
+              "type": "object",
+              "properties": {
+                "root": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "root",
+                "path",
+                "sha256"
+              ],
+              "additionalProperties": false
+            },
+            "expiresAt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "owner": {
+              "type": "string",
+              "minLength": 1
+            },
+            "procedure": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "record",
+            "expiresAt",
+            "owner",
+            "procedure"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "record",
+        "development",
+        "qualification",
+        "production",
+        "holds",
+        "custodyOwner",
+        "custodyRetryAuthorized",
+        "productionAuthorized",
+        "pricingRenewal"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "releaseId",
+    "recordedAt",
+    "authority",
+    "canonicalAuthorizationPackage",
+    "components",
+    "inputs",
+    "requirements",
+    "evidence",
+    "ownership",
+    "installations",
+    "goldenJourney",
+    "authorization"
+  ],
+  "additionalProperties": false
+}

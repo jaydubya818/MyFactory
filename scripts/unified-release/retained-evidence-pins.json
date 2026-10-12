@@ -1,0 +1,174 @@
+{
+  "schema": "retained-evidence-source-pins/v1",
+  "historicalManifestCommit": "89e60d2a5f4ce8468315533774b33f384993655b",
+  "historicalManifestSha256": "2cc9849e26b060179c9007dd4405dea290a9a3109251d42dcf66a5b0c7e725a4",
+  "entries": {
+    "myeve-hosted": {
+      "recordSha256": "29dd386a48f7b86aab0412cc93ff8cddf56bfd6934b9e86b129765f0847d311b",
+      "dependencies": {
+        "myeve.source": "14f07f403ffeac07f9ba5839130e38849dafefed",
+        "missioncontrol.source": "af521c92c05a1c79d1aff11510efea8dcf23e350",
+        "myeve.contract": "55ec4206e2bda1660df3caf1748311fbc2d760523f74e98edcedb0681d25d070"
+      }
+    },
+    "myeve-owner-hosted": {
+      "recordSha256": "7d2e4b576fa99c11aa4c2bd89ed559fe7babab80a52fa9ab68a93f3909f7b9f8",
+      "dependencies": {
+        "myeve.source": "14f07f403ffeac07f9ba5839130e38849dafefed"
+      }
+    },
+    "missioncontrol-hosted": {
+      "recordSha256": "53b92a7a6e055c7a891c93233ecc894b76845f55fa397554906858a2bfd323ef",
+      "dependencies": {
+        "missioncontrol.source": "af521c92c05a1c79d1aff11510efea8dcf23e350"
+      }
+    },
+    "factory-hosted": {
+      "recordSha256": "2946df1ffbae0d19ab656d60f4d1b54603a3d571a2d5da3061b84fa692bb3170",
+      "dependencies": {
+        "myfactory.source": "e36c92e1968a6fa5ffc72b3de3ad1cfebaa6e816",
+        "factory.runtime-source": "88d5cac68592267b3630b439614a057f94601f34f63323209721e9f1e3d503cb",
+        "pricing.identity": "openai-mini-20261010-v2"
+      }
+    },
+    "relay-hosted": {
+      "recordSha256": "d098dade2f9db9f0c8273cdca6ad71d1ca05afbb4be043719aaeafd09d56d096",
+      "dependencies": {
+        "relay.source": "1aec4e728a1979b62d9141b39d405f404b344f6d",
+        "relay-consumer.source": "80f759c3eeca318811113856ae9bc4d62c1aa271",
+        "myeve.source": "14f07f403ffeac07f9ba5839130e38849dafefed"
+      }
+    },
+    "myeve-mc-review": {
+      "recordSha256": "f964a32659f3438d8b0e64a796587c5d6cdb294b19333418d60ec5a70ffe5a4f",
+      "dependencies": {
+        "myeve.source": "14f07f403ffeac07f9ba5839130e38849dafefed",
+        "missioncontrol.source": "af521c92c05a1c79d1aff11510efea8dcf23e350"
+      }
+    },
+    "relay-review": {
+      "recordSha256": "8fb242644b55fb581f8a02fb7a2407f0a772204d2ef0e1fbe825a013d17a100f",
+      "dependencies": {
+        "relay.source": "1aec4e728a1979b62d9141b39d405f404b344f6d",
+        "relay-consumer.source": "80f759c3eeca318811113856ae9bc4d62c1aa271"
+      }
+    },
+    "myapps-migration": {
+      "recordSha256": "6616765845edc3908ed2ae7ebcb9f3a93ebd349b8c8f0796c3bd6bb8ae90945d",
+      "dependencies": {
+        "myeve.migrations": "dfaf12bc568c693cb6a7793aae0a5ef9bcdd45422c1316d722dc3f3eb01c7a1d",
+        "factory.migrations": "48f672fd14d27e0190c5d274201bd43d3bf10fd0748d0058f3811af43e5e6fe2"
+      }
+    },
+    "factory-source-provenance-review": {
+      "recordSha256": "94a659b7e092c92a5877390159f02f178d27c2f85da862c7f03df84e28b6e050",
+      "dependencies": {
+        "myfactory.source": "e36c92e1968a6fa5ffc72b3de3ad1cfebaa6e816",
+        "factory.runtime-source": "88d5cac68592267b3630b439614a057f94601f34f63323209721e9f1e3d503cb"
+      }
+    }
+  },
+  "currentEntries": [
+    {
+      "id": "myeve-hosted",
+      "recordSha256": "58a97c5d54d7d9a05d6e82f52a0bc6ebbabfceddf59e7f29bc64e28b8529a11a",
+      "dependencies": {
+        "myeve.source": "371af5a63505f446e2ddad6e47fb96d943af9627",
+        "missioncontrol.source": "f9bcd0df4bb970a36a43599b00d724b07f300ad0",
+        "myfactory.source": "e36c92e1968a6fa5ffc72b3de3ad1cfebaa6e816",
+        "relay.source": "b25a90c3ebeaeff731c26690e289331142dae904",
+        "myeve.contract": "f5572036d5a7636d2bc0d8d9bc55a6121b55027ae2acaafe16f4ba031177ba7c"
+      },
+      "checks": [
+        "unified-beta-38285118956-nine-jobs-pass-with-one-retained-setup-failure-and-one-successful-same-source-retry",
+        "myapps-reference-38285119032-two-jobs",
+        "myapps-qe-38285119049-three-jobs"
+      ]
+    },
+    {
+      "id": "myeve-owner-hosted",
+      "recordSha256": "58a97c5d54d7d9a05d6e82f52a0bc6ebbabfceddf59e7f29bc64e28b8529a11a",
+      "dependencies": {
+        "myeve.source": "371af5a63505f446e2ddad6e47fb96d943af9627"
+      },
+      "checks": [
+        "owner-ux-38285119110-four-jobs-pass"
+      ]
+    },
+    {
+      "id": "missioncontrol-hosted",
+      "recordSha256": "58a97c5d54d7d9a05d6e82f52a0bc6ebbabfceddf59e7f29bc64e28b8529a11a",
+      "dependencies": {
+        "missioncontrol.source": "f9bcd0df4bb970a36a43599b00d724b07f300ad0"
+      },
+      "checks": [
+        "missioncontrol-38282429618-ten-jobs-pass"
+      ]
+    },
+    {
+      "id": "myeve-mc-review",
+      "recordSha256": "79a03536d32aa5f7413c850a43415ba1ac3cc88e63d117121a166cfc563e3206",
+      "dependencies": {
+        "myeve.source": "371af5a63505f446e2ddad6e47fb96d943af9627",
+        "missioncontrol.source": "f9bcd0df4bb970a36a43599b00d724b07f300ad0"
+      },
+      "checks": [
+        "actual-claude-49-path-myeve-delta-since299-and-mc-verifier-cache-admission-read-no-high-or-medium",
+        "227-unit-150-affected-postgres-11-witness-38-builder-18-hydrated-browser-claude-executed"
+      ],
+      "reviewer": "Claude:independent-current-source-review"
+    },
+    {
+      "id": "relay-review",
+      "recordSha256": "e91fde97fec13592080f6ae28d4fc1c2bd5c8faf30a6b6867ed3f771b821a655",
+      "dependencies": {
+        "relay.source": "b25a90c3ebeaeff731c26690e289331142dae904",
+        "relay-consumer.source": "80f759c3eeca318811113856ae9bc4d62c1aa271"
+      },
+      "checks": [
+        "independent-11-file-1aec-to-b25-authenticated-lease-delta-no-blocking-finding",
+        "selected-consumer80-27-frozen-contract-groups-unchanged"
+      ],
+      "reviewer": "Codex:independent-existing-capability-workstream"
+    },
+    {
+      "id": "myapps-migration",
+      "recordSha256": "9c5e0606a2c4a76ee7d1d7769651c8c74752a9567f397398c430cfb03b52cb76",
+      "dependencies": {
+        "myeve.source": "371af5a63505f446e2ddad6e47fb96d943af9627",
+        "myfactory.source": "e36c92e1968a6fa5ffc72b3de3ad1cfebaa6e816",
+        "myeve.migrations": "54df3deca967429d82856fc957b07df6ab2429bf60e4e689b8446a776a962d1b",
+        "factory.migrations": "48f672fd14d27e0190c5d274201bd43d3bf10fd0748d0058f3811af43e5e6fe2"
+      },
+      "checks": [
+        "exact371-e36-hosted-33-disposable-migration-interruption-and-real-backup-restore-checks",
+        "migration-failure-harness-one-pass-zero-fail-skip-todo",
+        "both-current-ci-migration-steps-success"
+      ]
+    },
+    {
+      "id": "factory-hosted",
+      "recordSha256": "0be82a6198c045e0e290726bc8a57e2bc4b1b0d8ab382af3e92a729940387b15",
+      "dependencies": {
+        "myfactory.source": "e36c92e1968a6fa5ffc72b3de3ad1cfebaa6e816",
+        "factory.runtime-source": "88d5cac68592267b3630b439614a057f94601f34f63323209721e9f1e3d503cb",
+        "pricing.identity": "openai-mini-20261010-v2"
+      },
+      "checks": [
+        "exact-e36-environment-fabric-run38170107654-one-job-pass"
+      ]
+    },
+    {
+      "id": "relay-hosted",
+      "recordSha256": "babbc541cc7c1a0ad6401d75cd73f04e835edb71fc95112f696aad88f81af2cc",
+      "dependencies": {
+        "relay.source": "b25a90c3ebeaeff731c26690e289331142dae904",
+        "relay-consumer.source": "80f759c3eeca318811113856ae9bc4d62c1aa271"
+      },
+      "checks": [
+        "exact-b25-relay-quality-run38217984087-one-job-pass",
+        "exact-b25-capability-control-run38217980557-two-jobs-pass-frozen-myeve14f-and-consumer80-fixtures"
+      ]
+    }
+  ]
+}

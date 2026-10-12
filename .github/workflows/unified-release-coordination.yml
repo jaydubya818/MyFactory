@@ -1,0 +1,41 @@
+name: Unified release coordination
+
+on:
+  push:
+    branches: [codex/mission-control-release-coordination]
+    paths:
+      - scripts/unified-release/**
+      - docs/releases/unified-beta/release-manifest.json
+      - docs/releases/unified-beta/release-manifest.schema.json
+      - .github/workflows/unified-release-coordination.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unified-release-coordination-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coordination:
+    name: Release coordination behavior
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - name: Record exact candidate
+        run: git rev-parse HEAD
+      - name: Run coordination behavior and negative checks
+        run: node --test --test-reporter=tap scripts/unified-release/validate.test.mjs scripts/unified-release/evidence.test.mjs
+
+# This job uses no product credentials, services or package installation. It
+# qualifies the tool's behavior only. Missing operator roots and installed
+# evidence are not supplied by CI, and green tests never grant release authority.

@@ -1,0 +1,3732 @@
+{
+  "schemaVersion": 2,
+  "releaseId": "public-coordination-fixture-v2",
+  "recordedAt": "2026-10-11T00:00:00.000Z",
+  "authority": "COORDINATION_ONLY",
+  "canonicalAuthorizationPackage": {
+    "root": "fixture",
+    "path": "evidence.json",
+    "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "components": [
+    {
+      "id": "myeve",
+      "repository": "public-fixture/myeve",
+      "branch": "fixture",
+      "sourceSha": "1111111111111111111111111111111111111111",
+      "parentShas": [],
+      "sourceRoot": "myeve",
+      "sourceLineage": "PUBLIC_FIXTURE_ONLY",
+      "currentPr": null,
+      "adoption": "REHEARSAL",
+      "runtimeIdentity": null,
+      "contractVersion": "mc-service-command-v1",
+      "factoryVersion": null,
+      "pricingId": "public-fixture-pricing.identity",
+      "pricingExpiresAt": "2026-10-17T00:00:00.000Z",
+      "migrations": [
+        {
+          "id": "0001",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": []
+        },
+        {
+          "id": "0002",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0001"
+          ]
+        },
+        {
+          "id": "0003",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0002"
+          ]
+        },
+        {
+          "id": "0004",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0003"
+          ]
+        },
+        {
+          "id": "0005",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0004"
+          ]
+        },
+        {
+          "id": "0006",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0005"
+          ]
+        },
+        {
+          "id": "0007",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0006"
+          ]
+        },
+        {
+          "id": "0008",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0007"
+          ]
+        },
+        {
+          "id": "0009",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0008"
+          ]
+        },
+        {
+          "id": "0010",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0009"
+          ]
+        },
+        {
+          "id": "0011",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0010"
+          ]
+        },
+        {
+          "id": "0012",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0011"
+          ]
+        },
+        {
+          "id": "0013",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0012"
+          ]
+        },
+        {
+          "id": "0014",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0013"
+          ]
+        },
+        {
+          "id": "0015",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0014"
+          ]
+        },
+        {
+          "id": "0016",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0015"
+          ]
+        },
+        {
+          "id": "0017",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0016"
+          ]
+        },
+        {
+          "id": "0018",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0017"
+          ]
+        },
+        {
+          "id": "0019",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0018"
+          ]
+        },
+        {
+          "id": "0020",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0019"
+          ]
+        },
+        {
+          "id": "0021",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0020"
+          ]
+        },
+        {
+          "id": "0022",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0021"
+          ]
+        },
+        {
+          "id": "0023",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0022"
+          ]
+        },
+        {
+          "id": "0024",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0023"
+          ]
+        },
+        {
+          "id": "0025",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0024"
+          ]
+        },
+        {
+          "id": "0026",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0025"
+          ]
+        },
+        {
+          "id": "0027",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0026"
+          ]
+        },
+        {
+          "id": "0028",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0027"
+          ]
+        },
+        {
+          "id": "0029",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0028"
+          ]
+        },
+        {
+          "id": "0030",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0029"
+          ]
+        },
+        {
+          "id": "0031",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0030"
+          ]
+        },
+        {
+          "id": "0032",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0031"
+          ]
+        },
+        {
+          "id": "0033",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0032"
+          ]
+        },
+        {
+          "id": "0034",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0033"
+          ]
+        },
+        {
+          "id": "0035",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0034"
+          ]
+        },
+        {
+          "id": "0036",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0035"
+          ]
+        },
+        {
+          "id": "0037",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0036"
+          ]
+        },
+        {
+          "id": "0038",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0037"
+          ]
+        },
+        {
+          "id": "0039",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0038"
+          ]
+        },
+        {
+          "id": "0040",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0039"
+          ]
+        },
+        {
+          "id": "0041",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0040"
+          ]
+        },
+        {
+          "id": "0042",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0041"
+          ]
+        },
+        {
+          "id": "0043",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0042"
+          ]
+        },
+        {
+          "id": "0044",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0043"
+          ]
+        },
+        {
+          "id": "0045",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0044"
+          ]
+        },
+        {
+          "id": "0046",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0045"
+          ]
+        },
+        {
+          "id": "0047",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0046"
+          ]
+        },
+        {
+          "id": "0048",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0047"
+          ]
+        },
+        {
+          "id": "0049",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0048"
+          ]
+        },
+        {
+          "id": "0050",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0049"
+          ]
+        },
+        {
+          "id": "0051",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0050"
+          ]
+        },
+        {
+          "id": "0052",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0051"
+          ]
+        },
+        {
+          "id": "0053",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0052"
+          ]
+        },
+        {
+          "id": "0054",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0053"
+          ]
+        },
+        {
+          "id": "0055",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0054"
+          ]
+        },
+        {
+          "id": "0056",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0055"
+          ]
+        },
+        {
+          "id": "0057",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0056"
+          ]
+        },
+        {
+          "id": "0062",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0057"
+          ]
+        },
+        {
+          "id": "0063",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0062"
+          ]
+        },
+        {
+          "id": "0064",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0063"
+          ]
+        },
+        {
+          "id": "0065",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0064"
+          ]
+        },
+        {
+          "id": "0066",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0065"
+          ]
+        },
+        {
+          "id": "0067",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0066"
+          ]
+        },
+        {
+          "id": "0068",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0067"
+          ]
+        },
+        {
+          "id": "0069",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0068"
+          ]
+        },
+        {
+          "id": "0070",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0069"
+          ]
+        },
+        {
+          "id": "0071",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0070"
+          ]
+        },
+        {
+          "id": "0072",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0071"
+          ]
+        },
+        {
+          "id": "0073",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0072"
+          ]
+        },
+        {
+          "id": "0074",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0073"
+          ]
+        },
+        {
+          "id": "0075",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0074"
+          ]
+        },
+        {
+          "id": "0076",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0075"
+          ]
+        },
+        {
+          "id": "0077",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0076"
+          ]
+        },
+        {
+          "id": "0078",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0077"
+          ]
+        },
+        {
+          "id": "0079",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0078"
+          ]
+        },
+        {
+          "id": "0080",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0079"
+          ]
+        },
+        {
+          "id": "0081",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0080"
+          ]
+        },
+        {
+          "id": "0082",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0081"
+          ]
+        },
+        {
+          "id": "0083",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0082"
+          ]
+        },
+        {
+          "id": "0084",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0083"
+          ]
+        },
+        {
+          "id": "0085",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0084"
+          ]
+        },
+        {
+          "id": "0086",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0085"
+          ]
+        },
+        {
+          "id": "0087",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0086"
+          ]
+        },
+        {
+          "id": "0088",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0087"
+          ]
+        },
+        {
+          "id": "0089",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0088"
+          ]
+        },
+        {
+          "id": "0090",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0089"
+          ]
+        },
+        {
+          "id": "0091",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0090"
+          ]
+        },
+        {
+          "id": "0092",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0091"
+          ]
+        },
+        {
+          "id": "0093",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0092"
+          ]
+        }
+      ],
+      "dependencies": [
+        "missioncontrol",
+        "relay",
+        "myapps",
+        "capability-control"
+      ],
+      "hostedEvidence": [
+        "myeve-hosted",
+        "myeve-owner-hosted"
+      ],
+      "independentReview": [
+        "myeve-mc-review"
+      ],
+      "evidence": [
+        "myeve-hosted",
+        "myeve-owner-hosted",
+        "myeve-mc-review"
+      ],
+      "deploymentEligibility": "HELD",
+      "activationEligibility": "HELD",
+      "blockers": [
+        "Clerk integration and release ancestry not qualified"
+      ]
+    },
+    {
+      "id": "myfactory",
+      "repository": "public-fixture/myfactory",
+      "branch": "fixture",
+      "sourceSha": "2222222222222222222222222222222222222222",
+      "parentShas": [],
+      "sourceRoot": "myfactory",
+      "sourceLineage": "PUBLIC_FIXTURE_ONLY",
+      "currentPr": null,
+      "adoption": "CANDIDATE",
+      "runtimeIdentity": null,
+      "contractVersion": "WORK_LEDGER_V2",
+      "factoryVersion": null,
+      "pricingId": "public-fixture-pricing.identity",
+      "pricingExpiresAt": "2026-10-17T00:00:00.000Z",
+      "migrations": [
+        {
+          "id": "001",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": []
+        },
+        {
+          "id": "002",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "001"
+          ]
+        },
+        {
+          "id": "003",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "002"
+          ]
+        },
+        {
+          "id": "004",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "003"
+          ]
+        },
+        {
+          "id": "005",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "004"
+          ]
+        },
+        {
+          "id": "006",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "005"
+          ]
+        },
+        {
+          "id": "007",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "006"
+          ]
+        },
+        {
+          "id": "008",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "007"
+          ]
+        },
+        {
+          "id": "009",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "008"
+          ]
+        },
+        {
+          "id": "010",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "009"
+          ]
+        },
+        {
+          "id": "011",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "010"
+          ]
+        },
+        {
+          "id": "012",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "011"
+          ]
+        }
+      ],
+      "dependencies": [
+        "capability-control"
+      ],
+      "hostedEvidence": [
+        "factory-hosted"
+      ],
+      "independentReview": [
+        "factory-review"
+      ],
+      "evidence": [
+        "factory-hosted",
+        "factory-review"
+      ],
+      "deploymentEligibility": "HELD",
+      "activationEligibility": "HELD",
+      "blockers": [
+        "Installed integration not qualified"
+      ]
+    },
+    {
+      "id": "missioncontrol",
+      "repository": "public-fixture/missioncontrol",
+      "branch": "fixture",
+      "sourceSha": "3333333333333333333333333333333333333333",
+      "parentShas": [],
+      "sourceRoot": "missioncontrol",
+      "sourceLineage": "PUBLIC_FIXTURE_ONLY",
+      "currentPr": null,
+      "adoption": "CANDIDATE",
+      "runtimeIdentity": null,
+      "contractVersion": "mc-service-command-v1",
+      "factoryVersion": null,
+      "pricingId": null,
+      "pricingExpiresAt": null,
+      "migrations": [],
+      "dependencies": [
+        "myfactory",
+        "capability-control"
+      ],
+      "hostedEvidence": [
+        "missioncontrol-hosted"
+      ],
+      "independentReview": [
+        "myeve-mc-review"
+      ],
+      "evidence": [
+        "missioncontrol-hosted",
+        "myeve-mc-review"
+      ],
+      "deploymentEligibility": "HELD",
+      "activationEligibility": "HELD",
+      "blockers": [
+        "Installed integration not qualified"
+      ]
+    },
+    {
+      "id": "myapps",
+      "repository": "public-fixture/myapps",
+      "branch": "fixture",
+      "sourceSha": "1111111111111111111111111111111111111111",
+      "parentShas": [],
+      "sourceRoot": "myeve",
+      "sourceLineage": "PUBLIC_FIXTURE_ONLY",
+      "currentPr": null,
+      "adoption": "REHEARSAL",
+      "runtimeIdentity": null,
+      "contractVersion": "myapps.production-authorization-draft.v1",
+      "factoryVersion": null,
+      "pricingId": "public-fixture-pricing.identity",
+      "pricingExpiresAt": "2026-10-17T00:00:00.000Z",
+      "migrations": [
+        {
+          "id": "0001",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": []
+        },
+        {
+          "id": "0002",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0001"
+          ]
+        },
+        {
+          "id": "0003",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0002"
+          ]
+        },
+        {
+          "id": "0004",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0003"
+          ]
+        },
+        {
+          "id": "0005",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0004"
+          ]
+        },
+        {
+          "id": "0006",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0005"
+          ]
+        },
+        {
+          "id": "0007",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0006"
+          ]
+        },
+        {
+          "id": "0008",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0007"
+          ]
+        },
+        {
+          "id": "0009",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0008"
+          ]
+        },
+        {
+          "id": "0010",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0009"
+          ]
+        },
+        {
+          "id": "0011",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0010"
+          ]
+        },
+        {
+          "id": "0012",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0011"
+          ]
+        },
+        {
+          "id": "0013",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0012"
+          ]
+        },
+        {
+          "id": "0014",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0013"
+          ]
+        },
+        {
+          "id": "0015",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0014"
+          ]
+        },
+        {
+          "id": "0016",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0015"
+          ]
+        },
+        {
+          "id": "0017",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0016"
+          ]
+        },
+        {
+          "id": "0018",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0017"
+          ]
+        },
+        {
+          "id": "0019",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0018"
+          ]
+        },
+        {
+          "id": "0020",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0019"
+          ]
+        },
+        {
+          "id": "0021",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0020"
+          ]
+        },
+        {
+          "id": "0022",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0021"
+          ]
+        },
+        {
+          "id": "0023",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0022"
+          ]
+        },
+        {
+          "id": "0024",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0023"
+          ]
+        },
+        {
+          "id": "0025",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0024"
+          ]
+        },
+        {
+          "id": "0026",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0025"
+          ]
+        },
+        {
+          "id": "0027",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0026"
+          ]
+        },
+        {
+          "id": "0028",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0027"
+          ]
+        },
+        {
+          "id": "0029",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0028"
+          ]
+        },
+        {
+          "id": "0030",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0029"
+          ]
+        },
+        {
+          "id": "0031",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0030"
+          ]
+        },
+        {
+          "id": "0032",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0031"
+          ]
+        },
+        {
+          "id": "0033",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0032"
+          ]
+        },
+        {
+          "id": "0034",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0033"
+          ]
+        },
+        {
+          "id": "0035",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0034"
+          ]
+        },
+        {
+          "id": "0036",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0035"
+          ]
+        },
+        {
+          "id": "0037",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0036"
+          ]
+        },
+        {
+          "id": "0038",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0037"
+          ]
+        },
+        {
+          "id": "0039",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0038"
+          ]
+        },
+        {
+          "id": "0040",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0039"
+          ]
+        },
+        {
+          "id": "0041",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0040"
+          ]
+        },
+        {
+          "id": "0042",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0041"
+          ]
+        },
+        {
+          "id": "0043",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0042"
+          ]
+        },
+        {
+          "id": "0044",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0043"
+          ]
+        },
+        {
+          "id": "0045",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0044"
+          ]
+        },
+        {
+          "id": "0046",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0045"
+          ]
+        },
+        {
+          "id": "0047",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0046"
+          ]
+        },
+        {
+          "id": "0048",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0047"
+          ]
+        },
+        {
+          "id": "0049",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0048"
+          ]
+        },
+        {
+          "id": "0050",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0049"
+          ]
+        },
+        {
+          "id": "0051",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0050"
+          ]
+        },
+        {
+          "id": "0052",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0051"
+          ]
+        },
+        {
+          "id": "0053",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0052"
+          ]
+        },
+        {
+          "id": "0054",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0053"
+          ]
+        },
+        {
+          "id": "0055",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0054"
+          ]
+        },
+        {
+          "id": "0056",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0055"
+          ]
+        },
+        {
+          "id": "0057",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0056"
+          ]
+        },
+        {
+          "id": "0062",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0057"
+          ]
+        },
+        {
+          "id": "0063",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0062"
+          ]
+        },
+        {
+          "id": "0064",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0063"
+          ]
+        },
+        {
+          "id": "0065",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0064"
+          ]
+        },
+        {
+          "id": "0066",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0065"
+          ]
+        },
+        {
+          "id": "0067",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0066"
+          ]
+        },
+        {
+          "id": "0068",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0067"
+          ]
+        },
+        {
+          "id": "0069",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0068"
+          ]
+        },
+        {
+          "id": "0070",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0069"
+          ]
+        },
+        {
+          "id": "0071",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0070"
+          ]
+        },
+        {
+          "id": "0072",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0071"
+          ]
+        },
+        {
+          "id": "0073",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0072"
+          ]
+        },
+        {
+          "id": "0074",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0073"
+          ]
+        },
+        {
+          "id": "0075",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0074"
+          ]
+        },
+        {
+          "id": "0076",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0075"
+          ]
+        },
+        {
+          "id": "0077",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0076"
+          ]
+        },
+        {
+          "id": "0078",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0077"
+          ]
+        },
+        {
+          "id": "0079",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0078"
+          ]
+        },
+        {
+          "id": "0080",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0079"
+          ]
+        },
+        {
+          "id": "0081",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0080"
+          ]
+        },
+        {
+          "id": "0082",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0081"
+          ]
+        },
+        {
+          "id": "0083",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0082"
+          ]
+        },
+        {
+          "id": "0084",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0083"
+          ]
+        },
+        {
+          "id": "0085",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0084"
+          ]
+        },
+        {
+          "id": "0086",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0085"
+          ]
+        },
+        {
+          "id": "0087",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0086"
+          ]
+        },
+        {
+          "id": "0088",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0087"
+          ]
+        },
+        {
+          "id": "0089",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0088"
+          ]
+        },
+        {
+          "id": "0090",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0089"
+          ]
+        },
+        {
+          "id": "0091",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0090"
+          ]
+        },
+        {
+          "id": "0092",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0091"
+          ]
+        },
+        {
+          "id": "0093",
+          "file": {
+            "root": "fixture",
+            "path": "evidence.json",
+            "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "requires": [
+            "0092"
+          ]
+        }
+      ],
+      "dependencies": [
+        "myfactory",
+        "capability-control"
+      ],
+      "hostedEvidence": [
+        "myeve-hosted"
+      ],
+      "independentReview": [
+        "myeve-mc-review"
+      ],
+      "evidence": [
+        "myeve-hosted",
+        "myeve-mc-review"
+      ],
+      "deploymentEligibility": "HELD",
+      "activationEligibility": "HELD",
+      "blockers": [
+        "Installed integration not qualified"
+      ]
+    },
+    {
+      "id": "relay",
+      "repository": "public-fixture/relay",
+      "branch": "fixture",
+      "sourceSha": "4444444444444444444444444444444444444444",
+      "parentShas": [],
+      "sourceRoot": "relay",
+      "sourceLineage": "PUBLIC_FIXTURE_ONLY",
+      "currentPr": null,
+      "adoption": "CANDIDATE",
+      "runtimeIdentity": null,
+      "contractVersion": "relay.native-admission.v1",
+      "factoryVersion": null,
+      "pricingId": null,
+      "pricingExpiresAt": null,
+      "migrations": [],
+      "dependencies": [
+        "capability-control"
+      ],
+      "hostedEvidence": [
+        "relay-hosted"
+      ],
+      "independentReview": [
+        "relay-review"
+      ],
+      "evidence": [
+        "relay-hosted",
+        "relay-review"
+      ],
+      "deploymentEligibility": "HELD",
+      "activationEligibility": "HELD",
+      "blockers": [
+        "Installed policy/recovery witnesses missing; remote Composio execution disabled"
+      ]
+    },
+    {
+      "id": "capability-control",
+      "repository": "public-fixture/capability-control",
+      "branch": "fixture",
+      "sourceSha": "3333333333333333333333333333333333333333",
+      "parentShas": [],
+      "sourceRoot": "missioncontrol",
+      "sourceLineage": "PUBLIC_FIXTURE_ONLY",
+      "currentPr": null,
+      "adoption": "CANDIDATE",
+      "runtimeIdentity": null,
+      "contractVersion": "qualified-capability-control",
+      "factoryVersion": null,
+      "pricingId": null,
+      "pricingExpiresAt": null,
+      "migrations": [],
+      "dependencies": [
+        "missioncontrol"
+      ],
+      "hostedEvidence": [
+        "missioncontrol-hosted"
+      ],
+      "independentReview": [
+        "myeve-mc-review"
+      ],
+      "evidence": [
+        "missioncontrol-hosted",
+        "myeve-mc-review"
+      ],
+      "deploymentEligibility": "HELD",
+      "activationEligibility": "HELD",
+      "blockers": [
+        "Installed integration not qualified"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "myeve.source",
+      "kind": "SOURCE",
+      "value": "1111111111111111111111111111111111111111",
+      "root": "myeve",
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "myfactory.source",
+      "kind": "SOURCE",
+      "value": "2222222222222222222222222222222222222222",
+      "root": "myfactory",
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "missioncontrol.source",
+      "kind": "SOURCE",
+      "value": "3333333333333333333333333333333333333333",
+      "root": "missioncontrol",
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "myapps.source",
+      "kind": "SOURCE",
+      "value": "1111111111111111111111111111111111111111",
+      "root": "myeve",
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "relay.source",
+      "kind": "SOURCE",
+      "value": "4444444444444444444444444444444444444444",
+      "root": "relay",
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "capability-control.source",
+      "kind": "SOURCE",
+      "value": "3333333333333333333333333333333333333333",
+      "root": "missioncontrol",
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "relay-consumer.source",
+      "kind": "SOURCE",
+      "value": "5555555555555555555555555555555555555555",
+      "root": "relay-consumer",
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "myeve.contract",
+      "kind": "FILES",
+      "value": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+      "root": null,
+      "files": [
+        {
+          "root": "fixture",
+          "path": "evidence.json",
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        }
+      ],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "factory.execution",
+      "kind": "FILES",
+      "value": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+      "root": null,
+      "files": [
+        {
+          "root": "fixture",
+          "path": "evidence.json",
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        }
+      ],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "missioncontrol.contract",
+      "kind": "FILES",
+      "value": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+      "root": null,
+      "files": [
+        {
+          "root": "fixture",
+          "path": "evidence.json",
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        }
+      ],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "capability.contract",
+      "kind": "FILES",
+      "value": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+      "root": null,
+      "files": [
+        {
+          "root": "fixture",
+          "path": "evidence.json",
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        }
+      ],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "relay.contract",
+      "kind": "FILES",
+      "value": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+      "root": null,
+      "files": [
+        {
+          "root": "fixture",
+          "path": "evidence.json",
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        }
+      ],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "myeve.migrations",
+      "kind": "FILES",
+      "value": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+      "root": null,
+      "files": [
+        {
+          "root": "fixture",
+          "path": "evidence.json",
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        }
+      ],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "factory.migrations",
+      "kind": "FILES",
+      "value": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+      "root": null,
+      "files": [
+        {
+          "root": "fixture",
+          "path": "evidence.json",
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        }
+      ],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "pricing.identity",
+      "kind": "VALUE",
+      "value": "public-fixture-pricing.identity",
+      "root": null,
+      "files": [],
+      "canonicalRecord": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "pointer": "/version"
+    },
+    {
+      "id": "pricing.expiration",
+      "kind": "VALUE",
+      "value": "2026-10-17T00:00:00.000Z",
+      "root": null,
+      "files": [],
+      "canonicalRecord": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "pointer": "/reviewBy"
+    },
+    {
+      "id": "factory.runtime-source",
+      "kind": "VALUE",
+      "value": "public-fixture-factory.runtime-source",
+      "root": null,
+      "files": [],
+      "canonicalRecord": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "pointer": "/sourceDigest"
+    },
+    {
+      "id": "installation.platform-owner",
+      "kind": "VALUE",
+      "value": null,
+      "root": null,
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "installation.tester-1",
+      "kind": "VALUE",
+      "value": null,
+      "root": null,
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "installation.tester-2",
+      "kind": "VALUE",
+      "value": null,
+      "root": null,
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "clerk.binding",
+      "kind": "VALUE",
+      "value": null,
+      "root": null,
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "policy.installed",
+      "kind": "VALUE",
+      "value": null,
+      "root": null,
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "factory.version",
+      "kind": "VALUE",
+      "value": null,
+      "root": null,
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "recovery.witness",
+      "kind": "VALUE",
+      "value": null,
+      "root": null,
+      "files": [],
+      "canonicalRecord": null,
+      "pointer": null
+    },
+    {
+      "id": "coordination.code",
+      "kind": "FILES",
+      "value": "7f1b86d405aa36abc43d98e50a761727835a9dce69c01c896a1e0daf5c429b2e",
+      "root": null,
+      "files": [
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/schema.mjs",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/validate.mjs",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/installation-evidence.mjs",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/risk-tier.mjs",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/export.mjs",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/validate.test.mjs",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/evidence.test.mjs",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/fixtures/release-manifest.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": "docs/releases/unified-beta/release-manifest.schema.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": ".github/workflows/unified-release-coordination.yml",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/generate.mjs",
+          "sha256": "6b250f0a675d9f5c9b214690199a3d587a421fa458fe39995d69c25107253641"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/retained-evidence.mjs",
+          "sha256": "5455230d9b4c4042941b8346286364993c7661d3270e3d720fbc46d5e3400d5d"
+        },
+        {
+          "root": "coordination-source",
+          "path": "scripts/unified-release/retained-evidence-pins.json",
+          "sha256": "2344613ff134586d64a251d4e65c4bf1b97a99bcba57fd4b6cacf6aad1784e65"
+        }
+      ],
+      "canonicalRecord": null,
+      "pointer": null
+    }
+  ],
+  "requirements": [
+    {
+      "consumer": "myapps",
+      "input": "factory.runtime-source",
+      "expected": "public-fixture-factory.runtime-source",
+      "reason": "Canonical producer source identity must match verified application artifact admission."
+    },
+    {
+      "consumer": "myeve",
+      "input": "missioncontrol.source",
+      "expected": "3333333333333333333333333333333333333333",
+      "reason": "Consumer qualification pins exact MissionControl source."
+    },
+    {
+      "consumer": "relay",
+      "input": "relay-consumer.source",
+      "expected": "5555555555555555555555555555555555555555",
+      "reason": "Only independently qualified consumer modules are paired with this receiver."
+    },
+    {
+      "consumer": "myapps",
+      "input": "factory.version",
+      "expected": null,
+      "reason": "Installation-specific FactoryVersion has not been derived."
+    },
+    {
+      "consumer": "capability-control",
+      "input": "policy.installed",
+      "expected": null,
+      "reason": "Owner preferences do not grant execution authority."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "myeve-hosted",
+      "scope": "HOSTED",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "myeve.source": "1111111111111111111111111111111111111111",
+        "missioncontrol.source": "3333333333333333333333333333333333333333",
+        "myeve.contract": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89"
+      },
+      "required": true,
+      "suiteIdentity": "myeve-hosted/v1",
+      "environmentIdentity": "github-actions-exact-source-recorded-run",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "six-unified-jobs",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "myeve-owner-hosted",
+      "scope": "HOSTED",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "myeve.source": "1111111111111111111111111111111111111111"
+      },
+      "required": true,
+      "suiteIdentity": "myeve-owner-hosted/v1",
+      "environmentIdentity": "github-actions-exact-source-recorded-run",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "four-owner-and-deterministic-work-jobs",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "missioncontrol-hosted",
+      "scope": "HOSTED",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "missioncontrol.source": "3333333333333333333333333333333333333333"
+      },
+      "required": true,
+      "suiteIdentity": "missioncontrol-hosted/v1",
+      "environmentIdentity": "github-actions-exact-source-recorded-run",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "ten-hosted-jobs",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "factory-hosted",
+      "scope": "HOSTED",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "myfactory.source": "2222222222222222222222222222222222222222",
+        "factory.runtime-source": "public-fixture-factory.runtime-source",
+        "pricing.identity": "public-fixture-pricing.identity"
+      },
+      "required": true,
+      "suiteIdentity": "factory-hosted/v1",
+      "environmentIdentity": "github-actions-exact-source-recorded-run",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "environment-fabric-run-38170107654",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "relay-hosted",
+      "scope": "HOSTED",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "relay.source": "4444444444444444444444444444444444444444",
+        "relay-consumer.source": "5555555555555555555555555555555555555555",
+        "myeve.source": "1111111111111111111111111111111111111111"
+      },
+      "required": true,
+      "suiteIdentity": "relay-hosted/v1",
+      "environmentIdentity": "github-actions-exact-source-recorded-run",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "capability-composed-38176770698",
+          "status": "PASS"
+        },
+        {
+          "id": "quality-38176774228",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "myeve-mc-review",
+      "scope": "REVIEW",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "myeve.source": "1111111111111111111111111111111111111111",
+        "missioncontrol.source": "3333333333333333333333333333333333333333"
+      },
+      "required": true,
+      "suiteIdentity": "myeve-mc-review/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": "fixture-reviewer",
+      "implementationOwner": "fixture-implementer",
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "S1-S4-closure",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "factory-review",
+      "scope": "REVIEW",
+      "status": "NOT_QUALIFIED",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "myfactory.source": "2222222222222222222222222222222222222222",
+        "factory.runtime-source": "public-fixture-factory.runtime-source"
+      },
+      "required": true,
+      "suiteIdentity": "factory-review/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": "fixture-reviewer",
+      "implementationOwner": "fixture-implementer",
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "exact-successor-independent-source-review",
+          "status": "NOT_QUALIFIED"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "relay-review",
+      "scope": "REVIEW",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "relay.source": "4444444444444444444444444444444444444444",
+        "relay-consumer.source": "5555555555555555555555555555555555555555"
+      },
+      "required": true,
+      "suiteIdentity": "relay-review/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": "fixture-reviewer",
+      "implementationOwner": "fixture-implementer",
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "RED2-GREEN43-composed1",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "myapps-migration",
+      "scope": "POSTGRES",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "myeve.migrations": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+        "factory.migrations": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89"
+      },
+      "required": true,
+      "suiteIdentity": "myapps-migration/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "twenty-disposable-migration-and-restore-checks",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "protected-custody",
+      "scope": "CUSTODY",
+      "status": "NOT_RUN",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "factory.runtime-source": "public-fixture-factory.runtime-source",
+        "installation.tester-1": null,
+        "installation.tester-2": null,
+        "myfactory.source": "2222222222222222222222222222222222222222"
+      },
+      "required": true,
+      "suiteIdentity": "protected-custody/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "original-protected-case-1",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "original-protected-case-2",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "original-protected-case-3",
+          "status": "NOT_RUN"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "installed-owner-binding",
+      "scope": "INSTALLED",
+      "status": "NOT_RUN",
+      "record": null,
+      "dependencies": {
+        "clerk.binding": null,
+        "installation.platform-owner": null
+      },
+      "required": true,
+      "suiteIdentity": "installed-owner-binding/v1",
+      "environmentIdentity": "APPROVED_NONPRODUCTION_REQUIRED",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "issuer-subject-owner-workspace",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "cross-owner",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "revocation",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "restart",
+          "status": "NOT_RUN"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "installed-factory-admission",
+      "scope": "INSTALLED",
+      "status": "NOT_RUN",
+      "record": null,
+      "dependencies": {
+        "factory.version": null,
+        "policy.installed": null,
+        "factory.execution": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+        "missioncontrol.contract": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89"
+      },
+      "required": true,
+      "suiteIdentity": "installed-factory-admission/v1",
+      "environmentIdentity": "APPROVED_NONPRODUCTION_REQUIRED",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "workorder-admission",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "budget",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "lease",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "UNKNOWN",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "cancel",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "cleanup",
+          "status": "NOT_RUN"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "installed-golden",
+      "scope": "INSTALLED",
+      "status": "NOT_RUN",
+      "record": null,
+      "dependencies": {
+        "myeve.source": "1111111111111111111111111111111111111111",
+        "myfactory.source": "2222222222222222222222222222222222222222",
+        "missioncontrol.source": "3333333333333333333333333333333333333333",
+        "myapps.source": "1111111111111111111111111111111111111111",
+        "relay.source": "4444444444444444444444444444444444444444",
+        "capability-control.source": "3333333333333333333333333333333333333333",
+        "relay-consumer.source": "5555555555555555555555555555555555555555",
+        "myeve.contract": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+        "factory.execution": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+        "missioncontrol.contract": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+        "capability.contract": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+        "relay.contract": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+        "myeve.migrations": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+        "factory.migrations": "dd1c00bf1d0606021afcadbd595dd423b9eaa8922f879a8478f77c7e7c166a89",
+        "pricing.identity": "public-fixture-pricing.identity",
+        "pricing.expiration": "2026-10-17T00:00:00.000Z",
+        "factory.runtime-source": "public-fixture-factory.runtime-source",
+        "installation.platform-owner": null,
+        "installation.tester-1": null,
+        "installation.tester-2": null,
+        "clerk.binding": null,
+        "policy.installed": null,
+        "factory.version": null,
+        "recovery.witness": null
+      },
+      "required": true,
+      "suiteIdentity": "installed-golden/v1",
+      "environmentIdentity": "APPROVED_NONPRODUCTION_REQUIRED",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "AUTHENTICATE",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "SOFIE_PROPOSAL",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "OWNER_APPROVAL",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "MISSION",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "WORKORDER",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "FACTORY_ADMISSION",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "EXECUTE",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "VERIFY",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "RESULT_PROOF",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "INSTALL_APPROVAL",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "MYAPPS_INSTALL",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "OWNER_ACCEPTANCE",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "RELAY_ACTIVITY",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "FOLLOW_UP",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "UPDATE",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "ROLLBACK",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "RECONNECT",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "UNAUTHORIZED_OWNER",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "CROSS_OWNER",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "REVOKED_CAPABILITY",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "EXPIRED_POLICY",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "STALE_LEASE",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "DUPLICATE_WORK",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "DUPLICATE_WORKORDER",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "BUDGET_EXHAUSTION",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "EXPIRED_PRICING",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "UNKNOWN_EXPOSURE",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "FAILED_VERIFICATION",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "INVALID_PROOF",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "MISSING_INSTALL_APPROVAL",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "FAILED_MIGRATION",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "ROLLBACK",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "INTERRUPTED_EXECUTION",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "RESTART_RECONNECT",
+          "status": "NOT_RUN"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "bounded-live",
+      "scope": "LIVE",
+      "status": "NOT_RUN",
+      "record": null,
+      "dependencies": {
+        "factory.version": null,
+        "pricing.identity": "public-fixture-pricing.identity",
+        "pricing.expiration": "2026-10-17T00:00:00.000Z",
+        "policy.installed": null
+      },
+      "required": true,
+      "suiteIdentity": "bounded-live/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "authorized-bounded-execution",
+          "status": "NOT_RUN"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "deployment-controls",
+      "scope": "CONTROLS",
+      "status": "NOT_QUALIFIED",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "relay-consumer.source": "5555555555555555555555555555555555555555"
+      },
+      "required": true,
+      "suiteIdentity": "deployment-controls/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "PR36-base-preview-prevention",
+          "status": "NOT_QUALIFIED"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "historical-runtime",
+      "scope": "COMPOSED",
+      "status": "NOT_RUN",
+      "record": null,
+      "dependencies": {
+        "missioncontrol.source": "3333333333333333333333333333333333333333"
+      },
+      "required": true,
+      "suiteIdentity": "historical-runtime/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "ten-original-docker-cases",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "one-original-canary",
+          "status": "NOT_RUN"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "factory-source-provenance-review",
+      "scope": "REVIEW",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "myfactory.source": "2222222222222222222222222222222222222222",
+        "factory.runtime-source": "public-fixture-factory.runtime-source"
+      },
+      "required": false,
+      "suiteIdentity": "factory-source-provenance-review/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": "fixture-reviewer",
+      "implementationOwner": "fixture-implementer",
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "e36-runtime-identity-matches-60915",
+          "status": "PASS"
+        },
+        {
+          "id": "packaging-provenance-and-protected-source-pins",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "coordination-unit",
+      "scope": "UNIT",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "coordination.code": "7f1b86d405aa36abc43d98e50a761727835a9dce69c01c896a1e0daf5c429b2e"
+      },
+      "required": true,
+      "suiteIdentity": "coordination-unit/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "release-validator-behavior-and-negative-tests",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "coordination-fresh-clone",
+      "scope": "FRESH_CLONE",
+      "status": "PASS",
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "dependencies": {
+        "coordination.code": "7f1b86d405aa36abc43d98e50a761727835a9dce69c01c896a1e0daf5c429b2e"
+      },
+      "required": true,
+      "suiteIdentity": "coordination-fresh-clone/v1",
+      "environmentIdentity": "disposable-local-fresh-clone-no-dependencies",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "exact-commit-fresh-clone",
+          "status": "PASS"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "coordination-hosted",
+      "scope": "HOSTED",
+      "status": "NOT_RUN",
+      "record": null,
+      "dependencies": {
+        "coordination.code": "7f1b86d405aa36abc43d98e50a761727835a9dce69c01c896a1e0daf5c429b2e"
+      },
+      "required": true,
+      "suiteIdentity": "coordination-hosted/v1",
+      "environmentIdentity": "github-actions-exact-source-recorded-run",
+      "reviewer": null,
+      "implementationOwner": null,
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "exact-commit-tooling-ci",
+          "status": "NOT_RUN"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    },
+    {
+      "id": "coordination-review",
+      "scope": "REVIEW",
+      "status": "NOT_RUN",
+      "record": null,
+      "dependencies": {
+        "coordination.code": "7f1b86d405aa36abc43d98e50a761727835a9dce69c01c896a1e0daf5c429b2e"
+      },
+      "required": true,
+      "suiteIdentity": "coordination-review/v1",
+      "environmentIdentity": "retained-component-qualification",
+      "reviewer": "fixture-reviewer",
+      "implementationOwner": "fixture-implementer",
+      "expiresAt": null,
+      "checks": [
+        {
+          "id": "independent-coordination-source-review",
+          "status": "NOT_RUN"
+        }
+      ],
+      "blockedBy": [],
+      "action": "Requalify fixture dependency."
+    }
+  ],
+  "ownership": [
+    {
+      "taskId": "release-coordination",
+      "project": "myfactory",
+      "objective": "Machine-readable release record, dependency freshness, ownership and risk tiers",
+      "implementationOwner": "fixture-implementer",
+      "verificationOwner": null,
+      "repositories": [
+        "public-fixture/myfactory"
+      ],
+      "branch": "codex/mission-control-release-coordination",
+      "state": "ACTIVE",
+      "dependencies": [],
+      "requiredQualification": [
+        "coordination-unit",
+        "coordination-fresh-clone",
+        "coordination-hosted",
+        "coordination-review"
+      ],
+      "releaseImpact": "Coordination or nonproduction engineering only. No release authority.",
+      "approvalRequirements": [],
+      "claims": [
+        {
+          "kind": "BRANCH",
+          "key": "public-fixture/myfactory:fixture",
+          "value": "public-fixture-owner"
+        }
+      ]
+    },
+    {
+      "taskId": "owner-browser-reporting",
+      "project": "myeve",
+      "objective": "Correct an inaccurate claim that the existing MissionControl authorization UI is not implemented",
+      "implementationOwner": "fixture-implementer",
+      "verificationOwner": null,
+      "repositories": [
+        "public-fixture/myeve"
+      ],
+      "branch": "codex/mission-control-owner-reporting",
+      "state": "ACTIVE",
+      "dependencies": [],
+      "requiredQualification": [],
+      "releaseImpact": "Coordination or nonproduction engineering only. No release authority.",
+      "approvalRequirements": [],
+      "claims": [
+        {
+          "kind": "BRANCH",
+          "key": "public-fixture/myeve:fixture",
+          "value": "public-fixture-owner"
+        }
+      ]
+    },
+    {
+      "taskId": "external-alpha-custody",
+      "project": "myfactory",
+      "objective": "Complete existing V3.5 custody qualification only after separate authorization",
+      "implementationOwner": "fixture-implementer",
+      "verificationOwner": null,
+      "repositories": [
+        "public-fixture/myfactory"
+      ],
+      "branch": "EXISTING_V3_5_SEALED_PACKAGE",
+      "state": "HELD",
+      "dependencies": [],
+      "requiredQualification": [
+        "protected-custody"
+      ],
+      "releaseImpact": "Coordination or nonproduction engineering only. No release authority.",
+      "approvalRequirements": [
+        "Revised V3.5 cloud execution approval"
+      ],
+      "claims": [
+        {
+          "kind": "FACTORY_VERSION",
+          "key": "external-alpha-installation-slots",
+          "value": "NOT_DERIVED"
+        }
+      ]
+    },
+    {
+      "taskId": "relay-receiving",
+      "project": "relay",
+      "objective": "Preserve qualified receiver and consumer modules",
+      "implementationOwner": "fixture-implementer",
+      "verificationOwner": null,
+      "repositories": [
+        "public-fixture/relay"
+      ],
+      "branch": "codex/unified-beta-relay-receiving",
+      "state": "COMPLETE",
+      "dependencies": [],
+      "requiredQualification": [
+        "relay-hosted",
+        "relay-review"
+      ],
+      "releaseImpact": "Coordination or nonproduction engineering only. No release authority.",
+      "approvalRequirements": [],
+      "claims": []
+    },
+    {
+      "taskId": "unified-installed-journey",
+      "project": "myeve",
+      "objective": "Complete authenticated same-Mission integration",
+      "implementationOwner": "fixture-implementer",
+      "verificationOwner": null,
+      "repositories": [
+        "public-fixture/myeve"
+      ],
+      "branch": "UNASSIGNED_PENDING_SOURCE_ADOPTION",
+      "state": "HELD",
+      "dependencies": [],
+      "requiredQualification": [
+        "installed-owner-binding",
+        "installed-factory-admission",
+        "installed-golden"
+      ],
+      "releaseImpact": "Coordination or nonproduction engineering only. No release authority.",
+      "approvalRequirements": [
+        "Approved identity and installation references",
+        "Installation qualification authorization"
+      ],
+      "claims": []
+    }
+  ],
+  "installations": [
+    {
+      "slot": "PLATFORM_OWNER",
+      "canonicalRecord": null,
+      "identity": null,
+      "ownerBinding": null,
+      "clerkApplication": null,
+      "missionControlWorkspace": null,
+      "myappsRegistry": null,
+      "relayConfiguration": null,
+      "capabilityPolicy": null,
+      "factoryVersion": null,
+      "qualificationEvidence": [],
+      "canonicalPointers": null
+    },
+    {
+      "slot": "TESTER_1",
+      "canonicalRecord": null,
+      "identity": null,
+      "ownerBinding": null,
+      "clerkApplication": null,
+      "missionControlWorkspace": null,
+      "myappsRegistry": null,
+      "relayConfiguration": null,
+      "capabilityPolicy": null,
+      "factoryVersion": null,
+      "qualificationEvidence": [],
+      "canonicalPointers": null
+    },
+    {
+      "slot": "TESTER_2",
+      "canonicalRecord": null,
+      "identity": null,
+      "ownerBinding": null,
+      "clerkApplication": null,
+      "missionControlWorkspace": null,
+      "myappsRegistry": null,
+      "relayConfiguration": null,
+      "capabilityPolicy": null,
+      "factoryVersion": null,
+      "qualificationEvidence": [],
+      "canonicalPointers": null
+    }
+  ],
+  "goldenJourney": {
+    "status": "NOT_RUN",
+    "evidence": "installed-golden",
+    "stages": [
+      "AUTHENTICATE",
+      "SOFIE_PROPOSAL",
+      "OWNER_APPROVAL",
+      "MISSION",
+      "WORKORDER",
+      "FACTORY_ADMISSION",
+      "EXECUTE",
+      "VERIFY",
+      "RESULT_PROOF",
+      "INSTALL_APPROVAL",
+      "MYAPPS_INSTALL",
+      "OWNER_ACCEPTANCE",
+      "RELAY_ACTIVITY",
+      "FOLLOW_UP",
+      "UPDATE",
+      "ROLLBACK",
+      "RECONNECT"
+    ],
+    "negativeCases": [
+      "UNAUTHORIZED_OWNER",
+      "CROSS_OWNER",
+      "REVOKED_CAPABILITY",
+      "EXPIRED_POLICY",
+      "STALE_LEASE",
+      "DUPLICATE_WORK",
+      "DUPLICATE_WORKORDER",
+      "BUDGET_EXHAUSTION",
+      "EXPIRED_PRICING",
+      "UNKNOWN_EXPOSURE",
+      "FAILED_VERIFICATION",
+      "INVALID_PROOF",
+      "MISSING_INSTALL_APPROVAL",
+      "FAILED_MIGRATION",
+      "ROLLBACK",
+      "INTERRUPTED_EXECUTION",
+      "RESTART_RECONNECT"
+    ]
+  },
+  "authorization": {
+    "record": {
+      "root": "fixture",
+      "path": "evidence.json",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "development": [
+      "Source edits in isolated checkouts",
+      "Synthetic fixtures",
+      "Disposable local PostgreSQL",
+      "Local browser and static checks"
+    ],
+    "qualification": [
+      "Exact source and contract identity",
+      "Bounded resources",
+      "Independent verification",
+      "Evidence checksums",
+      "Cleanup and recovery",
+      "Separate protected-material authorization"
+    ],
+    "production": [
+      "Canonical owner authorization",
+      "Qualified runtime and installation",
+      "Current pricing and accounting admission",
+      "Independent release review",
+      "Explicit deployment and activation approval"
+    ],
+    "holds": [
+      "MERGE",
+      "DEPLOY",
+      "REAL_MIGRATION",
+      "PAID_EXECUTION",
+      "CREDENTIAL_CHANGE",
+      "TESTER_ACTIVATION",
+      "PUBLISH",
+      "CUSTODY_RETRY"
+    ],
+    "custodyOwner": "fixture-custody-owner",
+    "custodyRetryAuthorized": false,
+    "productionAuthorized": false,
+    "pricingRenewal": {
+      "record": {
+        "root": "fixture",
+        "path": "evidence.json",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "expiresAt": "2026-10-17T00:00:00.000Z",
+      "owner": "Canonical MyFactory pricing workstream",
+      "procedure": [
+        "Revalidate canonical provider and gateway pricing by the existing UTC deadline.",
+        "Create a new versioned pricing record with source evidence; never edit historical expiration.",
+        "Use dependency analysis to identify affected execution contracts and installation FactoryVersions.",
+        "Run the canonical pricing and compatibility checks and obtain independent review.",
+        "Preserve prior budgets, grants and UNKNOWN exposure; request separate activation approval."
+      ]
+    }
+  }
+}
