@@ -9,6 +9,7 @@ import { PostgresDispatchStore } from '../src/postgres-dispatch.mjs';
 import { PostgresSpendLedger } from '../src/postgres-spend.mjs';
 import { assertStagingEnvironment,databaseConfig,stagingProjectId } from '../src/config.mjs';
 import { CLOUD_EXECUTION_PROTOCOL } from '../../../packages/contracts/src/cloud-execution.ts';
+import {capabilityPolicyFixture} from './fixtures/capability-policy.mjs';
 
 test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation and leases',{skip:process.env.FACTORY_POSTGRES_TEST!=='1',timeout:120000},async t=>{
  assertStagingEnvironment(process.env);
@@ -16,15 +17,17 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
  assert.equal((await pool.query('SELECT project_id FROM factory.environment WHERE singleton')).rows[0].project_id,stagingProjectId);
  const schema='factory_test_'+randomUUID().replaceAll('-','');await pool.query(`CREATE SCHEMA ${schema}`);
  const isolate=sql=>sql.replace(/\bfactory\.(verification_resources|candidate_custody|delivery_intents|intake_receipts|events|execution_resources|work_orders|runs|work_spend_budgets|work_spend_operations)\b/g,schema+'.$1');
- t.after(async()=>{await pool.query(`DROP SCHEMA ${schema} CASCADE`);await pool.end();});
+ let capability;
+ t.after(async()=>{await capability?.cleanup();await pool.query(`DROP SCHEMA ${schema} CASCADE`);await pool.end();});
  for(const version of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification']){
   const sql=isolate(await readFile(new URL(`../migrations/${version}.sql`,import.meta.url),'utf8')).replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);await pool.query(sql);await pool.query(sql);
  }
  const query=(sql,args)=>pool.query(isolate(sql),args);
  const isolated={connect:async()=>{const c=await pool.connect();return{query:(sql,args)=>c.query(isolate(sql),args),release:()=>c.release()};}};
  const source={repository:'fixture/quantity',commit:'a'.repeat(40),tree:'b'.repeat(40)};
- const grant={clientId:'staging-client',source,commands:['node --test'],allowedPaths:['quantity.mjs'],maxDurationMs:120000,maxSpendUsd:1};
- const store=new PostgresDispatchStore(isolated),spend=new PostgresSpendLedger(isolated);
+ const grant={clientId:'staging-client',ownerScope:'staging-owner',source,commands:['node --test'],allowedPaths:['quantity.mjs'],maxDurationMs:120000,maxSpendUsd:1};
+ capability=await capabilityPolicyFixture(pool,schema,isolated,{[grant.clientId]:grant.ownerScope,[cloudGrant.clientId]:'proof-owner','other-client':grant.ownerScope});
+ const store=new PostgresDispatchStore(capability.pool,{capabilityBindings:capability.bindings}),spend=new PostgresSpendLedger(isolated);
  assert.equal(isolate("SELECT * FROM factory.events WHERE type='factory.dispatch_claimed'"),`SELECT * FROM ${schema}.events WHERE type='factory.dispatch_claimed'`);
  const snapshot=(request,order,run)=>({requestId:request.requestId,workOrderId:order.id,runId:run.id,inputCommit:source.commit,factoryId:'factory-staging',factoryVersion:'c'.repeat(64)});
  async function fixture(){
@@ -47,7 +50,7 @@ test('CONNECTED canonical cloud dispatch admission, concurrency, cancellation an
   });
   assert.deepEqual(await store.findRun(cloudGrant.clientId,row.work_order_id,row.run_id),{request_id:row.request_id});
   const proofToken='a'.repeat(64),env={...process.env,FACTORY_PROOF_TOKEN:proofToken,FACTORY_PROOF_OWNER_SCOPE:'proof-owner',FACTORY_PROOF_EXPIRES_AT:new Date(Date.now()+60000).toISOString(),FACTORY_SOFIE_STAGING_TOKEN:'b'.repeat(64)};
-  const runtime=async(_env,action)=>action({store:Object.assign(store,{pool:{...isolated,query}}),provider:{readCustody:async()=>bundle},control:{}});
+  const runtime=async(_env,action)=>action({store:Object.assign(store,{pool:{...capability.pool,query}}),provider:{readCustody:async()=>bundle},control:{}});
   const get=new Request('https://factory.invalid/api/connect/v2/work-orders/'+row.work_order_id,{headers:{authorization:'Bearer '+proofToken}});
   const response=await handleCloud(get,env,runtime);assert.equal(response.status,200);const refs=(await response.json()).events[0].payload.refs;assert.equal(refs.length,2);
   for(const ref of refs){
