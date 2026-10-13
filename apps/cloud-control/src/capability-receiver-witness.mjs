@@ -29,11 +29,25 @@ export class FactoryReceiverWitness {
     finally{clearTimeout(timer);client?.release(true);}
   }
   async assertPriorTermination(client){
+    // Establish visibility of this restricted role's own session before treating
+    // an empty activity query as proof that an earlier CAS has terminated.
+    const own=await client.query("SELECT pid,backend_start::text AS started,usename,datname,state,pg_backend_pid() AS backend_pid,current_user AS role,current_database() AS database,current_setting('statement_timeout') AS statement_timeout,current_setting('idle_in_transaction_session_timeout') AS idle_timeout FROM pg_stat_activity WHERE pid=pg_backend_pid()");
+    const session=own.rows?.[0];
+    if(own.rowCount!==1||own.rows?.length!==1||!session||!Number.isSafeInteger(session.pid)||session.pid<=0
+      ||session.pid!==client.processID||session.pid!==session.backend_pid||typeof session.started!=='string'||!Number.isFinite(Date.parse(session.started))
+      ||!session.role||session.usename!==session.role||!session.database||session.datname!==session.database||session.state!=='active'
+      ||session.statement_timeout!=='1s'||session.idle_timeout!=='1s')throw Error('FACTORY_WITNESS_SESSION_UNAVAILABLE');
+    const pending=async(sql,parameters)=>{
+      const result=await client.query(sql,parameters);
+      if(!Number.isSafeInteger(result.rowCount)||result.rowCount<0||result.rowCount!==result.rows?.length)throw Error('FACTORY_WITNESS_SESSION_UNAVAILABLE');
+      if(result.rowCount)throw Error('FACTORY_WITNESS_CAS_PENDING');
+    };
     // Restart-safe: the original restricted witness role cannot have another
     // active/transactional backend whose earlier CAS may still commit.
-    if((await client.query("SELECT 1 FROM pg_stat_activity WHERE usename=current_user AND datname=current_database() AND pid<>pg_backend_pid() AND state IS DISTINCT FROM 'idle'")).rowCount)throw Error('FACTORY_WITNESS_CAS_PENDING');
-    for(const original of this.uncertainSessions)if((await client.query('SELECT 1 FROM pg_stat_activity WHERE pid=$1 AND backend_start=$2::timestamptz AND usename=current_user',[original.pid,original.started])).rowCount)throw Error('FACTORY_WITNESS_CAS_PENDING');
+    await pending("SELECT 1 FROM pg_stat_activity WHERE usename=current_user AND datname=current_database() AND pid<>pg_backend_pid() AND state IS DISTINCT FROM 'idle'");
+    for(const original of this.uncertainSessions)await pending('SELECT 1 FROM pg_stat_activity WHERE pid=$1 AND backend_start=$2::timestamptz AND usename=current_user',[original.pid,original.started]);
     this.uncertainSessions=[];
+    return {pid:session.pid,started:session.started};
   }
   async read(expected,deadline){
     return this.operation(async client=>{
@@ -46,8 +60,7 @@ export class FactoryReceiverWitness {
   async advance(previous,next,deadline){
     let session;
     try{return await this.operation(async client=>{
-      await this.assertPriorTermination(client);
-      session=(await client.query('SELECT pid,backend_start::text AS started FROM pg_stat_activity WHERE pid=pg_backend_pid()')).rows[0];
+      session=await this.assertPriorTermination(client);
       await client.query('BEGIN');await client.query('SET LOCAL synchronous_commit=on');
       const row=(await client.query('SELECT capability_witness.advance_head($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) AS head',
         [...this.parameters(previous),previous.revision,previous.digest,next.revision,next.digest])).rows[0];

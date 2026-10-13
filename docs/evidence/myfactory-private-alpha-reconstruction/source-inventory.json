@@ -668,8 +668,8 @@
     },
     "apps/cloud-control/src/capability-receiver-witness.mjs": {
       "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
-      "sha256": "e8eccad0bbd5b7596028346c7f844ed00c5b0bf4e163db28ab60ff4089a7527e",
-      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+      "sha256": "58eabcef94675c0f7da65d150136b61ce4b97ace9ce3222448fe5a232248c26d",
+      "authorityBoundary": "Restricted original witness role must prove exact own-session visibility and reviewed server timeouts before read/CAS; missing or unavailable termination proof retains uncertainty. No new grants or topology."
     },
     "apps/cloud-control/src/ordered-capability-admission.mjs": {
       "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",

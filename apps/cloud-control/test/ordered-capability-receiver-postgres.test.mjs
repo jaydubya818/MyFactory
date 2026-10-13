@@ -76,6 +76,21 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   const relay=await signPolicyMessage({...fields,...Object.fromEntries(['authority','version','policyId'].map(k=>[k,r[k]])),referenceId:'lse_'+randomUUID(),kind:'PERMIT',requiredCapabilities:['work','myfactory'],agentRevision,sourcePermitHash:await policyMessageHash(JSON.parse(myeve.message))},keys.relay);
   return {myeve,relay};
  };
+ await t.test('restricted witness role sees its own session and enforces the reviewed server timeouts without monitor privileges',async()=>{
+  const role=(await wadmin.query("SELECT rolsuper,rolcreaterole,rolcreatedb,rolreplication,rolbypassrls FROM pg_roles WHERE rolname='witness_runtime'")).rows[0];
+  assert(Object.values(role).every(value=>value===false));
+  assert.equal((await wadmin.query("SELECT count(*) FROM pg_auth_members WHERE member='witness_runtime'::regrole")).rows[0].count,'0');
+  const session=await witness.operation(client=>witness.assertPriorTermination(client));
+  assert(Number.isSafeInteger(session.pid));assert(Number.isFinite(Date.parse(session.started)));
+ });
+ await t.test('a live same-role transaction blocks termination proof until canonical rollback',async()=>{
+  const other=new pg.Client({connectionString:wurl.href});await other.connect();
+  try{
+   await other.query('BEGIN');
+   await assert.rejects(witness.read(genesis),/FACTORY_WITNESS_CAS_PENDING/);
+   await other.query('ROLLBACK');await witness.assert(genesis);
+  }finally{await other.end();}
+ });
  await t.test('signed monotonic fences, conflicting/stale/foreign delivery and immutable RLS history',async()=>{
   for(const a of ['myeve','relay']){const f=await fence(a,1);assert.equal((await verifyPolicyMessage(await ordered.receiveFence(f),signer)).kind,'FENCE_ACK');assert.deepEqual(await ordered.receiveFence(f),await ordered.receiveFence(f));}
   await assert.rejects(ordered.receiveFence(await signPolicyMessage({...scope,ownerId:'foreign',authority:'myeve',version:2,policyId:'foreign',kind:'FENCE',capabilityId:'myfactory',operation:'enable'},keys.myeve)),/SCOPE/);

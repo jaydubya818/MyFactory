@@ -16,7 +16,8 @@ import preparation from '../../../docs/myapps/current-main-source-qualification.
 
 import composition from '../../../docs/myapps/current-main-composition-qualification.json' with {type:'json'};
 import retained from '../../../docs/capability-control/retained-control-20261012/successor.json' with {type:'json'};
-import successor from '../../../docs/capability-control/receiver-extension-20261012/successor.json' with {type:'json'};
+import receiver from '../../../docs/capability-control/receiver-extension-20261012/successor.json' with {type:'json'};
+import successor from '../../../docs/capability-control/witness-session-20261012/successor.json' with {type:'json'};
 
 test('inventoried source and configuration resolve to the exact qualified successor',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
@@ -36,8 +37,10 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(recovery.sourceDigest,preparation.predecessorSourceDigest);
  assert.equal(preparation.sourceDigest,composition.predecessorSourceDigest);
  assert.equal(composition.sourceDigest,retained.predecessorSourceDigest);
- assert.equal(retained.factoryVersion,successor.predecessorFactoryVersion);
- assert.equal(retained.sourceDigest,successor.predecessorSourceDigest);
+ assert.equal(retained.factoryVersion,receiver.predecessorFactoryVersion);
+ assert.equal(retained.sourceDigest,receiver.predecessorSourceDigest);
+ assert.equal(receiver.sourceDigest,successor.predecessorSourceDigest);
+ assert.equal(receiver.factoryVersion,successor.predecessorFactoryVersion);
  assert.equal(successor.authority,'ISOLATED_SOURCE_QUALIFICATION_ONLY');
  assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
 });
@@ -46,6 +49,7 @@ test('coherent historical source or contract grants cannot consume successor aut
  const now=Date.now(),clientId='sofie-production',ownerScope='synthetic-identity-owner';
  const request={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,deadline:new Date(now+60000).toISOString()};
  const combinations=[
+  [receiver.sourceDigest,receiver.executionContractSha256,false],
   [retained.sourceDigest,retained.executionContractSha256,false],
   [composition.sourceDigest,composition.executionContractSha256,false],
   [successor.compatibilityBaseSourceDigest,successor.executionContractSha256,false],
