@@ -24,7 +24,7 @@ try{
   const port=command('docker',['port',id,'5432/tcp']).trim();if(!/^127\.0\.0\.1:\d+$/.test(port))throw Error('FIXTURE_LOCAL_PORT');
   let ready=false;
   for(let attempt=0;attempt<100;attempt++){
-   if(spawnSync('docker',['exec',id,'pg_isready','-U','fixture_admin','-d','source_qualification'],{stdio:'ignore'}).status===0){ready=true;break;}
+   if(spawnSync('docker',['exec','-e','PGPASSWORD=disposable-local-only',id,'psql','-h','127.0.0.1','-U','fixture_admin','-d','source_qualification','-tAc','SELECT 1'],{stdio:'ignore'}).status===0){ready=true;break;}
    await new Promise(resolve=>setTimeout(resolve,200));
   }
   if(!ready)throw Error('FIXTURE_POSTGRES_UNAVAILABLE');
@@ -32,6 +32,9 @@ try{
  }
  const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,
   NODE_EXTRA_CA_CERTS:join(directory,'server.crt'),FACTORY_RECEIVER_TEST_DATABASE_URL:urls[0],FACTORY_RECEIVER_TEST_WITNESS_URL:urls[1]};
+ const imageId=command('docker',['image','inspect','--format','{{.Id}}','postgres:17']).trim();
+ if(!/^sha256:[a-f0-9]{64}$/.test(imageId))throw Error('FIXTURE_IMAGE_ID');
+ console.log(JSON.stringify({qualification:'ISOLATED_FACTORY_RECEIVER',imageId,containers,sourceSha:command('git',['-C',root,'rev-parse','HEAD']).trim(),node:process.version,providers:'NOT_USED'}));
  const result=spawnSync(process.execPath,['--test','--test-reporter=tap','apps/cloud-control/test/ordered-capability-receiver-postgres.test.mjs'],
   {cwd:root,env,stdio:'inherit',timeout:120000});
  if(result.error)throw result.error;if(result.status!==0)throw Error('FACTORY_RECEIVER_QUALIFICATION_FAILED');
