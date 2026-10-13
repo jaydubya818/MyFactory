@@ -17,10 +17,11 @@ async function fixture(t,{registration=true}={}){
  const client=await pool.connect(),isolated={query:(sql,args)=>client.query(rewrite(sql),args)};
  t.after(async()=>{await client.query('ROLLBACK');await client.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);client.release();await pool.end();});
  const allNames=(await readdir(new URL('../migrations/',import.meta.url))).filter(p=>p.endsWith('.sql')).sort();
- assert.equal(allNames.at(-1),'013-capability-control-receipts.sql');
+ assert.equal(allNames.at(-1),'014-receiver-lookup-qualification.sql');
  // The receiver extension has separate installation authorization. These Alpha
  // compatibility fixtures retain their exact previously applied001–012 set.
- const names=allNames.filter(p=>p!=='013-capability-control-receipts.sql');assert.equal(names.length,12);assert.equal(names.at(-1),'012-external-alpha-host-registration.sql');
+ const receiverExtension=new Set(['013-capability-control-receipts.sql','014-receiver-lookup-qualification.sql']);
+ const names=allNames.filter(p=>!receiverExtension.has(p));assert.equal(names.length,12);assert.equal(names.at(-1),'012-external-alpha-host-registration.sql');
  for(const name of names.filter(n=>registration||!n.startsWith('012-')))await isolated.query(await readFile(new URL('../migrations/'+name,import.meta.url),'utf8'));
  return {pool,client,isolated,rewrite,query:isolated.query,marker:async()=>(await isolated.query('SELECT * FROM factory.environment')).rows[0]};
 }
