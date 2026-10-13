@@ -1,0 +1,13 @@
+# Reviewed receiver recovery correction
+
+Actual Claude review ofac72412 returned NOT_ACCEPTED for S1 pending-plan liveness and S2 security-definer FORCE-RLS lookup qualification; MyEve/Relay M1–M4 were resolved. This is an additive engineering successor, not installed authority or acceptance inherited fromac.
+
+S1: A stored immutable digest-bound plan can roll forward after the original witness confirms prior CAS termination. No caller rebuild, current permit, or native admission replay is required. Witness-old ADMISSION consumes original references and records DEFINITELY_NOT_ADMITTED with reservations retained; witness-ahead stays ADMISSION_UNCERTAIN. FENCE and RELAY_REVOCATION recovery repair only existing monotonic native restrictions in the apply transaction. Relay uses its original authenticated receiver object: account/agent/key/event/row/hash are reverified; missing or conflicting original binding fails closed before advancement. Native authority, budget and active original producer/verifier leases are fenced on unrelated-entry recovery, and UNKNOWN accounting stays held. Native effects granting execution are never replayed.
+
+S2: Additive014 preserves013 and all six receiver tables/ACLs. Existing SECURITY DEFINER functions check the effective owner's superuser/BYPASSRLS qualification before touching FORCE-RLS history. Ordinary admission independently checks both exact lookup owners and SECURITY DEFINER attributes, including after restart. This neither grants privileges nor selects an installed custodian.
+
+Applied-plan missing OUTCOME is NATIVE_LINEAGE_MISSING, never404/never-seen, so the caller cannot mint another pair or consume another Relay reservation after partial restore. Historical pricing, execution-contract bytes, source records, approvals, spending ceilings and prior evidence are unchanged. The additive source/FV requires new exact-source qualification; old approvals cannot authorize it.
+
+INFO: strict legal connection schemas already exclude source-without-transport configurations. Never-allocated cleanup remains PENDING_BACKEND without a qualified positive journal; row absence cannot prove cleanup. Shared witness roles conservatively block while any prior same-role transaction is unresolved; original role isolation must be qualified. PostgreSQL17+ remains a schema prerequisite. Inspector/provider version metadata is not app/witness role or installed enrollment qualification.
+
+No source publication, installed schema/role/grant change, reservation release, paid operation, merge, deployment, custody retry or tester activation is authorized by these source tests.

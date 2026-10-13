@@ -28,6 +28,24 @@ export class FactoryRelayPolicyReceiver{
    ||binding.ownerId!==scope.ownerId||binding.organizationId!==scope.organizationId||binding.installationId!==scope.installationId
    ||binding.backendId!==scope.backendId||binding.agentId!==ordered.enrollment.agentId)throw Error('RELAY_POLICY_ENROLLMENT');
   this.ordered=ordered;this.binding=Object.freeze({...binding});this.signer=ackSigner;
+  // Reuse this original authenticated receiver for restart recovery. One exact
+  // host binding, not a key registry or a new execution authority path.
+  if(ordered.relayPolicyReceiver&&canonical(ordered.relayPolicyReceiver.binding)!==canonical(this.binding))throw Error('RELAY_POLICY_ENROLLMENT');
+  ordered.relayPolicyReceiver=this;
+ }
+ validateStoredPlan(plan){
+  const row=plan.rows?.[0],stored=row?.payload;
+  if(plan.identity.kind!=='RELAY_REVOCATION'||plan.rows.length!==1||row.table!=='relay_policy_receipts')throw Error('RELAY_POLICY_CONFLICT');
+  const p=verifyRelayRevocation(stored?.envelope,this.binding);
+  const expected={accountId:p.accountId,agentId:p.aggregateId,eventId:p.eventId,eventHash:stored.envelope.payloadHash,revocationEpoch:p.revision,envelope:stored.envelope};
+  if(row.key!=='event:'+p.eventId||plan.identity.eventId!==p.eventId||plan.identity.eventHash!==stored.envelope.payloadHash||canonical(stored)!==canonical(expected))throw Error('RELAY_POLICY_CONFLICT');
+  return p;
+ }
+ async fenceStoredPlan(client,plan){
+  const p=this.validateStoredPlan(plan),o=this.ordered;
+  const restriction={operation:'revoke',authority:'relay',accountId:p.accountId,agentId:p.aggregateId,eventId:p.eventId,revocationEpoch:p.revision};
+  const inventory=await receiverInventory(o,client,await o.receiver.state(client),id=>id.agentId===p.aggregateId&&id.agentRevision<p.revision);
+  await fenceInventory(o,client,inventory,restriction);
  }
  async receive(envelope){
   const p=verifyRelayRevocation(envelope,this.binding),o=this.ordered;
@@ -39,6 +57,14 @@ export class FactoryRelayPolicyReceiver{
    return [{table:'relay_policy_receipts',key:'event:'+p.eventId,payload:{accountId:p.accountId,agentId:p.aggregateId,eventId:p.eventId,eventHash:envelope.payloadHash,
     revocationEpoch:p.revision,envelope}}];
   },async client=>{const inventory=await receiverInventory(o,client,await o.receiver.state(client),selector);await fenceInventory(o,client,inventory,restriction);return null;});
+  // A recovered durable event does not replay its original native effect.
+  // Repair monotonic restrictions under this original authenticated binding
+  // before acknowledging a retry; never replay admission or release accounting.
+  await o.receiver.transaction(async client=>{
+   const state=await o.receiver.state(client),stored=state.data.relay_policy_receipts.find(row=>row.payload.eventId===p.eventId&&row.record_key==='event:'+p.eventId);
+   if(!stored||stored.payload.eventHash!==envelope.payloadHash)throw Error('RELAY_POLICY_CONFLICT');
+   const inventory=await receiverInventory(o,client,state,selector);await fenceInventory(o,client,inventory,restriction);
+  });
   let observation;
   const material=async(client,state)=>{
    const inventory=await receiverInventory(o,client,state,selector),inventoryValue=inventoryMaterial(o,restriction,inventory),inventoryDigest=digest(inventoryValue),stateValue=aggregateLifecycle(inventory,'revoke');

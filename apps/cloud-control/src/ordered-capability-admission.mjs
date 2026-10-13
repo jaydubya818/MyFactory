@@ -48,11 +48,16 @@ export class OrderedFactoryAdmission {
   async recover(state,retry,deadline){
     if(!state.pending.length){await this.assertCurrent(state,deadline);return state;}
     const row=state.pending[0],next=this.receiver.plannedHead(state,row),actual=await this.witness.read(state.head,deadline);
+    if(row.payload.identity.kind==='RELAY_REVOCATION'){
+      if(!this.relayPolicyReceiver)throw Error('RELAY_POLICY_ENROLLMENT_UNAVAILABLE');
+      this.relayPolicyReceiver.validateStoredPlan(row.payload);
+    }
     let definiteDecline=false;
     if(headMatches(actual,state.head)){
-      if(!retry||!same(retry.identity,row.payload.identity))throw Error('FACTORY_RECEIVER_PENDING');
-      const rows=await this.receiver.transaction((client,now)=>retry.build(client,state,now));
-      if(!same(rows,row.payload.rows))throw Error('FACTORY_RECEIVER_REPLAY_CONFLICT');
+      // read proves prior CAS termination before returning the old head. The
+      // immutable, digest-bound plan is sufficient for recovery: rebuilding it
+      // would require expired permits or a caller which can never reach prepare.
+      // Consume its original references, but never replay native admission.
       await this.witness.advance(state.head,next,deadline);
       definiteDecline=true;
     }else
@@ -60,6 +65,8 @@ export class OrderedFactoryAdmission {
     await this.receiver.transaction(async client=>{
       await this.receiver.apply(client,row.payload,next);
       if(row.payload.identity.kind==='ADMISSION')await this.outcome(client,row.payload,next,definiteDecline?'DEFINITELY_NOT_ADMITTED':'ADMISSION_UNCERTAIN',definiteDecline?'NATIVE_REVALIDATION_FAILED':'RESTORE_OR_COMMIT_AMBIGUITY');
+      if(row.payload.identity.kind==='FENCE')await this.fenceRestrictions(client);
+      if(row.payload.identity.kind==='RELAY_REVOCATION')await this.relayPolicyReceiver.fenceStoredPlan(client,row.payload);
     });
     const restored=await this.snapshot();await this.assertCurrent(restored);return restored;
   }
@@ -118,6 +125,13 @@ export class OrderedFactoryAdmission {
   }
   latestFence(state,authority){return state.data.capability_fences.filter(x=>x.payload.message.authority===authority)
     .sort((a,b)=>a.payload.message.version-b.payload.message.version).at(-1)?.payload;}
+  async fenceRestrictions(client){
+    const state=await this.receiver.state(client);
+    for(const restriction of this.restrictions(state).filter(r=>!r.unqualified)){
+      const inventory=await receiverInventory(this,client,state,id=>id.policyRevision<=restriction.version);
+      await fenceInventory(this,client,inventory,restriction);
+    }
+  }
   async receiveFence(envelope){
     const parsed=JSON.parse(envelope?.message??'null');
     const key=this.enrollment.sourceKeys[parsed?.authority];
@@ -134,11 +148,7 @@ export class OrderedFactoryAdmission {
       return [{table:'capability_fences',key:`${message.authority}:${message.version}`,payload:{message,envelope,hash,ack}}];
     },async client=>{
       if(message.authority!=='myeve')return null; // Relay epochs are not owner-wide revoke intent.
-      const state=await this.receiver.state(client);
-      for(const restriction of this.restrictions(state).filter(r=>!r.unqualified)){
-        const inventory=await receiverInventory(this,client,state,id=>id.policyRevision<=restriction.version);
-        await fenceInventory(this,client,inventory,restriction);
-      }return null;
+      await this.fenceRestrictions(client);return null;
     });
     const state=await this.snapshot();await this.assertCurrent(state);
     return this.latestFence(state,message.authority).ack;
@@ -278,7 +288,10 @@ export class OrderedFactoryAdmission {
     if(identity.workId!==input.workId||identity.workGeneration!==input.workGeneration||identity.missionId!==missionId
       ||identity.nativeRequestDigest!==digest(input)||!same(identity.snapshot,this.snapshotForClient(clientId))||digest(identity.nativeRequest)!==identity.nativeRequestDigest)throw Error('FACTORY_TERMINAL_BINDING');
     const outcome=state.data.capability_receiver_plans.find(r=>r.record_kind==='OUTCOME'&&r.record_key===plan.record_key);
-    if(!outcome)throw Error('FACTORY_TERMINAL_UNAVAILABLE');
+    // A persisted admission plan is not "never seen". Missing outcome lineage
+    // after recovery is corruption/restore uncertainty, never permission to
+    // acquire another pair or another Relay reservation.
+    if(!outcome)throw Error('FACTORY_NATIVE_LINEAGE_MISSING');
     const head=state.data.capability_receiver_heads.find(row=>row.receiver_sequence===plan.receiver_sequence)?.payload.head;
     if(outcome.receiver_sequence!==plan.receiver_sequence||outcome.payload.planId!==plan.record_key
       ||outcome.payload.planDigest!==plan.payload_digest||outcome.payload.receiverHeadDigest!==head?.digest

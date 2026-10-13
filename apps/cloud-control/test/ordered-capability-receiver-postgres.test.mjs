@@ -28,7 +28,7 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
  const own=[];
  t.after(async()=>{for(const x of own.reverse()){if(x.close)await x.close();else await x.end();}await admin.query('DROP SCHEMA IF EXISTS factory CASCADE; DROP ROLE IF EXISTS receiver_runtime');await wadmin.query('DROP SCHEMA IF EXISTS capability_witness CASCADE; DROP ROLE IF EXISTS witness_runtime');await admin.end();await wadmin.end();});
  await admin.query('CREATE SCHEMA factory');
- for(const name of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification','008-production-work-authority','013-capability-control-receipts'])await admin.query(await readFile(new URL('../migrations/'+name+'.sql',import.meta.url),'utf8'));
+ for(const name of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification','008-production-work-authority','013-capability-control-receipts','014-receiver-lookup-qualification'])await admin.query(await readFile(new URL('../migrations/'+name+'.sql',import.meta.url),'utf8'));
  await wadmin.query(await readFile(new URL('../../../docs/capability-control/receiver-witness.sql',import.meta.url),'utf8'));
  await admin.query("CREATE ROLE receiver_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOINHERIT PASSWORD 'local-receiver-only'; GRANT USAGE ON SCHEMA factory TO receiver_runtime; GRANT USAGE ON ALL SEQUENCES IN SCHEMA factory TO receiver_runtime");
  const nativeTables=['work_orders','runs','events','intake_receipts','delivery_intents','execution_resources','verification_resources','candidate_custody','work_spend_budgets','work_spend_operations','production_work_authority'];
@@ -68,9 +68,9 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
  const fence=async(authority,version,operation='enable')=>signPolicyMessage({...scope,authority,version,policyId:authority+'-policy-'+version,kind:'FENCE',capabilityId:'myfactory',operation},keys[authority]);
  const make=()=>({protocol:'MYFACTORY_EXECUTION_V2',requestId:randomUUID(),workId:randomUUID(),workGeneration:1,repository:grant.source.repository,source:grant.source,deadline:new Date(Date.now()+160000).toISOString(),maxSpendUsd:1,input:{title:'Synthetic receiver qualification',description:'No provider execution',kind:'feature',acceptanceCriteria:['Exact admission'],checkCommands:grant.commands,allowedPaths:grant.allowedPaths}});
  const authorize=async (request,clientId=grant.clientId)=>{const manifest={request,ownerId:scope.ownerId,organizationId:scope.organizationId,installationId:scope.installationId,agentId};await admin.query("INSERT INTO factory.production_work_authority(request_id,work_id,client_id,manifest,manifest_sha256,state) VALUES($1,$2,$3,$4,$5,'AUTHORIZED')",[request.requestId,request.workId,clientId,manifest,digest(manifest)]);};
- const permits=async (request,instance=ordered,agentRevision=0)=>{
+ const permits=async (request,instance=ordered,agentRevision=0,ttl=30000)=>{
   const c=await verifyPolicyMessage(await instance.challenge(request,'fixture-mission'),signer);
-  const {kind,...fields}=c;
+  const {kind,...fields}=c;fields.expiresAt=fields.issuedAt+ttl;
   const myeve=await signPolicyMessage({...fields,kind:'PERMIT',requiredCapabilities:['work','myfactory'],agentRevision,sourcePermitHash:'SELF'},keys.myeve);
   const state=await instance.snapshot(),r=ordered.latestFence(state,'relay').message;
   const relay=await signPolicyMessage({...fields,...Object.fromEntries(['authority','version','policyId'].map(k=>[k,r[k]])),referenceId:'lse_'+randomUUID(),kind:'PERMIT',requiredCapabilities:['work','myfactory'],agentRevision,sourcePermitHash:await policyMessageHash(JSON.parse(myeve.message))},keys.relay);
@@ -107,7 +107,7 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   const restarted=new FactoryReceiverWitness({databaseUrl:wurl.href,...witness.config,resources:witness.resources});
   try{await restarted.assert(original);}finally{await restarted.close();}
  });
- let admitted,uncertain,unknownBinding,unknownOperation;
+ let admitted,uncertain,unknownBinding,unknownOperation,relay,relaySigningPair;
  await t.test('positive native intake, authority and budget are atomic; duplicate readback preserves existing Work',async()=>{
   const request=make();await authorize(request);const pair=await permits(request);
   let release,entered;const barrier=new Promise(resolve=>{entered=resolve;}),hold=new Promise(resolve=>{release=resolve;});
@@ -130,16 +130,46 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   finally{await admin.query(definition);await admin.query('REVOKE ALL ON FUNCTION factory.receiver_requires_ordering(text,text) FROM PUBLIC;GRANT EXECUTE ON FUNCTION factory.receiver_requires_ordering(text,text) TO receiver_runtime');}
   await assert.rejects(ordered.prepare({...request,maxSpendUsd:.9},'fixture-mission',pair),/TERMINAL_BINDING/);
  });
- await t.test('witness-old delivery crash retries the same plan conservatively with no native effect',async()=>{
-  const request=make();await authorize(request);const pair=await permits(request),advance=witness.advance.bind(witness);let once=true;
+ await t.test('non-bypass lookup owners fail closed after restart and before recursive RLS',async()=>{
+  const owner=(await admin.query('SELECT current_user AS role')).rows[0].role,quoted='"'+owner.replaceAll('"','""')+'"';
+  await admin.query('CREATE ROLE receiver_lookup_owner NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOINHERIT; GRANT USAGE,CREATE ON SCHEMA factory TO receiver_lookup_owner; GRANT SELECT ON factory.capability_receiver_heads TO receiver_lookup_owner');
+  const restarted=new PostgresDispatchStore(pool,{capabilityBindings:store.capabilityBindings,assertAuthority:store.assertAuthority});
+  try{
+   await admin.query('ALTER FUNCTION factory.receiver_requires_ordering(text,text) OWNER TO receiver_lookup_owner');
+   await assert.rejects(pool.query('SELECT factory.receiver_requires_ordering($1,$2)',[scope.ownerId,scope.installationId]),/LOOKUP_OWNER_UNQUALIFIED/);
+   await assert.rejects(restarted.prepare(grant,admitted.request,(...args)=>control.snapshot(...args)),/LOOKUP_OWNER_UNQUALIFIED/);
+   await admin.query('ALTER FUNCTION factory.receiver_requires_ordering(text,text) OWNER TO '+quoted);
+   await admin.query('ALTER FUNCTION factory.receiver_role_enrolled(text,text,text,text,text,integer) OWNER TO receiver_lookup_owner');
+   await assert.rejects(ordered.snapshot(),/LOOKUP_OWNER_UNQUALIFIED/);
+   await assert.rejects(restarted.prepare(grant,admitted.request,(...args)=>control.snapshot(...args)),/LOOKUP_OWNER_UNQUALIFIED/);
+   assert.equal((await admin.query('SELECT count(*) FROM factory.intake_receipts')).rows[0].count,'1');
+   await admin.query('ALTER FUNCTION factory.receiver_role_enrolled(text,text,text,text,text,integer) OWNER TO '+quoted);
+   await admin.query('ALTER FUNCTION factory.receiver_requires_ordering(text,text) SECURITY INVOKER');
+   await assert.rejects(restarted.prepare(grant,admitted.request,(...args)=>control.snapshot(...args)),/LOOKUP_OWNER_UNQUALIFIED/);
+  }finally{
+   await admin.query('ALTER FUNCTION factory.receiver_requires_ordering(text,text) SECURITY DEFINER');
+   await admin.query('ALTER FUNCTION factory.receiver_requires_ordering(text,text) OWNER TO '+quoted+'; ALTER FUNCTION factory.receiver_role_enrolled(text,text,text,text,text,integer) OWNER TO '+quoted+'; DROP OWNED BY receiver_lookup_owner; DROP ROLE receiver_lookup_owner');
+  }
+ });
+ await t.test('a fresh fence can recover a pending admission without the original caller',async()=>{
+  const request=make();await authorize(request);const pair=await permits(request),advance=witness.advance.bind(witness);
+  witness.advance=async()=>{throw Error('SIMULATED_BEFORE_CAS');};
+  try{await assert.rejects(ordered.prepare(request,'fixture-mission',pair),/SIMULATED_BEFORE_CAS/);}finally{witness.advance=advance;}
+  const pending=(await ordered.snapshot()).pending[0];
+  await ordered.receiveFence(await fence('relay',2));
+  assert.equal((await ordered.snapshot()).pending.length,0);
+  const receipt=JSON.parse((await ordered.terminal(request,'fixture-mission')).message);
+  assert.equal(receipt.planId,pending.record_key);assert.equal(receipt.outcome,'DEFINITELY_NOT_ADMITTED');
+  assert.equal((await admin.query('SELECT count(*) FROM factory.intake_receipts WHERE request_id=$1',[request.requestId])).rows[0].count,'0');
+ });
+ await t.test('readback-first recovers expired pre-CAS admission without rebuilding or native effects',async()=>{
+  const request=make();await authorize(request);const pair=await permits(request,ordered,0,1200),advance=witness.advance.bind(witness);let once=true;
   witness.advance=async(...args)=>{if(once){once=false;throw Error('SIMULATED_BEFORE_CAS');}return advance(...args);};
   await assert.rejects(ordered.prepare(request,'fixture-mission',pair),/SIMULATED_BEFORE_CAS/);witness.advance=advance;
   const pending=(await ordered.snapshot()).pending[0],ids=pending.payload.identity.nativeIds;
-  const expiredMyeve={...JSON.parse(pair.myeve.message),issuedAt:Date.now()-20000,expiresAt:Date.now()-1000};
-  const expired={myeve:await signPolicyMessage(expiredMyeve,keys.myeve),relay:await signPolicyMessage({...JSON.parse(pair.relay.message),issuedAt:Date.now()-20000,expiresAt:Date.now()-1000,sourcePermitHash:await policyMessageHash(expiredMyeve)},keys.relay)};
-  await assert.rejects(ordered.prepare(request,'fixture-mission',expired),/STALE_OR_FOREIGN/);
-  assert.equal((await ordered.snapshot()).pending[0].record_key,pending.record_key);
-  const result=await ordered.prepare(request,'fixture-mission',pair),receipt=JSON.parse(result.message);
+  await new Promise(resolve=>setTimeout(resolve,1300));
+  assert(Date.now()>JSON.parse(pair.myeve.message).expiresAt);
+  const result=await ordered.terminal(request,'fixture-mission'),receipt=JSON.parse(result.message);
   assert.equal(receipt.outcome,'DEFINITELY_NOT_ADMITTED');assert.equal(receipt.planId,pending.record_key);
   assert.deepEqual((await ordered.snapshot()).data.capability_receiver_plans.find(r=>r.record_key===pending.record_key&&r.record_kind==='PLAN').payload.identity.nativeIds,ids);
   assert.equal((await admin.query('SELECT count(*) FROM factory.intake_receipts WHERE request_id=$1',[request.requestId])).rows[0].count,'0');
@@ -168,7 +198,7 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
  await t.test('native global lock is never retained during witness I/O',async()=>{
   const advance=witness.advance.bind(witness);let checked=0;
   witness.advance=async(...args)=>{const c=await admin.connect();try{await c.query('BEGIN');assert.equal((await c.query('SELECT pg_try_advisory_xact_lock(81427603) AS free')).rows[0].free,true);checked++;}finally{await c.query('ROLLBACK');c.release();}return advance(...args);};
-  await ordered.receiveFence(await fence('relay',2));witness.advance=advance;assert.equal(checked,1);
+  await ordered.receiveFence(await fence('relay',3));witness.advance=advance;assert.equal(checked,1);
  });
  await t.test('admitted readback rejects restored owner/admission history and authority even with intact intake/head',async()=>{
   const row=(await admin.query('SELECT * FROM factory.production_work_authority WHERE request_id=$1',[admitted.request.requestId])).rows[0];
@@ -178,6 +208,19 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   const event=(await admin.query("DELETE FROM factory.events WHERE run_id=$1 AND type='factory.capability_admitted' RETURNING *",[admitted.result.runId])).rows[0];
   await assert.rejects(ordered.terminal(admitted.request,'fixture-mission'),/NATIVE_LINEAGE_MISSING/);
   await admin.query('INSERT INTO factory.events(id,work_order_id,run_id,type,payload,created_at) OVERRIDING SYSTEM VALUE VALUES($1,$2,$3,$4,$5,$6)',[event.id,event.work_order_id,event.run_id,event.type,event.payload,event.created_at]);
+  assert.equal((await ordered.terminal(admitted.request,'fixture-mission')).runId,admitted.result.runId);
+ });
+ await t.test('partial restore of an applied outcome is unavailable lineage, never never-seen',async()=>{
+  const state=await ordered.snapshot(),plan=state.data.capability_receiver_plans.find(r=>r.record_kind==='PLAN'&&r.payload.identity.requestId===admitted.request.requestId);
+  await admin.query('ALTER TABLE factory.capability_receiver_plans DISABLE TRIGGER protect_history');
+  let row;
+  try{
+   row=(await admin.query("DELETE FROM factory.capability_receiver_plans WHERE record_key=$1 AND record_kind='OUTCOME' RETURNING *",[plan.record_key])).rows[0];
+   await assert.rejects(ordered.terminal(admitted.request,'fixture-mission'),/NATIVE_LINEAGE_MISSING/);
+  }finally{
+   if(row){const cols=Object.keys(row);await admin.query('INSERT INTO factory.capability_receiver_plans('+cols.join(',')+') VALUES('+cols.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(row));}
+   await admin.query('ALTER TABLE factory.capability_receiver_plans ENABLE TRIGGER protect_history');
+  }
   assert.equal((await ordered.terminal(admitted.request,'fixture-mission')).runId,admitted.result.runId);
  });
  await t.test('new disable rejects stale fresh admission and preserves existing intake and UNKNOWN reserves',async()=>{
@@ -197,13 +240,26 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   await assert.rejects(new PostgresSpendLedger(pool,{requireExecutionLease:false}).reserve({...unknownBinding,operationId:randomUUID(),model:productionSpendPlan.model,pricingRevision:productionSpendPlan.pricingRevision,reservedMicrousd:productionSpendPlan.perOperationReserveMicrousd,phase:'productive'}),/authority|UNKNOWN|Unresolved/);
  });
  await t.test('Relay native revocation fences original authority, denies older agent permits, and never certifies absent resources',async()=>{
-  const pair=generateKeyPairSync('ed25519'),keyId='original-fixture-evidence';
+  const pair=generateKeyPairSync('ed25519'),keyId='original-fixture-evidence';relaySigningPair=pair;
   const ackKey=generateKeyPairSync('ed25519'),backendKeyId='original-fixture-backend';
   const binding={...scope,accountId:'fixture-account',agentId,sourceKeyId:keyId,sourcePublicKeyPem:pair.publicKey.export({type:'spki',format:'pem'}).toString(),backendKeyId};
-  const relay=new FactoryRelayPolicyReceiver({ordered,binding,ackSigner:{keyId:backendKeyId,sign:async hash=>sign(null,Buffer.from(hash),ackKey.privateKey).toString('base64url')}});
+  relay=new FactoryRelayPolicyReceiver({ordered,binding,ackSigner:{keyId:backendKeyId,sign:async hash=>sign(null,Buffer.from(hash),ackKey.privateKey).toString('base64url')}});
   const payload={schema:'relay.policy-change.v1',eventId:'fixture-revocation',accountId:binding.accountId,aggregateId:agentId,kind:'AGENT_REVOKED',revision:1,
    source:{passportId:'fixture-passport',passportVersion:1,revokedLeaseIds:[]},issuedAt:new Date().toISOString(),accounting:'PRESERVE_UNKNOWN'};
   const payloadHash='sha256:'+digest(payload),envelope={payload,payloadHash,keyId,signature:sign(null,Buffer.from(payloadHash),pair.privateKey).toString('base64url')};
+  const run=admitted.result.runId,lease=randomUUID(),verifyLease=randomUUID(),deadline=new Date(Date.now()+60000).toISOString();
+  await admin.query("INSERT INTO factory.execution_resources(run_id,provider_name,provider_session_id,state,lease_owner,lease_expires_at,deadline,evidence) VALUES($1,'fixture-producer','sbx_fixture_producer','RUNNING',$2,$3,$3,'{\"cleanup\":\"UNKNOWN\"}')",[run,lease,deadline]);
+  await admin.query("INSERT INTO factory.verification_resources(run_id,lease_owner,lease_expires_at,deadline,provider_name,provider_session_id,candidate_commit,candidate_tree,custody_sha256,policy_sha256,image,state,failure) VALUES($1,$2,$3,$3,'fixture-verifier','sbx_fixture_verifier',$4,$4,$5,$6,'fixture-image','FINISHED','VERIFIER_CLEANUP_UNKNOWN')",[run,verifyLease,deadline,'a'.repeat(40),'b'.repeat(64),verifierPolicySha256]);
+  await store.transaction(async client=>{const row=await store.record(client,grant.clientId,admitted.request.requestId);await store.event(client,row,'verifier.claimed',{leaseOwner:verifyLease,providerName:'fixture-verifier',runId:run,workId:admitted.request.workId,workGeneration:1});});
+  const advance=witness.advance.bind(witness);let once=true;
+  witness.advance=async(...args)=>{if(once){once=false;throw Error('SIMULATED_REVOCATION_BEFORE_CAS');}return advance(...args);};
+  try{await assert.rejects(relay.receive(envelope),/SIMULATED_REVOCATION_BEFORE_CAS/);}finally{witness.advance=advance;}
+  const beforeRecovery=(await ordered.snapshot()).head,originalReceiver=ordered.relayPolicyReceiver;
+  ordered.relayPolicyReceiver=null;
+  try{await assert.rejects(ordered.challenge(make(),'fixture-mission'),/RELAY_POLICY_ENROLLMENT_UNAVAILABLE/);await witness.assert(beforeRecovery);assert.equal((await ordered.snapshot()).pending.length,1);}finally{ordered.relayPolicyReceiver=originalReceiver;}
+  await ordered.challenge(make(),'fixture-mission'); // unrelated entry repairs the original stored revocation
+  assert((await admin.query('SELECT cancelled_at FROM factory.execution_resources WHERE run_id=$1',[run])).rows[0].cancelled_at);
+  assert(new Date((await admin.query('SELECT lease_expires_at FROM factory.verification_resources WHERE run_id=$1',[run])).rows[0].lease_expires_at).getTime()<=Date.now());
   const ack=await relay.receive(envelope);assert.equal(ack.receipt.admissionFence,'APPLIED');assert.equal(ack.receipt.cleanup,'PENDING_BACKEND');
   assert.equal(ack.receipt.accounting,'PRESERVE_UNKNOWN');assert.deepEqual(await relay.receive(envelope),ack);
   assert.equal((await admin.query('SELECT state FROM factory.production_work_authority WHERE request_id=$1',[admitted.request.requestId])).rows[0].state,'REVOKED');
@@ -215,10 +271,7 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   assert.equal(inventory.inventoryComplete,false);assert.notEqual(aggregateLifecycle(inventory,'revoke'),'CLEANUP_CONFIRMED');
  });
  await t.test('positive canonical cleanup journals resolve physical uncertainty while financial UNKNOWN remains held',async()=>{
-  const run=admitted.result.runId,lease=randomUUID(),verifyLease=randomUUID(),deadline=new Date(Date.now()+60000).toISOString();
-  await admin.query("INSERT INTO factory.execution_resources(run_id,provider_name,provider_session_id,state,lease_owner,lease_expires_at,deadline,evidence) VALUES($1,'fixture-producer','sbx_fixture_producer','RUNNING',$2,$3,$3,'{\"cleanup\":\"UNKNOWN\"}')",[run,lease,deadline]);
-  await admin.query("INSERT INTO factory.verification_resources(run_id,lease_owner,lease_expires_at,deadline,provider_name,provider_session_id,candidate_commit,candidate_tree,custody_sha256,policy_sha256,image,state,failure) VALUES($1,$2,$3,$3,'fixture-verifier','sbx_fixture_verifier',$4,$4,$5,$6,'fixture-image','FINISHED','VERIFIER_CLEANUP_UNKNOWN')",[run,verifyLease,deadline,'a'.repeat(40),'b'.repeat(64),verifierPolicySha256]);
-  await store.transaction(async client=>{const row=await store.record(client,grant.clientId,admitted.request.requestId);await store.event(client,row,'verifier.claimed',{leaseOwner:verifyLease,providerName:'fixture-verifier',runId:run,workId:admitted.request.workId,workGeneration:1});});
+  const run=admitted.result.runId,lease=(await admin.query('SELECT lease_owner FROM factory.execution_resources WHERE run_id=$1',[run])).rows[0].lease_owner,verifyLease=(await admin.query('SELECT lease_owner FROM factory.verification_resources WHERE run_id=$1',[run])).rows[0].lease_owner;
   await assert.rejects(store.confirmCleanup(run,randomUUID(),1,'sbx_fixture_producer'),/MISMATCH/);
   await store.confirmCleanup(run,lease,1,'sbx_fixture_producer');
   const verification=new PostgresVerificationStore(store,{policy:verifierPolicy,policySha256:verifierPolicySha256});
@@ -249,7 +302,24 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   assert(inventory.runs.some(r=>r.identity.clientId===secondGrant.clientId&&r.identity.runId===result.runId&&r.identity.agentRevision===1));
   assert(!inventory.unqualified.some(r=>r.requestId===request.requestId&&/ORIGINAL_AUTHORITY|SCOPE|ADMISSION/.test(r.reason)));
   assert.equal((await admin.query('SELECT state FROM factory.production_work_authority WHERE request_id=$1',[admitted.request.requestId])).rows[0].state,'REVOKED');
-  const pause=await fence('myeve',4,'pause');await ordered.receiveFence(pause);
+  const activeLease=randomUUID(),activeVerifierLease=randomUUID(),activeDeadline=new Date(Date.now()+60000).toISOString();
+  await admin.query("INSERT INTO factory.execution_resources(run_id,provider_name,provider_session_id,state,lease_owner,lease_expires_at,deadline,evidence) VALUES($1,'fixture-second-producer','sbx_second','RUNNING',$2,$3,$3,'{\"cleanup\":\"UNKNOWN\"}')",[result.runId,activeLease,activeDeadline]);
+  await admin.query("INSERT INTO factory.verification_resources(run_id,lease_owner,lease_expires_at,deadline,provider_name,provider_session_id,candidate_commit,candidate_tree,custody_sha256,policy_sha256,image,state,failure) VALUES($1,$2,$3,$3,'fixture-second-verifier','sbx_second_verifier',$4,$4,$5,$6,'fixture-image','FINISHED','VERIFIER_CLEANUP_UNKNOWN')",[result.runId,activeVerifierLease,activeDeadline,'a'.repeat(40),'b'.repeat(64),verifierPolicySha256]);
+  const revoke={schema:'relay.policy-change.v1',kind:'AGENT_REVOKED',eventId:randomUUID(),accountId:'fixture-account',aggregateId:agentId,revision:2,issuedAt:new Date().toISOString(),source:{passportId:'fixture-passport',passportVersion:2,revokedLeaseIds:[]},accounting:'PRESERVE_UNKNOWN'};
+  const revokeHash='sha256:'+digest(revoke),revocation={payload:revoke,payloadHash:revokeHash,keyId:'original-fixture-evidence',signature:sign(null,Buffer.from(revokeHash),relaySigningPair.privateKey).toString('base64url')};
+  const advanceRelay=witness.advance.bind(witness);let firstRelay=true;
+  witness.advance=async(...args)=>{const value=await advanceRelay(...args);if(firstRelay){firstRelay=false;throw Error('SIMULATED_REVOCATION_AFTER_CAS');}return value;};
+  try{await assert.rejects(relay.receive(revocation),/SIMULATED_REVOCATION_AFTER_CAS/);}finally{witness.advance=advanceRelay;}
+  await ordered.receiveFence(await fence('relay',4)); // unrelated entry with witness ahead
+  assert.equal((await admin.query('SELECT state FROM factory.production_work_authority WHERE request_id=$1',[request.requestId])).rows[0].state,'REVOKED');
+  assert.equal((await admin.query('SELECT authority_state FROM factory.work_spend_budgets WHERE work_id=$1',[request.workId])).rows[0].authority_state,'fenced');
+  assert((await admin.query('SELECT cancelled_at FROM factory.execution_resources WHERE run_id=$1',[result.runId])).rows[0].cancelled_at);
+  assert(new Date((await admin.query('SELECT lease_expires_at FROM factory.verification_resources WHERE run_id=$1',[result.runId])).rows[0].lease_expires_at).getTime()<=Date.now());
+  assert.equal((await relay.receive(revocation)).receipt.admissionFence,'APPLIED');
+  const pause=await fence('myeve',4,'pause'),advance=witness.advance.bind(witness);
+  witness.advance=async()=>{throw Error('SIMULATED_FENCE_BEFORE_CAS');};
+  try{await assert.rejects(ordered.receiveFence(pause),/SIMULATED_FENCE_BEFORE_CAS/);}finally{witness.advance=advance;}
+  await ordered.receiveFence(pause);
   const acknowledgment=await verifyLifecycleReceipt(await ordered.observeControl(pause),signer);
   assert.notEqual(acknowledgment.state,'PAUSE_CONFIRMED');assert.notEqual(acknowledgment.state,'CLEANUP_CONFIRMED');
   assert.equal((await admin.query("SELECT count(*) FROM factory.events WHERE run_id=$1 AND type='factory.capability_pause_requested'",[result.runId])).rows[0].count,'1');
