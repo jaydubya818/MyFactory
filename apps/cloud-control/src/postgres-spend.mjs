@@ -35,7 +35,21 @@ export class PostgresSpendLedger {
     finally { client.release(); }
   }
   async createBudget(binding, ceiling, deadline, plan) {
-    return this.transaction(async ({client,now,timestamp,budget,operations})=>{
+    return this.transaction(context=>this.createBudgetWithContext(context,binding,ceiling,deadline,plan));
+  }
+  async createBudgetInTransaction(client,now,binding,ceiling,deadline,plan) {
+    const normalize=row=>{
+      if(!row)return undefined;
+      for(const key of ['ceiling_microusd','per_operation_reserve_microusd','completion_reserve_microusd','reserved_microusd','actual_microusd'])
+        if(row[key]!=null){row[key]=Number(row[key]);if(!Number.isSafeInteger(row[key]))throw Error('UNSAFE_LEDGER_INTEGER');}
+      return row;
+    };
+    return this.createBudgetWithContext({client,now,timestamp:new Date(now).toISOString(),
+      budget:async id=>normalize((await client.query('SELECT * FROM factory.work_spend_budgets WHERE work_id=$1',[id])).rows[0]),
+      operations:async id=>(await client.query('SELECT * FROM factory.work_spend_operations WHERE work_id=$1 ORDER BY created_at,operation_id',[id])).rows.map(row=>map(normalize(row)))
+    },binding,ceiling,deadline,plan);
+  }
+  async createBudgetWithContext({client,now,timestamp,budget,operations},binding,ceiling,deadline,plan) {
       validateBudget(binding,ceiling,deadline,plan,now);
       const {workId,workGeneration,requestId,workOrderId}=binding;
       const previous=await budget(workId);
@@ -47,8 +61,8 @@ export class PostgresSpendLedger {
         await client.query("UPDATE factory.work_spend_budgets SET work_generation=$2,request_id=$3,work_order_id=$4,deadline=$5,authority_state='prepared',authority_dispatch_identity=NULL,authority_factory_version=NULL,authority_run_id=NULL,phase='productive' WHERE work_id=$1",[workId,workGeneration,requestId,workOrderId,deadline]);return;
       }
       await client.query(`INSERT INTO factory.work_spend_budgets (work_id,work_generation,request_id,work_order_id,ceiling_microusd,deadline,created_at,contract_version,pricing_revision,model,pricing_valid_until,per_operation_reserve_microusd,planned_productive_operations,planned_completion_operations,max_paid_operations,completion_reserve_microusd) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,[workId,workGeneration,requestId,workOrderId,ceiling,deadline,timestamp,plan?.version??'WORK_LEDGER_V1',plan?.pricingRevision??null,plan?.model??null,plan?.validUntil??null,plan?.perOperationReserveMicrousd??0,plan?.plannedProductiveOperations??0,plan?.plannedCompletionOperations??0,plan?.maxPaidOperations??0,plan?.completionReserveMicrousd??0]);
-    });
   }
+
   async bindAuthority(binding) {
     for(const [key,value] of Object.entries(binding))key==='workGeneration'?positive(value,key):nonempty(value,key);
     return this.transaction(async({client,now,budget})=>{

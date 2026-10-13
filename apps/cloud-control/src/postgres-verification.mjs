@@ -17,7 +17,7 @@ export class PostgresVerificationStore{
    const lease=randomUUID(),deadline=new Date(Math.min(now+this.policy.timeoutMs,new Date(row.deadline).getTime())).toISOString();
    if(Date.parse(deadline)<now+10000)throw Error('VERIFIER_DEADLINE');
    const record=(await client.query(`INSERT INTO factory.verification_resources(run_id,lease_owner,lease_expires_at,deadline,provider_name,candidate_commit,candidate_tree,custody_sha256,policy_sha256,image,state) VALUES($1,$2,$3,$3,$4,$5,$6,$7,$8,$9,'ALLOCATING') RETURNING *`,[row.run_id,lease,deadline,'factory-verify-'+row.run_id,custody.candidate_commit,custody.candidate_tree,custody.artifact_sha256,this.policySha256,this.policy.image])).rows[0];
-   await this.dispatch.event(client,row,'verifier.claimed',{candidateCommit:custody.candidate_commit,policySha256:this.policySha256,providerName:record.provider_name});return{created:true,record};
+   await this.dispatch.event(client,row,'verifier.claimed',{candidateCommit:custody.candidate_commit,policySha256:this.policySha256,providerName:record.provider_name,leaseOwner:lease,runId:row.run_id,workId:row.work_id,workGeneration:row.work_generation});return{created:true,record};
   });
  }
  async allocated(runId,leaseOwner,sessionId){
@@ -51,8 +51,13 @@ export class PostgresVerificationStore{
   });
  }
  async cleanup(runId,leaseOwner,sessionId){return this.dispatch.transaction(async(client,now)=>{
+  await this.dispatch.assertRunScope(client,runId);
   const r=(await client.query('SELECT * FROM factory.verification_resources WHERE run_id=$1 AND lease_owner=$2',[runId,leaseOwner])).rows[0];
   if(!r||r.provider_session_id!==sessionId||(!sessionId&&now<new Date(r.deadline).getTime()+30000))throw Error('VERIFIER_CLEANUP_UNPROVEN');
   await client.query("UPDATE factory.verification_resources SET state='DESTROYED',cleanup_confirmed=true,updated_at=clock_timestamp() WHERE run_id=$1 AND lease_owner=$2",[runId,leaseOwner]);
+  if(!r.cleanup_confirmed){
+   const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
+   await this.dispatch.event(client,row,'verifier.cleanup_confirmed',{runId,workId:row.work_id,workGeneration:row.work_generation,leaseOwner,providerName:r.provider_name,providerSessionId:sessionId,candidateCommit:r.candidate_commit,custodySha256:r.custody_sha256,policySha256:r.policy_sha256});
+  }
  });}
 }

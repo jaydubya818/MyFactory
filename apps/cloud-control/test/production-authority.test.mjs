@@ -61,9 +61,10 @@ test('normal producer-to-verifier handoff remains RUNNING; failures and expiry r
  assert.equal(validationResourceState(row,now+30001),'UNKNOWN');
 });
 test('revocation before verifier admission or between probes fences execution but not cleanup',async()=>{
- let revoked=false,checks=0,cleaned=false;
- const dispatch={assertAuthority:async()=>{checks++;if(revoked)throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');},record:async()=>({run_id:'run',request:{}}),
+ let revoked=false,checks=0,cleaned=false,scopeChecks=0,cleanupJournal=0;
+ const dispatch={assertRunScope:async()=>{scopeChecks++;},event:async(_client,_row,type)=>{assert.equal(type,'verifier.cleanup_confirmed');cleanupJournal++;},assertAuthority:async()=>{checks++;if(revoked)throw Error('PRODUCTION_WORK_NOT_AUTHORIZED');},record:async()=>({run_id:'run',request:{}}),
   transaction:async action=>action({query:async sql=>{
+   if(sql.startsWith('SELECT * FROM factory.intake_receipts'))return{rows:[{work_id:'work',work_generation:1}]};
    if(sql.startsWith('SELECT request'))return{rows:[{request:{}}]};
    if(sql.includes('SELECT 1 FROM factory.verification_resources'))return{rows:[{}],rowCount:1};
    if(sql.startsWith('UPDATE')){cleaned=true;return{rows:[],rowCount:1};}
@@ -74,7 +75,7 @@ test('revocation before verifier admission or between probes fences execution bu
  await store.assertActive('run','lease');assert.equal(checks,1);revoked=true;
  await assert.rejects(store.claim('owner','request'),/NOT_AUTHORIZED/);
  await assert.rejects(store.assertActive('run','lease'),/NOT_AUTHORIZED/);
- await store.cleanup('run','lease','sbx_1');assert.equal(cleaned,true);
+ await store.cleanup('run','lease','sbx_1');assert.equal(cleaned,true);assert.equal(scopeChecks,1);assert.equal(cleanupJournal,1);
 });
 test('validation denies every paid ledger crossing before lease/provider access',async()=>{
  let queried=0;

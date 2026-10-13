@@ -35,15 +35,24 @@ export class PostgresDispatchStore {
     await client.query('INSERT INTO factory.events(work_order_id,run_id,type,payload) VALUES($1,$2,$3,$4)',[row.work_order_id,row.run_id,type,payload]);
   }
   async prepare(grant,input,snapshotFactory) {
-    return this.transaction(async(client,now)=>{
+    if(this.orderedAdmissionRequired)throw Error('FACTORY_ORDERED_ADMISSION_REQUIRED');
+    return this.transaction((client,now)=>this.prepareInTransaction(client,now,grant,input,snapshotFactory));
+  }
+  async prepareInTransaction(client,now,grant,input,snapshotFactory,admissionCheck,nativeIds) {
+    if(this.orderedAdmissionRequired&&!admissionCheck)throw Error('FACTORY_ORDERED_ADMISSION_REQUIRED');
       // Exact production authority is consumed atomically with first admission.
       const authority=this.assertAuthority?await this.assertAuthority(client,input,now,'prepare'):undefined;
       const capabilityScope=factoryCapabilityScope(this.capabilityBindings,grant);
+      if(!admissionCheck){
+        const schema=(await client.query("SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='factory' AND c.relname='capability_receiver_heads') AS receiving_schema, EXISTS(SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='factory' AND p.proname='receiver_requires_ordering' AND p.proargtypes='25 25'::oidvector) AS installed")).rows[0];
+        if(schema?.receiving_schema&&!schema.installed)throw Error('FACTORY_ORDERING_UNAVAILABLE');
+        if(schema?.installed&&(await client.query('SELECT factory.receiver_requires_ordering($1,$2) AS required',[capabilityScope.ownerId,capabilityScope.installationId])).rows[0]?.required)throw Error('FACTORY_ORDERED_ADMISSION_REQUIRED');
+      }
       // Replay cannot change any admission input.
       const prior=(await client.query('SELECT * FROM factory.intake_receipts WHERE client_id=$1 AND request_id=$2',[grant.clientId,input?.requestId])).rows[0];
       if(prior){const binding=(await client.query("SELECT payload FROM factory.events WHERE run_id=$1 AND type='factory.owner_scope_bound'",[prior.run_id])).rows;if(binding.length!==1||binding[0].payload.ownerScope!==capabilityScope.ownerId||binding[0].payload.installationId!==capabilityScope.installationId||binding[0].payload.organizationId!==capabilityScope.organizationId||binding[0].payload.agentId!==capabilityScope.agentId)throw Error('CAPABILITY_OWNER_SCOPE_CHANGED');if(this.assertRecordScope)await this.assertRecordScope(client,prior);if(prior.input_digest!==digest(input))throw Error('PREPARATION_REPLAY_CONFLICT');return prior;}
       const request=parseCloudPrepare(input,grant,now);
-      const capabilityEvidence=await assertFactoryCapability(client,this.capabilityBindings,grant,request);
+      const capabilityEvidence=admissionCheck?await admissionCheck(client,request,now):await assertFactoryCapability(client,this.capabilityBindings,grant,request);
       const count=Number((await client.query('SELECT count(*) FROM factory.intake_receipts WHERE client_id=$1',[grant.clientId])).rows[0].count),successor=authority?.successorIntake;
       const extra=this.maxWorks===1&&count===1&&successor?.maxIntakes===1&&successor.clientId===grant.clientId&&successor.workId===request.workId&&successor.workGeneration===request.workGeneration;
       if(count>=this.maxWorks&&!extra)throw Error(this.workLimitError);
@@ -52,7 +61,8 @@ export class PostgresDispatchStore {
       // No new generation while an earlier resource can still execute.
       if((await client.query('SELECT 1 FROM factory.intake_receipts i JOIN factory.execution_resources r ON r.run_id=i.run_id WHERE i.work_id=$1 AND NOT r.cleanup_confirmed',[request.workId])).rowCount)throw Error('WORK_RESOURCE_UNRESOLVED');
       if((await client.query('SELECT 1 FROM factory.intake_receipts i JOIN factory.verification_resources v ON v.run_id=i.run_id WHERE i.work_id=$1 AND NOT v.cleanup_confirmed',[request.workId])).rowCount)throw Error('WORK_RESOURCE_UNRESOLVED');
-      const workOrderId=randomUUID(),runId=randomUUID(),at=new Date(now).toISOString();
+      const workOrderId=nativeIds?.workOrderId??randomUUID(),runId=nativeIds?.runId??randomUUID(),at=new Date(now).toISOString();
+      if(![workOrderId,runId].every(id=>/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id)))throw Error('SNAPSHOT_BINDING_MISMATCH');
       const order={...request.input,id:workOrderId,source:request.source,baseRef:request.source.commit,reproductionCommand:null,expectedFailureText:null,workerProfile:'container',state:'queued',createdAt:at,updatedAt:at};
       const run={id:runId,workOrderId,attemptNumber:1,state:'planning',workerProfile:'container',inputCommit:request.source.commit,candidateCommit:null,workspaceRef:`factory-run:${runId}`,startedAt:at,finishedAt:null,failure:null};
       // Trusted server callback computes the pinned execution snapshot; never caller supplied.
@@ -66,10 +76,10 @@ export class PostgresDispatchStore {
       if(grant.ownerScope)await this.event(client,row,'factory.owner_scope_bound',{ownerScope:grant.ownerScope,installationId:capabilityScope.installationId,organizationId:capabilityScope.organizationId,agentId:capabilityScope.agentId,environment:capabilityScope.environment,workId:request.workId,workGeneration:request.workGeneration,repository:request.repository,requestId:request.requestId});
       await this.event(client,row,'run.execution_snapshot',snapshot);
       await this.event(client,row,'factory.capability_admitted',capabilityEvidence);
-      await assertFactoryCapability(client,this.capabilityBindings,grant,request);
+      if(admissionCheck)await admissionCheck(client,request,now);else await assertFactoryCapability(client,this.capabilityBindings,grant,request);
       return row;
-    });
   }
+
   assertIdentity(row,identity) {
     const expectedKeys='allowedPaths,baseSha,deadline,dispatchIdentity,factoryId,factoryVersion,remoteRunId,repository,requestId,runId,workGeneration,workId,workOrderId,writerGeneration';
     const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
@@ -229,7 +239,7 @@ export class PostgresDispatchStore {
       const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
       await client.query("UPDATE factory.work_spend_budgets SET authority_state='fenced' WHERE work_id=$1 AND work_generation=$2",[row.work_id,row.work_generation]);
       await client.query("UPDATE factory.work_spend_operations SET state='unknown',updated_at=clock_timestamp()::text WHERE run_id=$1 AND state IN ('reserved','dispatched')",[runId]);
-      if(!resource.cleanup_confirmed)await this.event(client,row,'factory.resource_destroyed',{providerName:resource.provider_name,providerSessionId});
+      if(!resource.cleanup_confirmed)await this.event(client,row,'factory.resource_destroyed',{providerName:resource.provider_name,providerSessionId,leaseOwner,leaseGeneration:generation,runId,workId:row.work_id,workGeneration:row.work_generation});
     });
   }
   async noteResource(runId,leaseOwner,generation,evidence) {

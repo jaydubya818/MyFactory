@@ -1,0 +1,32 @@
+name: Isolated Factory receiver qualification
+on:
+  push:
+    branches: [codex/factory-source-extension-qualification]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-receiver-qualification-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  receiver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.18.1
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
+      - run: node scripts/check-producer-governance.mjs
+      - run: node scripts/check-capability-sources.mjs
+      - run: npm run typecheck:producer
+      - run: npm test --workspace @factory/cloud-control
+      - run: docker pull postgres:17
+      - run: node scripts/qualify-factory-receiver.mjs

@@ -1,0 +1,34 @@
+[
+  {
+    "path": "packages/capability-enforcement/src/ordering-wire.ts",
+    "sha256": "4b198d32e1dcdc930c2658291906ebf72601e144596f3090202a3e7ee708d606",
+    "sourceRepository": "MyEveBot",
+    "sourcePath": "packages/capability-enforcement/src/ordering-wire.ts",
+    "sourceCommit": "b8df8ae61cf6a9fd8ec5bd1135ba126db1313601",
+    "unchangedUpstream": true
+  },
+  {
+    "path": "packages/capability-enforcement/src/lifecycle-wire.ts",
+    "sha256": "439bb8b4a948e06ed426d5635d800de8267e3e2dc76ec4c69cb8c8fb1134d6e4",
+    "sourceRepository": "MyEveBot",
+    "sourcePath": "packages/capability-enforcement/src/lifecycle-wire.ts",
+    "sourceCommit": "b8df8ae61cf6a9fd8ec5bd1135ba126db1313601",
+    "unchangedUpstream": true
+  },
+  {
+    "path": "packages/capability-enforcement/src/factory-preparation-terminal.ts",
+    "sha256": "1fdc7d032b087b4cfc28cf208d48007150f185de220186cbb51acac0babad976",
+    "sourceRepository": "MyEveBot",
+    "sourcePath": "packages/capability-enforcement/src/factory-preparation-terminal.ts",
+    "sourceCommit": "54413b578807a2d583aab81d51c7be8b52587ee7",
+    "unchangedUpstream": true
+  },
+  {
+    "path": "docs/capability-control/receiver-witness.sql",
+    "sourceRepository": "MyEveBot",
+    "sourcePath": "docs/capability-control/independent-witness.sql",
+    "sourceCommit": "b8df8ae61cf6a9fd8ec5bd1135ba126db1313601",
+    "unchangedUpstream": true,
+    "sha256": "fd82ae127800a09bc6e36e1b62819a00a3c98906c837ca146bca6f5b6a0ae985"
+  }
+]

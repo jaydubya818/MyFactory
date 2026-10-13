@@ -182,9 +182,9 @@
       "authorityBoundary": "Canonical V2 pricing, admission, binding, protected completion reserve and UNKNOWN/accounting policy shared by SQLite and PostgreSQL; no provider effects. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "apps/cloud-control/src/postgres-spend.mjs": {
-      "sha256": "b2c7a11b7e8365cdd3f8f15275f57eb4446cd18f93a512e46dcb77158f6c6554",
+      "sha256": "e9ef35cfc2a2acdbf8f6922506893867b2de8045dd0964d8d29297ce92a16b1f",
       "classification": "CANONICAL_CLOUD_ADMISSION",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion. Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
     },
     "apps/cloud-control/src/queue-delivery.mjs": {
       "sha256": "af8be5f41a0b18ac1c371e2685b4c09cf26a688cc1ebc34aa22814061d87fc8f",
@@ -207,9 +207,9 @@
       "authorityBoundary": "Exact granted repository source and canonical WorkOrder/Run identities; PostgreSQL transaction serialization with spend, idempotent dispatch and stop tombstones, one unresolved allocation, retained ambiguity, database-time leases. Default model admission requires a live running execution lease; no HTTP cloud admission or provider effects wired. Optional grant flag derivedRequestId admits a deterministic version-8 requestId for external-alpha only; Work ids and all canary and production grants remain version-4 only."
     },
     "apps/cloud-control/src/postgres-dispatch.mjs": {
-      "sha256": "506ed8947e47f978b05590e1223ab4d2258466637de4e2e82802c1b6d24da010",
+      "sha256": "b8907379a1e9af6b0d2239feba82ddad7c783d3b4870422b4182e115bc1b7624",
       "classification": "CLOUD_DISPATCH_AUTHORITY_AND_UNKNOWN_FENCE",
-      "authorityBoundary": "External-alpha ambiguous delivery remains UNKNOWN and cannot transition to DELIVERED through duplicate delivery; legacy routes retain their existing scope. Current-main boundary: Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review. Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified. Lifecycle successor: exact owner/organization/installation/agent binding, revision-targeted control replay, safe pre-allocation pause, producer and verifier cleanup acknowledgments with UNKNOWN accounting preserved. Remote enrollment and installed-source qualification are not implied; independent final review required. Exact reviewed current-main and External Alpha source union; no new execution or approval authority. C2 retained-control successor: exact durable scope and trusted original record ownership, canonical policy locks and fresh post-lock inventory; inactive installation may fence original Work, never admit new Work. Legacy incomplete scope stays pending; no historical event rewrite, transport authority or installed qualification."
+      "authorityBoundary": "External-alpha ambiguous delivery remains UNKNOWN and cannot transition to DELIVERED through duplicate delivery; legacy routes retain their existing scope. Current-main boundary: Fixed three-owner canonical host boundary: separate verified production OIDC and per-owner application/Proof credentials; exact immutable grant ownership on durable intake, queue, custody and cleanup. No new producer or standing Work authority. Local PostgreSQL isolation and revoked-history tests; independent review. Sequential qualification review: canonical preference and Relay evidence checks share the Factory preparation transaction; server client/owner binding is required. Original backend authority, resource, budget and UNKNOWN checks remain. Disposable real-PostgreSQL admission/bypass tests; cross-database integration and independent review remain unqualified. Lifecycle successor: exact owner/organization/installation/agent binding, revision-targeted control replay, safe pre-allocation pause, producer and verifier cleanup acknowledgments with UNKNOWN accounting preserved. Remote enrollment and installed-source qualification are not implied; independent final review required. Exact reviewed current-main and External Alpha source union; no new execution or approval authority. C2 retained-control successor: exact durable scope and trusted original record ownership, canonical policy locks and fresh post-lock inventory; inactive installation may fence original Work, never admit new Work. Legacy incomplete scope stays pending; no historical event rewrite, transport authority or installed qualification. Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
     },
     "apps/cloud-control/src/candidate-custody.mjs": {
       "classification": "PRIVATE_CANDIDATE_VALIDATION",
@@ -337,9 +337,9 @@
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/postgres-verification.mjs": {
-      "sha256": "6f8be82330828248b2ac7564e704a8eaad5f93aa371dea5d74e55ced71ee8b2f",
+      "sha256": "2612d399cc08367471c281ef0846d732ce04a5da23282389e19387a57e72c690",
       "classification": "CLOUD_PROTECTED_VERIFICATION",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. QE-002 criterion-evidence review: optional digest has exact lowercase SHA-256 shape; the reportDigest policy requires every ordered expected check to carry the same digest, and the pinned aggregate must agree with all individual outcomes. Existing exact run/lease/authority CAS, cancellation, deadline, producer-cleanup and verifier-cleanup gates remain unchanged. Evidence: local PostgreSQL criterion-evidence rejection, concurrency, cancellation and cleanup qualification. Current-main boundary: Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Lifecycle successor: pause at the producer-cleanup checkpoint fences new verifier allocation under the same transaction lock. Existing verifier execution is preserved until its qualified cleanup."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. QE-002 criterion-evidence review: optional digest has exact lowercase SHA-256 shape; the reportDigest policy requires every ordered expected check to carry the same digest, and the pinned aggregate must agree with all individual outcomes. Existing exact run/lease/authority CAS, cancellation, deadline, producer-cleanup and verifier-cleanup gates remain unchanged. Evidence: local PostgreSQL criterion-evidence rejection, concurrency, cancellation and cleanup qualification. Current-main boundary: Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Lifecycle successor: pause at the producer-cleanup checkpoint fences new verifier allocation under the same transaction lock. Existing verifier execution is preserved until its qualified cleanup. Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
     },
     "packages/contracts/src/environment.ts": {
       "sha256": "1844f841db35c591b227dec0a6486c91badbbed2fb2135d6895723f0e69bc8ae",
@@ -665,6 +665,61 @@
       "sha256": "606fbecaf5f7b1b8e6924e0a25b5e88718d602e2012a712828393b04dad3c768",
       "classification": "CAPABILITY_LIFECYCLE_OBSERVATION",
       "authorityBoundary": "Typed exact native lifecycle observation only, never a portable grant or authentication mechanism. Existing enrolled Factory/Fabric transport or signed execution Result must authenticate it; MissionControl owns Mission/Attempt mapping."
+    },
+    "apps/cloud-control/src/capability-receiver-witness.mjs": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "e8eccad0bbd5b7596028346c7f844ed00c5b0bf4e163db28ab60ff4089a7527e",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "apps/cloud-control/src/ordered-capability-admission.mjs": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "cf9019aa4f6e5e24e7fefd225aa8edf47dad8be323db417024e7bd0eafe6093e",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "apps/cloud-control/src/postgres-capability-receiver.mjs": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "f61d397b42b7f44480a5574a677587376ecca188192b36324440ba4b95f97a9c",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "apps/cloud-control/src/receiver-http.mjs": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "df90a3ee61eb89a24a0017f9a2f7fe9a8d18b24fa749cd626377f8e3414feef1",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "apps/cloud-control/src/receiver-lifecycle.mjs": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "bc16609cd898a2f2ad5d2c37a1a1d284285958e3afdc27cef84ccae506105020",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "apps/cloud-control/src/relay-policy-receiver.mjs": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "2b4b323a50aaf7ec1b0dd0105892aafdc79ef8fe974f85c76fa503ea1791f045",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "apps/cloud-control/api/capability-admission.mjs": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "f284342863130d33c98e1e61d58b98db68e7de71d7c105a7dd27883c848118e8",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "apps/cloud-control/api/relay-policy.mjs": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "b500a89f8874f5f41fe4270fa132238dcab77f63653aa0fc3c42469f285b8c92",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "packages/capability-enforcement/src/factory-preparation-terminal.ts": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "1fdc7d032b087b4cfc28cf208d48007150f185de220186cbb51acac0babad976",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "packages/capability-enforcement/src/lifecycle-wire.ts": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "439bb8b4a948e06ed426d5635d800de8267e3e2dc76ec4c69cb8c8fb1134d6e4",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "packages/capability-enforcement/src/ordering-wire.ts": {
+      "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
+      "sha256": "4b198d32e1dcdc930c2658291906ebf72601e144596f3090202a3e7ee708d606",
+      "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
     }
   }
 }

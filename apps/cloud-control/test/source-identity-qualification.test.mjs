@@ -15,7 +15,8 @@ import recovery from '../../../docs/capability-control/source-identity-20261010/
 import preparation from '../../../docs/myapps/current-main-source-qualification.json' with {type:'json'};
 
 import composition from '../../../docs/myapps/current-main-composition-qualification.json' with {type:'json'};
-import successor from '../../../docs/capability-control/retained-control-20261012/successor.json' with {type:'json'};
+import retained from '../../../docs/capability-control/retained-control-20261012/successor.json' with {type:'json'};
+import successor from '../../../docs/capability-control/receiver-extension-20261012/successor.json' with {type:'json'};
 
 test('inventoried source and configuration resolve to the exact qualified successor',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
@@ -30,11 +31,13 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(lifecycle.factoryVersion,recovery.predecessorFactoryVersion);
  assert.equal(recovery.factoryVersion,preparation.predecessorFactoryVersion);
  assert.equal(preparation.factoryVersion,composition.predecessorFactoryVersion);
- assert.equal(composition.factoryVersion,successor.predecessorFactoryVersion);
+ assert.equal(composition.factoryVersion,retained.predecessorFactoryVersion);
  assert.equal(lifecycle.sourceDigest,recovery.predecessorSourceDigest);
  assert.equal(recovery.sourceDigest,preparation.predecessorSourceDigest);
  assert.equal(preparation.sourceDigest,composition.predecessorSourceDigest);
- assert.equal(composition.sourceDigest,successor.predecessorSourceDigest);
+ assert.equal(composition.sourceDigest,retained.predecessorSourceDigest);
+ assert.equal(retained.factoryVersion,successor.predecessorFactoryVersion);
+ assert.equal(retained.sourceDigest,successor.predecessorSourceDigest);
  assert.equal(successor.authority,'ISOLATED_SOURCE_QUALIFICATION_ONLY');
  assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
 });
@@ -43,6 +46,7 @@ test('coherent historical source or contract grants cannot consume successor aut
  const now=Date.now(),clientId='sofie-production',ownerScope='synthetic-identity-owner';
  const request={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,deadline:new Date(now+60000).toISOString()};
  const combinations=[
+  [retained.sourceDigest,retained.executionContractSha256,false],
   [composition.sourceDigest,composition.executionContractSha256,false],
   [successor.compatibilityBaseSourceDigest,successor.executionContractSha256,false],
   [preparation.sourceDigest,preparation.executionContractSha256,false],
@@ -68,4 +72,17 @@ test('coherent historical source or contract grants cannot consume successor aut
   assert.equal(writes,allowed?1:0);
   assert.equal(JSON.stringify(row),original);
  }
+});
+
+test('successor inventory binds every receiving schema and the independent witness without rewriting historical records',()=>{
+ const root=fileURLToPath(new URL('../../../',import.meta.url));
+ const {record,files}=JSON.parse(execFileSync(process.execPath,['apps/cloud-control/scripts/cloud-source-identity.mjs','--manifest'],{cwd:root,encoding:'utf8'}));
+ assert.deepEqual(record,source);
+ for(const path of ['apps/cloud-control/migrations/013-capability-control-receipts.sql','docs/capability-control/receiver-witness.sql',
+  'apps/cloud-control/src/ordered-capability-admission.mjs','packages/capability-enforcement/src/factory-preparation-terminal.ts']){
+  assert.match(files[path],/^[a-f0-9]{64}$/);
+  assert.notEqual(digest({...files,[path]:'0'.repeat(64)}),source.sourceDigest);
+ }
+ assert.equal(retained.sourceDigest,'14e9984eb50322e79103424bbcf135ea4dfe955f25ec545d0e7996c5ed62f684');
+ assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
 });
