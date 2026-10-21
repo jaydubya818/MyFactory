@@ -312,7 +312,7 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
     },
     "apps/cloud-control/src/cloud-harness-plan.mjs": {
-      "sha256": "4c0aaeb3ecc526753e9f89dfaeaf979272e44c8d5312b4a644053424d5387671",
+      "sha256": "e570e46fe263d05da202e57ca917833ea27e9f18cf75757253edf7671f2a11e1",
       "classification": "CLOUD_HARNESS_BOUNDARY",
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
@@ -419,7 +419,7 @@
     "apps/cloud-control/src/production-model-provider.mjs": {
       "classification": "ENFORCED",
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant.",
-      "sha256": "e785eff8162fd7c6ad5365097802d31dfd60a72c790747ecde7d875b7a16da80"
+      "sha256": "a20a29615a9f0f34c5bd0303d4b88c6455f91356e3706141330b8aa72d74253f"
     },
     "apps/cloud-control/src/production-runtime-components.mjs": {
       "classification": "ENFORCED",
