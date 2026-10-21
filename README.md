@@ -23,6 +23,8 @@ The repository contains both the original local Factory work desk and the hosted
 
 ## Current status
 
+> **Pricing review due: re-qualify `gpt-5.4-mini` pricing before 2026-10-28T00:00:00Z.** The pinned revisions (`production-openai-mini-20261020-v3`, `cloud-codex-deterministic-20261020-v3`) expire then and paid paths fail closed. See [`docs/capability-control/pricing-20261020/README.md`](docs/capability-control/pricing-20261020/README.md). Never extend expiry silently.
+
 **Documentation reconciled: October 6, 2026 (Pacific).** Canonical source baseline: [`1739204`](https://github.com/jaydubya818/MyFactory/commit/1739204f9d29240b47b12fcba8e9542af4add451). This identifies the source reviewed for this guide; an actual deployment must independently prove its source/configuration identity.
 
 | Area | Current result | Scope and limits |
