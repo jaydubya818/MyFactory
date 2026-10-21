@@ -3,7 +3,9 @@ import {randomUUID} from 'node:crypto';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {productionAuthority} from '../src/production-authority.mjs';
 import assert from 'node:assert/strict';
-import current from '../../../docs/capability-control/pricing-20261010/20261010-v2.json' with {type:'json'};
+import current from '../../../docs/capability-control/pricing-20261020/20261020-v3.json' with {type:'json'};
+import predecessorPrice from '../../../docs/capability-control/pricing-20261010/20261010-v2.json' with {type:'json'};
+import recovery from '../../../docs/capability-control/source-identity-20261010/recovery-successor.json' with {type:'json'};
 import historical from '../../../docs/capability-control/pricing-20261010/historical-v1.json' with {type:'json'};
 import {validatePrice} from '../../supervisor/src/spend-gateway.ts';
 import {productionModelPrice} from '../src/production-model-provider.mjs';
@@ -24,6 +26,8 @@ test('both historical prices remain expired; successor also fails closed at its 
   t.mock.timers.enable({apis:['Date'],now:Date.parse(current.effectiveFrom)});
   for (const kind of ['production','deterministic']) {
     assert.throws(()=>validatePrice(historical.prices[kind]),/Current pinned model pricing/);
+    assert.throws(()=>validatePrice(predecessorPrice.prices[kind]),/Current pinned model pricing/);
+    assert.notEqual(current.prices[kind].revision,predecessorPrice.prices[kind].revision);
     assert.doesNotThrow(()=>validatePrice(current.prices[kind]));
   }
   t.mock.timers.setTime(Date.parse(current.reviewBy));
@@ -32,6 +36,7 @@ test('both historical prices remain expired; successor also fails closed at its 
 
 test('successor changes approval contract identity without widening the approved spending envelope', () => {
   assert.notEqual(productionExecutionContractSha256,historical.productionContract.executionContractSha256);
+  assert.notEqual(productionExecutionContractSha256,recovery.executionContractSha256);
   assert.equal(productionExecutionContract.maxSpendMicrousd,historical.productionContract.ceiling);
   for (const key of ['perOperationReserveMicrousd','plannedProductiveOperations','plannedCompletionOperations','maxPaidOperations','completionReserveMicrousd']) {
     assert.equal(productionExecutionContract.spendPlan[key],historical.productionContract.spendPlan[key],key);
