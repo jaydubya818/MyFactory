@@ -373,6 +373,10 @@ time { white-space: nowrap; }
   .form-section { grid-template-columns: 1fr; gap: 17px; }
   .builder-form { grid-template-columns: 1fr; }
 }
+@media (max-width: 700px) {
+  .app-shell { grid-template-columns: 130px minmax(0, 1fr); }
+  .side-nav { padding-left: 6px; padding-right: 6px; }
+}
 @media (max-width: 600px) {
   .app-shell { display: block; }
   .side-nav { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; min-height: 66px; padding: 8px 14px; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -381,7 +385,9 @@ time { white-space: nowrap; }
   .brand strong { font-size: 11px; }
   .brand > div:last-child > span, .side-nav__label, .side-nav__footer { display: none; }
   .side-nav nav { display: flex; }
-  .side-nav__item { width: auto; min-height: 34px; padding: 6px 8px; }
+  /* Icon-only nav items at mobile: maintain accessible 44px touch target height via padding,
+     and hide visual labels (text remains available to assistive tech via aria-label). */
+  .side-nav__item { width: auto; min-height: 44px; padding: 10px 8px; }
   .side-nav__item em { display: none; }
   .side-nav__item span { display: none; }
   .workspace { min-height: calc(100vh - 66px); }

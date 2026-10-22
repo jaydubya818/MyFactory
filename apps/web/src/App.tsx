@@ -12,12 +12,16 @@ import { attentionStates, errorText, formatDate, runningStates, shortId } from "
 type QueueFilter = "all" | "running" | "attention";
 type PendingAction = "create" | "builder" | "start" | "cancel" | null;
 
+const KNOWN_VIEWS = new Set(["queue", "builder", "connections"]);
+
 function urlSelection() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get("workOrder");
-  if (id) return { id, creating: false, showingQueue: false, showingBuilder: false, showingConnections: false };
-  if (params.has("new")) return { id: null, creating: true, showingQueue: false, showingBuilder: false, showingConnections: false };
-  return { id: null, creating: false, showingQueue: params.get("view") === "queue", showingBuilder: params.get("view") === "builder", showingConnections: params.get("view") === "connections" };
+  if (id) return { id, creating: false, showingQueue: false, showingBuilder: false, showingConnections: false, unknownView: null };
+  if (params.has("new")) return { id: null, creating: true, showingQueue: false, showingBuilder: false, showingConnections: false, unknownView: null };
+  const view = params.get("view");
+  const unknownView = view && !KNOWN_VIEWS.has(view) ? view : null;
+  return { id: null, creating: false, showingQueue: view === "queue", showingBuilder: view === "builder", showingConnections: view === "connections", unknownView };
 }
 
 function navigate(id: string | null, creating = false, showingQueue = false, showingBuilder = false, showingConnections = false) {
@@ -78,13 +82,13 @@ function QueuePage({
   return (
     <main className="main-panel queue-page" id="main-content">
       <div className="page-topline queue-page__heading">
-        <div><p className="eyebrow">Overview</p><h1>Work queue</h1><p className="page-lede">Every work order has a visible state and next step.</p></div>
+        <div><p className="eyebrow">Work queue</p><h1>Work queue</h1><p className="page-lede">Every work order has a visible state and next step.</p></div>
         <div className="heading-actions"><button className="button button--quiet" type="button" onClick={onRetry}><Icon name="refresh" size={16} /> Refresh</button><button className="button button--primary" type="button" onClick={onCreate}><Icon name="plus" size={18} /> New WorkOrder</button></div>
       </div>
       <div className="queue-metrics" aria-label="Queue summary"><div><strong>{error && queue.length === 0 ? "—" : running.length}</strong><span>in progress</span></div><div><strong>{error && queue.length === 0 ? "—" : attention.length}</strong><span>need you</span></div><div><strong>{error && queue.length === 0 ? "—" : queued.length}</strong><span>queued</span></div><div className="queue-metrics__note"><span className={`connection-dot ${error ? "connection-dot--error" : ""}`} /> {error ? "Service needs attention" : "Local supervisor"}</div></div>
       {error && <div className="inline-error queue-page__error" role="alert"><div><strong>Queue could not refresh</strong><p>{error}</p></div><button className="button button--quiet" type="button" onClick={onRetry}>Retry</button></div>}
       <section className="queue-table-card" aria-label="Work orders">
-        <div className="queue-table-card__toolbar"><div className="filter-row" aria-label="Filter work orders"><button className={filter === "all" ? "filter-button filter-button--active" : "filter-button"} type="button" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All work</button><button className={filter === "running" ? "filter-button filter-button--active" : "filter-button"} type="button" aria-pressed={filter === "running"} onClick={() => setFilter("running")}>Active</button><button className={filter === "attention" ? "filter-button filter-button--active" : "filter-button"} type="button" aria-pressed={filter === "attention"} onClick={() => setFilter("attention")}>Needs you</button></div><div className="queue-table-card__tools"><label className="search-label" htmlFor="queue-search">Search work orders</label><input id="queue-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search work orders" /><span>{visible.length} {visible.length === 1 ? "WorkOrder" : "WorkOrders"}</span></div></div>
+        <div className="queue-table-card__toolbar"><div className="filter-row" aria-label="Filter work orders"><button className={filter === "all" ? "filter-button filter-button--active" : "filter-button"} type="button" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All work</button><button className={filter === "running" ? "filter-button filter-button--active" : "filter-button"} type="button" aria-pressed={filter === "running"} onClick={() => setFilter("running")}>Active</button><button className={filter === "attention" ? "filter-button filter-button--active" : "filter-button"} type="button" aria-pressed={filter === "attention"} onClick={() => setFilter("attention")}>Needs you</button></div><div className="queue-table-card__tools"><label className="search-label" htmlFor="queue-search">Search work orders</label><input id="queue-search" type="search" placeholder="Search work orders…" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search work orders" /><span>{visible.length} {visible.length === 1 ? "WorkOrder" : "WorkOrders"}</span></div></div>
         {loading && queue.length === 0 ? <div className="loading-block" role="status"><span className="loading-bar" /><span className="loading-bar" /><span className="loading-bar" /><p>Loading saved work…</p></div> : error && queue.length === 0 ? <EmptyMessage eyebrow="Work queue" title="Queue unavailable" description="The local service could not load saved work. Retry when the service is running." /> : visible.length === 0 ? <EmptyMessage eyebrow={queue.length === 0 ? "Work queue" : "Filtered view"} title={queue.length === 0 ? "No work orders yet" : "No matching work orders"} description={queue.length === 0 ? "Create a narrowly scoped work order to begin. It will appear here as soon as the local service saves it." : "Change the search or filter to see other work orders."} action={queue.length === 0 ? <button className="button button--primary" type="button" onClick={onCreate}>Create work order <Icon name="arrow" size={17} /></button> : undefined} /> : <div className="queue-table-scroll"><table className="queue-table"><thead><tr><th scope="col">WorkOrder</th><th scope="col">Repository</th><th scope="col">State</th><th scope="col">Updated</th><th scope="col"><span className="sr-only">Open</span></th></tr></thead><tbody>{visible.map((order) => <tr key={order.id}><td><button className="table-link" type="button" onClick={() => onSelect(order.id)}><strong>{order.title}</strong><span>{shortId(order.id)} · {order.kind}</span></button></td><td className="queue-table__repo" title={order.repositoryPath}>{order.repositoryPath.split("/").filter(Boolean).at(-1) || order.repositoryPath}</td><td><StatusPill state={order.state} /></td><td className="queue-table__time"><time dateTime={order.updatedAt}>{formatDate(order.updatedAt)}</time></td><td><button className="table-open" type="button" aria-label={`Open ${order.title}`} onClick={() => onSelect(order.id)}><Icon name="chevron" size={17} /></button></td></tr>)}</tbody></table></div>}
       </section>
       <div className="queue-bottom-cards"><section className="summary-card"><div className="summary-card__heading"><h2>On the worker</h2><span>{running.length} active</span></div>{running.length ? <><button className="summary-card__link" type="button" onClick={() => onSelect(running[0].id)}><strong>{running[0].title}</strong><StatusPill state={running[0].state} /></button><p>{running.length === 1 ? "One attempt is currently in progress." : `${running.length} work orders are currently in progress.`}</p></> : <div className="summary-card__empty"><strong>No active run</strong><p>Started attempts will appear here while the supervisor works.</p></div>}</section><section className="summary-card"><div className="summary-card__heading"><h2>{attention.length ? "Needs your input" : "Review readiness"}</h2><span>{attention.length ? `${attention.length} waiting` : `${ready.length} ready`}</span></div>{attention.length ? <><button className="summary-card__link" type="button" onClick={() => onSelect(attention[0].id)}><strong>{attention[0].title}</strong><StatusPill state={attention[0].state} /></button><p>Open the work order to see the blocker and recorded decisions.</p></> : ready.length ? <><button className="summary-card__link" type="button" onClick={() => onSelect(ready[0].id)}><strong>{ready[0].title}</strong><StatusPill state={ready[0].state} /></button><p>Review its candidate and verification evidence.</p></> : <div className="summary-card__empty"><strong>Nothing waiting for review</strong><p>Work that needs a decision or review will appear here.</p></div>}</section></div>
@@ -99,6 +103,7 @@ export default function App() {
   const [showingQueue, setShowingQueue] = useState(initial.showingQueue);
   const [showingBuilder, setShowingBuilder] = useState(initial.showingBuilder);
   const [showingConnections, setShowingConnections] = useState(initial.showingConnections);
+  const [unknownView, setUnknownView] = useState<string | null>(initial.unknownView);
   const [queue, setQueue] = useState<WorkOrder[]>([]);
   const [queueLoading, setQueueLoading] = useState(true);
   const [queueError, setQueueError] = useState<string | null>(null);
@@ -119,6 +124,7 @@ export default function App() {
       setShowingQueue(next.showingQueue);
       setShowingBuilder(next.showingBuilder);
       setShowingConnections(next.showingConnections);
+      setUnknownView(next.unknownView);
       setActionError(null);
     };
     window.addEventListener("popstate", onPopState);
@@ -193,6 +199,8 @@ export default function App() {
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
+  function clearUnknownView() { setUnknownView(null); }
+
   function showQueue() {
     setSelectedId(null);
     setCreating(false);
@@ -200,6 +208,7 @@ export default function App() {
     setShowingBuilder(false);
     setShowingConnections(false);
     setActionError(null);
+    clearUnknownView();
     navigate(null, false, true);
   }
 
@@ -210,6 +219,7 @@ export default function App() {
     setShowingBuilder(false);
     setShowingConnections(false);
     setActionError(null);
+    clearUnknownView();
     navigate(null);
   }
 
@@ -220,6 +230,7 @@ export default function App() {
     setShowingBuilder(false);
     setShowingConnections(false);
     setActionError(null);
+    clearUnknownView();
     navigate(id);
   }
 
@@ -230,6 +241,7 @@ export default function App() {
     setShowingBuilder(false);
     setShowingConnections(false);
     setActionError(null);
+    clearUnknownView();
     navigate(null, true);
   }
 
@@ -240,6 +252,7 @@ export default function App() {
     setShowingBuilder(true);
     setShowingConnections(false);
     setActionError(null);
+    clearUnknownView();
     navigate(null, false, false, true);
   }
 
@@ -250,6 +263,7 @@ export default function App() {
     setShowingBuilder(false);
     setShowingConnections(true);
     setActionError(null);
+    clearUnknownView();
     navigate(null, false, false, false, true);
   }
 
@@ -320,7 +334,7 @@ export default function App() {
   }
 
   const displayedDetail = detail?.workOrder.id === selectedId ? detail : null;
-  const pageName = showingConnections ? "Connections" : creating ? "New WorkOrder" : selectedId ? "Work order" : showingBuilder ? "App builder" : showingQueue ? "Work queue" : "Overview";
+  const pageName = unknownView ? "Not found" : showingConnections ? "Connections" : creating ? "New WorkOrder" : selectedId ? "Work order" : showingBuilder ? "App builder" : showingQueue ? "Work queue" : "Overview";
 
   return (
     <div className="app-shell">
@@ -328,12 +342,22 @@ export default function App() {
       <aside className="side-nav" aria-label="Workspace navigation">
         <div className="brand"><div className="brand__mark" aria-hidden="true"><span /><span /><span /></div><div><strong>Local<br />Factory</strong><span>Work desk</span></div></div>
         <p className="side-nav__label">Workspace</p>
-        <nav><button className={!selectedId && !creating && !showingQueue && !showingBuilder && !showingConnections ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-label="Overview" aria-current={!selectedId && !creating && !showingQueue && !showingBuilder && !showingConnections ? "page" : undefined} onClick={showOverview}><Icon name="overview" size={17} /><span>Overview</span></button><button className={showingBuilder ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-label="App builder" aria-current={showingBuilder ? "page" : undefined} onClick={openBuilder}><Icon name="builder" size={17} /><span>App builder</span></button><button className={showingQueue && !selectedId && !creating ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-label="Work queue" aria-current={showingQueue && !selectedId && !creating ? "page" : undefined} onClick={showQueue}><Icon name="inbox" size={17} /><span>Work queue</span><em>{queue.length}</em></button><button className={creating ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-label="New work" aria-current={creating ? "page" : undefined} onClick={openCreate}><Icon name="plus" size={17} /><span>New work</span></button><button className={showingConnections ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-current={showingConnections ? "page" : undefined} onClick={openConnections}><Icon name="builder" size={17} /><span>Connections</span></button></nav>
+        <nav><button className={!selectedId && !creating && !showingQueue && !showingBuilder && !showingConnections ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-label="Overview" aria-current={!selectedId && !creating && !showingQueue && !showingBuilder && !showingConnections ? "page" : undefined} onClick={showOverview}><Icon name="overview" size={17} /><span>Overview</span></button><button className={showingBuilder ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-label="App builder" aria-current={showingBuilder ? "page" : undefined} onClick={openBuilder}><Icon name="builder" size={17} /><span>App builder</span></button><button className={showingQueue && !selectedId && !creating ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-label="Work queue" aria-current={showingQueue && !selectedId && !creating ? "page" : undefined} onClick={showQueue}><Icon name="inbox" size={17} /><span>Work queue</span><em>{queue.length}</em></button><button className={creating ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-label="New work" aria-current={creating ? "page" : undefined} onClick={openCreate}><Icon name="plus" size={17} /><span>New work</span></button><button className={showingConnections ? "side-nav__item side-nav__item--active" : "side-nav__item"} type="button" aria-label="Connections" aria-current={showingConnections ? "page" : undefined} onClick={openConnections}><Icon name="builder" size={17} /><span>Connections</span></button></nav>
         <div className="side-nav__footer"><p><span className={`connection-dot ${queueError ? "connection-dot--error" : ""}`} /> {queueError ? "Service needs attention" : queueLoading ? "Connecting…" : "Local service"}</p><span>Supervised execution</span></div>
       </aside>
       <div className="workspace">
         <header className="topbar"><div className="breadcrumb"><button type="button" onClick={showOverview}>Local Factory</button><span>/</span><span>{pageName}</span></div><div className="topbar__right"><span>Local workspace</span><span className="topbar__monogram" aria-hidden="true">LF</span></div></header>
-        {showingConnections ? <ConnectionsPage /> : creating ? <CreateWorkOrderForm onSubmit={createWorkOrder} onCancel={showQueue} pending={pendingAction === "create"} serverError={actionError} /> : showingBuilder ? <AppBuilderPage onCreate={createAppScaffold} pending={pendingAction === "builder"} serverError={actionError} /> : !selectedId && showingQueue ? <QueuePage queue={queue} loading={queueLoading} error={queueError} onRetry={() => setRevision((value) => value + 1)} onCreate={openCreate} onSelect={selectWorkOrder} /> : !selectedId ? <OverviewPage queue={queue} loading={queueLoading} error={queueError} onRetry={() => setRevision((value) => value + 1)} onCreate={openCreate} onQueue={showQueue} onSelect={selectWorkOrder} onBuilder={openBuilder} /> : detailError && !displayedDetail ? <main className="main-panel main-panel--empty" id="main-content"><EmptyMessage eyebrow="Work order unavailable" title="Details could not be loaded" description={detailError} action={<button className="button button--primary" type="button" onClick={() => setRevision((value) => value + 1)}>Retry <Icon name="refresh" size={16} /></button>} /></main> : displayedDetail ? <><WorkOrderDetail key={displayedDetail.workOrder.id} detail={displayedDetail} onStart={() => void runAction("run.start")} onCancel={() => setConfirmCancel(true)} onRefresh={() => setRevision((value) => value + 1)} actionPending={pendingAction === "start" || pendingAction === "cancel" ? pendingAction : null} actionError={actionError} />{detailError && <div className="stale-banner" role="alert">Unable to refresh this work order: {detailError} <button type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button></div>}</> : <main className="main-panel main-panel--empty" id="main-content"><div className="loading-block" role="status"><span className="loading-bar" /><span className="loading-bar" /><span className="loading-bar" /><p>{detailLoading ? "Loading work order…" : "Preparing work order…"}</p></div></main>}
+        {unknownView
+          ? <main className="main-panel main-panel--empty" id="main-content"><EmptyMessage eyebrow="Not found" title="Unknown view" description={`"${unknownView}" is not a recognised view. Use the navigation on the left to go where you need.`} action={<button className="button button--primary" type="button" onClick={showOverview}>Go to Overview <Icon name="arrow" size={17} /></button>} /></main>
+          : showingConnections ? <ConnectionsPage />
+          : creating ? <CreateWorkOrderForm onSubmit={createWorkOrder} onCancel={showQueue} pending={pendingAction === "create"} serverError={actionError} />
+          : showingBuilder ? <AppBuilderPage onCreate={createAppScaffold} pending={pendingAction === "builder"} serverError={actionError} />
+          : !selectedId && showingQueue ? <QueuePage queue={queue} loading={queueLoading} error={queueError} onRetry={() => setRevision((value) => value + 1)} onCreate={openCreate} onSelect={selectWorkOrder} />
+          : !selectedId ? <OverviewPage queue={queue} loading={queueLoading} error={queueError} onRetry={() => setRevision((value) => value + 1)} onCreate={openCreate} onQueue={showQueue} onSelect={selectWorkOrder} onBuilder={openBuilder} />
+          : detailError && !displayedDetail ? <main className="main-panel main-panel--empty" id="main-content"><EmptyMessage eyebrow="Work order unavailable" title="Details could not be loaded" description={detailError} action={<button className="button button--primary" type="button" onClick={() => setRevision((value) => value + 1)}>Retry <Icon name="refresh" size={16} /></button>} /></main>
+          : displayedDetail ? <><WorkOrderDetail key={displayedDetail.workOrder.id} detail={displayedDetail} onStart={() => void runAction("run.start")} onCancel={() => setConfirmCancel(true)} onRefresh={() => setRevision((value) => value + 1)} actionPending={pendingAction === "start" || pendingAction === "cancel" ? pendingAction : null} actionError={actionError} />{detailError && <div className="stale-banner" role="alert">Unable to refresh this work order: {detailError} <button type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button></div>}</>
+          : <main className="main-panel main-panel--empty" id="main-content"><div className="loading-block" role="status"><span className="loading-bar" /><span className="loading-bar" /><span className="loading-bar" /><p>{detailLoading ? "Loading work order…" : "Preparing work order…"}</p></div></main>
+        }
       </div>
       {notice && <div className="toast" role="status"><span className="toast__icon"><Icon name="check" size={16} /></span><span>{notice}</span><button type="button" aria-label="Dismiss notification" onClick={() => setNotice(null)}><Icon name="close" size={16} /></button></div>}
       {confirmCancel && <div className="dialog-backdrop"><div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="cancel-title" aria-describedby="cancel-description" onKeyDown={(event) => { if (event.key === "Escape") setConfirmCancel(false); }}><p className="eyebrow">Active attempt</p><h2 id="cancel-title">Cancel this run?</h2><p id="cancel-description">The worker will be asked to stop. Its recorded history remains available for review.</p><div className="confirm-dialog__actions"><button className="button button--quiet" type="button" autoFocus onClick={() => setConfirmCancel(false)}>Keep running</button><button className="button button--danger" type="button" onClick={() => { setConfirmCancel(false); void runAction("run.cancel"); }}>Cancel run</button></div></div></div>}

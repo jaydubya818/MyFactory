@@ -19,8 +19,12 @@ export class HostedIntake {
   readonly #context: ActionContext;
   readonly #linear: LinearIntegration;
   readonly #dataDir: string;
-  constructor(context: ActionContext, linear: LinearIntegration, dataDir: string) {
-    this.#context = context; this.#linear = linear; this.#dataDir = dataDir;
+  /** Port the local desk HTTP server is listening on. Used only to construct a
+   *  receipt URL that callers can copy to their device. This URL is reachable on
+   *  the host machine only; the receipt comment notes it is a local-only address. */
+  readonly #deskPort: number;
+  constructor(context: ActionContext, linear: LinearIntegration, dataDir: string, deskPort: number) {
+    this.#context = context; this.#linear = linear; this.#dataDir = dataDir; this.#deskPort = deskPort;
   }
   start() {
     const tick = () => {
@@ -77,8 +81,9 @@ export class HostedIntake {
           this.status.imported++;
         }
       });
+      // workOrderUrl is reachable only on the host machine (loopback).
       const receipt = { version: 1, issueId: issue.id, workOrderId: work.id, state: work.state,
-        updatedAt: work.updatedAt, workOrderUrl: `http://127.0.0.1:8788/?workOrder=${work.id}` };
+        updatedAt: work.updatedAt, workOrderUrl: `http://127.0.0.1:${this.#deskPort}/?workOrder=${work.id}` };
       let previous;
       try { previous = readReceipt(issue.description, publicKey, issue.id); } catch { previous = null; }
       if (JSON.stringify(previous) !== JSON.stringify(receipt)) {
