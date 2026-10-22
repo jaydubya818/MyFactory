@@ -257,19 +257,28 @@ fixture; the admin pool only provisions synthetic policy and authority records.
 No capability check is disabled or replaced.
 
 Against a disposable loopback PostgreSQL database (with local role/schema
-creation privileges and TLS trust configured for the adapter), run:
+creation privileges and TLS enabled), replace the example password and CA path
+with that cluster's local values. The adapter requires both a username and password
+even when the disposable server uses local trust authentication. Run:
 
 ```sh
-FACTORY_POSTGRES_TEST=1 DATABASE_URL_UNPOOLED=postgresql://postgres@127.0.0.1:5432/postgres \
-  node --test apps/cloud-control/test/production-authority-postgres.test.mjs
+export FACTORY_POSTGRES_TEST=1
+export DATABASE_URL_UNPOOLED=postgresql://postgres:local-fixture-only@127.0.0.1:5432/postgres
+export NODE_EXTRA_CA_CERTS=/absolute/path/to/disposable-postgres-ca.pem
+node --test apps/cloud-control/test/production-authority-postgres.test.mjs
 ```
 
 The adjacent `postgres-dispatch.test.mjs` fixtures use the same scoped bindings,
 including their separate proof owner and cross-client denial cases. The complete
-cloud-control regression command is `node --test apps/cloud-control/test/*.test.mjs`
-with the same disposable environment and the staging marker migration applied.
+cloud-control suite additionally requires the staging-only environment and
+`001-staging-boundary.sql` applied to that disposable database:
 
-Both authority scenarios reach exact authority consumption, immutable grant, concurrent
+```sh
+VERCEL_ENV=preview VERCEL_PROJECT_ID=prj_IRXTY6HOzS2q9wRPdabsJnmddzl4 \
+  node --test apps/cloud-control/test/*.test.mjs
+```
+
+Together, the authority scenarios reach exact authority consumption, immutable grant, concurrent
 claims, verifier revocation and UNKNOWN delivery fences. They assert zero spend
 operations and use synthetic resource identifiers only. Their schemas and roles
 are removed afterward. These are local assertions, not production qualification.
