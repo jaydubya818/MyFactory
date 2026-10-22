@@ -7,8 +7,8 @@ import {externalAlphaHostInstallation} from './external-alpha-host-installation.
 // qualification price. Limits below deliberately bound the provider's larger
 // advertised context/output capacities. No model call occurs in this module.
 export const productionModelPrice=Object.freeze({
- revision:'production-openai-mini-20261020-v3',model:'openai/gpt-5.4-mini',
- validUntil:'2026-10-28T00:00:00.000Z',contextLimitTokens:64000,outputLimitTokens:8192,
+ revision:'production-openai-mini-20261022-v4',model:'openai/gpt-5.4-mini',
+ validUntil:'2026-10-29T00:00:00.000Z',contextLimitTokens:64000,outputLimitTokens:8192,
  inputMicrousdPerMillion:750000,outputMicrousdPerMillion:4500000,
 });
 export const productionModelEndpoint='https://ai-gateway.vercel.sh/v1/responses';

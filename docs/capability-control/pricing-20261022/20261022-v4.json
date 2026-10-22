@@ -1,0 +1,125 @@
+{
+  "schema": "factory-pricing-qualification/v1",
+  "status": "OWNER_APPROVED_2026-10-22",
+  "approval": {
+    "approvedBy": "repository owner (jaydubya818)",
+    "approvedAt": "2026-10-22",
+    "scope": "Owner instruction 2026-10-21 21:12 PT: renew both Factory pricing records using independently verified provider rates and canonical pricing evidence; do not simply extend expiration dates. Rates re-captured from primary sources before pinning; not backdated; expiry 2026-10-29T00:00:00.000Z; never silently extended."
+  },
+  "version": "openai-mini-20261022-v4",
+  "ownerRepository": "jaydubya818/MyFactory",
+  "supersedes": "../pricing-20261020/20261020-v3.json",
+  "observedAt": "2026-10-22T04:22:58Z",
+  "effectiveFrom": "2026-10-22T00:00:00.000Z",
+  "reviewBy": "2026-10-29T00:00:00.000Z",
+  "reviewPolicy": "Seven-day internal revalidation deadline; not a provider price guarantee.",
+  "authority": "PRICING_ONLY_NO_EXECUTION_GRANT",
+  "gapNote": "20261020-v3 remains valid until 2026-10-28T00:00:00Z on its own line; this revision is not backdated. The external-alpha line's 20261010-v2 expired 2026-10-17T00:00:00Z and had no valid price 2026-10-17..2026-10-22.",
+  "route": {
+    "provider": "openai",
+    "model": "gpt-5.4-mini",
+    "gatewayModel": "openai/gpt-5.4-mini",
+    "endpoint": "https://ai-gateway.vercel.sh/v1/responses",
+    "serviceTier": "default",
+    "currency": "USD",
+    "billingUnit": "MILLION_TOKENS",
+    "providerFallback": false,
+    "regionalProcessing": false,
+    "hostedBillableTools": false
+  },
+  "sources": [
+    {
+      "name": "openai",
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.4-mini.md",
+      "retrievedAt": "2026-10-22T04:22:56Z",
+      "sha256": "83625d2f3548c29379b3b2a44b183a26d266d2f5c3ffda7161dd19c9213a9058",
+      "bytes": 3695,
+      "note": "byte-identical to 20261010-v2 and 20261020-v3 captures",
+      "observed": {
+        "input": "$0.75 / 1M",
+        "cachedInput": "$0.075 / 1M",
+        "output": "$4.5 / 1M",
+        "maximumInputTokens": 272000,
+        "maximumOutputTokens": 128000
+      }
+    },
+    {
+      "name": "openai-pricing",
+      "url": "https://developers.openai.com/api/docs/pricing.md",
+      "retrievedAt": "2026-10-22T04:22:57Z",
+      "sha256": "129d6019819379a6f30edc0811d4631ddb085dcd4b3b1d0012a945cd1af1bfbf",
+      "bytes": 22634,
+      "observed": {
+        "standard.gpt-5.4-mini": "input $0.75, cached $0.075, output $4.50 per 1M"
+      }
+    },
+    {
+      "name": "vercel",
+      "url": "https://vercel.com/ai-gateway/models/gpt-5.4-mini",
+      "retrievedAt": "2026-10-22T04:22:57Z",
+      "sha256": "b1877348df5662aae710b333736d30bcd2130793ef4d26de2c5aef99d4cf4c2c",
+      "bytes": 1554979,
+      "note": "dynamic page; digest differs from earlier captures"
+    },
+    {
+      "name": "vercel-pricing",
+      "url": "https://vercel.com/docs/ai-gateway/pricing",
+      "retrievedAt": "2026-10-22T04:22:58Z",
+      "sha256": "fc3f6d57a7ebdd0fb1a49b224ad1d215972f2808e675ca440b4f3ff9922c8409",
+      "bytes": 958759,
+      "observed": {
+        "markup": "no markup and no platform fee on tokens"
+      }
+    },
+    {
+      "name": "gateway-models-api",
+      "url": "https://ai-gateway.vercel.sh/v1/models",
+      "retrievedAt": "2026-10-22T04:22:58Z",
+      "sha256": "f038126645e824abdad9bfdf6dadd47203516dbe8aae9b901ebaa90e7fb59790",
+      "bytes": 548311,
+      "observed": {
+        "input": "0.00000075",
+        "output": "0.0000045",
+        "input_cache_read": "0.000000075",
+        "regional.us.input": "0.000000825",
+        "regional.us.output": "0.00000495",
+        "context_window": 400000,
+        "max_tokens": 128000
+      }
+    }
+  ],
+  "capture": {
+    "tool": "curl on the owner Mac (jays-macbook-pro-local)",
+    "rawCapturesRetainedAt": "~/qa-20261021/pricing-capture/ (not committed)",
+    "independentCrossCheck": "A separate investigator fetched the same URLs at 2026-10-22T04:17Z and observed identical rates."
+  },
+  "prices": {
+    "production": {
+      "revision": "production-openai-mini-20261022-v4",
+      "model": "openai/gpt-5.4-mini",
+      "validUntil": "2026-10-29T00:00:00.000Z",
+      "contextLimitTokens": 64000,
+      "outputLimitTokens": 8192,
+      "inputMicrousdPerMillion": 750000,
+      "outputMicrousdPerMillion": 4500000
+    },
+    "deterministic": {
+      "revision": "cloud-codex-deterministic-20261022-v4",
+      "model": "openai/gpt-5.4-mini",
+      "validUntil": "2026-10-29T00:00:00.000Z",
+      "contextLimitTokens": 200000,
+      "outputLimitTokens": 8192,
+      "inputMicrousdPerMillion": 750000,
+      "outputMicrousdPerMillion": 4500000
+    }
+  },
+  "unchangedAccounting": {
+    "ceilingMicrousd": 1000000,
+    "productionPerOperationReserveMicrousd": 84864,
+    "deterministicPerOperationReserveMicrousd": 186864,
+    "productiveOperations": 2,
+    "completionOperations": 1,
+    "maximumOperations": 3
+  },
+  "migration": "NONE. Existing approvals, budgets, Work and UNKNOWN exposure keep original identities and rates. Revision identity changes, so the production execution-contract digest changes and requires independent approval. Evidence qualified under 20261020-v3 or 20261010-v2 is not reused for this revision."
+}

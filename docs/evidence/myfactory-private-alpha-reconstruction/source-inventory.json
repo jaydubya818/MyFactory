@@ -312,7 +312,7 @@
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
     },
     "apps/cloud-control/src/cloud-harness-plan.mjs": {
-      "sha256": "4c0aaeb3ecc526753e9f89dfaeaf979272e44c8d5312b4a644053424d5387671",
+      "sha256": "25c8933b80111506591edc05c263eab302bed2f9fe73cdd8a0e95659d1a0b1ae",
       "classification": "CLOUD_HARNESS_BOUNDARY",
       "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
     },
@@ -419,7 +419,7 @@
     "apps/cloud-control/src/production-model-provider.mjs": {
       "classification": "ENFORCED",
       "authorityBoundary": "Separate canonical canary and dedicated external-alpha host loaders bind live server project/team/environment before per-Work authority and fresh verified OIDC. Shared fixed rate/endpoint/routing has no static-key fallback, model substitution or installation execution grant. Current-main boundary: Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Exact reviewed current-main and External Alpha source union; no new execution or approval authority.",
-      "sha256": "15271169e311e56cf046e4ad1873520825f3f6704d8834f75a8b3ce0534a7bb1"
+      "sha256": "ffde58bd76613f1224fb35664e457ee8aec80164090d20bddf2f3a30b4d57115"
     },
     "apps/cloud-control/src/production-runtime-components.mjs": {
       "classification": "ENFORCED",

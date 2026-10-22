@@ -3,8 +3,11 @@ import {randomUUID} from 'node:crypto';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {productionAuthority} from '../src/production-authority.mjs';
 import assert from 'node:assert/strict';
-import current from '../../../docs/external-alpha/pricing-backport-20261011/20261010-v2.json' with {type:'json'};
-import historical from '../../../docs/external-alpha/pricing-backport-20261011/historical-v1.json' with {type:'json'};
+import current from '../../../docs/capability-control/pricing-20261022/20261022-v4.json' with {type:'json'};
+import predecessorPrice from '../../../docs/capability-control/pricing-20261020/20261020-v3.json' with {type:'json'};
+import alphaPredecessorPrice from '../../../docs/external-alpha/pricing-backport-20261011/20261010-v2.json' with {type:'json'};
+import recovery from '../../../docs/capability-control/source-identity-20261010/recovery-successor.json' with {type:'json'};
+import historical from '../../../docs/capability-control/pricing-20261010/historical-v1.json' with {type:'json'};
 import {validatePrice} from '../../supervisor/src/spend-gateway.ts';
 import {productionModelPrice} from '../src/production-model-provider.mjs';
 import {cloudHarnessPrice} from '../src/cloud-harness-plan.mjs';
@@ -24,6 +27,10 @@ test('both historical prices remain expired; successor also fails closed at its 
   t.mock.timers.enable({apis:['Date'],now:Date.parse(current.effectiveFrom)});
   for (const kind of ['production','deterministic']) {
     assert.throws(()=>validatePrice(historical.prices[kind]),/Current pinned model pricing/);
+    assert.throws(()=>validatePrice(alphaPredecessorPrice.prices[kind]),/Current pinned model pricing/);
+    assert.notEqual(current.prices[kind].revision,predecessorPrice.prices[kind].revision);
+    assert.ok(Date.parse(predecessorPrice.prices[kind].validUntil)<Date.parse(current.prices[kind].validUntil));
+    assert.equal(current.supersedes,'../pricing-20261020/20261020-v3.json');
     assert.doesNotThrow(()=>validatePrice(current.prices[kind]));
   }
   t.mock.timers.setTime(Date.parse(current.reviewBy));
@@ -32,6 +39,8 @@ test('both historical prices remain expired; successor also fails closed at its 
 
 test('successor changes approval contract identity without widening the approved spending envelope', () => {
   assert.notEqual(productionExecutionContractSha256,historical.productionContract.executionContractSha256);
+  assert.notEqual(productionExecutionContractSha256,recovery.executionContractSha256);
+  for (const old of ['d7a24ed69b7d8267d4817961bd0ee22c76b6313650177b31322783dcc9d2d9a3','377cf5e6412003394805b3f1169d24cd7468c683c8f758999b32c3b5b5d20cf3']) assert.notEqual(productionExecutionContractSha256,old);
   assert.equal(productionExecutionContract.maxSpendMicrousd,historical.productionContract.ceiling);
   for (const key of ['perOperationReserveMicrousd','plannedProductiveOperations','plannedCompletionOperations','maxPaidOperations','completionReserveMicrousd']) {
     assert.equal(productionExecutionContract.spendPlan[key],historical.productionContract.spendPlan[key],key);
@@ -61,13 +70,14 @@ test('an exact old approval cannot authorize the successor execution contract', 
 
 import impact from '../../../docs/external-alpha/pricing-backport-20261011/identity-impact.json' with {type:'json'};
 import sourceIdentity from '../src/source-identity.json' with {type:'json'};
-import currentSuccessor from '../../../docs/capability-control/receiver-recovery-20261012/successor.json' with {type:'json'};
+import currentSuccessor from '../../../docs/capability-control/source-identity-20261022/unified-candidate-successor.json' with {type:'json'};
 import {externalAlphaFactoryVersion,externalAlphaConfiguration,externalAlphaRuntimeComponents} from '../src/external-alpha-runtime.mjs';
 import {loadVectors,installationOf} from './fixtures/myeve-conformance/support.mjs';
 
 test('separate successor identity preserves configuration; an old installation cannot authorize it', () => {
  assert.equal(sourceIdentity.sourceDigest,currentSuccessor.sourceDigest);
  assert.equal(impact.newSourceDigest,'fb92947fa4822c225ea5d1924eec21a148fe185a91d37fc72d04a763fbde4982');
+ assert.notEqual(sourceIdentity.sourceDigest,impact.newSourceDigest);
  const old=structuredClone(installationOf(loadVectors()));
  old.source={...old.source,sourceDigest:impact.oldSourceDigest};
  old.factoryVersion=externalAlphaFactoryVersion(old,impact.oldSourceDigest);
