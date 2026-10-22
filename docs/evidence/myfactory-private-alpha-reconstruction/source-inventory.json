@@ -537,9 +537,9 @@
       "authorityBoundary": "Function entry for the separate external-alpha route; delegates to handleExternalAlpha and nothing else. Distinct from the canary and production functions; reachable only through its own rewrite."
     },
     "apps/cloud-control/src/external-alpha-control.mjs": {
-      "sha256": "335d1d943bd1298eec7612baa8b0218b01fdb23c199e19dcff1a3906e903187c",
+      "sha256": "30ace706b0759762a97cfb24b27f9eae334a6b7a44f3f81f379233a28356e7f4",
       "classification": "EXACT_DISPATCH",
-      "authorityBoundary": "After one authority preparation, derives exact persisted dispatch identity and sends once through the canonical delivery claim. Signed readback exposes admission/ambiguity without creating a fallback."
+      "authorityBoundary": "After one authority preparation, derives exact persisted dispatch identity and sends once through the canonical delivery claim. Signed readback exposes admission/ambiguity without creating a fallback. Expired qualified pricing (productionSpendPlan.validUntil <= now) is refused before any database access with a definitive 403 PRICING_EXPIRED; nothing is admitted, reserved or dispatched (external-alpha-control.test.mjs)."
     },
     "apps/cloud-control/src/external-alpha-runtime.mjs": {
       "sha256": "dbaa6173de905dda42a5b07ba0000a518c14aa931d8824784c6a4ecbc91854e9",

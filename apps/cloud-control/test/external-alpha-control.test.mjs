@@ -38,7 +38,8 @@ function runtime(){
  return {calls,withRuntime:async(env,installation,action)=>{calls.installation=installation;return action(fake(installation));}};
 }
 const good=(w,i=0)=>{const b=build(w.ctx[i]);return {b,oidc:oidcToken(claimsFor(w.configs[i]))};};
-const send=(w,r,rt)=>handleExternalAlpha(r,w.env,{withRuntime:rt.withRuntime,verifyToken});
+const qualifiedPlan=Object.freeze({validUntil:new Date(Date.now()+86400000).toISOString()});
+const send=(w,r,rt,spendPlan=qualifiedPlan)=>handleExternalAlpha(r,w.env,{withRuntime:rt.withRuntime,verifyToken,spendPlan});
 const code=async res=>(await res.json());
 
 test('authorized caller dispatches on its own slot and receives a receipt-bearing readback',async()=>{
@@ -189,4 +190,18 @@ test('admission dispatches only after persisted prepare and fails closed when pr
  const original=rt.withRuntime;rt.withRuntime=(e,i,action)=>original(e,i,c=>{c.control.prepare=async()=>{throw Error('AUTHORITY_UNKNOWN_FENCE');};return action(c);});
  const response=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt);
  assert.equal(response.status,503);assert.equal(rt.calls.dispatch.length,0);
+});
+
+test('expired qualified pricing is a definitive pre-flight refusal: 403 PRICING_EXPIRED, nothing prepared or dispatched',async()=>{
+ const w=world(),rt=runtime(),{b,oidc}=good(w);
+ const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt,{validUntil:new Date(Date.now()-1000).toISOString()});
+ assert.equal(res.status,403);
+ const body=await code(res);
+ assert.equal(body.code,'PRICING_EXPIRED');assert.equal(body.admission,'DISABLED');
+ assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);assert.equal(rt.calls.installation,undefined);
+ for(const plan of [{},{validUntil:'not-a-date'},null]){
+  const r2=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt,plan);
+  assert.equal(r2.status,403);assert.equal((await code(r2)).code,'PRICING_EXPIRED');
+ }
+ assert.equal(rt.calls.prepare.length,0);
 });

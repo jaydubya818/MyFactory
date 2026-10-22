@@ -3,6 +3,7 @@ import {verifyVercelOidcToken} from '@vercel/oidc';
 import {loadExternalAlphaInstallations,validateStatic,bindAuthorityEnvelope,ExternalAlphaError} from './external-alpha-authority.mjs';
 import {reconcileCloudWork} from './cloud-work-lifecycle.mjs';
 import {withExternalAlphaRuntime} from './external-alpha-runtime.mjs';
+import {productionSpendPlan} from './production-execution-plan.mjs';
 
 /*
  * HTTP entry for external-alpha Work (MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1). Deliberately SEPARATE from the
@@ -106,7 +107,7 @@ function failure(error){
  * request handler. `withRuntime(env, installation, action)` supplies {authority, store, control, provider, clientId};
  * tests inject a real PostgreSQL-backed composition with a fake queue/provider.
  */
-export async function handleExternalAlpha(request,env,{withRuntime=withExternalAlphaRuntime,verifyToken=verifyVercelOidcToken,now=Date.now}={}){
+export async function handleExternalAlpha(request,env,{withRuntime=withExternalAlphaRuntime,verifyToken=verifyVercelOidcToken,now=Date.now,spendPlan=productionSpendPlan}={}){
  let installations;
  try{installations=loadExternalAlphaInstallations(env);}catch{return denied('AUTHORITY_DISABLED');}
  if(!installations.length)return denied('AUTHORITY_DISABLED');
@@ -124,6 +125,9 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
    if(!plain(body)||Object.keys(body).sort().join(',')!=='authority,prepare'||!plain(body.prepare))return reply({error:'INVALID_REQUEST'},400);
    // Pure pre-flight against THIS slot's pinned installation: no database, nothing consumed.
    validateStatic(body.authority,body.prepare,installation);
+   // Expired qualified pricing is a definitive refusal decided from static configuration before any database
+   // access: nothing is admitted, reserved or dispatched, so the caller must not record it as UNKNOWN.
+   if(!(Date.parse(spendPlan?.validUntil)>now()))return denied('PRICING_EXPIRED');
    return await withRuntime(env,installation,async c=>{
     const prior=await c.authority.withClient(client=>c.authority.priorDeadline(client,body.prepare.requestId));
     // An identical redelivery (browser refresh, retry after a lost response) rebuilds the request at a later clock; only
