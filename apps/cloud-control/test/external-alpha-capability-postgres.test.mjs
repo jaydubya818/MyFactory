@@ -73,6 +73,21 @@ test('LOCAL operator provisioning admits only the bound owner under the restrict
   await once();
   await store.prepare(grant,input(),snapshot);
 
+  // A custodian DENY on policy evidence survives routine renewal.
+  await db.pool.query(`UPDATE capability_control.evidence SET facts=jsonb_set(facts,'{myfactory,administrator}','"DENY"') WHERE owner_id=$1`,[ownerId]);
+  await assert.rejects(store.prepare(grant,input(),snapshot),/POLICY_BLOCKED:myfactory/);
+  await once();
+  await assert.rejects(store.prepare(grant,input(),snapshot),/POLICY_BLOCKED:myfactory/);
+  assert.equal((await db.pool.query("SELECT facts->'myfactory'->>'administrator' AS a FROM capability_control.evidence WHERE owner_id=$1",[ownerId])).rows[0].a,'DENY');
+  await db.pool.query(`UPDATE capability_control.evidence SET facts=jsonb_set(facts,'{myfactory,administrator}','"ALLOW"') WHERE owner_id=$1`,[ownerId]);
+  // A narrowed agent capability set is never widened by renewal.
+  await db.pool.query(`UPDATE capability_control.relay_agent_evidence SET capability_ids='["work"]'::jsonb WHERE owner_id=$1`,[ownerId]);
+  await assert.rejects(store.prepare(grant,input(),snapshot),/AGENT_DENIED:myfactory/);
+  await once();
+  await assert.rejects(store.prepare(grant,input(),snapshot),/AGENT_DENIED:myfactory/);
+  await db.pool.query(`UPDATE capability_control.relay_agent_evidence SET capability_ids='["myfactory","work"]'::jsonb WHERE owner_id=$1`,[ownerId]);
+  assert.equal(await intakes(),2);
+
   // Revoked agent evidence stays revoked through re-provisioning.
   await db.pool.query("UPDATE capability_control.relay_agent_evidence SET status='REVOKED'");
   await assert.rejects(store.prepare(grant,input(),snapshot),/AGENT_POLICY_UNAVAILABLE/);
@@ -83,6 +98,19 @@ test('LOCAL operator provisioning admits only the bound owner under the restrict
   // The runtime role can read its policy but never write it.
   await assert.rejects(store.transaction(c=>c.query("UPDATE capability_control.evidence SET facts='{}'")),/permission denied/);
   await assert.rejects(store.transaction(c=>c.query("UPDATE capability_control.owner_state SET preferences='{}'")),/permission denied/);
+ }finally{client.release();}
+});
+
+test('LOCAL provisioning aborts before any grant when the runtime role already exists with login or elevated attributes',{skip:!url},async t=>{
+ const db=await hostDatabase(t);
+ await db.pool.query(`CREATE ROLE ${db.role} LOGIN NOSUPERUSER`);
+ const client=await db.pool.connect();
+ try{
+  await assert.rejects(applyExternalAlphaCapabilityProvisioning(client,externalAlphaCapabilityProvisioning({bindings:[{clientId,...scope}],runtimeRole:db.role,
+   connectingRole:db.connectingRole,schemaSql:db.schemaSql,policyRecord:'unified-beta-capability-test',evidenceExpiresAt:new Date(Date.now()+3600e3).toISOString()})),/CAPABILITY_RUNTIME_ROLE_UNSAFE/);
+  // The whole transaction rolled back: no capability schema, no membership granted to the connecting role.
+  assert.equal((await db.pool.query("SELECT to_regnamespace('capability_control') IS NULL AS absent")).rows[0].absent,true);
+  assert.equal(Number((await db.pool.query('SELECT count(*) FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid JOIN pg_roles u ON u.oid=m.member WHERE r.rolname=$1 AND u.rolname=current_user',[db.role])).rows[0].count),0);
  }finally{client.release();}
 });
 

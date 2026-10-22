@@ -14,6 +14,8 @@ import {ExternalAlphaError} from './external-alpha-authority.mjs';
 const FIELDS='agentId,clientId,environment,installationId,organizationId,ownerId';
 const ID=/^[A-Za-z0-9][A-Za-z0-9._:@-]{0,199}$/;
 const ROLE=/^[a-z_][a-z0-9_]{0,62}$/;
+const RESERVED_ROLES=new Set(['postgres','public','none','current_user','current_role','session_user','user','neon_superuser','cloud_admin','rds_superuser','azure_pg_admin']);
+const SAFE_RUNTIME_ROLE=role=>ROLE.test(role??'')&&!role.startsWith('pg_')&&!RESERVED_ROLES.has(role);
 const deny=code=>{throw new ExternalAlphaError(code);};
 const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype;
 
@@ -95,7 +97,7 @@ const json=value=>`${quote(JSON.stringify(value))}::jsonb`;
  */
 export function externalAlphaCapabilityProvisioning({bindings,runtimeRole,evidenceExpiresAt,schemaSql,connectingRole,registry=capabilityRegistry,policyRecord}){
  if(!Array.isArray(bindings)||bindings.length<1||bindings.length>2)throw Error('BINDINGS_REQUIRED');
- if(!ROLE.test(runtimeRole??'')||!ROLE.test(connectingRole??''))throw Error('ROLE_REQUIRED');
+ if(!SAFE_RUNTIME_ROLE(runtimeRole)||!ROLE.test(connectingRole??'')||connectingRole.startsWith('pg_')||runtimeRole===connectingRole)throw Error('ROLE_REQUIRED');
  if(typeof schemaSql!=='string'||!schemaSql.includes('CREATE SCHEMA capability_control'))throw Error('SCHEMA_SQL_REQUIRED');
  const until=Date.parse(evidenceExpiresAt??'');
  if(!Number.isFinite(until)||until<=Date.now()||until>Date.now()+8*24*3600*1000)throw Error('EVIDENCE_WINDOW_INVALID');
@@ -106,7 +108,9 @@ export function externalAlphaCapabilityProvisioning({bindings,runtimeRole,eviden
  const preferences=Object.fromEntries(required.map(id=>[id,'ENABLED']));
  const expires=`${quote(new Date(until).toISOString())}::timestamptz`;
  const statements=[];
- statements.push(`DO $role$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname=${quote(runtimeRole)}) THEN CREATE ROLE ${runtimeRole} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS; END IF; END $role$`);
+ // An existing role is reused only when it is exactly as restricted as a freshly created one (no login, no elevated
+ // attributes, no role memberships); otherwise provisioning aborts before any grant.
+ statements.push(`DO $role$ BEGIN IF EXISTS (SELECT 1 FROM pg_roles r WHERE r.rolname=${quote(runtimeRole)} AND (r.rolsuper OR r.rolcreaterole OR r.rolcreatedb OR r.rolbypassrls OR r.rolcanlogin OR r.rolreplication OR EXISTS (SELECT 1 FROM pg_auth_members m WHERE m.member=r.oid))) THEN RAISE EXCEPTION 'CAPABILITY_RUNTIME_ROLE_UNSAFE'; END IF; IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname=${quote(runtimeRole)}) THEN CREATE ROLE ${runtimeRole} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS; END IF; END $role$`);
  statements.push(`GRANT ${runtimeRole} TO ${connectingRole}`);
  statements.push(`GRANT USAGE ON SCHEMA factory, capability_control TO ${runtimeRole}`);
  statements.push(`GRANT SELECT ON ALL TABLES IN SCHEMA capability_control TO ${runtimeRole}`);
@@ -116,11 +120,15 @@ export function externalAlphaCapabilityProvisioning({bindings,runtimeRole,eviden
  for(const b of bindings){
   for(const key of FIELDS.split(','))if(typeof b[key]!=='string'||!ID.test(b[key]))throw Error('BINDING_INVALID');
   if(b.environment!=='qualification')throw Error('BINDING_INVALID');
+  // FORCE ROW LEVEL SECURITY scopes owner rows to the transaction-local owner/installation settings.
+  statements.push(`SELECT set_config('myeve.capability_owner',${quote(b.ownerId)},true),set_config('myeve.capability_installation',${quote(b.installationId)},true)`);
   statements.push(`INSERT INTO capability_control.installations(id,organization_id,environment,active) VALUES(${quote(b.installationId)},${quote(b.organizationId)},'qualification',true) ON CONFLICT (id) DO NOTHING`);
   statements.push(`INSERT INTO capability_control.owner_state(installation_id,owner_id,preferences) VALUES(${quote(b.installationId)},${quote(b.ownerId)},${json(preferences)}) ON CONFLICT (installation_id,owner_id) DO NOTHING`);
-  statements.push(`INSERT INTO capability_control.evidence VALUES(${quote(b.installationId)},${quote(b.organizationId)},${quote(b.ownerId)},${quote(registry.version)},${json(facts)},clock_timestamp(),${expires},${quote(policyRecord)}) ON CONFLICT (installation_id,owner_id) DO UPDATE SET facts=EXCLUDED.facts,registry_version=EXCLUDED.registry_version,observed_at=EXCLUDED.observed_at,expires_at=EXCLUDED.expires_at,source_record_id=EXCLUDED.source_record_id`);
-  statements.push(`INSERT INTO capability_control.relay_agent_evidence VALUES(${quote(b.installationId)},${quote(b.ownerId)},${quote(b.organizationId)},${quote(b.agentId)},1,${json(required)},'ACTIVE',${expires},${quote(policyRecord)}) ON CONFLICT (installation_id,owner_id,agent_id) DO UPDATE SET capability_ids=EXCLUDED.capability_ids,expires_at=EXCLUDED.expires_at,source_record_id=EXCLUDED.source_record_id,revision=capability_control.relay_agent_evidence.revision+1 WHERE capability_control.relay_agent_evidence.status='ACTIVE'`);
+  statements.push(`INSERT INTO capability_control.evidence VALUES(${quote(b.installationId)},${quote(b.organizationId)},${quote(b.ownerId)},${quote(registry.version)},${json(facts)},clock_timestamp(),${expires},${quote(policyRecord)}) ON CONFLICT (installation_id,owner_id) DO UPDATE SET facts=EXCLUDED.facts,registry_version=EXCLUDED.registry_version,observed_at=EXCLUDED.observed_at,expires_at=EXCLUDED.expires_at,source_record_id=EXCLUDED.source_record_id WHERE NOT EXISTS (SELECT 1 FROM jsonb_each(capability_control.evidence.facts) f WHERE f.value->>'administrator' IS DISTINCT FROM 'ALLOW' OR f.value->>'lifecycle' IS DISTINCT FROM 'ACTIVE')`);
+  statements.push(`INSERT INTO capability_control.relay_agent_evidence VALUES(${quote(b.installationId)},${quote(b.ownerId)},${quote(b.organizationId)},${quote(b.agentId)},1,${json(required)},'ACTIVE',${expires},${quote(policyRecord)}) ON CONFLICT (installation_id,owner_id,agent_id) DO UPDATE SET expires_at=EXCLUDED.expires_at,source_record_id=EXCLUDED.source_record_id,revision=capability_control.relay_agent_evidence.revision+1 WHERE capability_control.relay_agent_evidence.status='ACTIVE'`);
  }
+ // Renewal never re-enables evidence a custodian set to anything but ALLOW/ACTIVE, never widens an agent's capability
+ // set and never revives REVOKED agent evidence. Tables added by later Factory migrations need re-provisioned grants.
  return Object.freeze({createSchema:schemaSql,statements:Object.freeze(statements)});
 }
 

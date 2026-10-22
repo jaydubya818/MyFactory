@@ -199,7 +199,8 @@ test('expired qualified pricing is a definitive pre-flight refusal: 403 PRICING_
  assert.equal(res.status,403);
  const body=await code(res);
  assert.equal(body.code,'PRICING_EXPIRED');assert.equal(body.admission,'DISABLED');
- assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);assert.equal(rt.calls.installation,undefined);
+ // Only the read-only prior-admission lookup ran: nothing prepared or dispatched.
+ assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
  for(const plan of [{},{validUntil:'not-a-date'},null]){
   const r2=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt,plan);
   assert.equal(r2.status,403);assert.equal((await code(r2)).code,'PRICING_EXPIRED');
@@ -215,11 +216,33 @@ test('missing owner capability binding or runtime role is a definitive pre-fligh
  const body=await code(res);
  assert.equal(body.code,'AUTHORITY_CAPABILITY');assert.equal(body.admission,'DISABLED');
  assert.deepEqual(asked,{installations:2,slot:'1'});
- assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);assert.equal(rt.calls.installation,undefined);
+ assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
  // The real loader with no capability configuration in the environment also refuses.
  const real=await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),w.env,{withRuntime:rt.withRuntime,verifyToken,spendPlan:qualifiedPlan});
  assert.equal(real.status,403);assert.equal((await code(real)).code,'AUTHORITY_CAPABILITY');
  assert.equal(rt.calls.prepare.length,0);
+});
+
+test('a redelivery of an admitted request never receives a definitive refusal, even after pricing expiry or capability removal',async()=>{
+ const w=world(),{b,oidc}=good(w);
+ const expired={validUntil:new Date(Date.now()-1000).toISOString()};
+ for(const [plan,capability] of [[expired,configuredCapability],[qualifiedPlan,()=>null],[expired,()=>null]]){
+  const rt=runtime();rt.calls.prior=b.prepare.deadline;
+  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt,plan,capability);
+  assert.equal(res.status,200);assert.equal(rt.calls.prepare.length,1);
+ }
+ // A failure while replaying, including a capability denial, is ambiguous (the Work exists), never 403.
+ for(const error of [Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'}),Error('CAPABILITY_INSTALLATION_UNQUALIFIED'),Error('PRICING_EXPIRED'),Error('AUTHORITY_CONSUMED')]){
+  const rt=runtime();rt.calls.prior=b.prepare.deadline;
+  const failing={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw error;}}}))};
+  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),failing,expired,()=>null);
+  assert.equal(res.status,503);assert.deepEqual(await code(res),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
+ }
+ // A concurrent first admission seen at the re-check turns a would-be refusal into a replay.
+ const rt=runtime();let lookups=0;
+ const racing={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,authority:{...c.authority,priorDeadline:async()=>++lookups>1?b.prepare.deadline:undefined}}))};
+ const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),racing,expired);
+ assert.equal(res.status,200);assert.equal(rt.calls.prepare.length,1);
 });
 
 test('capability denials raised inside the rolled-back admission transaction are definitive, never ambiguous 503',async()=>{

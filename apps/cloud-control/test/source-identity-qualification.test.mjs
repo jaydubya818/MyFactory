@@ -21,7 +21,8 @@ import witness from '../../../docs/capability-control/witness-session-20261012/s
 import receiverRecovery from '../../../docs/capability-control/receiver-recovery-20261012/successor.json' with {type:'json'};
 import pricingSuccessor from '../../../docs/capability-control/source-identity-20261020/pricing-successor.json' with {type:'json'};
 import unifiedCandidate from '../../../docs/capability-control/source-identity-20261022/unified-candidate-successor.json' with {type:'json'};
-import successor from '../../../docs/capability-control/source-identity-20261022/capability-binding-successor.json' with {type:'json'};
+import capabilityBinding from '../../../docs/capability-control/source-identity-20261022/capability-binding-successor.json' with {type:'json'};
+import successor from '../../../docs/capability-control/source-identity-20261022/review-hardening-successor.json' with {type:'json'};
 
 test('inventoried source and configuration resolve to the exact qualified successor',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
@@ -46,8 +47,10 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(receiver.sourceDigest,witness.predecessorSourceDigest);
  assert.equal(witness.sourceDigest,receiverRecovery.predecessorSourceDigest);
  assert.equal(receiverRecovery.sourceDigest,unifiedCandidate.predecessorSourceDigest);
- assert.equal(unifiedCandidate.sourceDigest,successor.predecessorSourceDigest);
- assert.equal(unifiedCandidate.executionContractSha256,successor.predecessorExecutionContractSha256);
+ assert.equal(unifiedCandidate.sourceDigest,capabilityBinding.predecessorSourceDigest);
+ assert.equal(capabilityBinding.sourceDigest,successor.predecessorSourceDigest);
+ assert.equal(unifiedCandidate.executionContractSha256,capabilityBinding.predecessorExecutionContractSha256);
+ assert.equal(capabilityBinding.executionContractSha256,successor.predecessorExecutionContractSha256);
  assert.equal(receiverRecovery.executionContractSha256,unifiedCandidate.predecessorExecutionContractSha256);
  assert.equal(pricingSuccessor.sourceDigest,unifiedCandidate.mergedPredecessorSourceDigest);
  assert.equal(pricingSuccessor.factoryVersion,unifiedCandidate.mergedPredecessorFactoryVersion);
@@ -55,7 +58,8 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(receiver.factoryVersion,witness.predecessorFactoryVersion);
  assert.equal(witness.factoryVersion,receiverRecovery.predecessorFactoryVersion);
  assert.equal(receiverRecovery.factoryVersion,unifiedCandidate.predecessorFactoryVersion);
- assert.equal(unifiedCandidate.factoryVersion,successor.predecessorFactoryVersion);
+ assert.equal(unifiedCandidate.factoryVersion,capabilityBinding.predecessorFactoryVersion);
+ assert.equal(capabilityBinding.factoryVersion,successor.predecessorFactoryVersion);
  assert.equal(successor.authority,'ISOLATED_SOURCE_QUALIFICATION_ONLY');
  assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
 });
@@ -76,6 +80,7 @@ test('coherent historical source or contract grants cannot consume successor aut
   [historical.sourceDigest,successor.historicalExecutionContractSha256,false],
   [receiverRecovery.sourceDigest,receiverRecovery.executionContractSha256,false],
   [unifiedCandidate.sourceDigest,unifiedCandidate.executionContractSha256,false],
+  [capabilityBinding.sourceDigest,capabilityBinding.executionContractSha256,false],
   [pricingSuccessor.sourceDigest,pricingSuccessor.executionContractSha256,false],
   [source.sourceDigest,receiverRecovery.executionContractSha256,false],
   [source.sourceDigest,pricingSuccessor.executionContractSha256,false],

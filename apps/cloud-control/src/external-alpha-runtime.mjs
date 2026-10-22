@@ -144,7 +144,9 @@ export async function withExternalAlphaRuntime(env,installation,action,{registry
  if(typeof pem!=='string'||pem.length<50||pem.length>4000)deny('AUTHORITY_DISABLED');
  let signReceipt,signReadback;try{signReceipt=receiptSigner(pem.replaceAll('\\n','\n'));signReadback=readbackSigner(pem.replaceAll('\\n','\n'));}catch{deny('AUTHORITY_DISABLED');}
  let registry,snapshots;try{registry=await registryLoader(env);snapshots=await snapshotsLoader(env,registry);}catch{deny('AUTHORITY_SOURCE');}
- const capability=externalAlphaSlotCapability(env,loadExternalAlphaInstallations(env),installation);
+ // Capability configuration is consumed only by the admission transaction, which fails closed without it
+ // (CAPABILITY_INSTALLATION_UNQUALIFIED). Reads, results and stop must stay available when it is absent or malformed.
+ let capability=null;try{capability=externalAlphaSlotCapability(env,loadExternalAlphaInstallations(env),installation);}catch{capability=null;}
  const basePool=new pg.Pool(databaseConfig(env.DATABASE_URL_UNPOOLED??env.DATABASE_URL));
  // Admission transactions run as the restricted capability runtime role; without bindings admission stays closed.
  const pool=capability?restrictedRolePool(basePool,capability.role):basePool;

@@ -70,7 +70,7 @@ test('an exact old approval cannot authorize the successor execution contract', 
 
 import impact from '../../../docs/external-alpha/pricing-backport-20261011/identity-impact.json' with {type:'json'};
 import sourceIdentity from '../src/source-identity.json' with {type:'json'};
-import currentSuccessor from '../../../docs/capability-control/source-identity-20261022/capability-binding-successor.json' with {type:'json'};
+import currentSuccessor from '../../../docs/capability-control/source-identity-20261022/review-hardening-successor.json' with {type:'json'};
 import {externalAlphaFactoryVersion,externalAlphaConfiguration,externalAlphaRuntimeComponents} from '../src/external-alpha-runtime.mjs';
 import {loadVectors,installationOf} from './fixtures/myeve-conformance/support.mjs';
 

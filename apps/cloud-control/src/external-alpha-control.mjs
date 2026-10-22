@@ -128,13 +128,18 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
    if(!plain(body)||Object.keys(body).sort().join(',')!=='authority,prepare'||!plain(body.prepare))return reply({error:'INVALID_REQUEST'},400);
    // Pure pre-flight against THIS slot's pinned installation: no database, nothing consumed.
    validateStatic(body.authority,body.prepare,installation);
-   // Expired qualified pricing is a definitive refusal decided from static configuration before any database
-   // access: nothing is admitted, reserved or dispatched, so the caller must not record it as UNKNOWN.
-   if(!(Date.parse(spendPlan?.validUntil)>now()))return denied('PRICING_EXPIRED');
-   // Owner-scoped capability bindings and the restricted runtime role are server configuration: without them admission
-   // can only be denied, so refuse definitively here (nothing admitted, reserved or dispatched).
-   if(!slotCapability(env,installations,installation))return denied('AUTHORITY_CAPABILITY');
-   return await withRuntime(env,installation,async c=>{
+   const priorAdmission=()=>withRuntime(env,installation,c=>c.authority.withClient(client=>c.authority.priorDeadline(client,body.prepare.requestId)));
+   // A redelivery of an already admitted request must never receive a definitive refusal: that would let the caller
+   // record a no-charge cancel for Work that exists. Configuration pre-flights apply only to first admission.
+   let replay=Boolean(await priorAdmission());
+   if(!replay){
+    // Expired qualified pricing or absent owner-scoped capability configuration can only refuse a FIRST admission:
+    // nothing is admitted, reserved or dispatched, so the refusal is definitive. Re-check for a concurrent first
+    // admission before refusing.
+    const refusal=!(Date.parse(spendPlan?.validUntil)>now())?'PRICING_EXPIRED':!slotCapability(env,installations,installation)?'AUTHORITY_CAPABILITY':null;
+    if(refusal){if(await priorAdmission())replay=true;else return denied(refusal);}
+   }
+   try{return await withRuntime(env,installation,async c=>{
     const prior=await c.authority.withClient(client=>c.authority.priorDeadline(client,body.prepare.requestId));
     // An identical redelivery (browser refresh, retry after a lost response) rebuilds the request at a later clock; only
     // the deadline may differ. It is normalized to the ADMITTED value so the replay observes the original admission.
@@ -147,7 +152,11 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
     const admitted=await c.store.read(c.clientId,prepare.requestId);
     await c.control.dispatch(externalAlphaIdentity(admitted));
     return reply(await c.readbackWithReceipt(prepare.requestId,challenge));
-   });
+   });}catch(error){
+    // Any failure while replaying an admitted request is ambiguous by construction (the Work exists).
+    if(replay&&!(error?.status===400||error?.status===413))return reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+    throw error;
+   }
   }
 
   const small=async()=>{const b=await readBody(request,MAX_SMALL_BYTES);if(!plain(b)||Object.keys(b).length!==0)throw Object.assign(Error('INVALID_REQUEST'),{status:400});};

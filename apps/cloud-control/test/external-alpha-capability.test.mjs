@@ -64,7 +64,14 @@ test('provisioning is bounded, scoped to work+myfactory, and never re-enables ow
  assert.match(all,/owner_state[^\n]*ON CONFLICT \(installation_id,owner_id\) DO NOTHING/);
  assert.match(all,/relay_agent_evidence[^\n]*WHERE capability_control\.relay_agent_evidence\.status='ACTIVE'/);
  assert.doesNotMatch(all,/status='ACTIVE',/);
+ // Renewal never re-enables non-ALLOW/ACTIVE evidence, never widens agent capabilities, refuses unsafe existing roles
+ // and scopes FORCE RLS rows to each binding.
+ assert.match(all,/evidence[^\n]*DO UPDATE SET[^\n]*WHERE NOT EXISTS \(SELECT 1 FROM jsonb_each\(capability_control\.evidence\.facts\)/);
+ assert.doesNotMatch(all,/capability_ids=EXCLUDED/);
+ assert.match(all,/RAISE EXCEPTION 'CAPABILITY_RUNTIME_ROLE_UNSAFE'/);
+ assert.match(all,/set_config\('myeve\.capability_owner','owner-one',true\)/);
  for(const bad of [{evidenceExpiresAt:new Date(Date.now()-1000).toISOString()},{evidenceExpiresAt:new Date(Date.now()+9*24*3600e3).toISOString()},{policyRecord:''},
-  {runtimeRole:'bad role'},{bindings:[]},{bindings:[binding(undefined,undefined,{environment:'development'})]},{schemaSql:''}])
+  {runtimeRole:'bad role'},{runtimeRole:'postgres'},{runtimeRole:'pg_read_all_data'},{runtimeRole:'pg_write_all_data'},{runtimeRole:'public'},
+  {runtimeRole:'neondb_owner'},{connectingRole:'pg_monitor'},{bindings:[]},{bindings:[binding(undefined,undefined,{environment:'development'})]},{schemaSql:''}])
   assert.throws(()=>externalAlphaCapabilityProvisioning({...base,...bad}));
 });
