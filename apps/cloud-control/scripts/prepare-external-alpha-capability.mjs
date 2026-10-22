@@ -14,7 +14,7 @@ export async function externalAlphaCapabilitySql({bindings,runtimeRole,connectin
  let schemaSql='';
  for(const part of ['migration','enforcement','decisions','ordering','lifecycle'])
   schemaSql+=await readFile(new URL(`../../../docs/capability-control/${part}.sql`,import.meta.url),'utf8')+'\n';
- if(['$capability$','$guard$'].some(tag=>schemaSql.includes(tag)))throw Error('SCHEMA_SQL_DOLLAR_TAG');
+ if(['$capability$','$guard$','$receiver$','$role$'].some(tag=>schemaSql.includes(tag)))throw Error('SCHEMA_SQL_DOLLAR_TAG');
  const {createSchema,statements}=externalAlphaCapabilityProvisioning({bindings,runtimeRole,connectingRole,evidenceExpiresAt,policyRecord,schemaSql});
  const sql=`BEGIN;
 SET LOCAL lock_timeout='5s';

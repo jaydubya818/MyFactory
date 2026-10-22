@@ -117,6 +117,9 @@ export function externalAlphaCapabilityProvisioning({bindings,runtimeRole,eviden
  statements.push(`GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA factory TO ${runtimeRole}`);
  statements.push(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA factory TO ${runtimeRole}`);
  statements.push(`GRANT EXECUTE ON FUNCTION capability_control.lock_admission_policy(text,text,text) TO ${runtimeRole}`);
+ // Hosts with the receiver schema (migrations 013/014) revoke this custodian-owned lookup from PUBLIC; admission calls it
+ // inside the admission transaction, so the runtime receives EXECUTE only (never ownership). Absent on 001-012 hosts.
+ statements.push(`DO $receiver$ BEGIN IF to_regprocedure('factory.receiver_requires_ordering(text,text)') IS NOT NULL THEN GRANT EXECUTE ON FUNCTION factory.receiver_requires_ordering(text,text) TO ${runtimeRole}; END IF; END $receiver$`);
  for(const b of bindings){
   for(const key of FIELDS.split(','))if(typeof b[key]!=='string'||!ID.test(b[key]))throw Error('BINDING_INVALID');
   if(b.environment!=='qualification')throw Error('BINDING_INVALID');

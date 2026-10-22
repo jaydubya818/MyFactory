@@ -11,7 +11,7 @@ import {externalAlphaCapabilityProvisioning,applyExternalAlphaCapabilityProvisio
 const url=process.env.FACTORY_PAID_TEST_DATABASE_URL;
 const migrations=new URL('../migrations/',import.meta.url),docs=new URL('../../../docs/capability-control/',import.meta.url);
 
-async function hostDatabase(t){
+async function hostDatabase(t,{through=12}={}){
  assert(['localhost','127.0.0.1'].includes(new URL(url).hostname));
  const suffix=randomUUID().replaceAll('-','').slice(0,16),name=`capprov_${suffix}`,role=`capprov_runtime_${suffix}`;
  const admin=new pg.Pool({connectionString:url});
@@ -19,7 +19,7 @@ async function hostDatabase(t){
  const target=new URL(url);target.pathname=`/${name}`;
  const pool=new pg.Pool({connectionString:target.toString()});
  t.after(async()=>{await pool.end();await admin.query(`DROP DATABASE ${name} WITH (FORCE)`);await admin.query(`DROP ROLE IF EXISTS ${role}`);await admin.end();});
- for(const file of (await readdir(migrations)).filter(f=>/^0(0\d|1[0-2])-.*\.sql$/.test(f)).sort())await pool.query(await readFile(new URL(file,migrations),'utf8'));
+ for(const file of (await readdir(migrations)).filter(f=>Number(f.slice(0,3))<=through&&/^\d{3}-.*\.sql$/.test(f)).sort())await pool.query(await readFile(new URL(file,migrations),'utf8'));
  let schemaSql='';
  for(const part of ['migration','enforcement','decisions','ordering','lifecycle'])schemaSql+=await readFile(new URL(`${part}.sql`,docs),'utf8')+'\n';
  const connectingRole=(await pool.query('SELECT current_user AS u')).rows[0].u;
@@ -35,8 +35,9 @@ const input=()=>({protocol:'MYFACTORY_EXECUTION_V2',requestId:randomUUID(),workI
  input:{title:'Capability provisioning fixture',description:'No provider operations',kind:'feature',acceptanceCriteria:['Exact owner'],checkCommands:grant.commands,allowedPaths:grant.allowedPaths}});
 const snapshot=(request,order,run)=>({requestId:request.requestId,workOrderId:order.id,runId:run.id,inputCommit:source.commit});
 
-test('LOCAL operator provisioning admits only the bound owner under the restricted role and preserves every kill switch',{skip:!url},async t=>{
- const db=await hostDatabase(t);
+// 012: the original alpha host level. 014: the live host level, whose receiver schema revokes its lookup from PUBLIC.
+for(const through of [12,14])test(`LOCAL operator provisioning (migrations 001-0${through}) admits only the bound owner under the restricted role and preserves every kill switch`,{skip:!url},async t=>{
+ const db=await hostDatabase(t,{through});
  const client=await db.pool.connect();
  try{
   // pg.Pool.query cannot run BEGIN/COMMIT on one connection, so provisioning uses a dedicated client.
@@ -49,6 +50,11 @@ test('LOCAL operator provisioning admits only the bound owner under the restrict
 
   const admitted=await store.prepare(grant,input(),snapshot);
   assert.ok(admitted.run_id);
+  if(through>=13){
+   // The receiver lookup ran under the restricted role inside admission; it is EXECUTE-only, never owned.
+   assert.equal((await store.transaction(c=>c.query("SELECT factory.receiver_requires_ordering($1,$2) AS r",[ownerId,scope.installationId]))).rows[0].r,false);
+   assert.equal((await db.pool.query("SELECT pg_get_userbyid(proowner)=$1 AS owned FROM pg_proc WHERE proname='receiver_requires_ordering'",[db.role])).rows[0].owned,false);
+  }
   const events=(await db.pool.query('SELECT type FROM factory.events WHERE run_id=$1',[admitted.run_id])).rows.map(r=>r.type);
   assert.ok(events.includes('factory.capability_admitted')&&events.includes('factory.owner_scope_bound'));
   assert.equal(await intakes(),1);
