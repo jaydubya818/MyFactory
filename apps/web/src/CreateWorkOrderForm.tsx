@@ -84,6 +84,10 @@ export default function CreateWorkOrderForm({ onSubmit, onCancel, pending, serve
       setValidationError("Complete the title, description, repository path, and base ref.");
       return;
     }
+    if (repositoryPath.trim() && !repositoryPath.trim().startsWith("/")) {
+      setValidationError("Repository path must be an absolute path starting with /.");
+      return;
+    }
     if (criteria.length === 0 || paths.length === 0 || checks.length === 0) {
       setValidationError("Add an acceptance criterion, a permitted path, and a check command.");
       return;
@@ -94,10 +98,6 @@ export default function CreateWorkOrderForm({ onSubmit, onCancel, pending, serve
     }
     if (kind === "defect" && !expectedFailureText.trim()) {
       setValidationError("A defect needs the exact failure text expected from its baseline reproduction.");
-      return;
-    }
-    if (repositoryPath.trim() && !repositoryPath.trim().startsWith("/")) {
-      setValidationError("Repository path must be an absolute path starting with /.");
       return;
     }
 
@@ -131,7 +131,7 @@ export default function CreateWorkOrderForm({ onSubmit, onCancel, pending, serve
         <button className="text-button" type="button" onClick={() => { clearDraft(); onCancel(); }}>Back to queue <Icon name="arrow" size={16} /></button>
       </div>
 
-      <form className="create-form" onSubmit={(event) => void submit(event)}>
+      <form className="create-form" noValidate onSubmit={(event) => void submit(event)}>
         <section className="form-section" aria-labelledby="work-section-title">
           <div className="form-section__intro">
             <span className="section-number">01</span>
