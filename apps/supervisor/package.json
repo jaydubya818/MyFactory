@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "node --watch src/server.ts",
     "start": "node src/server.ts",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node --test test/browser-qa-regressions.test.mjs"
   },
   "dependencies": {
     "@vercel/connect": "0.8.0",

@@ -1,7 +1,7 @@
 name: Environment Fabric
 on:
   push:
-    branches: [main, codex/environment-fabric]
+    branches: [main, codex/environment-fabric, beta/unified-candidate-20261022]
   pull_request:
 permissions:
   contents: read
@@ -9,7 +9,7 @@ jobs:
   deterministic:
     name: Factory contracts and regressions
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16
@@ -45,7 +45,18 @@ jobs:
       # Provision its current image before tests; this is not the cloud runtime.
       - run: docker pull node:22-bookworm
       - run: docker pull node:24-bookworm
+      # Build the web UI before running tests. apps/supervisor/test/browser-qa-regressions.test.mjs
+      # starts a local supervisor that serves apps/web/dist; the build must exist first.
+      - run: npm run build --workspace=@factory/web
+      # Cache the Playwright browser binaries to avoid re-downloading ~190 MB on each run.
+      # System dependencies (apt packages) are always installed via --with-deps.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.63.0-${{ runner.os }}
       # EvidenceProvider static-preview tests require the locked Playwright browser.
+      # browser-qa-regressions.test.mjs also requires Chromium.
       - run: node node_modules/playwright/cli.js install --with-deps chromium
       - run: npm test
         env:
