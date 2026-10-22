@@ -246,3 +246,31 @@ See the [CLOUD runbook](docs/runbooks/cloud-execution.md), [production installat
 | [`docs/consolidation`](docs/consolidation) | Canonical source, migration and installation records |
 
 The current external-alpha release remains gated on ordinary owner-specific Work authority, dedicated private workspaces, suitable protected verification, per-owner/global spend enforcement and final installation/isolation qualification. No invitation, new paid attempt or generated effect is authorized by this README.
+
+
+## IR-02 authority fixture regression
+
+`apps/cloud-control/test/production-authority-postgres.test.mjs` now provisions
+owner-scoped capability installations and passes their bindings to the dispatch
+store. Runtime admission and accounting use the existing restricted-role policy
+fixture; the admin pool only provisions synthetic policy and authority records.
+No capability check is disabled or replaced.
+
+Against a disposable loopback PostgreSQL database (with local role/schema
+creation privileges and TLS trust configured for the adapter), run:
+
+```sh
+FACTORY_POSTGRES_TEST=1 DATABASE_URL_UNPOOLED=postgresql://postgres@127.0.0.1:5432/postgres \
+  node --test apps/cloud-control/test/production-authority-postgres.test.mjs
+```
+
+The adjacent `postgres-dispatch.test.mjs` fixtures use the same scoped bindings,
+including their separate proof owner and cross-client denial cases. The complete
+cloud-control regression command is `node --test apps/cloud-control/test/*.test.mjs`
+with the same disposable environment and the staging marker migration applied.
+
+Both authority scenarios reach exact authority consumption, immutable grant, concurrent
+claims, verifier revocation and UNKNOWN delivery fences. They assert zero spend
+operations and use synthetic resource identifiers only. Their schemas and roles
+are removed afterward. These are local assertions, not production qualification.
+Vercel Git deployments remain disabled in `apps/cloud-control/vercel.json`.
