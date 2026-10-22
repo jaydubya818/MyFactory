@@ -100,6 +100,7 @@ function failure(error){
  // Rejections raised INSIDE the admission transaction roll it back: nothing was consumed, so these are definitive.
  // Capability admission runs only inside the prepare transaction, so its denials are definitive as well.
  if(error?.code==='CAPABILITY_ADMISSION_DENIED'||message==='CAPABILITY_INSTALLATION_UNQUALIFIED')return denied('AUTHORITY_CAPABILITY');
+ if(message==='PRICING_EXPIRED')return denied('PRICING_EXPIRED');
  if(Object.hasOwn(ADMISSION_REJECTIONS,message)){const code=ADMISSION_REJECTIONS[message];return denied(code,code==='AUTHORITY_CONSUMED'?409:403);}
  if(message==='FACTORY_REQUEST_NOT_FOUND'||error?.status===404)return reply({error:'NOT_FOUND'},404);
  // Anything else is ambiguous (the caller must treat it as UNKNOWN). Fixed body, never the message.
@@ -128,24 +129,41 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
    if(!plain(body)||Object.keys(body).sort().join(',')!=='authority,prepare'||!plain(body.prepare))return reply({error:'INVALID_REQUEST'},400);
    // Pure pre-flight against THIS slot's pinned installation: no database, nothing consumed.
    validateStatic(body.authority,body.prepare,installation);
-   const priorAdmission=()=>withRuntime(env,installation,c=>c.authority.withClient(client=>c.authority.priorDeadline(client,body.prepare.requestId)));
-   // A redelivery of an already admitted request must never receive a definitive refusal: that would let the caller
-   // record a no-charge cancel for Work that exists. Configuration pre-flights apply only to first admission.
-   let replay=Boolean(await priorAdmission());
-   if(!replay){
-    // Expired qualified pricing or absent owner-scoped capability configuration can only refuse a FIRST admission:
-    // nothing is admitted, reserved or dispatched, so the refusal is definitive. Re-check for a concurrent first
-    // admission before refusing.
-    const refusal=!(Date.parse(spendPlan?.validUntil)>now())?'PRICING_EXPIRED':!slotCapability(env,installations,installation)?'AUTHORITY_CAPABILITY':null;
-    if(refusal){if(await priorAdmission())replay=true;else return denied(refusal);}
+   const requestId=body.prepare.requestId;
+   const ambiguous=()=>reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+   // A definitive refusal tells the caller to record a no-charge cancel, so it is returned only with PROOF that this request
+   // is not admitted: the lookup runs inside the store's serialized admission transaction (global admission lock), so any
+   // in-flight admission has committed or rolled back first, and it reports the database clock that admission itself uses.
+   // Any failure to obtain that proof (runtime, source or database unavailable) leaves the outcome ambiguous.
+   const admissionState=async()=>{
+    try{return await withRuntime(env,installation,c=>c.store.transaction(async(client,dbNow)=>({prior:await c.authority.priorDeadline(client,requestId),dbNow})));}
+    catch{return null;}
+   };
+   const refuse=async code=>{const state=await admissionState();return state&&!state.prior?denied(code,code==='AUTHORITY_CONSUMED'?409:403):ambiguous();};
+   // Configuration pre-flights. A loader that throws on malformed configuration is the same as absent configuration.
+   let capability=null;try{capability=slotCapability(env,installations,installation);}catch{capability=null;}
+   const pricingCurrent=at=>Date.parse(spendPlan?.validUntil)>at;
+   let replay=false,prepared=false;
+   if(!pricingCurrent(now())||!capability){
+    const state=await admissionState();
+    if(!state)return ambiguous();
+    if(state.prior)replay=true; // a redelivery of admitted Work: serve the replay, never refuse it
+    // Pricing is judged on the database clock under the admission lock: the admission transaction re-checks the same
+    // window on the same clock, so no admission can commit for this request after a definitive PRICING_EXPIRED.
+    else if(!pricingCurrent(state.dbNow))return denied('PRICING_EXPIRED');
+    // Absent capability configuration: the admission transaction of this deployment also lacks it and fails closed.
+    else if(!capability)return denied('AUTHORITY_CAPABILITY');
    }
    try{return await withRuntime(env,installation,async c=>{
-    const prior=await c.authority.withClient(client=>c.authority.priorDeadline(client,body.prepare.requestId));
+    const prior=await c.authority.withClient(client=>c.authority.priorDeadline(client,requestId));
+    if(prior)replay=true;
     // An identical redelivery (browser refresh, retry after a lost response) rebuilds the request at a later clock; only
     // the deadline may differ. It is normalized to the ADMITTED value so the replay observes the original admission.
     const prepare=prior?{...body.prepare,deadline:prior}:body.prepare;
     bindAuthorityEnvelope(prepare,body.authority);
     await c.control.prepare(prepare);
+    // A successful prepare establishes admission: from here every failure is ambiguous.
+    prepared=true;
     // The caller has one mutating HTTP admission. Derive execution identity
     // from its persisted immutable prepare, then reserve delivery exactly once.
     // A duplicate observes the durable intent; UNKNOWN never grants a resend.
@@ -153,9 +171,11 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
     await c.control.dispatch(externalAlphaIdentity(admitted));
     return reply(await c.readbackWithReceipt(prepare.requestId,challenge));
    });}catch(error){
-    // Any failure while replaying an admitted request is ambiguous by construction (the Work exists).
-    if(replay&&!(error?.status===400||error?.status===413))return reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
-    throw error;
+    if(prepared||replay)return ambiguous();
+    const response=failure(error);
+    // Bounded input errors are not admission outcomes; every definitive refusal must prove non-admission first.
+    if(response.status===403||response.status===409){const body=await response.clone().json().catch(()=>null);if(body?.admission==='DISABLED')return refuse(body.code);}
+    return response;
    }
   }
 

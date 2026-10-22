@@ -265,14 +265,14 @@ import {externalAlphaRuntimeComponents,externalAlphaFactoryVersion} from '../src
 import {readbackSigner,READBACK_SCHEMA} from '../src/external-alpha-readback.mjs';
 import {externalAlphaIdentity} from '../src/external-alpha-control.mjs';
 import {reconcileExternalAlpha,handleExternalAlphaRecovery} from '../src/external-alpha-recovery.mjs';
-async function runtimeFixture(t,{bindingMode='qualified'}={}){
+async function runtimeFixture(t,{bindingMode='qualified',spendPlan}={}){
  const e=await setup(t),ctx=makeInstallation(e.ctx.keys,{...e.ctx.config,factoryVersion:externalAlphaFactoryVersion(e.ctx.installation,e.ctx.config.source.sourceDigest)});
  const keys=makeKeys(),privateKey=keys.privateKey.export({type:'pkcs8',format:'pem'}),signing={factoryId:'myfactory-external-alpha',privateKey,key:{factoryId:'myfactory-external-alpha',keyId:'external-alpha-result-v1',publicKey:keys.publicKeyPem,activeFrom:'2020-01-01T00:00:00.000Z',notAfter:'2100-01-01T00:00:00.000Z'}};
  const capability=await e.capabilityFor(ctx.installation),clientId=ctx.installation.application.clientId;
  const capabilityBindings=bindingMode==='missing'?undefined:bindingMode==='wrong-owner'?{[clientId]:{...capability.bindings[clientId],ownerId:'foreign-owner'}}:bindingMode==='wrong-client'?{'foreign-client':capability.bindings[clientId]}:capability.bindings;
  let destroys=0,allocations=0,sends=0;
  const c=externalAlphaRuntimeComponents({...runtimePrivateSource(ctx.installation),pool:capability.pool,capabilityBindings,queue:{send:async()=>{sends++;throw Error('MUST_NOT_DISPATCH');}},provider:{destroy:async()=>{destroys++;},allocate:async()=>{allocations++;throw Error('MUST_NOT_ALLOCATE');}},
-  installation:ctx.installation,signing,sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(privateKey),signReadback:readbackSigner(privateKey),deploymentId:'dpl_fixture',hostInstallation:{projectId:'prj_fixture',teamId:'team_fixture',custodyStoreId:'store_fixture'}});
+  installation:ctx.installation,signing,...(spendPlan?{spendPlan}:{}),sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(privateKey),signReadback:readbackSigner(privateKey),deploymentId:'dpl_fixture',hostInstallation:{projectId:'prj_fixture',teamId:'team_fixture',custodyStoreId:'store_fixture'}});
  // Bind only the admission fixture dependency before intake; no model executes.
  const prepare=async options=>{
   const a=build(ctx,options);
@@ -396,5 +396,41 @@ test('external-alpha replay retains its exact server owner, installation, organi
  const replay=await e.c.control.prepare(a.prepare);
  assert.equal(replay.runId,(await e.c.store.read(clientId,a.prepare.requestId)).run_id);
  assert.equal((await e.query("SELECT count(*) FROM factory.events WHERE type='factory.owner_scope_bound'")).rows[0].count,'1');
+ assert.deepEqual(e.effects(),{destroys:0,allocations:0,sends:0});
+});
+
+test('definitive-refusal proof serializes with admission on the global admission lock and sees a commit that raced it',{skip},async t=>{
+ const e=await runtimeFixture(t);
+ const a=build(e.ctx);
+ Object.defineProperty(e.c.control,'executionSpendPlan',{value:syntheticAdmissionSpendPlan(a.prepare.deadline),writable:false,configurable:false});
+ bindAuthorityEnvelope(a.prepare,a.envelope);
+ const waiters=async n=>{for(let i=0;i<200;i++){if(Number((await e.pool.query("SELECT count(*) FROM pg_locks WHERE locktype='advisory' AND objid=81427603 AND NOT granted")).rows[0].count)>=n)return;await new Promise(r=>setTimeout(r,25));}throw Error('LOCK_WAITERS_TIMEOUT');};
+ const holder=await e.pool.connect();
+ try{
+  await holder.query('BEGIN');await holder.query('SELECT pg_advisory_xact_lock(81427603)');
+  const admitting=e.c.control.prepare(a.prepare);
+  await waiters(1);
+  // The handler's proof: same store transaction, same lock, same database clock.
+  const proof=e.c.store.transaction(async(client,dbNow)=>({prior:await e.c.authority.priorDeadline(client,a.prepare.requestId),dbNow}));
+  await waiters(2);
+  await holder.query('COMMIT');
+  await admitting;
+  const state=await proof;
+  assert.equal(state.prior,a.prepare.deadline,'a proof queued behind an in-flight admission must observe its commit');
+  assert.ok(Number.isFinite(state.dbNow));
+ }finally{holder.release();}
+});
+
+test('first admission re-checks qualified pricing on the transaction clock; a replay of admitted Work is unaffected',{skip},async t=>{
+ const plan={validUntil:new Date(Date.now()+3600e3).toISOString()};
+ const e=await runtimeFixture(t,{spendPlan:plan});
+ const {a}=await e.prepare();
+ plan.validUntil=new Date(Date.now()-1000).toISOString();
+ const second=build(e.ctx);bindAuthorityEnvelope(second.prepare,second.envelope);
+ await assert.rejects(e.c.control.prepare(second.prepare),/PRICING_EXPIRED/);
+ assert.equal(Number((await e.query('SELECT count(*) FROM factory.intake_receipts')).rows[0].count),1);
+ assert.equal(await count(e.query),1);
+ const replay=await e.c.control.prepare(a.prepare);
+ assert.equal(replay.runId,(await e.c.store.read(e.c.clientId,a.prepare.requestId)).run_id);
  assert.deepEqual(e.effects(),{destroys:0,allocations:0,sends:0});
 });

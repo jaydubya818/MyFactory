@@ -67,7 +67,19 @@ export const externalAlphaFactoryVersion=(installation,sourceDigest=sourceIdenti
  * running build and execution configuration are EXACTLY what the pinned installation (and therefore the signed
  * authority) names: source digest and FactoryVersion. Opens no connection, calls no provider and sends nothing.
  */
-export function externalAlphaRuntimeComponents({env={},pool,queue,installation,signing,sourceDigest,signReceipt,signReadback,registry,snapshots,sourceCustody,provider,providerFactory,verification,verifierProfile,deploymentId=env.VERCEL_DEPLOYMENT_ID,hostInstallation,capabilityBindings}){
+/** First admission requires current qualified pricing on the transaction's database clock (same clock and lock as the
+ * handler's definitive PRICING_EXPIRED proof). Replays and later stages are unaffected. */
+export function pricedAdmission(assert,spendPlan){
+ return async(client,input,now,stage)=>{
+  if(stage==='prepare'&&!(Date.parse(spendPlan?.validUntil)>now)){
+   const prior=(await client.query('SELECT 1 FROM factory.intake_receipts WHERE request_id=$1',[input?.requestId])).rowCount;
+   if(!prior)throw Error('PRICING_EXPIRED');
+  }
+  return assert(client,input,now,stage);
+ };
+}
+
+export function externalAlphaRuntimeComponents({env={},spendPlan=productionSpendPlan,pool,queue,installation,signing,sourceDigest,signReceipt,signReadback,registry,snapshots,sourceCustody,provider,providerFactory,verification,verifierProfile,deploymentId=env.VERCEL_DEPLOYMENT_ID,hostInstallation,capabilityBindings}){
  if((provider&&providerFactory)||(providerFactory!==undefined&&typeof providerFactory!=='function'))deny('AUTHORITY_DISABLED');
  if(!installation||typeof signReceipt!=='function'||typeof signReadback!=='function'||!pool||!queue)deny('AUTHORITY_DISABLED');
  if(sourceDigest!==installation.source.sourceDigest)deny('AUTHORITY_SOURCE');
@@ -81,7 +93,7 @@ export function externalAlphaRuntimeComponents({env={},pool,queue,installation,s
  const authority=new ExternalAlphaAuthorityStore(pool,installation,{signReceipt});
  // Explicit server dependency only; absent bindings keep admission closed.
  const store=new PostgresDispatchStore(pool,{capabilityBindings,maxWorks:5,workLimitError:'EXTERNAL_ALPHA_WORK_LIMIT',custodyPrefix:'factory/production',verificationPolicySha256,strictWriterFence:true,requireVerifierPass:true,
-  assertAuthority:authority.assertAuthority(),
+  assertAuthority:pricedAdmission(authority.assertAuthority(),spendPlan),
   onDeliveryUnknown:async(client,runId)=>{
    const row=(await client.query('SELECT * FROM factory.intake_receipts WHERE run_id=$1',[runId])).rows[0];
    if(!row||!await authority.ownedRow(client,row.request_id,{currentGeneration:false}))throw new ExternalAlphaError('AUTHORITY_OWNER');

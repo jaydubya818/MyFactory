@@ -6,7 +6,7 @@ import {handleProductionControl} from '../src/production-control.mjs';
 import {makeKeys,makeInstallation,build} from './fixtures/external-alpha-authority.mjs';
 import {readFileSync} from 'node:fs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
-import {parseExternalAlphaInstallation} from '../src/external-alpha-authority.mjs';
+import {parseExternalAlphaInstallation,ExternalAlphaError} from '../src/external-alpha-authority.mjs';
 
 // Handler tests use a stubbed runtime (no network, no database); atomic consumption is covered by the PostgreSQL suites.
 const sha=v=>createHash('sha256').update(v).digest('hex');
@@ -33,7 +33,7 @@ function runtime(){
  const fake=installation=>({clientId:installation.application.clientId,
   authority:{withClient:fn=>fn({}),priorDeadline:async()=>calls.prior,ownedRow:async(_c,id)=>calls.ownedIds?.has(id)?{request_id:id}:null},
   control:{prepare:async p=>{calls.prepare.push(p);},dispatch:async i=>{calls.dispatch.push(i);}},
-  store:{read:async()=>({request:{requestId:'x',input:{allowedPaths:[]},source:{commit:'c'},deadline:'d',repository:'r',workGeneration:1,workId:'w'},snapshot:{factoryId:'f',factoryVersion:'v'},run_id:'r',work_order_id:'o'}),stop:async()=>{calls.stop.push(1);}},
+  store:{transaction:fn=>fn({},calls.dbNow??Date.now()),read:async()=>({request:{requestId:'x',input:{allowedPaths:[]},source:{commit:'c'},deadline:'d',repository:'r',workGeneration:1,workId:'w'},snapshot:{factoryId:'f',factoryVersion:'v'},run_id:'r',work_order_id:'o'}),stop:async()=>{calls.stop.push(1);}},
   provider:{},readResult:async(id,challenge)=>{calls.result.push({id,challenge});return calls.resultPayload??{pending:true,state:'PENDING'};},readbackWithReceipt:async id=>({requestId:id,authorityReceipt:{},authorityReceiptSignature:'s'})});
  return {calls,withRuntime:async(env,installation,action)=>{calls.installation=installation;return action(fake(installation));}};
 }
@@ -226,23 +226,69 @@ test('missing owner capability binding or runtime role is a definitive pre-fligh
 test('a redelivery of an admitted request never receives a definitive refusal, even after pricing expiry or capability removal',async()=>{
  const w=world(),{b,oidc}=good(w);
  const expired={validUntil:new Date(Date.now()-1000).toISOString()};
- for(const [plan,capability] of [[expired,configuredCapability],[qualifiedPlan,()=>null],[expired,()=>null]]){
+ const body={authority:b.envelope,prepare:b.prepare};
+ for(const [plan,capability] of [[expired,configuredCapability],[qualifiedPlan,()=>null],[expired,()=>null],[qualifiedPlan,()=>{throw new ExternalAlphaError('AUTHORITY_CAPABILITY');}]]){
   const rt=runtime();rt.calls.prior=b.prepare.deadline;
-  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt,plan,capability);
+  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),rt,plan,capability);
   assert.equal(res.status,200);assert.equal(rt.calls.prepare.length,1);
  }
  // A failure while replaying, including a capability denial, is ambiguous (the Work exists), never 403.
  for(const error of [Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'}),Error('CAPABILITY_INSTALLATION_UNQUALIFIED'),Error('PRICING_EXPIRED'),Error('AUTHORITY_CONSUMED')]){
   const rt=runtime();rt.calls.prior=b.prepare.deadline;
   const failing={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw error;}}}))};
-  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),failing,expired,()=>null);
+  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),failing,expired,()=>null);
   assert.equal(res.status,503);assert.deepEqual(await code(res),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
  }
- // A concurrent first admission seen at the re-check turns a would-be refusal into a replay.
- const rt=runtime();let lookups=0;
- const racing={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,authority:{...c.authority,priorDeadline:async()=>++lookups>1?b.prepare.deadline:undefined}}))};
- const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),racing,expired);
- assert.equal(res.status,200);assert.equal(rt.calls.prepare.length,1);
+});
+
+test('definitive refusals require proof of non-admission; every interleaving without that proof stays ambiguous',async()=>{
+ const w=world(),{b,oidc}=good(w),body={authority:b.envelope,prepare:b.prepare};
+ const expired={validUntil:new Date(Date.now()-1000).toISOString()};
+ const denial=()=>Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'});
+ // lookups: answers returned by successive prior-admission lookups (undefined = none, string = admitted deadline).
+ const scripted=(lookups,{prepare,dispatch,unavailable=[]}={})=>{
+  const rt=runtime();let n=0,runtimes=0;
+  return {rt,withRuntime:async(env,installation,action)=>{
+   if(unavailable.includes(runtimes++))throw new ExternalAlphaError('AUTHORITY_SOURCE');
+   return rt.withRuntime(env,installation,c=>action({...c,
+    authority:{...c.authority,priorDeadline:async()=>lookups[n++]},
+    control:{...c.control,...(prepare?{prepare:async p=>{rt.calls.prepare.push(p);throw prepare();}}:{}),...(dispatch?{dispatch:async()=>{throw dispatch();}}:{})}}));
+  }};
+ };
+ const run=async(s,plan=qualifiedPlan,capability=configuredCapability)=>{const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),s,plan,capability);return {status:res.status,body:await code(res)};};
+ const unavailable={error:'EXTERNAL_ALPHA_UNAVAILABLE'};
+
+ // (1) Proof saw no admission, a concurrent admission then appears at the inner lookup, and the replay fails: ambiguous.
+ // App clock says expired but the database clock (the one admission uses) is still current: no refusal, admission proceeds.
+ const s1=scripted([undefined,b.prepare.deadline],{prepare:denial});s1.rt.calls.dbNow=Date.now()-5000;
+ const r1=await run(s1,expired);
+ assert.deepEqual(r1,{status:503,body:unavailable});
+ // (2) Proof cannot be obtained (runtime/source/database unavailable): ambiguous, never CANCELLED.
+ assert.deepEqual(await run(scripted([],{unavailable:[0]}),expired),{status:503,body:unavailable});
+ assert.deepEqual(await run(scripted([],{unavailable:[0]}),qualifiedPlan,()=>{throw new ExternalAlphaError('AUTHORITY_CAPABILITY');}),{status:503,body:unavailable});
+ assert.deepEqual(await run(scripted([undefined],{prepare:denial,unavailable:[1]})),{status:503,body:unavailable});
+ // (3) A successful prepare establishes admission: a later dispatch failure is ambiguous.
+ const s3=scripted([undefined],{dispatch:()=>new ExternalAlphaError('AUTHORITY_REVOKED')});
+ assert.deepEqual(await run(s3),{status:503,body:unavailable});assert.equal(s3.rt.calls.prepare.length,1);
+ // (4) An admission committed between the failed transaction and the proof: ambiguous.
+ assert.deepEqual(await run(scripted([undefined,b.prepare.deadline],{prepare:denial})),{status:503,body:unavailable});
+ // (5) With proof of non-admission the rolled-back in-transaction refusal is definitive.
+ const r5=await run(scripted([undefined,undefined],{prepare:denial}));
+ assert.equal(r5.status,403);assert.equal(r5.body.code,'AUTHORITY_CAPABILITY');assert.equal(r5.body.admission,'DISABLED');
+ const r5b=await run(scripted([undefined,undefined],{prepare:()=>Error('PRICING_EXPIRED')}));
+ assert.equal(r5b.status,403);assert.equal(r5b.body.code,'PRICING_EXPIRED');
+ // (6) A malformed capability loader throw is absent configuration: definitive only with proof, replay when admitted.
+ const r6=await run(scripted([undefined]),qualifiedPlan,()=>{throw new ExternalAlphaError('AUTHORITY_CAPABILITY');});
+ assert.equal(r6.status,403);assert.equal(r6.body.code,'AUTHORITY_CAPABILITY');
+ const s6=scripted([b.prepare.deadline,b.prepare.deadline]);
+ assert.equal((await run(s6,qualifiedPlan,()=>{throw new ExternalAlphaError('AUTHORITY_CAPABILITY');})).status,200);assert.equal(s6.rt.calls.prepare.length,1);
+ // (7) PRICING_EXPIRED is judged on the database clock under the admission lock: expired there is definitive; an app
+ // clock that runs ahead of it is not, and admission proceeds to its own in-transaction check.
+ const s7=scripted([undefined]);s7.rt.calls.dbNow=Date.now();
+ const r7=await run(s7,expired);
+ assert.equal(r7.status,403);assert.equal(r7.body.code,'PRICING_EXPIRED');assert.equal(s7.rt.calls.prepare.length,0);
+ const s7b=scripted([undefined,undefined]);s7b.rt.calls.dbNow=Date.now()-5000;
+ assert.equal((await run(s7b,expired)).status,200);assert.equal(s7b.rt.calls.prepare.length,1);
 });
 
 test('capability denials raised inside the rolled-back admission transaction are definitive, never ambiguous 503',async()=>{
