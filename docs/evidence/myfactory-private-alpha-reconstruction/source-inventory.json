@@ -560,6 +560,16 @@
       "classification": "CAPABILITY_ADMISSION",
       "authorityBoundary": "Canonical MyEve 9560b28d source, independently reviewed with real PostgreSQL SELECT-only receiver qualification. Exact scope, evidence, enrollment and independently retained authority witness fail closed before new admission. Uses existing policy lock and native Factory transaction; no execution grant, no restoration reset or pricing/accounting changes. External witness custody/installation approval remain required.",
       "sha256": "a952deb07166fa0b3ca28075a25572eaeb45b020cee931505fbfb60689e487e9"
+    },
+    "apps/supervisor/src/linear.ts": {
+      "sha256": "a26761b94d7323eda2c40e48fadfb9f63324748b909e18bef189bf24d017c897",
+      "classification": "CREDENTIAL_LOADER",
+      "authorityBoundary": "Linear app token via existing Vercel Connect connector and project OIDC; stable token params so the SDK in-process cache is reused (no forceRefresh); a provider 401 evicts the cached entry and retries the request once. Token held in memory only; sanitized errors; no new scopes, connectors, Work, publication or spend authority."
+    },
+    "apps/supervisor/src/hosted-intake.ts": {
+      "sha256": "16f4e735167a3856fac968bda09b8da8050655bd89933252b80f0701e7804da9",
+      "classification": "CREDENTIAL_LOADER",
+      "authorityBoundary": "Hosted Linear queue intake polling only; poll interval default unchanged (15s), optional FACTORY_HOSTED_INTAKE_POLL_MS override (min 5s). Admission, client scopes, receipts and WorkOrder authority unchanged."
     }
   }
 }

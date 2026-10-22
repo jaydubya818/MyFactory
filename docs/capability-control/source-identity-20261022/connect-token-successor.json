@@ -1,0 +1,19 @@
+{
+  "schema": "factory-recovery-successor/v1",
+  "authority": "SOURCE_IDENTITY_RECORD_ONLY_NO_INHERITED_QUALIFICATION",
+  "recordedAt": "2026-10-22",
+  "changes": "Vercel Connect cost fix in the local supervisor (apps/supervisor/src/linear.ts: getToken no longer uses forceRefresh, stable token params, one evict-and-retry on a Linear 401; apps/supervisor/src/hosted-intake.ts: optional FACTORY_HOSTED_INTAKE_POLL_MS, default unchanged at 15s). No pricing, configuration or execution-contract change.",
+  "historicalSourceDigest": "1c69113378ed82428d13a2f89452708204e171ac9cb952b0a725acff83844548",
+  "predecessorSourceDigest": "3833892f1bf877a50cd6ba99216aec64f75159fa75ae7122f983a84e33d15ad0",
+  "predecessorFactoryVersion": "78ef5eb7a101069ac41ea83c9b1f3bd637143bc0d07721f910826fc49789d844",
+  "predecessorRecord": "../source-identity-20261020/pricing-successor.json",
+  "sourceDigest": "79110de2544cc7e8ac001520a15dd35a3f16b48beb66ebdaca803c455c2b8da4",
+  "configurationDigest": "415f52a554e8dbdcc48019609e4611f07085622abf5c91cd67b516e978a593ae",
+  "factoryVersion": "d99801042e22ea0df6afd8b0a671f055e612a7cd55c3b6d3834bca95cd95a78b",
+  "executionContractSha256": "377cf5e6412003394805b3f1169d24cd7468c683c8f758999b32c3b5b5d20cf3",
+  "predecessorExecutionContractSha256": "377cf5e6412003394805b3f1169d24cd7468c683c8f758999b32c3b5b5d20cf3",
+  "historicalExecutionContractSha256": "29ff7774ec7ac08a061f28fe2f81bff4a8f1124987f64a69a1b5cb8e21976b66",
+  "pricingRecord": "openai-mini-20261020-v3",
+  "qualification": "NONE INHERITED. Evidence recorded for FactoryVersion 78ef5eb7… or earlier does not apply to d9980104…. Installation, owner, execution and paid-path qualification must be run fresh for this FactoryVersion before any of it is described as qualified or live.",
+  "migration": "NONE. Execution contract is unchanged (377cf5e6…); no approvals are re-bound by this record."
+}

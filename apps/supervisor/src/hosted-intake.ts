@@ -10,6 +10,14 @@ import type { WorkOrder } from "../../../packages/contracts/src/index.ts";
 interface Issue { id: string; title: string; description: string; identifier: string; url: string; team: { id: string } }
 interface RoutingConfig { routes: Record<string, { repository: string; repositoryPath: string; baseRef: string; checkCommands: string[] }> }
 
+// Poll interval for the hosted Linear queue. Default unchanged (15s) because it is the
+// pickup latency for Sofie/Relay work; Connect token cost no longer scales with it now
+// that Linear tokens are reused from the SDK cache. Override with FACTORY_HOSTED_INTAKE_POLL_MS.
+export function hostedIntakePollMs(): number {
+  const value = Number(process.env.FACTORY_HOSTED_INTAKE_POLL_MS);
+  return Number.isFinite(value) && value >= 5_000 ? value : 15_000;
+}
+
 export class HostedIntake {
   readonly status = { enabled: true, lastCheckedAt: null as string | null, imported: 0, rejected: 0, error: null as string | null };
   #timer: ReturnType<typeof setTimeout> | undefined;
@@ -26,7 +34,7 @@ export class HostedIntake {
     const tick = () => {
       if (this.#stopped) return;
       this.#active = this.poll().catch(() => { this.status.error = "Hosted intake could not reach or verify its configured Linear queue. It will retry."; })
-        .finally(() => { if (!this.#stopped) { this.#timer = setTimeout(tick, 15000); this.#timer.unref(); } });
+        .finally(() => { if (!this.#stopped) { this.#timer = setTimeout(tick, hostedIntakePollMs()); this.#timer.unref(); } });
     };
     tick();
   }

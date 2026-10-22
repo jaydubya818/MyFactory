@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { getToken } from "@vercel/connect";
+import { deleteTokenCacheEntry, getToken } from "@vercel/connect";
 import { getVercelOidcToken } from "@vercel/oidc";
 import type { FactoryEvent, LinearLink, WorkOrder, ConnectionStatus } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
@@ -39,14 +39,30 @@ export function linearOptionsFromEnvironment(): LinearOptions {
   };
 }
 
+// One stable parameter object for every Linear token request. The @vercel/connect
+// in-process cache is keyed by connector + these exact params, so keeping them
+// identical everywhere lets the long-lived supervisor reuse one token until it
+// nears expiry instead of paying a billed Connect token request per Linear call.
+function linearTokenParams() {
+  return { subject: { type: "app" as const }, scopes: ["read", "write"] };
+}
+
+/** Drop the cached Connect token so the next call fetches a fresh one (use after a provider 401). */
+export function invalidateLinearAuthorization(options: LinearOptions): void {
+  if (options.apiKey || options.authorization || !options.connector) return;
+  deleteTokenCacheEntry(options.connector, linearTokenParams());
+}
+
 export async function linearAuthorization(options: LinearOptions): Promise<string> {
   if (options.apiKey) return options.apiKey;
   try {
     if (options.authorization) return await options.authorization();
     const identity = await getVercelOidcToken({ project: options.vercelProjectId,
       team: options.vercelTeamId, expirationBufferMs: 60_000 });
-    const token = await getToken(options.connector!, { subject: { type: "app" }, scopes: ["read", "write"] },
-      { vercelToken: identity, forceRefresh: true });
+    // No forceRefresh: every forced refresh is a billed Connect token request
+    // ($3 per 1,000 on Pro). The SDK cache reuses the token until 30s before expiry;
+    // a rejected token is evicted via invalidateLinearAuthorization and retried once.
+    const token = await getToken(options.connector!, linearTokenParams(), { vercelToken: identity });
     return `Bearer ${token}`;
   } catch {
     // SDK errors can contain provider response bodies. Do not persist them in audit records.
@@ -123,16 +139,24 @@ export class LinearIntegration {
   }
 
   async #graphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
-    const authorization = await linearAuthorization(this.#options);
-    let response: Response;
-    try {
-      response = await (this.#options.fetch ?? fetch)("https://api.linear.app/graphql", {
-        method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
-        headers: { "Content-Type": "application/json", Authorization: authorization },
-        body: JSON.stringify({ query, variables }),
-      });
-    } catch {
-      throw new Error("Linear could not be reached. Retry to reconcile the saved issue ID.");
+    const send = async () => {
+      const authorization = await linearAuthorization(this.#options);
+      try {
+        return await (this.#options.fetch ?? fetch)("https://api.linear.app/graphql", {
+          method: "POST", redirect: "error", signal: AbortSignal.timeout(15_000),
+          headers: { "Content-Type": "application/json", Authorization: authorization },
+          body: JSON.stringify({ query, variables }),
+        });
+      } catch {
+        throw new Error("Linear could not be reached. Retry to reconcile the saved issue ID.");
+      }
+    };
+    let response = await send();
+    // A 401 means Linear rejected the credential before running the operation, so
+    // one retry with a freshly fetched token cannot duplicate a write.
+    if (response.status === 401 && this.#options.connector && !this.#options.apiKey && !this.#options.authorization) {
+      invalidateLinearAuthorization(this.#options);
+      response = await send();
     }
     if (!response.ok) throw new Error(`Linear returned HTTP ${response.status}. Check the host connection and retry.`);
     const body = await response.json().catch(() => null) as { data?: T; errors?: unknown[] } | null;
