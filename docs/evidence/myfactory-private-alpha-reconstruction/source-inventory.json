@@ -537,14 +537,14 @@
       "authorityBoundary": "Function entry for the separate external-alpha route; delegates to handleExternalAlpha and nothing else. Distinct from the canary and production functions; reachable only through its own rewrite."
     },
     "apps/cloud-control/src/external-alpha-control.mjs": {
-      "sha256": "30ace706b0759762a97cfb24b27f9eae334a6b7a44f3f81f379233a28356e7f4",
+      "sha256": "b6d0892dc6226135ac03312d0ca1f33ce46435c0f892af95edc2afee7adff7de",
       "classification": "EXACT_DISPATCH",
-      "authorityBoundary": "After one authority preparation, derives exact persisted dispatch identity and sends once through the canonical delivery claim. Signed readback exposes admission/ambiguity without creating a fallback. Expired qualified pricing (productionSpendPlan.validUntil <= now) is refused before any database access with a definitive 403 PRICING_EXPIRED; nothing is admitted, reserved or dispatched (external-alpha-control.test.mjs)."
+      "authorityBoundary": "After one authority preparation, derives exact persisted dispatch identity and sends once through the canonical delivery claim. Signed readback exposes admission/ambiguity without creating a fallback. Expired qualified pricing (productionSpendPlan.validUntil <= now) is refused before any database access with a definitive 403 PRICING_EXPIRED; nothing is admitted, reserved or dispatched (external-alpha-control.test.mjs). Missing owner capability binding or runtime role is refused before any database access (403 AUTHORITY_CAPABILITY); capability denials raised inside the rolled-back prepare transaction are definitive, never ambiguous."
     },
     "apps/cloud-control/src/external-alpha-runtime.mjs": {
-      "sha256": "dbaa6173de905dda42a5b07ba0000a518c14aa931d8824784c6a4ecbc91854e9",
+      "sha256": "5e8168012d05f1cd8767b8bb358996d8534c89862fdc0070c4a96f243e43e6c7",
       "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Composes mandatory digest-pinned private custody and product profile, per-slot source/config FactoryVersion, dedicated registered host, independent acceptance, exact owner authority and durable ambiguity fencing before execution. Injected transports cannot bypass source validation. Current-main compatibility: optional server-owned capability bindings are passed to the existing conjunctive admission checks; grant owner comes only from the pinned installation. No HTTP or environment binding loader, synthetic production enrollment, pricing, authority or UNKNOWN bypass. Missing bindings remain denied."
+      "authorityBoundary": "Composes mandatory digest-pinned private custody and product profile, per-slot source/config FactoryVersion, dedicated registered host, independent acceptance, exact owner authority and durable ambiguity fencing before execution. Injected transports cannot bypass source validation. Current-main compatibility: optional server-owned capability bindings are passed to the existing conjunctive admission checks; grant owner comes only from the pinned installation. No HTTP or environment binding loader, synthetic production enrollment, pricing, authority or UNKNOWN bypass. Missing bindings remain denied. Passes only this slot's pinned capability binding and runs admission transactions as the restricted capability runtime role."
     },
     "apps/cloud-control/src/external-alpha-registry.mjs": {
       "sha256": "3f193305344411563dba36b7281ec50c95aed514fed7f0f44ba212500e02c3a8",
@@ -720,6 +720,11 @@
       "classification": "CAPABILITY_RECEIVING_SOURCE_EXTENSION",
       "sha256": "4b198d32e1dcdc930c2658291906ebf72601e144596f3090202a3e7ee708d606",
       "authorityBoundary": "Approved OWNER-DECISION source extension: exact original receiver enrollment and independent witness; signed paired current policy is necessary, native execution authority/source/FactoryVersion/accounting remain independent. Immutable terminal and cleanup evidence cannot release reservations, settle UNKNOWN, allocate resources, install, publish, merge or deploy. Installed constructor remains unselected and disabled. Final exact-source independent review is recorded separately."
+    },
+    "apps/cloud-control/src/external-alpha-capability.mjs": {
+      "classification": "ENFORCED",
+      "authorityBoundary": "Loads digest-pinned owner-scoped capability bindings for external-alpha slot clients (each must name a loaded installation's client and owner; exact fields; environment qualification) and the restricted runtime role. Grants nothing by itself: admission still requires capability_control policy rows in the same transaction, signed per-Work authority, installation pin and pricing. Absent configuration keeps admission closed. Operator provisioning SQL is bounded (<=8 days), never overwrites owner preferences/controls and never reactivates revoked agent evidence (external-alpha-capability*.test.mjs).",
+      "sha256": "1d752fd796d711f410209f7d0f07cf4fe62966447157eb214b4cf66c426219a1"
     }
   }
 }

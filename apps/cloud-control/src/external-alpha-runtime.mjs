@@ -3,7 +3,8 @@ import {createPublicKey} from 'node:crypto';
 import {QueueClient} from '@vercel/queue';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {databaseConfig} from './config.mjs';
-import {ExternalAlphaAuthorityStore,ExternalAlphaError,receiptSigner} from './external-alpha-authority.mjs';
+import {ExternalAlphaAuthorityStore,ExternalAlphaError,receiptSigner,loadExternalAlphaInstallations} from './external-alpha-authority.mjs';
+import {externalAlphaSlotCapability,restrictedRolePool} from './external-alpha-capability.mjs';
 import {PostgresDispatchStore} from './postgres-dispatch.mjs';
 import {PostgresSpendLedger} from './postgres-spend.mjs';
 import {PostgresVerificationStore} from './postgres-verification.mjs';
@@ -143,9 +144,12 @@ export async function withExternalAlphaRuntime(env,installation,action,{registry
  if(typeof pem!=='string'||pem.length<50||pem.length>4000)deny('AUTHORITY_DISABLED');
  let signReceipt,signReadback;try{signReceipt=receiptSigner(pem.replaceAll('\\n','\n'));signReadback=readbackSigner(pem.replaceAll('\\n','\n'));}catch{deny('AUTHORITY_DISABLED');}
  let registry,snapshots;try{registry=await registryLoader(env);snapshots=await snapshotsLoader(env,registry);}catch{deny('AUTHORITY_SOURCE');}
- const pool=new pg.Pool(databaseConfig(env.DATABASE_URL_UNPOOLED??env.DATABASE_URL));
+ const capability=externalAlphaSlotCapability(env,loadExternalAlphaInstallations(env),installation);
+ const basePool=new pg.Pool(databaseConfig(env.DATABASE_URL_UNPOOLED??env.DATABASE_URL));
+ // Admission transactions run as the restricted capability runtime role; without bindings admission stays closed.
+ const pool=capability?restrictedRolePool(basePool,capability.role):basePool;
  try{
   assertProductionDatabaseMarker((await pool.query('SELECT * FROM factory.environment WHERE singleton')).rows[0],hostInstallation);
-  return await action(externalAlphaRuntimeComponents({env,pool,queue:new QueueClient({region:'iad1'}),installation,signing,sourceDigest:sourceIdentity.sourceDigest,signReceipt,signReadback,registry,snapshots,hostInstallation,verifierProfile}));
+  return await action(externalAlphaRuntimeComponents({env,pool,capabilityBindings:capability?.bindings,queue:new QueueClient({region:'iad1'}),installation,signing,sourceDigest:sourceIdentity.sourceDigest,signReceipt,signReadback,registry,snapshots,hostInstallation,verifierProfile}));
  }finally{await pool.end();}
 }

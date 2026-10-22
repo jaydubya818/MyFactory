@@ -39,7 +39,8 @@ function runtime(){
 }
 const good=(w,i=0)=>{const b=build(w.ctx[i]);return {b,oidc:oidcToken(claimsFor(w.configs[i]))};};
 const qualifiedPlan=Object.freeze({validUntil:new Date(Date.now()+86400000).toISOString()});
-const send=(w,r,rt,spendPlan=qualifiedPlan)=>handleExternalAlpha(r,w.env,{withRuntime:rt.withRuntime,verifyToken,spendPlan});
+const configuredCapability=()=>({bindings:{},role:'factory_capability_runtime'});
+const send=(w,r,rt,spendPlan=qualifiedPlan,slotCapability=configuredCapability)=>handleExternalAlpha(r,w.env,{withRuntime:rt.withRuntime,verifyToken,spendPlan,slotCapability});
 const code=async res=>(await res.json());
 
 test('authorized caller dispatches on its own slot and receives a receipt-bearing readback',async()=>{
@@ -204,4 +205,38 @@ test('expired qualified pricing is a definitive pre-flight refusal: 403 PRICING_
   assert.equal(r2.status,403);assert.equal((await code(r2)).code,'PRICING_EXPIRED');
  }
  assert.equal(rt.calls.prepare.length,0);
+});
+
+test('missing owner capability binding or runtime role is a definitive pre-flight refusal: 403 AUTHORITY_CAPABILITY, nothing prepared',async()=>{
+ const w=world(),rt=runtime(),{b,oidc}=good(w);
+ let asked;
+ const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt,undefined,(env,installations,installation)=>{asked={installations:installations.length,slot:installation.slot};return null;});
+ assert.equal(res.status,403);
+ const body=await code(res);
+ assert.equal(body.code,'AUTHORITY_CAPABILITY');assert.equal(body.admission,'DISABLED');
+ assert.deepEqual(asked,{installations:2,slot:'1'});
+ assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);assert.equal(rt.calls.installation,undefined);
+ // The real loader with no capability configuration in the environment also refuses.
+ const real=await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),w.env,{withRuntime:rt.withRuntime,verifyToken,spendPlan:qualifiedPlan});
+ assert.equal(real.status,403);assert.equal((await code(real)).code,'AUTHORITY_CAPABILITY');
+ assert.equal(rt.calls.prepare.length,0);
+});
+
+test('capability denials raised inside the rolled-back admission transaction are definitive, never ambiguous 503',async()=>{
+ const w=world(),{b,oidc}=good(w);
+ for(const error of [Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'}),Error('CAPABILITY_INSTALLATION_UNQUALIFIED')]){
+  const rt=runtime();
+  const failing={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw error;}}}))};
+  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),failing);
+  assert.equal(res.status,403);
+  const body=await code(res);
+  assert.equal(body.code,'AUTHORITY_CAPABILITY');assert.equal(body.admission,'DISABLED');
+  assert.equal(JSON.stringify(body).includes('POLICY_BLOCKED'),false);
+  assert.equal(rt.calls.dispatch.length,0);
+ }
+ // An unrelated failure stays ambiguous so the caller still records UNKNOWN.
+ const rt=runtime();
+ const odd={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw Error('SOMETHING_ELSE');}}}))};
+ const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),odd);
+ assert.equal(res.status,503);
 });

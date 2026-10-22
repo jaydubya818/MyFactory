@@ -4,6 +4,7 @@ import {loadExternalAlphaInstallations,validateStatic,bindAuthorityEnvelope,Exte
 import {reconcileCloudWork} from './cloud-work-lifecycle.mjs';
 import {withExternalAlphaRuntime} from './external-alpha-runtime.mjs';
 import {productionSpendPlan} from './production-execution-plan.mjs';
+import {externalAlphaSlotCapability} from './external-alpha-capability.mjs';
 
 /*
  * HTTP entry for external-alpha Work (MYEVE_EXTERNAL_ALPHA_WORK_AUTHORITY_V1). Deliberately SEPARATE from the
@@ -97,6 +98,8 @@ function failure(error){
  if(status===400)return reply({error:'INVALID_REQUEST'},400);
  const message=typeof error?.message==='string'?error.message:'';
  // Rejections raised INSIDE the admission transaction roll it back: nothing was consumed, so these are definitive.
+ // Capability admission runs only inside the prepare transaction, so its denials are definitive as well.
+ if(error?.code==='CAPABILITY_ADMISSION_DENIED'||message==='CAPABILITY_INSTALLATION_UNQUALIFIED')return denied('AUTHORITY_CAPABILITY');
  if(Object.hasOwn(ADMISSION_REJECTIONS,message)){const code=ADMISSION_REJECTIONS[message];return denied(code,code==='AUTHORITY_CONSUMED'?409:403);}
  if(message==='FACTORY_REQUEST_NOT_FOUND'||error?.status===404)return reply({error:'NOT_FOUND'},404);
  // Anything else is ambiguous (the caller must treat it as UNKNOWN). Fixed body, never the message.
@@ -107,7 +110,7 @@ function failure(error){
  * request handler. `withRuntime(env, installation, action)` supplies {authority, store, control, provider, clientId};
  * tests inject a real PostgreSQL-backed composition with a fake queue/provider.
  */
-export async function handleExternalAlpha(request,env,{withRuntime=withExternalAlphaRuntime,verifyToken=verifyVercelOidcToken,now=Date.now,spendPlan=productionSpendPlan}={}){
+export async function handleExternalAlpha(request,env,{withRuntime=withExternalAlphaRuntime,verifyToken=verifyVercelOidcToken,now=Date.now,spendPlan=productionSpendPlan,slotCapability=externalAlphaSlotCapability}={}){
  let installations;
  try{installations=loadExternalAlphaInstallations(env);}catch{return denied('AUTHORITY_DISABLED');}
  if(!installations.length)return denied('AUTHORITY_DISABLED');
@@ -128,6 +131,9 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
    // Expired qualified pricing is a definitive refusal decided from static configuration before any database
    // access: nothing is admitted, reserved or dispatched, so the caller must not record it as UNKNOWN.
    if(!(Date.parse(spendPlan?.validUntil)>now()))return denied('PRICING_EXPIRED');
+   // Owner-scoped capability bindings and the restricted runtime role are server configuration: without them admission
+   // can only be denied, so refuse definitively here (nothing admitted, reserved or dispatched).
+   if(!slotCapability(env,installations,installation))return denied('AUTHORITY_CAPABILITY');
    return await withRuntime(env,installation,async c=>{
     const prior=await c.authority.withClient(client=>c.authority.priorDeadline(client,body.prepare.requestId));
     // An identical redelivery (browser refresh, retry after a lost response) rebuilds the request at a later clock; only
