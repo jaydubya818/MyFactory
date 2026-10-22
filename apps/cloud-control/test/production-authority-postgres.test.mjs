@@ -1,8 +1,8 @@
 import test from 'node:test';
+import {capabilityPolicyFixture} from './fixtures/capability-policy.mjs';
 import assert from 'node:assert/strict';
 import pg from 'pg';
 import {randomUUID} from 'node:crypto';
-import {capabilityPolicyFixture} from './fixtures/capability-policy.mjs';
 import {readFile} from 'node:fs/promises';
 import {databaseConfig} from '../src/config.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
@@ -21,7 +21,7 @@ test('CONNECTED production exact authority consumption, immutable grant, concurr
  await pool.query('CREATE SCHEMA '+schema);
  const rewrite=sql=>sql.replace(/\bfactory\.(production_work_authority|protect_production_authority|work_spend_budgets|work_spend_operations|intake_receipts|delivery_intents|verification_resources|execution_resources|candidate_custody|work_orders|runs|events)\b/g,schema+'.$1').replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);
  let capability;
- t.after(async()=>{await capability?.cleanup();await pool.query('DROP SCHEMA '+schema+' CASCADE');await pool.end();});
+ t.after(async()=>{try {await capability?.cleanup();await pool.query('DROP SCHEMA '+schema+' CASCADE');} finally {await pool.end();}});
  const query=(sql,args)=>pool.query(rewrite(sql),args),isolated={connect:async()=>{const c=await pool.connect();return{query:(sql,args)=>c.query(rewrite(sql),args),release:()=>c.release()};}};
  for(const file of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification','008-production-work-authority'])await query(await readFile(new URL('../migrations/'+file+'.sql',import.meta.url),'utf8'));
  const installation={ownerScope:'disposable-production-owner'},sourceDigest='a'.repeat(64),configurationDigest=digest(configuration),factoryVersion=digest({sourceDigest,configurationDigest});
@@ -64,7 +64,7 @@ test('CONNECTED validation UNKNOWN delivery permanently fences late execution wh
  await pool.query('CREATE SCHEMA '+schema);
  const rewrite=sql=>sql.replace(/\bfactory\.(production_work_authority|protect_production_authority|work_spend_budgets|work_spend_operations|intake_receipts|delivery_intents|verification_resources|execution_resources|candidate_custody|work_orders|runs|events)\b/g,schema+'.$1').replace(/IN SCHEMA factory\b/g,'IN SCHEMA '+schema);
  let capability;
- t.after(async()=>{await capability?.cleanup();await pool.query('DROP SCHEMA '+schema+' CASCADE');await pool.end();});
+ t.after(async()=>{try {await capability?.cleanup();await pool.query('DROP SCHEMA '+schema+' CASCADE');} finally {await pool.end();}});
  const query=(sql,args)=>pool.query(rewrite(sql),args),isolated={connect:async()=>{const c=await pool.connect();return{query:(sql,args)=>c.query(rewrite(sql),args),release:()=>c.release()};}};
  for(const file of ['002-canonical-execution-ledger','004-canonical-dispatch','005-cloud-custody','006-cloud-verification','008-production-work-authority'])await query(await readFile(new URL('../migrations/'+file+'.sql',import.meta.url),'utf8'));
  const installation={ownerScope:'disposable-validation-owner'},sourceDigest='a'.repeat(64),configurationDigest=digest(configuration),factoryVersion=digest({sourceDigest,configurationDigest});
