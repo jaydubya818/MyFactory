@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -144,4 +144,21 @@ test("existing OAuth connection refreshes authorization and binds sync to the re
 test("OAuth failures never expose provider credentials in the action error", async () => {
   await assert.rejects(linearAuthorization({ authorization: async () => { throw new Error("provider echoed secret-token"); } }),
     (error) => error.message.includes("could not be refreshed") && !error.message.includes("secret-token"));
+});
+
+test("connector token is fetched without forceRefresh so the Connect cache is reused", async () => {
+  const source = readFileSync(new URL("../src/linear.ts", import.meta.url), "utf8");
+  assert.ok(!/forceRefresh\s*:\s*true/.test(source), "forceRefresh bills a Connect token request on every Linear call");
+});
+
+test("a 401 with injected (non-Connect) authorization is surfaced, not retried", async () => {
+  const { LinearIntegration } = await import("../src/linear.ts");
+  let calls = 0;
+  const statuses = [401, 200];
+  const linear = new LinearIntegration({}, () => {}, { apiKey: undefined, connector: undefined, teamId: "t",
+    authorization: async () => "Bearer injected",
+    fetch: async () => { calls++; return new Response(JSON.stringify({ data: { ok: true } }), { status: statuses.shift() ?? 200 }); } });
+  // Injected authorization bypasses Connect, so no retry: the 401 surfaces as an error.
+  await assert.rejects(linear.graphql("query { ok }", {}), /HTTP 401/);
+  assert.equal(calls, 1);
 });
