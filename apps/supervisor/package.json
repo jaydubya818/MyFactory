@@ -10,7 +10,8 @@
     "dev": "node --watch src/server.ts",
     "start": "node src/server.ts",
     "test": "node --test test/*.test.mjs",
-    "test:browser": "node --test test/browser-qa-regressions.test.mjs"
+    "test:browser": "node --test test/browser-qa-regressions.test.mjs",
+    "test:unit": "node --test test/actions.test.mjs test/capability-admission.test.mjs test/connections.test.mjs test/dispatch-control.test.mjs test/environment-adapters.test.mjs test/environment-computer.test.mjs test/environment-router.test.mjs test/execution-context.test.mjs test/execution-provider.test.mjs test/github.test.mjs test/git.test.mjs test/hosted-intake.test.mjs test/implementation-loop.test.mjs test/jobs.test.mjs test/linear.test.mjs test/numeric-range-checkpoint.test.mjs test/oidc-preflight.test.mjs test/oidc-provider.test.mjs test/private-alpha-startup.test.mjs test/producer-results.test.mjs test/productive-context.test.mjs test/qa-regressions.test.mjs test/real-provider.test.mjs test/review-repair.test.mjs test/server.test.mjs test/session-surface.test.mjs test/spend-codex-cli.test.mjs test/spend-gateway.test.mjs test/spend-review-regressions.test.mjs"
   },
   "dependencies": {
     "@vercel/connect": "0.8.0",
