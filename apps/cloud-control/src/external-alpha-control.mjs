@@ -136,7 +136,7 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
    // in-flight admission has committed or rolled back first, and it reports the database clock that admission itself uses.
    // Any failure to obtain that proof (runtime, source or database unavailable) leaves the outcome ambiguous.
    const admissionState=async()=>{
-    try{return await withRuntime(env,installation,c=>c.store.transaction(async(client,dbNow)=>({prior:await c.authority.priorDeadline(client,requestId),dbNow})));}
+    try{return await withRuntime(env,installation,c=>c.store.transaction(async(client,dbNow)=>({prior:await c.authority.priorDeadline(client,requestId),dbNow,injectedBinding:c.store.capabilityBindings?.[installation.application.clientId]??null})));}
     catch{return null;}
    };
    const refuse=async code=>{const state=await admissionState();return state&&!state.prior?denied(code,code==='AUTHORITY_CONSUMED'?409:403):ambiguous();};
@@ -151,7 +151,10 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
     // Pricing is judged on the database clock under the admission lock: the admission transaction re-checks the same
     // window on the same clock, so no admission can commit for this request after a definitive PRICING_EXPIRED.
     else if(!pricingCurrent(state.dbNow))return denied('PRICING_EXPIRED');
-    // Absent capability configuration: the admission transaction of this deployment also lacks it and fails closed.
+    // Composed offline journeys inject store.capabilityBindings without putting FACTORY_EXTERNAL_ALPHA_CAPABILITY_*
+    // in env. That is not an env-var bypass: production withExternalAlphaRuntime only sets those bindings after
+    // the env pin loads. A stub runtime without injectedBinding still fails closed.
+    else if(!capability&&state.injectedBinding)capability={bindings:{[installation.application.clientId]:state.injectedBinding},role:'injected-runtime'};
     else if(!capability)return denied('AUTHORITY_CAPABILITY');
    }
    try{return await withRuntime(env,installation,async c=>{

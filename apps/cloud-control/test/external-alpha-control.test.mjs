@@ -208,6 +208,19 @@ test('expired qualified pricing is a definitive pre-flight refusal: 403 PRICING_
  assert.equal(rt.calls.prepare.length,0);
 });
 
+test('injected runtime capabilityBindings are not refused as missing env configuration',async()=>{
+ const w=world(),rt=runtime(),{b,oidc}=good(w);
+ const clientId=w.configs[0].application.clientId;
+ const withBindings=async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({
+  ...c,
+  store:{...c.store,capabilityBindings:{[clientId]:{ownerId:w.configs[0].ownerId,organizationId:'org',installationId:'install',agentId:'agent',environment:'qualification'}}},
+ }));
+ const res=await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),w.env,{withRuntime:withBindings,verifyToken,spendPlan:qualifiedPlan});
+ assert.equal(res.status,200);
+ assert.equal(rt.calls.prepare.length,1);
+ assert.equal(rt.calls.dispatch.length,1);
+});
+
 test('missing owner capability binding or runtime role is a definitive pre-flight refusal: 403 AUTHORITY_CAPABILITY, nothing prepared',async()=>{
  const w=world(),rt=runtime(),{b,oidc}=good(w);
  let asked;
