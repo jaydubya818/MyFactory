@@ -70,14 +70,14 @@ test('an exact old approval cannot authorize the successor execution contract', 
 
 import impact from '../../../docs/external-alpha/pricing-backport-20261011/identity-impact.json' with {type:'json'};
 import sourceIdentity from '../src/source-identity.json' with {type:'json'};
-import predecessorSuccessor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-nonpermanent-refusal-successor.json' with {type:'json'};
-import currentSuccessor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-unknown-refusal-successor.json' with {type:'json'};
+import predecessorSuccessor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-unknown-refusal-successor.json' with {type:'json'};
+import currentSuccessor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-zod-advisory-successor.json' with {type:'json'};
 import {externalAlphaFactoryVersion,externalAlphaConfiguration,externalAlphaRuntimeComponents} from '../src/external-alpha-runtime.mjs';
 import {loadVectors,installationOf} from './fixtures/myeve-conformance/support.mjs';
 
 test('separate successor identity preserves configuration; an old installation cannot authorize it', () => {
  assert.equal(sourceIdentity.sourceDigest,currentSuccessor.sourceDigest);
- assert.equal(currentSuccessor.predecessorSourceDigest,'8f00818ff5773e72dd561cffbb15cc987ee8f56d6e7ce5cc828516af17d3b414');
+ assert.equal(currentSuccessor.predecessorSourceDigest,'42028df2d64ea6fc7bbafe6e49f95550dd0966bc77a6d78256e80a8b69e24f9e');
  assert.equal(currentSuccessor.predecessorSourceDigest,predecessorSuccessor.sourceDigest);
  assert.equal(currentSuccessor.configurationDigest,predecessorSuccessor.configurationDigest);
  assert.notEqual(sourceIdentity.sourceDigest,currentSuccessor.predecessorSourceDigest);
