@@ -26,11 +26,35 @@ const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&Object.getProto
 export const reply=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
 const denied=(code,status=403)=>reply({error:'EXTERNAL_ALPHA_AUTHORITY_DENIED',code,admission:'DISABLED'},status);
 const unavailable=()=>reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
-// Temporary operator-config / not-yet-valid clock / UNKNOWN fence / revocable capability:
-// a 403 DISABLED cancel lets MyEve refund, after which a later identical request can admit.
-// Conservative 503 UNKNOWN. This attempt still fails closed. Permanent signed-request and
-// pricing codes stay in denied().
-const TEMPORARY_REFUSALS=new Set(['AUTHORITY_CAPABILITY','AUTHORITY_DISABLED','AUTHORITY_NOT_YET_VALID','AUTHORITY_UNKNOWN_FENCE']);
+// Origin/permanence for HTTP mapping. Temporary codes stay 503 UNKNOWN so a later
+// identical request is not fenced by a DISABLED cancel after operator pins restore.
+// Permanent codes stay 403/409. Public 503 body is generic EXTERNAL_ALPHA_UNAVAILABLE.
+export const REFUSAL_ORIGIN=Object.freeze({
+ AUTHORITY_CAPABILITY:{origin:'capability HTTP pins / in-transaction admission',permanence:'temporary'},
+ AUTHORITY_DISABLED:{origin:'operator installation load, missing key, expired key calendar, or restorable allowedFiles/checkCommands pin',permanence:'temporary'},
+ AUTHORITY_NOT_YET_VALID:{origin:'document or pinned-key notBefore',permanence:'temporary'},
+ AUTHORITY_UNKNOWN_FENCE:{origin:'cohort UNKNOWN/FENCED spend hold',permanence:'temporary'},
+ AUTHORITY_OWNER:{origin:'document vs restorable operator owner/cohort/slot/policy/application pins',permanence:'temporary'},
+ AUTHORITY_SOURCE:{origin:'document/prepare vs restorable operator source pins',permanence:'temporary'},
+ AUTHORITY_FACTORY_VERSION:{origin:'document vs restorable operator factoryVersion pin',permanence:'temporary'},
+ AUTHORITY_SIGNATURE:{origin:'authoritySha256 digest mismatch or Ed25519 verify failure',permanence:'permanent'},
+ AUTHORITY_SCHEMA:{origin:'malformed envelope, document, or prepare shape',permanence:'permanent'},
+ AUTHORITY_FILES:{origin:'malformed allowedFiles list, document files digest, or missing prepare paths/commands array',permanence:'permanent'},
+ AUTHORITY_IDENTIFIER:{origin:'derived ids vs signed document',permanence:'permanent'},
+ AUTHORITY_WORK:{origin:'prepare vs signed work fields',permanence:'permanent'},
+ AUTHORITY_TUPLE:{origin:'criteria tuple vs Factory-owned constants',permanence:'permanent'},
+ AUTHORITY_ENVIRONMENT:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_PROVIDER:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_MODEL:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_VERIFIER:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_EFFECTS:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_LIMITS:{origin:'document vs Factory-owned factoryPins or request spend',permanence:'permanent'},
+ AUTHORITY_EXPIRED:{origin:'forward-only document expiry',permanence:'permanent'},
+ AUTHORITY_CONSUMED:{origin:'durable unique consumption',permanence:'permanent'},
+ AUTHORITY_REVOKED:{origin:'insert-only revocation',permanence:'permanent'},
+ PRICING_EXPIRED:{origin:'qualified production pricing window on the admission DB clock',permanence:'permanent'}
+});
+const TEMPORARY_REFUSALS=new Set(Object.entries(REFUSAL_ORIGIN).filter(([,v])=>v.permanence==='temporary').map(([code])=>code));
 
 /** Same fixed Work identity every time, derived only from the stored admission. Used for dispatch and stop. */
 export function externalAlphaIdentity(row){
@@ -100,10 +124,8 @@ const ADMISSION_REJECTIONS={INVALID_CLOUD_REQUEST:'AUTHORITY_SCHEMA',INVALID_CLO
 function failure(error){
  if(error instanceof ExternalAlphaError){
   if(TEMPORARY_REFUSALS.has(error.code))return unavailable();
-  // Remaining ExternalAlphaError codes are properties of the signed request or a closed
-  // document-expiry window: the identical document cannot later become valid.
-  // Missing/unqualified/not-yet-valid/expired key configuration is AUTHORITY_DISABLED or
-  // AUTHORITY_NOT_YET_VALID (temporary). Genuine digest/verify failure stays AUTHORITY_SIGNATURE.
+  // Remaining ExternalAlphaError codes are immutable signed-request, Factory-owned pin,
+  // forward-only expiry, consumption, or revocation properties (REFUSAL_ORIGIN).
   return denied(error.code,error.status);
  }
  const status=error?.status;
@@ -114,7 +136,11 @@ function failure(error){
  // Pricing expiry is judged on the admission-transaction clock and stays a definitive 403.
  // Temporary refusals (capability, operator install, not-yet-valid, UNKNOWN fence) must not DISABLED-cancel.
  if(message==='PRICING_EXPIRED')return denied('PRICING_EXPIRED');
- if(Object.hasOwn(ADMISSION_REJECTIONS,message)){const code=ADMISSION_REJECTIONS[message];return denied(code,code==='AUTHORITY_CONSUMED'?409:403);}
+ if(Object.hasOwn(ADMISSION_REJECTIONS,message)){
+  const code=ADMISSION_REJECTIONS[message];
+  if(TEMPORARY_REFUSALS.has(code))return unavailable();
+  return denied(code,code==='AUTHORITY_CONSUMED'?409:403);
+ }
  if(message==='FACTORY_REQUEST_NOT_FOUND'||error?.status===404)return reply({error:'NOT_FOUND'},404);
  return unavailable();
 }

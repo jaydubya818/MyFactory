@@ -56,9 +56,10 @@ export const deriveIdentifiers=({policySha256,work,tupleSha256:tuple})=>{
 };
 export const keyIdOf=publicKey=>sha(publicKey.export({type:'spki',format:'der'}));
 
-/** Parses the operator-reviewed installation. Returns null when absent, which
- * means every external-alpha route is DISABLED. A present-but-wrong installation
- * throws: it never degrades to a partial pin. */
+/** Parses the operator-reviewed installation. Returns null when absent.
+ * HTTP maps that absence to 503 UNKNOWN (operator configuration is restorable).
+ * A present-but-wrong installation throws AUTHORITY_DISABLED: it never degrades
+ * to a partial pin. */
 export function parseExternalAlphaInstallation(config){
  if(config===undefined||config===null)return null;
  exact(config,['cohortId','slot','ownerId','policySha256','application','source','factoryVersion','keys','checkCommands','caller'],'AUTHORITY_DISABLED');
@@ -102,7 +103,8 @@ export function loadExternalAlphaInstallation(env){
 }
 /** One Factory deployment serves both tester slots: FACTORY_EXTERNAL_ALPHA_INSTALLATION is either one
  * installation object or an array of 1..2 (one per slot). The pinned digest covers the whole value. Returns
- * [] when absent (everything DISABLED). Anything present but inconsistent throws AUTHORITY_DISABLED. */
+ * [] when absent. HTTP maps catch/empty to 503 UNKNOWN. Anything present but inconsistent throws
+ * AUTHORITY_DISABLED (also HTTP 503). */
 export function loadExternalAlphaInstallations(env){
  const raw=env?.FACTORY_EXTERNAL_ALPHA_INSTALLATION;
  if(!raw)return [];
@@ -164,17 +166,21 @@ export function validateStatic(envelope,prepare,installation){
  const ids=deriveIdentifiers({policySha256:d.policySha256,work:d.work,tupleSha256:d.project.tupleSha256});
  if(ids.idempotencyKey!==d.idempotencyKey||ids.authorityId!==d.authorityId||ids.requestId!==d.candidateWriter.requestId||ids.writerId!==d.candidateWriter.writerId||d.candidateWriter.candidateSlot!==1)deny('AUTHORITY_IDENTIFIER');
  if(!plain(prepare)||prepare.requestId!==ids.requestId)deny('AUTHORITY_IDENTIFIER');
- // Owner/application/cohort/slot/policy against the Factory's own installation.
+ // Owner/application/cohort/slot/policy against the loaded operator installation.
+ // Those pins are restorable, so HTTP maps AUTHORITY_OWNER to 503 UNKNOWN.
  if(d.ownerId!==installation.ownerId||d.cohortId!==installation.cohortId||d.slot!==installation.slot||d.policySha256!==installation.policySha256||d.application.clientId!==installation.application.clientId||d.application.projectId!==installation.application.projectId)deny('AUTHORITY_OWNER');
- // Source.
+ // Source: malformed prepare shape is schema; pin comparisons are restorable operator config.
  const s=installation.source,p=prepare;
+ if(!plain(p.source))deny('AUTHORITY_SCHEMA');
  if(d.source.repository!==s.repository||d.source.baseSha!==s.baseSha||d.source.treeSha!==s.treeSha||d.source.sourceDigest!==s.sourceDigest)deny('AUTHORITY_SOURCE');
- if(p.repository!==s.repository||!plain(p.source)||p.source.repository!==s.repository||p.source.commit!==s.baseSha||p.source.tree!==s.treeSha)deny('AUTHORITY_SOURCE');
+ if(p.repository!==s.repository||p.source.repository!==s.repository||p.source.commit!==s.baseSha||p.source.tree!==s.treeSha)deny('AUTHORITY_SOURCE');
  const input=p.input;
  if(!plain(input)||!Array.isArray(input.allowedPaths))deny('AUTHORITY_FILES');
- if(!same(d.source.allowedFiles,s.allowedFiles)||!same(sorted(input.allowedPaths),s.allowedFiles)||d.source.allowedFilesSha256!==digest({version:1,files:d.source.allowedFiles}))deny('AUTHORITY_FILES');
+ if(d.source.allowedFilesSha256!==digest({version:1,files:d.source.allowedFiles}))deny('AUTHORITY_FILES');
+ if(!same(d.source.allowedFiles,s.allowedFiles)||!same(sorted(input.allowedPaths),s.allowedFiles))deny('AUTHORITY_DISABLED');
  // The Factory runs only the commands IT pinned; the request cannot choose them.
- if(!Array.isArray(input.checkCommands)||!same(input.checkCommands,installation.checkCommands))deny('AUTHORITY_FILES');
+ if(!Array.isArray(input.checkCommands))deny('AUTHORITY_FILES');
+ if(!same(input.checkCommands,installation.checkCommands))deny('AUTHORITY_DISABLED');
  // Work.
  if(p.workId!==d.work.id||p.workGeneration!==d.work.generation||typeof input.description!=='string'||sha(input.description)!==d.work.objectiveSha256||input.title!==d.work.title||input.kind!=='feature')deny('AUTHORITY_WORK');
  // Tuple recomputed from the request, never from the document.

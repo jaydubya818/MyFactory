@@ -127,7 +127,8 @@ const rules=[
  [/^prepare:-deadline$/,'AUTHORITY_EXPIRED'],
  [/^prepare:(maxSpendUsd|-maxSpendUsd)$/,'AUTHORITY_LIMITS'],
  [/^prepare:(input\.acceptanceCriteria\.\d+|acceptanceCriteria\.[a-z-]+|-input\.acceptanceCriteria)$/,'AUTHORITY_TUPLE'],
- [/^prepare:(input\.checkCommands\.\d+|-input\.checkCommands|checkCommands\.extended|input\.allowedPaths\.\d+|-input\.allowedPaths|allowedPaths\.widened)$/,'AUTHORITY_FILES'],
+ [/^prepare:(input\.checkCommands\.\d+|checkCommands\.extended|input\.allowedPaths\.\d+|allowedPaths\.widened)$/,'AUTHORITY_DISABLED'],
+ [/^prepare:(-input\.checkCommands|-input\.allowedPaths)$/,'AUTHORITY_FILES'],
  [/^prepare:allowedPaths\.unsorted$/,'CLOUD_CAPABILITIES_NOT_GRANTED'],
 ];
 const expectedFor=name=>{for(const [re,code] of rules)if(re.test(name))return code;throw Error('NO EXPECTATION FOR '+name);};
