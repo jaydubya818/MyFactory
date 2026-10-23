@@ -32,12 +32,13 @@ jobs:
         with:
           repository: jaydubya818/MyEveBot
           # Historical composed pairing fb6b052d failed AUTHORITY_CAPABILITY
-          # (run 40013249375 on ca71959). Live testers stay on #99/5895b129.
-          # c8eec458 is the already-qualified test-only fixture recipe:
-          # derive FACTORY_EXTERNAL_ALPHA_CAPABILITY_BINDINGS from actual
-          # capability.bindings, hash that array, and take runtime role from
-          # SELECT current_user inside store.transaction. Not an installed pin.
-          ref: c8eec4580e964cdebe6a7351ff78546244291ebf
+          # (run 40013249375 on ca71959). c8eec458 composed negatives failed
+          # FACTORY_DENIED:AUTHORITY_CAPABILITY after Factory mapped missing
+          # pins to 503 UNKNOWN (runs 40019095666, 40021338438, 40022314404).
+          # Live testers stay on #99/5895b129. Published consumer 503-contract
+          # source 2c8b92a6 (chain 5895→931→ea7093→00a206d4→59596b67→2c8b92a6)
+          # is an interim composed peer, not an installed pin.
+          ref: 2c8b92a62b98bf52a8af1e7131ade6ec27701949
           path: .qualification/myeve
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
