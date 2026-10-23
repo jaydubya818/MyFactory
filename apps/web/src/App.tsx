@@ -267,7 +267,7 @@ export default function App() {
     navigate(null, false, false, false, true);
   }
 
-  async function createWorkOrder(input: CreateWorkOrderInput) {
+  async function createWorkOrder(input: CreateWorkOrderInput): Promise<boolean> {
     setPendingAction("create");
     setActionError(null);
     try {
@@ -286,8 +286,10 @@ export default function App() {
         navigate(null, false, true);
       }
       setRevision((value) => value + 1);
+      return true;
     } catch (error) {
       setActionError(errorText(error));
+      return false;
     } finally {
       setPendingAction(null);
     }

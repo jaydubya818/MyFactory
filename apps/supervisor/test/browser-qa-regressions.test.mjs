@@ -298,6 +298,92 @@ test("QA-24: draft is cleared on cancel", async (t) => {
   });
 });
 
+test("QA-24: failed create keeps the draft across reload", async (t) => {
+  await withDesk(t, confirmApproved, async ({ browser, origin }) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+
+    // Intercept create before navigation so a failed request never reaches the desk.
+    await page.route("**/api/actions", async (route) => {
+      const request = route.request();
+      if (request.method() !== "POST") {
+        await route.continue();
+        return;
+      }
+      let body = {};
+      try {
+        body = request.postDataJSON() ?? {};
+      } catch {
+        body = {};
+      }
+      if (body.action === "workorder.create") {
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "Simulated work-order create failure." }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.goto(origin);
+
+    const newWorkBtn = page.locator('.side-nav__item[aria-label="New work"]');
+    await newWorkBtn.waitFor({ state: "visible", timeout: 5000 });
+    await newWorkBtn.click();
+
+    const titleInput = page.locator("#work-title");
+    await titleInput.waitFor({ state: "visible", timeout: 5000 });
+    await titleInput.fill("Keep draft after failed create");
+    await page.locator("#work-description").fill("Draft must survive a rejected create request.");
+    await page.locator("#repository-path").fill("/tmp/qa24-failed-create");
+    await page.locator("#base-ref").fill("main");
+    await page.locator("#work-criteria").fill("Draft remains after a failed create.");
+    await page.locator("#allowed-paths").fill("src/");
+    await page.locator("#check-commands").fill("true");
+    await page.locator("#reproduction-command").fill("false");
+    await page.locator("#expected-failure-text").fill("expected failure");
+
+    await page.waitForTimeout(300);
+    const draftBefore = await page.evaluate(() => sessionStorage.getItem("myfactory-new-work-draft-v1"));
+    assert.ok(draftBefore, "Draft must be saved before submit");
+    assert.equal(JSON.parse(draftBefore).title, "Keep draft after failed create");
+
+    const submitBtn = page.locator('button:has-text("Create work order"):not([disabled])');
+    await submitBtn.waitFor({ state: "visible", timeout: 5000 });
+    await submitBtn.click();
+
+    const errorEl = page.locator('.create-form [role="alert"]');
+    await errorEl.waitFor({ state: "visible", timeout: 5000 });
+    const errorText = await errorEl.textContent() ?? "";
+    assert.match(errorText, /Simulated work-order create failure/, "Server error must be shown");
+
+    const draftAfterFailure = await page.evaluate(() => sessionStorage.getItem("myfactory-new-work-draft-v1"));
+    assert.ok(draftAfterFailure, "Draft must remain after a failed create");
+    assert.equal(JSON.parse(draftAfterFailure).title, "Keep draft after failed create");
+
+    await page.reload();
+    if (!(await titleInput.isVisible().catch(() => false))) {
+      await newWorkBtn.waitFor({ state: "visible", timeout: 5000 });
+      await newWorkBtn.click();
+    }
+    await titleInput.waitFor({ state: "visible", timeout: 5000 });
+
+    assert.equal(
+      await titleInput.inputValue(),
+      "Keep draft after failed create",
+      "Title must be restored from draft after a failed create and reload",
+    );
+    assert.equal(
+      await page.locator("#work-description").inputValue(),
+      "Draft must survive a rejected create request.",
+      "Description must be restored from draft after reload",
+    );
+  });
+});
+
 test("QA-24: draft fields are only work-order metadata (no credential fields persisted)", async (t) => {
   await withDesk(t, confirmApproved, async ({ browser, origin }) => {
     const context = await browser.newContext();

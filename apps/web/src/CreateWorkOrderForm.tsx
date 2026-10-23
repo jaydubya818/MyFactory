@@ -33,7 +33,8 @@ function clearDraft(): void {
 }
 
 interface Props {
-  onSubmit: (input: CreateWorkOrderInput) => Promise<void>;
+  /** Resolves true only after the work order was created. False or a thrown error keeps the draft. */
+  onSubmit: (input: CreateWorkOrderInput) => Promise<boolean>;
   onCancel: () => void;
   pending: boolean;
   serverError: string | null;
@@ -101,23 +102,27 @@ export default function CreateWorkOrderForm({ onSubmit, onCancel, pending, serve
       return;
     }
 
-    await onSubmit({
-      idempotencyKey,
-      syncToLinear,
-      title: title.trim(),
-      description: description.trim(),
-      kind,
-      repositoryPath: repositoryPath.trim(),
-      baseRef: baseRef.trim(),
-      acceptanceCriteria: criteria,
-      reproductionCommand: reproductionCommand.trim() || null,
-      expectedFailureText: kind === "defect" ? expectedFailureText.trim() : null,
-      checkCommands: checks,
-      allowedPaths: paths,
-      workerProfile,
-    });
-    // Clear draft only on successful submission (onSubmit resolves without throwing).
-    clearDraft();
+    let created = false;
+    try {
+      created = await onSubmit({
+        idempotencyKey,
+        syncToLinear,
+        title: title.trim(),
+        description: description.trim(),
+        kind,
+        repositoryPath: repositoryPath.trim(),
+        baseRef: baseRef.trim(),
+        acceptanceCriteria: criteria,
+        reproductionCommand: reproductionCommand.trim() || null,
+        expectedFailureText: kind === "defect" ? expectedFailureText.trim() : null,
+        checkCommands: checks,
+        allowedPaths: paths,
+        workerProfile,
+      });
+    } catch {
+      return;
+    }
+    if (created === true) clearDraft();
   }
 
   return (
