@@ -52,8 +52,8 @@ test('a competing real authority for the same Work generation is refused and con
 
 test('slot 2 is a separate installation: its authority is refused by the slot-1 installation and vice versa',{skip},async t=>{
  const one=await setup(t),two=await setup(t,v.variants.slot2.installation),s2=v.variants.slot2;
- assert.equal(await code(one.admit(s2.envelope,s2.prepare)),'AUTHORITY_OWNER');
- assert.equal(await code(two.admit(v.envelope,v.prepare)),'AUTHORITY_OWNER');
+ assert.equal(await code(one.admit(s2.envelope,s2.prepare)),'AUTHORITY_INSTALLATION_MISMATCH');
+ assert.equal(await code(two.admit(v.envelope,v.prepare)),'AUTHORITY_INSTALLATION_MISMATCH');
  assert.equal(await one.count()+await two.count(),0);
  assert.equal((await two.admit(s2.envelope,s2.prepare)).replayed,false);
 });

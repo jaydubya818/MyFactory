@@ -19,9 +19,9 @@ function fixture(){
 test('composition refuses (fail closed) unless build and configuration equal what the pinned installation names',()=>{
  const f=fixture(),ok=()=>externalAlphaRuntimeComponents({...f.deps,provider:{},installation:f.installation,sourceDigest:f.sourceDigest});
  const c=ok();assert.equal(c.clientId,f.installation.application.clientId);assert.equal(typeof c.readbackWithReceipt,'function');
- assert.equal(code(()=>externalAlphaRuntimeComponents({...f.deps,installation:f.installation,sourceDigest:'0'.repeat(64)})),'AUTHORITY_SOURCE');
+ assert.equal(code(()=>externalAlphaRuntimeComponents({...f.deps,installation:f.installation,sourceDigest:'0'.repeat(64)})),'AUTHORITY_INSTALLATION_MISMATCH');
  const drift=makeInstallation(f.base.keys,{...f.base.config,factoryVersion:'1'.repeat(64)}).installation;
- assert.equal(code(()=>externalAlphaRuntimeComponents({...f.deps,installation:drift,sourceDigest:drift.source.sourceDigest})),'AUTHORITY_FACTORY_VERSION');
+ assert.equal(code(()=>externalAlphaRuntimeComponents({...f.deps,installation:drift,sourceDigest:drift.source.sourceDigest})),'AUTHORITY_INSTALLATION_MISMATCH');
  for(const patch of [{installation:undefined},{signReceipt:undefined},{pool:undefined},{queue:undefined},{deploymentId:'prod'},{signing:{factoryId:'f',key:{factoryId:'g'}}}])
   assert.equal(code(()=>externalAlphaRuntimeComponents({...f.deps,installation:f.installation,sourceDigest:f.sourceDigest,...patch})),'AUTHORITY_DISABLED');
 });
@@ -97,7 +97,7 @@ test('two exact source bases share the cohort/build but retain distinct runtime 
   const own=installations[i],foreign=installations[1-i];
   await components[i].provider.prepareSource({request:{source:{repository:own.source.repository,commit:own.source.baseSha,tree:own.source.treeSha}}});
   await assert.rejects(components[i].provider.prepareSource({request:{source:{repository:foreign.source.repository,commit:foreign.source.baseSha,tree:foreign.source.treeSha}}}),/PRIVATE_SOURCE_BINDING/);
-  assert.equal(code(()=>externalAlphaRuntimeComponents({...f.deps,registry,snapshots,sourceCustody,installation:{...own,factoryVersion:foreign.factoryVersion},sourceDigest:a.source.sourceDigest,provider:{}})),'AUTHORITY_FACTORY_VERSION');
+  assert.equal(code(()=>externalAlphaRuntimeComponents({...f.deps,registry,snapshots,sourceCustody,installation:{...own,factoryVersion:foreign.factoryVersion},sourceDigest:a.source.sourceDigest,provider:{}})),'AUTHORITY_INSTALLATION_MISMATCH');
  }
  assert.deepEqual(reads,['slot-1','slot-2']);
 });

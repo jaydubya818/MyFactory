@@ -166,31 +166,21 @@ export function validateStatic(envelope,prepare,installation){
  const ids=deriveIdentifiers({policySha256:d.policySha256,work:d.work,tupleSha256:d.project.tupleSha256});
  if(ids.idempotencyKey!==d.idempotencyKey||ids.authorityId!==d.authorityId||ids.requestId!==d.candidateWriter.requestId||ids.writerId!==d.candidateWriter.writerId||d.candidateWriter.candidateSlot!==1)deny('AUTHORITY_IDENTIFIER');
  if(!plain(prepare)||prepare.requestId!==ids.requestId)deny('AUTHORITY_IDENTIFIER');
- // Owner/application/cohort/slot/policy against the loaded operator installation.
- // Those pins are restorable, so HTTP maps AUTHORITY_OWNER to 503 UNKNOWN.
- if(d.ownerId!==installation.ownerId||d.cohortId!==installation.cohortId||d.slot!==installation.slot||d.policySha256!==installation.policySha256||d.application.clientId!==installation.application.clientId||d.application.projectId!==installation.application.projectId)deny('AUTHORITY_OWNER');
- // Source: malformed prepare shape is schema; pin comparisons are restorable operator config.
- const s=installation.source,p=prepare;
- if(!plain(p.source))deny('AUTHORITY_SCHEMA');
- if(d.source.repository!==s.repository||d.source.baseSha!==s.baseSha||d.source.treeSha!==s.treeSha||d.source.sourceDigest!==s.sourceDigest)deny('AUTHORITY_SOURCE');
- if(p.repository!==s.repository||p.source.repository!==s.repository||p.source.commit!==s.baseSha||p.source.tree!==s.treeSha)deny('AUTHORITY_SOURCE');
- const input=p.input;
+ const s=installation.source,p=prepare,input=p.input;
+ // Immutable: signed document versus this prepare. Restoring operator pins cannot make these agree.
+ if(p.repository!==d.source.repository||!plain(p.source)||p.source.repository!==d.source.repository||p.source.commit!==d.source.baseSha||p.source.tree!==d.source.treeSha)deny('AUTHORITY_SOURCE');
  if(!plain(input)||!Array.isArray(input.allowedPaths))deny('AUTHORITY_FILES');
- if(d.source.allowedFilesSha256!==digest({version:1,files:d.source.allowedFiles}))deny('AUTHORITY_FILES');
- if(!same(d.source.allowedFiles,s.allowedFiles)||!same(sorted(input.allowedPaths),s.allowedFiles))deny('AUTHORITY_DISABLED');
- // The Factory runs only the commands IT pinned; the request cannot choose them.
+ if(d.source.allowedFilesSha256!==digest({version:1,files:d.source.allowedFiles})||!same(sorted(input.allowedPaths),d.source.allowedFiles))deny('AUTHORITY_FILES');
  if(!Array.isArray(input.checkCommands))deny('AUTHORITY_FILES');
- if(!same(input.checkCommands,installation.checkCommands))deny('AUTHORITY_DISABLED');
  // Work.
  if(p.workId!==d.work.id||p.workGeneration!==d.work.generation||typeof input.description!=='string'||sha(input.description)!==d.work.objectiveSha256||input.title!==d.work.title||input.kind!=='feature')deny('AUTHORITY_WORK');
  // Tuple recomputed from the request, never from the document.
  const crit=input.acceptanceCriteria;
  if(!Array.isArray(crit)||crit.length!==acceptanceCriteria.length||crit.some((c,i)=>c!==acceptanceCriteria[i]))deny('AUTHORITY_TUPLE');
  if(d.project.name!=='Alpha Tasks'||d.project.task!==projectTask||d.project.criteriaSha256!==criteriaSha256||d.project.tupleSha256!==tupleSha256||d.work.criteriaSha256!==criteriaSha256||d.work.criteriaCount!==10||d.verifier.criteriaSha256!==criteriaSha256)deny('AUTHORITY_TUPLE');
- // Execution pins.
+ // Execution pins (Factory code constants, not operator installation).
  if(d.environment!==factoryPins.environment)deny('AUTHORITY_ENVIRONMENT');
  if(d.executionProvider!==factoryPins.executionProvider||!same(d.harness,factoryPins.harness))deny('AUTHORITY_PROVIDER');
- if(d.factoryVersion!==installation.factoryVersion)deny('AUTHORITY_FACTORY_VERSION');
  if(!same(d.model,factoryPins.model))deny('AUTHORITY_MODEL');
  if(d.verifier.id!==factoryPins.verifierId||d.verifier.verifiesExactArtifact!==true||d.verifier.trustProducer!==false)deny('AUTHORITY_VERIFIER');
  if(!same(d.allowedEffects,factoryPins.allowedEffects)||!same(d.forbiddenEffects,factoryPins.forbiddenEffects))deny('AUTHORITY_EFFECTS');
@@ -199,6 +189,14 @@ export function validateStatic(envelope,prepare,installation){
  if(!same(d.limits,factoryPins.limits)||microusd>factoryPins.limits.factory.microusd)deny('AUTHORITY_LIMITS');
  const deadline=Date.parse(p.deadline);
  if(!Number.isFinite(deadline)||deadline>Date.parse(d.expiresAt))deny('AUTHORITY_EXPIRED');
+ // Operator installation pins. Current source/configuration/FV does not freeze these;
+ // restoring the loaded pins is not ruled out. Internal temporary class only — HTTP
+ // maps it to generic 503 UNKNOWN. Grants no identity or capability.
+ if(d.ownerId!==installation.ownerId||d.cohortId!==installation.cohortId||d.slot!==installation.slot||d.policySha256!==installation.policySha256||d.application.clientId!==installation.application.clientId||d.application.projectId!==installation.application.projectId)deny('AUTHORITY_INSTALLATION_MISMATCH');
+ if(d.source.repository!==s.repository||d.source.baseSha!==s.baseSha||d.source.treeSha!==s.treeSha||d.source.sourceDigest!==s.sourceDigest)deny('AUTHORITY_INSTALLATION_MISMATCH');
+ if(!same(d.source.allowedFiles,s.allowedFiles))deny('AUTHORITY_INSTALLATION_MISMATCH');
+ if(!same(input.checkCommands,installation.checkCommands))deny('AUTHORITY_INSTALLATION_MISMATCH');
+ if(d.factoryVersion!==installation.factoryVersion)deny('AUTHORITY_INSTALLATION_MISMATCH');
  return {document:d,authoritySha256:envelope.authoritySha256,keyId:envelope.keyId,ids,keyWindow:key,expiresAtMs:Date.parse(d.expiresAt),notBeforeMs:from};
 }
 export function assertTime(v,now){

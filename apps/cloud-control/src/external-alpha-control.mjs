@@ -29,17 +29,18 @@ const unavailable=()=>reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
 // Origin/permanence for HTTP mapping. Temporary codes stay 503 UNKNOWN so a later
 // identical request is not fenced by a DISABLED cancel after operator pins restore.
 // Permanent codes stay 403/409. Public 503 body is generic EXTERNAL_ALPHA_UNAVAILABLE.
+// Internal AUTHORITY_INSTALLATION_MISMATCH grants no identity or capability.
 export const REFUSAL_ORIGIN=Object.freeze({
  AUTHORITY_CAPABILITY:{origin:'capability HTTP pins / in-transaction admission',permanence:'temporary'},
- AUTHORITY_DISABLED:{origin:'operator installation load, missing key, expired key calendar, or restorable allowedFiles/checkCommands pin',permanence:'temporary'},
+ AUTHORITY_DISABLED:{origin:'operator installation load, missing key, expired key calendar',permanence:'temporary'},
  AUTHORITY_NOT_YET_VALID:{origin:'document or pinned-key notBefore',permanence:'temporary'},
  AUTHORITY_UNKNOWN_FENCE:{origin:'cohort UNKNOWN/FENCED spend hold',permanence:'temporary'},
- AUTHORITY_OWNER:{origin:'document vs restorable operator owner/cohort/slot/policy/application pins',permanence:'temporary'},
- AUTHORITY_SOURCE:{origin:'document/prepare vs restorable operator source pins',permanence:'temporary'},
- AUTHORITY_FACTORY_VERSION:{origin:'document vs restorable operator factoryVersion pin',permanence:'temporary'},
+ AUTHORITY_INSTALLATION_MISMATCH:{origin:'document vs restorable operator owner/cohort/slot/policy/application/sourceDigest/source/files/checkCommands/factoryVersion pins; runtime sourceDigest/FV vs installation',permanence:'temporary'},
+ AUTHORITY_OWNER:{origin:'later-phase admitted-row vs this installation (assertPhase/ownedRow/assertRecordScope)',permanence:'temporary'},
+ AUTHORITY_SOURCE:{origin:'signed document vs this prepare repository/commit/tree; CLOUD_SOURCE_NOT_GRANTED; registry/custody composition',permanence:'permanent'},
+ AUTHORITY_FILES:{origin:'document files schema/digest; missing prepare path/command arrays; document vs prepare allowedPaths; INVALID_CLOUD_PATH',permanence:'permanent'},
  AUTHORITY_SIGNATURE:{origin:'authoritySha256 digest mismatch or Ed25519 verify failure',permanence:'permanent'},
  AUTHORITY_SCHEMA:{origin:'malformed envelope, document, or prepare shape',permanence:'permanent'},
- AUTHORITY_FILES:{origin:'malformed allowedFiles list, document files digest, or missing prepare paths/commands array',permanence:'permanent'},
  AUTHORITY_IDENTIFIER:{origin:'derived ids vs signed document',permanence:'permanent'},
  AUTHORITY_WORK:{origin:'prepare vs signed work fields',permanence:'permanent'},
  AUTHORITY_TUPLE:{origin:'criteria tuple vs Factory-owned constants',permanence:'permanent'},
@@ -124,8 +125,11 @@ const ADMISSION_REJECTIONS={INVALID_CLOUD_REQUEST:'AUTHORITY_SCHEMA',INVALID_CLO
 function failure(error){
  if(error instanceof ExternalAlphaError){
   if(TEMPORARY_REFUSALS.has(error.code))return unavailable();
-  // Remaining ExternalAlphaError codes are immutable signed-request, Factory-owned pin,
-  // forward-only expiry, consumption, or revocation properties (REFUSAL_ORIGIN).
+  // Remaining ExternalAlphaError codes are properties of the signed request or a closed
+  // document-expiry window: the identical document cannot later become valid.
+  // Missing/unqualified/not-yet-valid/expired key configuration is AUTHORITY_DISABLED or
+  // AUTHORITY_NOT_YET_VALID (temporary). Operator installation-identity comparisons are
+  // AUTHORITY_INSTALLATION_MISMATCH (temporary). Genuine digest/verify stays AUTHORITY_SIGNATURE.
   return denied(error.code,error.status);
  }
  const status=error?.status;

@@ -88,33 +88,12 @@ test('a caller cannot act for the other slot: slot-1 credential with slot-2 OIDC
  const w=world(),rt=runtime(),one=good(w,0),two=good(w,1);
  // credential of slot 1, identity of slot 2
  assert.equal((await send(w,req('dispatches',{cred:CRED[0],oidc:two.oidc,body:{authority:one.b.envelope,prepare:one.b.prepare}}),rt)).status,401);
- // slot 2 caller presenting slot 1's signed authority: restorable installation identity, not a DISABLED cancel
+ // slot 2 caller presenting slot 1's signed authority: restorable installation-identity mismatch is 503 UNKNOWN, not a DISABLED cancel
  const res=await send(w,req('dispatches',{cred:CRED[1],oidc:two.oidc,body:{authority:one.b.envelope,prepare:one.b.prepare}}),rt);
  assert.equal(res.status,503);
  assert.deepEqual(await code(res),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
  assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
  const recovered=await send(w,req('dispatches',{cred:CRED[0],oidc:one.oidc,body:{authority:one.b.envelope,prepare:one.b.prepare}}),rt);
- assert.equal(recovered.status,200);
- assert.equal(rt.calls.prepare.length,1);assert.equal(rt.calls.dispatch.length,1);
-});
-
-test('restorable installation identity comparisons are 503 UNKNOWN; the matching pins still admit the identical request',async()=>{
- const w=world(),rt=runtime(),{oidc}=good(w);
- const ctx=w.ctx[0];
- const cases=[
-  build(ctx,{post:d=>{d.ownerId='other-owner';}}),
-  build(ctx,{post:d=>{d.source.repository='fixture-org/other';}}),
-  build(ctx,{post:d=>{d.factoryVersion='7'.repeat(64);}}),
-  build(ctx,{post:d=>{d.source.allowedFiles=['src/app.js','src/other.js','test/app.test.js'];d.source.allowedFilesSha256=digest({version:1,files:d.source.allowedFiles});}}),
- ];
- for(const mutated of cases){
-  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:mutated.envelope,prepare:mutated.prepare}}),rt);
-  assert.equal(res.status,503);
-  assert.deepEqual(await code(res),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
- }
- assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
- const original=build(ctx);
- const recovered=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:original.envelope,prepare:original.prepare}}),rt);
  assert.equal(recovered.status,200);
  assert.equal(rt.calls.prepare.length,1);assert.equal(rt.calls.dispatch.length,1);
 });
@@ -328,6 +307,54 @@ test('in-transaction UNKNOWN fence and missing-envelope AUTHORITY_DISABLED stay 
  }
 });
 
+test('operator installation-identity mismatch is 503 UNKNOWN; restoring pins admits the delayed identical request without a prior DISABLED cancel',async()=>{
+ const w=world(),{b,oidc}=good(w),body={authority:b.envelope,prepare:b.prepare};
+ const envFor=patch=>{
+  const config={...w.configs[0],...patch,source:{...w.configs[0].source,...(patch.source??{})}};
+  const configs=[config,w.configs[1]];
+  return {FACTORY_EXTERNAL_ALPHA_INSTALLATION:JSON.stringify(configs),FACTORY_EXTERNAL_ALPHA_INSTALLATION_SHA256:digest(configs.map(c=>parseExternalAlphaInstallation(c).sha256))};
+ };
+ for(const env of [envFor({ownerId:'owner-opaque-restored'}),envFor({source:{sourceDigest:'3'.repeat(64)}}),envFor({factoryVersion:'7'.repeat(64)}),envFor({checkCommands:['npm run other']})]){
+  const rt=runtime();
+  const first=await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body}),env,{withRuntime:rt.withRuntime,verifyToken,spendPlan:qualifiedPlan,slotCapability:configuredCapability});
+  assert.equal(first.status,503);
+  const json=await code(first);
+  assert.deepEqual(json,{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
+  assert.equal(myeveAccountingFromFactory(first.status,json),'UNKNOWN');
+  assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
+  const recovered=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),rt);
+  assert.equal(recovered.status,200);
+  assert.equal(rt.calls.prepare.length,1);assert.equal(rt.calls.dispatch.length,1);
+  assert.equal(rt.calls.prepare[0].requestId,b.prepare.requestId);
+ }
+});
+
+test('signed document versus this prepare stays definitive 403 AUTHORITY_SOURCE; nothing dispatched',async()=>{
+ const w=world(),rt=runtime(),{b,oidc}=good(w);
+ const prepare={...b.prepare,repository:'fixture-org/other',source:{...b.prepare.source,repository:'fixture-org/other'}};
+ const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare}}),rt);
+ assert.equal(res.status,403);
+ const json=await code(res);
+ assert.equal(json.error,'EXTERNAL_ALPHA_AUTHORITY_DENIED');
+ assert.equal(json.code,'AUTHORITY_SOURCE');
+ assert.equal(json.admission,'DISABLED');
+ assert.equal(myeveAccountingFromFactory(res.status,json),'CANCELLED');
+ assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
+});
+
+test('signed document versus this prepare stays definitive 403 AUTHORITY_FILES; nothing dispatched',async()=>{
+ const w=world(),rt=runtime(),{b,oidc}=good(w);
+ const prepare={...b.prepare,input:{...b.prepare.input,allowedPaths:[...b.prepare.input.allowedPaths,'package.json']}};
+ const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare}}),rt);
+ assert.equal(res.status,403);
+ const json=await code(res);
+ assert.equal(json.error,'EXTERNAL_ALPHA_AUTHORITY_DENIED');
+ assert.equal(json.code,'AUTHORITY_FILES');
+ assert.equal(json.admission,'DISABLED');
+ assert.equal(myeveAccountingFromFactory(res.status,json),'CANCELLED');
+ assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
+});
+
 test('unpinned key is 503 UNKNOWN; adding that key to the installation admits the delayed identical request',async()=>{
  const w=world(),rt=runtime(),{b,oidc}=good(w),other=makeKeys();
  const body={authority:signDocument(b.document,other),prepare:b.prepare};
@@ -380,11 +407,9 @@ test('genuine digest or signature invalidity stays definitive 403 AUTHORITY_SIGN
 test('immutable-request, expired, consumed and revoked refusals stay definitive 403/409; nothing dispatched',async()=>{
  const w=world(),{b,oidc}=good(w),body={authority:b.envelope,prepare:b.prepare};
  for(const [error,status,codeName] of [
-  [new ExternalAlphaError('AUTHORITY_SCHEMA'),403,'AUTHORITY_SCHEMA'],
+  [new ExternalAlphaError('AUTHORITY_SOURCE'),403,'AUTHORITY_SOURCE'],
   [new ExternalAlphaError('AUTHORITY_FILES'),403,'AUTHORITY_FILES'],
-  [new ExternalAlphaError('AUTHORITY_IDENTIFIER'),403,'AUTHORITY_IDENTIFIER'],
-  [new ExternalAlphaError('AUTHORITY_WORK'),403,'AUTHORITY_WORK'],
-  [new ExternalAlphaError('AUTHORITY_TUPLE'),403,'AUTHORITY_TUPLE'],
+  [new ExternalAlphaError('AUTHORITY_SCHEMA'),403,'AUTHORITY_SCHEMA'],
   [new ExternalAlphaError('AUTHORITY_EXPIRED'),403,'AUTHORITY_EXPIRED'],
   [new ExternalAlphaError('AUTHORITY_REVOKED'),403,'AUTHORITY_REVOKED'],
   [new ExternalAlphaError('AUTHORITY_CONSUMED'),409,'AUTHORITY_CONSUMED'],
@@ -428,7 +453,7 @@ test('definitive refusals require proof of non-admission; every interleaving wit
  const scripted=(lookups,{prepare,dispatch,unavailable=[]}={})=>{
   const rt=runtime();let n=0,runtimes=0;
   return {rt,withRuntime:async(env,installation,action)=>{
-   if(unavailable.includes(runtimes++))throw new ExternalAlphaError('AUTHORITY_SOURCE');
+   if(unavailable.includes(runtimes++))throw new ExternalAlphaError('AUTHORITY_DISABLED');
    return rt.withRuntime(env,installation,c=>action({...c,
     authority:{...c.authority,priorDeadline:async()=>lookups[n++]},
     control:{...c.control,...(prepare?{prepare:async p=>{rt.calls.prepare.push(p);throw prepare();}}:{}),...(dispatch?{dispatch:async()=>{throw dispatch();}}:{})}}));
@@ -494,6 +519,11 @@ test('MyEve accounting: temporary refusals stay UNKNOWN; signed-request and pric
  const unpinned=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:signDocument(b.document,makeKeys()),prepare:b.prepare}}),runtime()));
  assert.equal(unpinned.status,503);assert.equal(unpinned.terminal,'UNKNOWN');assert.equal(unpinned.body.admission,undefined);
 
+ const mismatchConfig={...w.configs[0],ownerId:'owner-opaque-restored'};
+ const mismatchEnv={FACTORY_EXTERNAL_ALPHA_INSTALLATION:JSON.stringify([mismatchConfig,w.configs[1]]),FACTORY_EXTERNAL_ALPHA_INSTALLATION_SHA256:digest([mismatchConfig,w.configs[1]].map(c=>parseExternalAlphaInstallation(c).sha256))};
+ const mismatch=await observe(await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body}),mismatchEnv,{withRuntime:runtime().withRuntime,verifyToken,spendPlan:qualifiedPlan,slotCapability:configuredCapability}));
+ assert.equal(mismatch.status,503);assert.equal(mismatch.terminal,'UNKNOWN');assert.equal(mismatch.body.admission,undefined);
+
  const flip=b.envelope.signature.startsWith('A')?'B':'A';
  const badSig=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:{...b.envelope,signature:flip+b.envelope.signature.slice(1)},prepare:b.prepare}}),runtime()));
  assert.equal(badSig.status,403);assert.equal(badSig.body.code,'AUTHORITY_SIGNATURE');assert.equal(badSig.terminal,'CANCELLED');
@@ -518,14 +548,14 @@ test('MyEve accounting: temporary refusals stay UNKNOWN; signed-request and pric
  assert.equal(unauth.status,401);assert.equal(unauth.terminal,'UNKNOWN');
 
  const ownerRt=runtime();
- const ownerDoc=build(w.ctx[0],{post:d=>{d.ownerId='other-owner';}});
- const owner=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:ownerDoc.envelope,prepare:ownerDoc.prepare}}),ownerRt));
- assert.equal(owner.status,503);assert.equal(owner.terminal,'UNKNOWN');assert.equal(ownerRt.calls.dispatch.length,0);
+ const owner={...ownerRt,withRuntime:async(env,installation,action)=>ownerRt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw new ExternalAlphaError('AUTHORITY_OWNER');}}}))};
+ const laterPhase=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body}),owner));
+ assert.equal(laterPhase.status,503);assert.equal(laterPhase.terminal,'UNKNOWN');assert.equal(ownerRt.calls.dispatch.length,0);
 });
 
-test('REFUSAL_ORIGIN classifies every mapped authority code as temporary or permanently closed',()=>{
- const temporary=['AUTHORITY_CAPABILITY','AUTHORITY_DISABLED','AUTHORITY_NOT_YET_VALID','AUTHORITY_UNKNOWN_FENCE','AUTHORITY_OWNER','AUTHORITY_SOURCE','AUTHORITY_FACTORY_VERSION'];
- const permanent=['AUTHORITY_SIGNATURE','AUTHORITY_SCHEMA','AUTHORITY_FILES','AUTHORITY_IDENTIFIER','AUTHORITY_WORK','AUTHORITY_TUPLE','AUTHORITY_ENVIRONMENT','AUTHORITY_PROVIDER','AUTHORITY_MODEL','AUTHORITY_VERIFIER','AUTHORITY_EFFECTS','AUTHORITY_LIMITS','AUTHORITY_EXPIRED','AUTHORITY_CONSUMED','AUTHORITY_REVOKED','PRICING_EXPIRED'];
+test('REFUSAL_ORIGIN classifies mixed producers as temporary installation mismatch and keeps document-versus-prepare SOURCE/FILES permanently closed',()=>{
+ const temporary=['AUTHORITY_CAPABILITY','AUTHORITY_DISABLED','AUTHORITY_NOT_YET_VALID','AUTHORITY_UNKNOWN_FENCE','AUTHORITY_INSTALLATION_MISMATCH','AUTHORITY_OWNER'];
+ const permanent=['AUTHORITY_SIGNATURE','AUTHORITY_SCHEMA','AUTHORITY_FILES','AUTHORITY_IDENTIFIER','AUTHORITY_SOURCE','AUTHORITY_WORK','AUTHORITY_TUPLE','AUTHORITY_ENVIRONMENT','AUTHORITY_PROVIDER','AUTHORITY_MODEL','AUTHORITY_VERIFIER','AUTHORITY_EFFECTS','AUTHORITY_LIMITS','AUTHORITY_EXPIRED','AUTHORITY_CONSUMED','AUTHORITY_REVOKED','PRICING_EXPIRED'];
  assert.deepEqual(Object.keys(REFUSAL_ORIGIN).filter(code=>REFUSAL_ORIGIN[code].permanence==='temporary').sort(),[...temporary].sort());
  assert.deepEqual(Object.keys(REFUSAL_ORIGIN).filter(code=>REFUSAL_ORIGIN[code].permanence==='permanent').sort(),[...permanent].sort());
  for(const meta of Object.values(REFUSAL_ORIGIN)){
@@ -537,7 +567,7 @@ test('REFUSAL_ORIGIN classifies every mapped authority code as temporary or perm
 
 test('capability denials raised inside the rolled-back admission transaction stay 503 UNKNOWN, never a DISABLED cancel',async()=>{
  const w=world(),{b,oidc}=good(w);
- for(const error of [Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'}),Error('CAPABILITY_INSTALLATION_UNQUALIFIED'),new ExternalAlphaError('AUTHORITY_CAPABILITY'),new ExternalAlphaError('AUTHORITY_DISABLED'),new ExternalAlphaError('AUTHORITY_NOT_YET_VALID'),new ExternalAlphaError('AUTHORITY_UNKNOWN_FENCE'),new ExternalAlphaError('AUTHORITY_OWNER'),new ExternalAlphaError('AUTHORITY_SOURCE'),new ExternalAlphaError('AUTHORITY_FACTORY_VERSION')]){
+ for(const error of [Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'}),Error('CAPABILITY_INSTALLATION_UNQUALIFIED'),new ExternalAlphaError('AUTHORITY_CAPABILITY'),new ExternalAlphaError('AUTHORITY_DISABLED'),new ExternalAlphaError('AUTHORITY_NOT_YET_VALID'),new ExternalAlphaError('AUTHORITY_UNKNOWN_FENCE'),new ExternalAlphaError('AUTHORITY_INSTALLATION_MISMATCH'),new ExternalAlphaError('AUTHORITY_OWNER')]){
   const rt=runtime();
   const failing={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw error;}}}))};
   const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),failing);

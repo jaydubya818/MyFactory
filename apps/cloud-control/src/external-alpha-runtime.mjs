@@ -82,10 +82,10 @@ export function pricedAdmission(assert,spendPlan){
 export function externalAlphaRuntimeComponents({env={},spendPlan=productionSpendPlan,pool,queue,installation,signing,sourceDigest,signReceipt,signReadback,registry,snapshots,sourceCustody,provider,providerFactory,verification,verifierProfile,deploymentId=env.VERCEL_DEPLOYMENT_ID,hostInstallation,capabilityBindings}){
  if((provider&&providerFactory)||(providerFactory!==undefined&&typeof providerFactory!=='function'))deny('AUTHORITY_DISABLED');
  if(!installation||typeof signReceipt!=='function'||typeof signReadback!=='function'||!pool||!queue)deny('AUTHORITY_DISABLED');
- if(sourceDigest!==installation.source.sourceDigest)deny('AUTHORITY_SOURCE');
+ if(sourceDigest!==installation.source.sourceDigest)deny('AUTHORITY_INSTALLATION_MISMATCH');
  const verificationPolicy=verification?.policy??alphaTasksVerificationPolicy,verificationPolicySha256=verification?.policySha256??alphaTasksVerificationPolicySha256;
  const configuration=externalAlphaConfiguration(installation,verificationPolicySha256);
- if(digest({sourceDigest,configurationDigest:digest(configuration)})!==installation.factoryVersion)deny('AUTHORITY_FACTORY_VERSION');
+ if(digest({sourceDigest,configurationDigest:digest(configuration)})!==installation.factoryVersion)deny('AUTHORITY_INSTALLATION_MISMATCH');
  if(!/^dpl_[A-Za-z0-9]+$/.test(deploymentId??''))deny('AUTHORITY_DISABLED');
  if(signing?.factoryId!=='myfactory-external-alpha'||signing?.key?.factoryId!==signing.factoryId||signing.key.keyId!=='external-alpha-result-v1')deny('AUTHORITY_DISABLED');
  const clientId=installation.application.clientId,plan=externalAlphaCheckpointPlan(installation);
