@@ -23,4 +23,4 @@ No canonical merge/push, post-merge qualification, milestone tag or cleanup has 
 
 Cleanup executed: **0 worktrees, 0 local branches, 0 remote branches**. No existing tag moved or milestone tag created. Primary checkout dirty state is preserved in private recovery archives; it was not reset or cleaned. Candidate checkouts are committed and remotely verified at handoff. Active/historical source remains durable. Two hosted Relay worktree inspections timed out and remain DO_NOT_DELETE. Initial ref inventory is a timestamped audit snapshot, supplemented by SOURCE-UPDATES.md; no destructive final manifest has been executed.
 
-See [source manifest](PRIVATE-ALPHA-SOURCE-MANIFEST.md), [capability crosswalk](CANONICAL-INTEGRATION-CROSSWALK.md), [migration ledger](MIGRATION-RECONCILIATION.md), [qualification index](EVIDENCE-INDEX.md), and [development policy](DEVELOPMENT-POLICY.md).
+See [source manifest](PRIVATE-ALPHA-SOURCE-MANIFEST.md), [capability crosswalk](../CANONICAL-INTEGRATION-CROSSWALK.md), [migration ledger](../MIGRATION-RECONCILIATION.md), [qualification index](EVIDENCE-INDEX.md), and [development policy](../DEVELOPMENT-POLICY.md).
