@@ -151,7 +151,9 @@ export interface SupervisorOptions {
   webDist?: string;
   startRun?: ActionContext["startRun"];
   cancelRun?: ActionContext["cancelRun"];
-  confirmHumanPresence?: NonNullable<ActionContext["confirmHumanPresence"]>;
+  /** Injected confirmation. Omit the key for the production darwin/non-darwin default.
+   *  Pass the key with `undefined` to force unavailable (503) without Touch ID — test seam only. */
+  confirmHumanPresence?: ActionContext["confirmHumanPresence"];
   publishDraft?: NonNullable<ActionContext["publishDraft"]>;
   jobDependencies?: Partial<JobDependencies>;
   /** Backend-only fixture authorization; never read from HTTP or environment. */
@@ -188,6 +190,18 @@ async function confirmHumanPresence(request: Parameters<NonNullable<ActionContex
  * "human_confirmation_unavailable" rather than the misleading 403 "human_confirmation_denied". */
 function darwinConfirmHumanPresence(): ActionContext["confirmHumanPresence"] {
   return process.platform === "darwin" ? confirmHumanPresence : undefined;
+}
+
+/** Production omits the key and gets the platform default (Touch ID on darwin, unavailable otherwise).
+ *  An explicit `confirmHumanPresence: undefined` is a test seam for 503 and must not fall through
+ *  to Touch ID — `??` would treat that undefined as missing. */
+export function resolveConfirmHumanPresence(
+  options: Pick<SupervisorOptions, "confirmHumanPresence">,
+  platformFallback: () => ActionContext["confirmHumanPresence"] = darwinConfirmHumanPresence,
+): ActionContext["confirmHumanPresence"] {
+  return Object.hasOwn(options, "confirmHumanPresence")
+    ? options.confirmHumanPresence
+    : platformFallback();
 }
 
 export function createSupervisor(options: SupervisorOptions = {}) {
@@ -288,7 +302,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     linear,
     appBuildDirectory: join(dataDir, "app-builds"),
     previewManager: previews,
-    confirmHumanPresence: options.confirmHumanPresence ?? darwinConfirmHumanPresence(),
+    confirmHumanPresence: resolveConfirmHumanPresence(options),
     publishDraft: options.publishDraft ?? publishDraftPullRequest,
     notify,
     startRun: options.startRun ?? ((workOrder) => jobs.startRun(workOrder)),

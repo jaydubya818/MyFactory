@@ -29,6 +29,7 @@ async function withDesk(t, confirmHumanPresence, fn) {
   const dataDir = mkdtempSync(join(tmpdir(), "factory-browser-qa-"));
   t.after(() => rmSync(dataDir, { recursive: true, force: true }));
 
+  // Always pass the key. `undefined` is an explicit unavailable seam (503), not "use Touch ID".
   const supervisor = createSupervisor({ dataDir, webDist, linear: {}, confirmHumanPresence });
   await new Promise((resolve) => supervisor.server.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${supervisor.server.address().port}`;
@@ -44,7 +45,7 @@ async function withDesk(t, confirmHumanPresence, fn) {
 const confirmApproved = async () => true;
 // Confirm (injectable): returns false — simulates the owner physically rejecting Touch ID.
 const confirmDenied = async () => false;
-// Confirm absent (undefined) — simulates non-darwin host; requireHumanPresence throws 503.
+// Explicit unavailable seam: key present, value undefined → 503, never darwin Touch ID.
 const confirmUnavailable = undefined;
 
 // ---------------------------------------------------------------------------

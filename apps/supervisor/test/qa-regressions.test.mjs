@@ -15,7 +15,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { performAction, ActionError } from "../src/actions.ts";
 import { openStorage } from "../../../packages/storage/src/index.ts";
-import { createSupervisor } from "../src/server.ts";
+import { createSupervisor, resolveConfirmHumanPresence } from "../src/server.ts";
 
 // ---------------------------------------------------------------------------
 // QA-07: human_confirmation_unavailable (503) vs human_confirmation_denied (403)
@@ -45,6 +45,28 @@ test("requireHumanPresence throws 503 unavailable when confirmHumanPresence is a
   assert.equal(err.code, "human_confirmation_unavailable", "code must be unavailable, not denied");
   assert.equal(err.status, 503, "HTTP status must be 503, not 403");
   assert.match(err.message, /macOS|Mac|platform/i, "Error message should mention platform context");
+});
+
+test("explicit confirmHumanPresence undefined does not select the darwin fallback (QA-07 test seam)", () => {
+  const sentinel = async () => {
+    throw new Error("unsafe darwin fallback selected");
+  };
+  assert.equal(
+    resolveConfirmHumanPresence({ confirmHumanPresence: undefined }, () => sentinel),
+    undefined,
+    "Key present with undefined must stay unavailable; ?? would select Touch ID on darwin",
+  );
+  assert.equal(
+    resolveConfirmHumanPresence({}, () => sentinel),
+    sentinel,
+    "Omitted key must keep the fail-closed production fallback",
+  );
+  const injected = async () => false;
+  assert.equal(
+    resolveConfirmHumanPresence({ confirmHumanPresence: injected }, () => sentinel),
+    injected,
+    "Injected function must be used as-is",
+  );
 });
 
 test("requireHumanPresence throws 403 denied when confirmHumanPresence returns false (QA-07)", async (t) => {
