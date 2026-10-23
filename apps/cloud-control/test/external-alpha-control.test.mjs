@@ -208,7 +208,7 @@ test('expired qualified pricing is a definitive pre-flight refusal: 403 PRICING_
  assert.equal(rt.calls.prepare.length,0);
 });
 
-test('injected store capabilityBindings without env pins remain a definitive AUTHORITY_CAPABILITY refusal',async()=>{
+test('injected store capabilityBindings without env pins remain a closed 503 UNKNOWN refusal',async()=>{
  const w=world(),rt=runtime(),{b,oidc}=good(w);
  const clientId=w.configs[0].application.clientId;
  const withBindings=async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({
@@ -216,25 +216,50 @@ test('injected store capabilityBindings without env pins remain a definitive AUT
   store:{...c.store,capabilityBindings:{[clientId]:{ownerId:w.configs[0].ownerId,organizationId:'org',installationId:'install',agentId:'agent',environment:'qualification'}}},
  }));
  const res=await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),w.env,{withRuntime:withBindings,verifyToken,spendPlan:qualifiedPlan});
- assert.equal(res.status,403);
- const body=await code(res);
- assert.equal(body.code,'AUTHORITY_CAPABILITY');assert.equal(body.admission,'DISABLED');
+ assert.equal(res.status,503);
+ assert.deepEqual(await code(res),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
  assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
 });
 
-test('missing owner capability binding or runtime role is a definitive pre-flight refusal: 403 AUTHORITY_CAPABILITY, nothing prepared',async()=>{
+test('missing owner capability binding or runtime role is a closed 503 UNKNOWN refusal, nothing prepared',async()=>{
  const w=world(),rt=runtime(),{b,oidc}=good(w);
  let asked;
  const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),rt,undefined,(env,installations,installation)=>{asked={installations:installations.length,slot:installation.slot};return null;});
- assert.equal(res.status,403);
- const body=await code(res);
- assert.equal(body.code,'AUTHORITY_CAPABILITY');assert.equal(body.admission,'DISABLED');
+ assert.equal(res.status,503);
+ assert.deepEqual(await code(res),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
  assert.deepEqual(asked,{installations:2,slot:'1'});
  assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
- // The real loader with no capability configuration in the environment also refuses.
+ // The real loader with no capability configuration in the environment also refuses this attempt.
  const real=await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),w.env,{withRuntime:rt.withRuntime,verifyToken,spendPlan:qualifiedPlan});
- assert.equal(real.status,403);assert.equal((await code(real)).code,'AUTHORITY_CAPABILITY');
+ assert.equal(real.status,503);assert.deepEqual(await code(real),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
  assert.equal(rt.calls.prepare.length,0);
+});
+
+test('missing capability is 503 UNKNOWN; restoring pins admits the delayed identical request without a prior DISABLED cancel',async()=>{
+ const w=world(),rt=runtime(),{b,oidc}=good(w);
+ const body={authority:b.envelope,prepare:b.prepare};
+ const first=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),rt,qualifiedPlan,()=>null);
+ assert.equal(first.status,503);
+ assert.deepEqual(await code(first),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
+ assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
+ const recovered=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),rt,qualifiedPlan,configuredCapability);
+ assert.equal(recovered.status,200);
+ assert.equal(rt.calls.prepare.length,1);assert.equal(rt.calls.dispatch.length,1);
+ assert.equal(rt.calls.prepare[0].requestId,b.prepare.requestId);
+});
+
+test('in-transaction capability denial is 503 UNKNOWN; a later recovered prepare of the identical request is not fenced by a DISABLED cancel',async()=>{
+ const w=world(),rt=runtime(),{b,oidc}=good(w);
+ const body={authority:b.envelope,prepare:b.prepare};
+ const denial=Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'});
+ const failing={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw denial;}}}))};
+ const first=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),failing);
+ assert.equal(first.status,503);
+ assert.deepEqual(await code(first),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
+ assert.equal(rt.calls.dispatch.length,0);
+ const recovered=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),rt);
+ assert.equal(recovered.status,200);
+ assert.equal(rt.calls.prepare.length,1);assert.equal(rt.calls.dispatch.length,1);
 });
 
 test('a redelivery of an admitted request never receives a definitive refusal, even after pricing expiry or capability removal',async()=>{
@@ -286,14 +311,14 @@ test('definitive refusals require proof of non-admission; every interleaving wit
  assert.deepEqual(await run(s3),{status:503,body:unavailable});assert.equal(s3.rt.calls.prepare.length,1);
  // (4) An admission committed between the failed transaction and the proof: ambiguous.
  assert.deepEqual(await run(scripted([undefined,b.prepare.deadline],{prepare:denial})),{status:503,body:unavailable});
- // (5) With proof of non-admission the rolled-back in-transaction refusal is definitive.
+ // (5) Rolled-back in-transaction capability denial is ambiguous 503 (revocable config). Pricing expiry stays 403.
  const r5=await run(scripted([undefined,undefined],{prepare:denial}));
- assert.equal(r5.status,403);assert.equal(r5.body.code,'AUTHORITY_CAPABILITY');assert.equal(r5.body.admission,'DISABLED');
+ assert.deepEqual(r5,{status:503,body:unavailable});
  const r5b=await run(scripted([undefined,undefined],{prepare:()=>Error('PRICING_EXPIRED')}));
  assert.equal(r5b.status,403);assert.equal(r5b.body.code,'PRICING_EXPIRED');
- // (6) A malformed capability loader throw is absent configuration: definitive only with proof, replay when admitted.
+ // (6) A malformed capability loader throw is absent configuration: 503/UNKNOWN this attempt; replay when admitted.
  const r6=await run(scripted([undefined]),qualifiedPlan,()=>{throw new ExternalAlphaError('AUTHORITY_CAPABILITY');});
- assert.equal(r6.status,403);assert.equal(r6.body.code,'AUTHORITY_CAPABILITY');
+ assert.deepEqual(r6,{status:503,body:unavailable});
  const s6=scripted([b.prepare.deadline,b.prepare.deadline]);
  assert.equal((await run(s6,qualifiedPlan,()=>{throw new ExternalAlphaError('AUTHORITY_CAPABILITY');})).status,200);assert.equal(s6.rt.calls.prepare.length,1);
  // (7) PRICING_EXPIRED is judged on the database clock under the admission lock: expired there is definitive; an app
@@ -305,15 +330,15 @@ test('definitive refusals require proof of non-admission; every interleaving wit
  assert.equal((await run(s7b,expired)).status,200);assert.equal(s7b.rt.calls.prepare.length,1);
 });
 
-test('capability denials raised inside the rolled-back admission transaction are definitive, never ambiguous 503',async()=>{
+test('capability denials raised inside the rolled-back admission transaction stay 503 UNKNOWN, never a DISABLED cancel',async()=>{
  const w=world(),{b,oidc}=good(w);
- for(const error of [Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'}),Error('CAPABILITY_INSTALLATION_UNQUALIFIED')]){
+ for(const error of [Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'}),Error('CAPABILITY_INSTALLATION_UNQUALIFIED'),new ExternalAlphaError('AUTHORITY_CAPABILITY')]){
   const rt=runtime();
   const failing={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw error;}}}))};
   const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),failing);
-  assert.equal(res.status,403);
+  assert.equal(res.status,503);
   const body=await code(res);
-  assert.equal(body.code,'AUTHORITY_CAPABILITY');assert.equal(body.admission,'DISABLED');
+  assert.deepEqual(body,{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
   assert.equal(JSON.stringify(body).includes('POLICY_BLOCKED'),false);
   assert.equal(rt.calls.dispatch.length,0);
  }

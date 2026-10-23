@@ -92,14 +92,20 @@ export async function authenticateExternalAlphaCaller(request,installations,env,
 const ADMISSION_REJECTIONS={INVALID_CLOUD_REQUEST:'AUTHORITY_SCHEMA',INVALID_CLOUD_LIST:'AUTHORITY_SCHEMA',INVALID_CLOUD_PATH:'AUTHORITY_FILES',CLOUD_ENVELOPE_EXCEEDED:'AUTHORITY_LIMITS',
  CLOUD_SOURCE_NOT_GRANTED:'AUTHORITY_SOURCE',CLOUD_CAPABILITIES_NOT_GRANTED:'AUTHORITY_FILES',EXTERNAL_ALPHA_WORK_LIMIT:'AUTHORITY_LIMITS',WORK_SCOPE_OR_GENERATION_CONFLICT:'AUTHORITY_CONSUMED',PREPARATION_REPLAY_CONFLICT:'AUTHORITY_CONSUMED'};
 function failure(error){
- if(error instanceof ExternalAlphaError)return denied(error.code,error.status);
+ if(error instanceof ExternalAlphaError){
+  // AUTHORITY_CAPABILITY is revocable configuration, not a durable per-request fence.
+  if(error.code==='AUTHORITY_CAPABILITY')return reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+  return denied(error.code,error.status);
+ }
  const status=error?.status;
  if(status===413)return reply({error:'PAYLOAD_TOO_LARGE'},413);
  if(status===400)return reply({error:'INVALID_REQUEST'},400);
  const message=typeof error?.message==='string'?error.message:'';
- // Rejections raised INSIDE the admission transaction roll it back: nothing was consumed, so these are definitive.
- // Capability admission runs only inside the prepare transaction, so its denials are definitive as well.
- if(error?.code==='CAPABILITY_ADMISSION_DENIED'||message==='CAPABILITY_INSTALLATION_UNQUALIFIED')return denied('AUTHORITY_CAPABILITY');
+ // Rejections raised INSIDE the admission transaction roll it back: nothing was consumed.
+ // Pricing expiry is judged on the admission-transaction clock and stays a definitive 403.
+ // Capability/configuration denials are revocable (pins can be restored, policy can change), so they
+ // must stay ambiguous 503/UNKNOWN — a definitive DISABLED cancel would let MyEve refund, then a later
+ // recovered identical request could admit. There is no durable per-request refusal fence.
  if(message==='PRICING_EXPIRED')return denied('PRICING_EXPIRED');
  if(Object.hasOwn(ADMISSION_REJECTIONS,message)){const code=ADMISSION_REJECTIONS[message];return denied(code,code==='AUTHORITY_CONSUMED'?409:403);}
  if(message==='FACTORY_REQUEST_NOT_FOUND'||error?.status===404)return reply({error:'NOT_FOUND'},404);
@@ -151,8 +157,10 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
     // Pricing is judged on the database clock under the admission lock: the admission transaction re-checks the same
     // window on the same clock, so no admission can commit for this request after a definitive PRICING_EXPIRED.
     else if(!pricingCurrent(state.dbNow))return denied('PRICING_EXPIRED');
-    // Absent capability configuration: the admission transaction of this deployment also lacks it and fails closed.
-    else if(!capability)return denied('AUTHORITY_CAPABILITY');
+    // Absent or malformed capability configuration is revocable (HTTP pins / bindings can be restored).
+    // Do not emit a definitive DISABLED cancel: that would release the caller's reservation, after which
+    // a delayed identical request can admit. Fail closed for this attempt with ambiguous 503/UNKNOWN.
+    else if(!capability)return ambiguous();
    }
    try{return await withRuntime(env,installation,async c=>{
     const prior=await c.authority.withClient(client=>c.authority.priorDeadline(client,requestId));
