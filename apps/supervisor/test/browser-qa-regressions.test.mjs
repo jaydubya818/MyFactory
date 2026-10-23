@@ -29,7 +29,7 @@ async function withDesk(t, confirmHumanPresence, fn) {
   const dataDir = mkdtempSync(join(tmpdir(), "factory-browser-qa-"));
   t.after(() => rmSync(dataDir, { recursive: true, force: true }));
 
-  // Always pass the key. `undefined` is an explicit unavailable seam (503), not "use Touch ID".
+  // Function overrides are explicit. Forwarding undefined keeps the production default.
   const supervisor = createSupervisor({ dataDir, webDist, linear: {}, confirmHumanPresence });
   await new Promise((resolve) => supervisor.server.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${supervisor.server.address().port}`;
@@ -45,8 +45,10 @@ async function withDesk(t, confirmHumanPresence, fn) {
 const confirmApproved = async () => true;
 // Confirm (injectable): returns false — simulates the owner physically rejecting Touch ID.
 const confirmDenied = async () => false;
-// Explicit unavailable seam: key present, value undefined → 503, never darwin Touch ID.
+// Non-darwin unavailable: no injected function. Skip this fixture on darwin so Mac
+// never invokes real Touch ID. Production default on darwin remains Touch ID.
 const confirmUnavailable = undefined;
+const skipUnavailableOnDarwin = process.platform === "darwin";
 
 // ---------------------------------------------------------------------------
 // QA-06: Pause dispatch — visible, focused, persistent error after API rejection
@@ -82,7 +84,7 @@ test("QA-06: 403 denied — error is visible, has role=alert, and persists after
   });
 });
 
-test("QA-06: 503 unavailable (non-darwin path) — error is visible with platform context", async (t) => {
+test("QA-06: 503 unavailable (non-darwin path) — error is visible with platform context", { skip: skipUnavailableOnDarwin }, async (t) => {
   await withDesk(t, confirmUnavailable, async ({ browser, origin }) => {
     const page = await browser.newPage();
     await page.goto(origin);

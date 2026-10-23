@@ -47,25 +47,43 @@ test("requireHumanPresence throws 503 unavailable when confirmHumanPresence is a
   assert.match(err.message, /macOS|Mac|platform/i, "Error message should mention platform context");
 });
 
-test("explicit confirmHumanPresence undefined does not select the darwin fallback (QA-07 test seam)", () => {
+test("omitted confirmHumanPresence uses the production platform default (QA-07)", () => {
   const sentinel = async () => {
     throw new Error("unsafe darwin fallback selected");
   };
   assert.equal(
-    resolveConfirmHumanPresence({ confirmHumanPresence: undefined }, () => sentinel),
-    undefined,
-    "Key present with undefined must stay unavailable; ?? would select Touch ID on darwin",
-  );
-  assert.equal(
     resolveConfirmHumanPresence({}, () => sentinel),
     sentinel,
-    "Omitted key must keep the fail-closed production fallback",
+    "Default Mac boot (no override) must keep the platform confirmation function",
   );
+});
+
+test("wrapper-forwarded confirmHumanPresence undefined keeps the production default (QA-07)", () => {
+  const sentinel = async () => {
+    throw new Error("unsafe darwin fallback selected");
+  };
+  const forwarded = { confirmHumanPresence: undefined };
+  assert.equal(
+    resolveConfirmHumanPresence(forwarded, () => sentinel),
+    sentinel,
+    "Spreading an undefined confirmation property must not disable the owner flow",
+  );
+  assert.equal(
+    resolveConfirmHumanPresence(forwarded, () => sentinel),
+    resolveConfirmHumanPresence({}, () => sentinel),
+    "Forwarded undefined must match an omitted key",
+  );
+});
+
+test("injected confirmHumanPresence function overrides the platform default (QA-07 test seam)", () => {
+  const sentinel = async () => {
+    throw new Error("unsafe darwin fallback selected");
+  };
   const injected = async () => false;
   assert.equal(
     resolveConfirmHumanPresence({ confirmHumanPresence: injected }, () => sentinel),
     injected,
-    "Injected function must be used as-is",
+    "An injected function is the explicit test seam and must be used as-is",
   );
 });
 

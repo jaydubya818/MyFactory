@@ -151,8 +151,9 @@ export interface SupervisorOptions {
   webDist?: string;
   startRun?: ActionContext["startRun"];
   cancelRun?: ActionContext["cancelRun"];
-  /** Injected confirmation. Omit the key for the production darwin/non-darwin default.
-   *  Pass the key with `undefined` to force unavailable (503) without Touch ID — test seam only. */
+  /** Injected confirmation function. Omit the key, or forward `undefined`, for the
+   *  production default (Touch ID on darwin, unavailable otherwise). Only a function
+   *  overrides that default — wrappers must not disable the owner flow by spreading undefined. */
   confirmHumanPresence?: ActionContext["confirmHumanPresence"];
   publishDraft?: NonNullable<ActionContext["publishDraft"]>;
   jobDependencies?: Partial<JobDependencies>;
@@ -192,16 +193,16 @@ function darwinConfirmHumanPresence(): ActionContext["confirmHumanPresence"] {
   return process.platform === "darwin" ? confirmHumanPresence : undefined;
 }
 
-/** Production omits the key and gets the platform default (Touch ID on darwin, unavailable otherwise).
- *  An explicit `confirmHumanPresence: undefined` is a test seam for 503 and must not fall through
- *  to Touch ID — `??` would treat that undefined as missing. */
+/** Production default: omitted key and forwarded `undefined` both use the platform fallback
+ *  (Touch ID on darwin). Only an injected function overrides that. Non-darwin 503 tests omit
+ *  a function and are platform-scoped so they never invoke real authentication on Mac. */
 export function resolveConfirmHumanPresence(
   options: Pick<SupervisorOptions, "confirmHumanPresence">,
   platformFallback: () => ActionContext["confirmHumanPresence"] = darwinConfirmHumanPresence,
 ): ActionContext["confirmHumanPresence"] {
-  return Object.hasOwn(options, "confirmHumanPresence")
-    ? options.confirmHumanPresence
-    : platformFallback();
+  const override = options.confirmHumanPresence;
+  if (typeof override === "function") return override;
+  return platformFallback();
 }
 
 export function createSupervisor(options: SupervisorOptions = {}) {
