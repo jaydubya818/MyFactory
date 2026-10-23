@@ -3,6 +3,9 @@ on:
   push:
     branches: [main, codex/environment-fabric, beta/unified-candidate-20261022]
   pull_request:
+    # ready_for_review retriggers after a draft is marked ready. synchronize
+    # covers force-pushes onto the unified beta candidate base.
+    types: [opened, synchronize, reopened, ready_for_review]
 permissions:
   contents: read
 jobs:
