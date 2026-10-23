@@ -26,10 +26,11 @@ const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&Object.getProto
 export const reply=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
 const denied=(code,status=403)=>reply({error:'EXTERNAL_ALPHA_AUTHORITY_DENIED',code,admission:'DISABLED'},status);
 const unavailable=()=>reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
-// Temporary operator-config / not-yet-valid clock / revocable capability: a 403 DISABLED cancel lets MyEve
-// refund, after which a later identical request can admit. Conservative 503 UNKNOWN. This attempt still
-// fails closed. Permanent signed-request and pricing codes stay in denied().
-const TEMPORARY_REFUSALS=new Set(['AUTHORITY_CAPABILITY','AUTHORITY_DISABLED','AUTHORITY_NOT_YET_VALID']);
+// Temporary operator-config / not-yet-valid clock / UNKNOWN fence / revocable capability:
+// a 403 DISABLED cancel lets MyEve refund, after which a later identical request can admit.
+// Conservative 503 UNKNOWN. This attempt still fails closed. Permanent signed-request and
+// pricing codes stay in denied().
+const TEMPORARY_REFUSALS=new Set(['AUTHORITY_CAPABILITY','AUTHORITY_DISABLED','AUTHORITY_NOT_YET_VALID','AUTHORITY_UNKNOWN_FENCE']);
 
 /** Same fixed Work identity every time, derived only from the stored admission. Used for dispatch and stop. */
 export function externalAlphaIdentity(row){
@@ -99,9 +100,10 @@ const ADMISSION_REJECTIONS={INVALID_CLOUD_REQUEST:'AUTHORITY_SCHEMA',INVALID_CLO
 function failure(error){
  if(error instanceof ExternalAlphaError){
   if(TEMPORARY_REFUSALS.has(error.code))return unavailable();
-  // Remaining ExternalAlphaError codes are properties of the signed request, Factory pin, or a closed
-  // expiry window: the identical document cannot later become valid. AUTHORITY_SIGNATURE also covers a
-  // key calendar window (residual mixed code; splitting it would add a new identity).
+  // Remaining ExternalAlphaError codes are properties of the signed request or a closed
+  // document-expiry window: the identical document cannot later become valid.
+  // Missing/unqualified/not-yet-valid/expired key configuration is AUTHORITY_DISABLED or
+  // AUTHORITY_NOT_YET_VALID (temporary). Genuine digest/verify failure stays AUTHORITY_SIGNATURE.
   return denied(error.code,error.status);
  }
  const status=error?.status;
@@ -110,7 +112,7 @@ function failure(error){
  const message=typeof error?.message==='string'?error.message:'';
  // Rejections raised INSIDE the admission transaction roll it back: nothing was consumed.
  // Pricing expiry is judged on the admission-transaction clock and stays a definitive 403.
- // Temporary refusals (capability, operator install, not-yet-valid) must not DISABLED-cancel.
+ // Temporary refusals (capability, operator install, not-yet-valid, UNKNOWN fence) must not DISABLED-cancel.
  if(message==='PRICING_EXPIRED')return denied('PRICING_EXPIRED');
  if(Object.hasOwn(ADMISSION_REJECTIONS,message)){const code=ADMISSION_REJECTIONS[message];return denied(code,code==='AUTHORITY_CONSUMED'?409:403);}
  if(message==='FACTORY_REQUEST_NOT_FOUND'||error?.status===404)return reply({error:'NOT_FOUND'},404);
@@ -123,6 +125,9 @@ function failure(error){
  */
 export async function handleExternalAlpha(request,env,{withRuntime=withExternalAlphaRuntime,verifyToken=verifyVercelOidcToken,now=Date.now,spendPlan=productionSpendPlan,slotCapability=externalAlphaSlotCapability}={}){
  let installations;
+ // Absent or malformed installation pins are operator configuration: restorable, so 503
+ // UNKNOWN this attempt. A 403 DISABLED cancel would release the caller reservation, after
+ // which restoring the pins would admit the delayed identical request.
  try{installations=loadExternalAlphaInstallations(env);}catch{return unavailable();}
  if(!installations.length)return unavailable();
  try{

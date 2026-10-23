@@ -103,18 +103,21 @@ test('signature, key, digest and clock failures',()=>{
  assert.equal(v(a.envelope),'ACCEPTED');
  const flip=a.envelope.signature.startsWith('A')?'B':'A';
  assert.equal(v({...a.envelope,signature:flip+a.envelope.signature.slice(1)}),'AUTHORITY_SIGNATURE');
- assert.equal(v({...a.envelope,keyId:'0'.repeat(64)}),'AUTHORITY_SIGNATURE');
+ assert.equal(v({...a.envelope,keyId:'0'.repeat(64)}),'AUTHORITY_DISABLED');
  assert.equal(v({...a.envelope,authoritySha256:'0'.repeat(64)}),'AUTHORITY_SIGNATURE');
  assert.equal(v({...a.envelope,document:{...a.envelope.document,ownerId:'owner-opaque-1 '}}),'AUTHORITY_SIGNATURE'); // tampered after signing
  const other=makeKeys();
  assert.equal(v(signDocument(a.document,other,ctx.keys.keyId)),'AUTHORITY_SIGNATURE'); // pinned key id, foreign signer
- assert.equal(v(signDocument(a.document,other)),'AUTHORITY_SIGNATURE'); // unpinned key
+ assert.equal(v(signDocument(a.document,other)),'AUTHORITY_DISABLED'); // unpinned key
  assert.equal(v({...a.envelope,unexpected:1}),'AUTHORITY_SCHEMA');
  assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,ctx.installation,a.issuedAt-1)),'AUTHORITY_NOT_YET_VALID');
  assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,ctx.installation,a.issuedAt+290000)),'AUTHORITY_EXPIRED');
- // A pinned key outside its own validity window cannot authorize.
+ // A pinned key that is not yet valid is the same temporary clock class as document notBefore.
+ const futureKey=makeInstallation(ctx.keys,{...ctx.config,keys:[{...ctx.config.keys[0],notBefore:new Date(at+60000).toISOString()}]});
+ assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,futureKey.installation,at)),'AUTHORITY_NOT_YET_VALID');
+ // A pinned key outside its own validity window is operator calendar, not an immutable signature failure.
  const expiredKey=makeInstallation(ctx.keys,{...ctx.config,keys:[{...ctx.config.keys[0],notAfter:new Date(a.issuedAt+500).toISOString()}]});
- assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,expiredKey.installation,at)),'AUTHORITY_SIGNATURE');
+ assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,expiredKey.installation,at)),'AUTHORITY_DISABLED');
 });
 
 test('the receipt signature is over the schema-prefixed receipt digest',()=>{

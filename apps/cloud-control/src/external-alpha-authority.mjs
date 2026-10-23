@@ -149,8 +149,10 @@ export function validateStatic(envelope,prepare,installation){
  for(const t of ['issuedAt','notBefore','expiresAt'])if(typeof d[t]!=='string'||!TS.test(d[t])||new Date(d[t]).toISOString()!==d[t])deny('AUTHORITY_SCHEMA');
  if(!HEX64.test(envelope.authoritySha256)||!SIG.test(envelope.signature)||!HEX64.test(envelope.keyId))deny('AUTHORITY_SCHEMA');
  // Signature: pinned key, bytes bound to the digest recomputed here.
+ // Missing/unqualified keyId is operator key configuration (the pin set can later
+ // include that key). Digest mismatch and verify failure are immutable.
  const key=installation.keys.get(envelope.keyId);
- if(!key)deny('AUTHORITY_SIGNATURE');
+ if(!key)deny('AUTHORITY_DISABLED');
  if(digest(d)!==envelope.authoritySha256)deny('AUTHORITY_SIGNATURE');
  let good=false;
  try{good=verify(null,Buffer.concat([Buffer.from(AUTHORITY_SCHEMA),Buffer.from([0]),Buffer.from(envelope.authoritySha256)]),key.publicKey,Buffer.from(envelope.signature,'base64url'));}catch{good=false;}
@@ -194,9 +196,13 @@ export function validateStatic(envelope,prepare,installation){
  return {document:d,authoritySha256:envelope.authoritySha256,keyId:envelope.keyId,ids,keyWindow:key,expiresAtMs:Date.parse(d.expiresAt),notBeforeMs:from};
 }
 export function assertTime(v,now){
- if(now<v.notBeforeMs)deny('AUTHORITY_NOT_YET_VALID');
+ // Document and key notBefore are temporary clock conditions: a later identical
+ // request can become valid. Key notAfter is operator calendar on the installation
+ // (extendable), so it is not a definitive signature failure. Document expiry
+ // only moves forward.
+ if(now<v.notBeforeMs||now<v.keyWindow.notBefore)deny('AUTHORITY_NOT_YET_VALID');
  if(now>=v.expiresAtMs)deny('AUTHORITY_EXPIRED');
- if(now<v.keyWindow.notBefore||now>=v.keyWindow.notAfter)deny('AUTHORITY_SIGNATURE');
+ if(now>=v.keyWindow.notAfter)deny('AUTHORITY_DISABLED');
 }
 export const validateExternalAlphaAuthority=(envelope,prepare,installation,now)=>{const v=validateStatic(envelope,prepare,installation);assertTime(v,now);return v;};
 

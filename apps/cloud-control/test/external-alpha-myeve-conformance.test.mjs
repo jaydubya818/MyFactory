@@ -94,6 +94,7 @@ test('the real MyEve prepare request body is accepted by parseCloudPrepare and b
 // ACCEPTED rows are fields the authority deliberately does not pin to a single value (a signed shorter/longer window
 // within the Factory ceiling, or an earlier request deadline); they are re-checked for single consumption below.
 const rules=[
+ [/^envelope:keyId$/,'AUTHORITY_DISABLED'],
  [/^envelope:/,'AUTHORITY_SIGNATURE'],
  // document: value flips
  [/^document:(schema|singleUse)$/,'AUTHORITY_SCHEMA'],
@@ -140,7 +141,7 @@ test('every bound field of the MyEve document, envelope and prepare body is enfo
   assert.equal(got,want,m.name);
   seen[want]=(seen[want]??0)+1;
  }
- for(const code of ['AUTHORITY_SCHEMA','AUTHORITY_SIGNATURE','AUTHORITY_IDENTIFIER','AUTHORITY_OWNER','AUTHORITY_SOURCE','AUTHORITY_FILES','AUTHORITY_WORK','AUTHORITY_TUPLE','AUTHORITY_ENVIRONMENT','AUTHORITY_PROVIDER','AUTHORITY_FACTORY_VERSION','AUTHORITY_MODEL','AUTHORITY_VERIFIER','AUTHORITY_EFFECTS','AUTHORITY_LIMITS','AUTHORITY_EXPIRED','INVALID_CLOUD_REQUEST'])
+ for(const code of ['AUTHORITY_SCHEMA','AUTHORITY_SIGNATURE','AUTHORITY_DISABLED','AUTHORITY_IDENTIFIER','AUTHORITY_OWNER','AUTHORITY_SOURCE','AUTHORITY_FILES','AUTHORITY_WORK','AUTHORITY_TUPLE','AUTHORITY_ENVIRONMENT','AUTHORITY_PROVIDER','AUTHORITY_FACTORY_VERSION','AUTHORITY_MODEL','AUTHORITY_VERIFIER','AUTHORITY_EFFECTS','AUTHORITY_LIMITS','AUTHORITY_EXPIRED','INVALID_CLOUD_REQUEST'])
   assert.ok(seen[code]>0,'no mutation exercised '+code);
  // Re-signed document mutations really are signed by the pinned key: they fail on the field, not on the signature.
  const resigned=v.mutations.filter(m=>m.target==='document');
