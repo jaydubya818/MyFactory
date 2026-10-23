@@ -42,6 +42,18 @@ const qualifiedPlan=Object.freeze({validUntil:new Date(Date.now()+86400000).toIS
 const configuredCapability=()=>({bindings:{},role:'factory_capability_runtime'});
 const send=(w,r,rt,spendPlan=qualifiedPlan,slotCapability=configuredCapability)=>handleExternalAlpha(r,w.env,{withRuntime:rt.withRuntime,verifyToken,spendPlan,slotCapability});
 const code=async res=>(await res.json());
+// Mirrors MyEve ExternalAlphaFactoryClient.call + WorkController.start:
+// 403 + admission DISABLED + CODE → FACTORY_DENIED → finish CANCELLED (refundable).
+// 409 AUTHORITY_CONSUMED is FactoryDenied but is not cancelled.
+// Any other response, including 503 EXTERNAL_ALPHA_UNAVAILABLE, is DISPATCH_AMBIGUOUS UNKNOWN.
+function myeveAccountingFromFactory(status,body){
+ let code='';
+ if(status===403&&body?.admission==='DISABLED'&&/^[A-Z_]+$/.test(body.code??''))code=body.code;
+ if(status===409&&body?.code==='AUTHORITY_CONSUMED')code='AUTHORITY_CONSUMED';
+ if(!code)return 'UNKNOWN';
+ if(code==='AUTHORITY_CONSUMED')return 'CONSUMED_CONFLICT';
+ return 'CANCELLED';
+}
 
 test('authorized caller dispatches on its own slot and receives a receipt-bearing readback',async()=>{
  const w=world(),rt=runtime(),{b,oidc}=good(w);
@@ -328,6 +340,35 @@ test('definitive refusals require proof of non-admission; every interleaving wit
  assert.equal(r7.status,403);assert.equal(r7.body.code,'PRICING_EXPIRED');assert.equal(s7.rt.calls.prepare.length,0);
  const s7b=scripted([undefined,undefined]);s7b.rt.calls.dbNow=Date.now()-5000;
  assert.equal((await run(s7b,expired)).status,200);assert.equal(s7b.rt.calls.prepare.length,1);
+});
+
+test('MyEve accounting: revocable capability 503 stays UNKNOWN; pricing and identity 403 remain refundable CANCELLED',async()=>{
+ const w=world(),{b,oidc}=good(w),body={authority:b.envelope,prepare:b.prepare};
+ const observe=async(res)=>{const payload=await code(res);return {status:res.status,body:payload,terminal:myeveAccountingFromFactory(res.status,payload)};};
+
+ const missing=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body}),runtime(),qualifiedPlan,()=>null));
+ assert.equal(missing.status,503);assert.equal(missing.terminal,'UNKNOWN');assert.equal(missing.body.admission,undefined);
+
+ const blocked=Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'});
+ const failingRt=runtime();
+ const failing={...failingRt,withRuntime:async(env,installation,action)=>failingRt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw blocked;}}}))};
+ const policy=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body}),failing));
+ assert.equal(policy.status,503);assert.equal(policy.terminal,'UNKNOWN');assert.equal(failingRt.calls.prepare.length,0);assert.equal(failingRt.calls.dispatch.length,0);
+
+ const pricing=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body}),runtime(),{validUntil:new Date(Date.now()-1000).toISOString()}));
+ assert.equal(pricing.status,403);assert.equal(pricing.body.code,'PRICING_EXPIRED');assert.equal(pricing.terminal,'CANCELLED');
+
+ const schema=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:{...b.envelope,extra:1},prepare:b.prepare}}),runtime()));
+ assert.equal(schema.status,403);assert.equal(schema.body.code,'AUTHORITY_SCHEMA');assert.equal(schema.terminal,'CANCELLED');
+
+ const consumedRt=runtime();
+ const consumed={...consumedRt,withRuntime:async(env,installation,action)=>consumedRt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw Error('WORK_SCOPE_OR_GENERATION_CONFLICT');}}}))};
+ const conflict=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body}),consumed));
+ assert.equal(conflict.status,409);assert.equal(conflict.body.code,'AUTHORITY_CONSUMED');assert.equal(conflict.terminal,'CONSUMED_CONFLICT');
+ assert.equal(consumedRt.calls.dispatch.length,0);
+
+ const disabled=await observe(await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body}),{},{withRuntime:runtime().withRuntime,verifyToken}));
+ assert.equal(disabled.status,403);assert.equal(disabled.body.code,'AUTHORITY_DISABLED');assert.equal(disabled.terminal,'CANCELLED');
 });
 
 test('capability denials raised inside the rolled-back admission transaction stay 503 UNKNOWN, never a DISABLED cancel',async()=>{
