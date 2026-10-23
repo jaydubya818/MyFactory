@@ -23,4 +23,4 @@ Classifications use ancestry, commit/file deltas and the documented source/quali
 | refs/remotes/origin/codex/q37-producer-attestation | fcd8afd6fbaa2b9045b9e9700608d546edf011a9 | 0	1 | ALREADY_CONTAINED | Exact ancestry containment in consolidation candidate; cleanup still gated. |
 | refs/remotes/origin/main | 8c5de7794ffa377420ef5dcdbda44aa9fa2328b8 | 0	0 | CANONICAL_INPUT | Actual origin default branch is main; preserve canonical checkout, including local divergence. |
 
-Full branch unique-commit lists and merge bases: [branch-dispositions.json](branch-dispositions.json). Initial reflogs, unreferenced candidates, migration hashes, evidence indexes and worktree status: [inventory.initial.json](inventory.initial.json).
+Full branch unique-commit lists and merge bases: [branch-dispositions.json](../branch-dispositions.json). Initial reflogs, unreferenced candidates, migration hashes, evidence indexes and worktree status: [inventory.initial.json](../inventory.initial.json).
