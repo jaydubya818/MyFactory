@@ -63,13 +63,14 @@ test('authorized caller dispatches on its own slot and receives a receipt-bearin
  assert.ok((await code(res)).authorityReceiptSignature);
 });
 
-test('missing installation denies everything',async()=>{
+test('missing or malformed installation is 503 UNKNOWN, nothing prepared',async()=>{
  const w=world(),rt=runtime(),{b,oidc}=good(w);
  for(const env of [{},{FACTORY_EXTERNAL_ALPHA_INSTALLATION:'not json'},{FACTORY_EXTERNAL_ALPHA_INSTALLATION:'[]'}]){
   const res=await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),env,{withRuntime:rt.withRuntime,verifyToken});
-  assert.equal(res.status,403);assert.equal((await code(res)).code,'AUTHORITY_DISABLED');
+  assert.equal(res.status,503);
+  assert.deepEqual(await code(res),{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
  }
- assert.equal(rt.calls.prepare.length,0);
+ assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
 });
 
 test('unauthorized callers get 401 before any state is touched',async()=>{
@@ -342,7 +343,7 @@ test('definitive refusals require proof of non-admission; every interleaving wit
  assert.equal((await run(s7b,expired)).status,200);assert.equal(s7b.rt.calls.prepare.length,1);
 });
 
-test('MyEve accounting: revocable capability 503 stays UNKNOWN; pricing and identity 403 remain refundable CANCELLED',async()=>{
+test('MyEve accounting: temporary refusals stay UNKNOWN; signed-request and pricing 403 remain refundable CANCELLED',async()=>{
  const w=world(),{b,oidc}=good(w),body={authority:b.envelope,prepare:b.prepare};
  const observe=async(res)=>{const payload=await code(res);return {status:res.status,body:payload,terminal:myeveAccountingFromFactory(res.status,payload)};};
 
@@ -355,11 +356,23 @@ test('MyEve accounting: revocable capability 503 stays UNKNOWN; pricing and iden
  const policy=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body}),failing));
  assert.equal(policy.status,503);assert.equal(policy.terminal,'UNKNOWN');assert.equal(failingRt.calls.prepare.length,0);assert.equal(failingRt.calls.dispatch.length,0);
 
+ const notYetRt=runtime();
+ const notYet={...notYetRt,withRuntime:async(env,installation,action)=>notYetRt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw new ExternalAlphaError('AUTHORITY_NOT_YET_VALID');}}}))};
+ const early=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body}),notYet));
+ assert.equal(early.status,503);assert.equal(early.terminal,'UNKNOWN');assert.equal(notYetRt.calls.dispatch.length,0);
+
+ const disabled=await observe(await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body}),{},{withRuntime:runtime().withRuntime,verifyToken}));
+ assert.equal(disabled.status,503);assert.equal(disabled.terminal,'UNKNOWN');assert.equal(disabled.body.admission,undefined);
+
  const pricing=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body}),runtime(),{validUntil:new Date(Date.now()-1000).toISOString()}));
  assert.equal(pricing.status,403);assert.equal(pricing.body.code,'PRICING_EXPIRED');assert.equal(pricing.terminal,'CANCELLED');
 
  const schema=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:{...b.envelope,extra:1},prepare:b.prepare}}),runtime()));
  assert.equal(schema.status,403);assert.equal(schema.body.code,'AUTHORITY_SCHEMA');assert.equal(schema.terminal,'CANCELLED');
+
+ const lateDeadline={...b.prepare,deadline:new Date(Date.parse(b.envelope.document.expiresAt)+1000).toISOString()};
+ const expired=await observe(await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:lateDeadline}}),runtime()));
+ assert.equal(expired.status,403);assert.equal(expired.body.code,'AUTHORITY_EXPIRED');assert.equal(expired.terminal,'CANCELLED');
 
  const consumedRt=runtime();
  const consumed={...consumedRt,withRuntime:async(env,installation,action)=>consumedRt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw Error('WORK_SCOPE_OR_GENERATION_CONFLICT');}}}))};
@@ -367,13 +380,13 @@ test('MyEve accounting: revocable capability 503 stays UNKNOWN; pricing and iden
  assert.equal(conflict.status,409);assert.equal(conflict.body.code,'AUTHORITY_CONSUMED');assert.equal(conflict.terminal,'CONSUMED_CONFLICT');
  assert.equal(consumedRt.calls.dispatch.length,0);
 
- const disabled=await observe(await handleExternalAlpha(req('dispatches',{cred:CRED[0],oidc,body}),{},{withRuntime:runtime().withRuntime,verifyToken}));
- assert.equal(disabled.status,403);assert.equal(disabled.body.code,'AUTHORITY_DISABLED');assert.equal(disabled.terminal,'CANCELLED');
+ const unauth=await observe(await send(w,req('dispatches',{oidc,body}),runtime()));
+ assert.equal(unauth.status,401);assert.equal(unauth.terminal,'UNKNOWN');
 });
 
 test('capability denials raised inside the rolled-back admission transaction stay 503 UNKNOWN, never a DISABLED cancel',async()=>{
  const w=world(),{b,oidc}=good(w);
- for(const error of [Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'}),Error('CAPABILITY_INSTALLATION_UNQUALIFIED'),new ExternalAlphaError('AUTHORITY_CAPABILITY')]){
+ for(const error of [Object.assign(Error('Capability admission denied: POLICY_BLOCKED:myfactory'),{code:'CAPABILITY_ADMISSION_DENIED'}),Error('CAPABILITY_INSTALLATION_UNQUALIFIED'),new ExternalAlphaError('AUTHORITY_CAPABILITY'),new ExternalAlphaError('AUTHORITY_DISABLED'),new ExternalAlphaError('AUTHORITY_NOT_YET_VALID')]){
   const rt=runtime();
   const failing={...rt,withRuntime:async(env,installation,action)=>rt.withRuntime(env,installation,c=>action({...c,control:{...c.control,prepare:async()=>{throw error;}}}))};
   const res=await send(w,req('dispatches',{cred:CRED[0],oidc,body:{authority:b.envelope,prepare:b.prepare}}),failing);

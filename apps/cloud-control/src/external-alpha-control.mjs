@@ -25,6 +25,11 @@ const sha256hex=value=>createHash('sha256').update(value).digest('hex');
 const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype;
 export const reply=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
 const denied=(code,status=403)=>reply({error:'EXTERNAL_ALPHA_AUTHORITY_DENIED',code,admission:'DISABLED'},status);
+const unavailable=()=>reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+// Temporary operator-config / not-yet-valid clock / revocable capability: a 403 DISABLED cancel lets MyEve
+// refund, after which a later identical request can admit. Conservative 503 UNKNOWN. This attempt still
+// fails closed. Permanent signed-request and pricing codes stay in denied().
+const TEMPORARY_REFUSALS=new Set(['AUTHORITY_CAPABILITY','AUTHORITY_DISABLED','AUTHORITY_NOT_YET_VALID']);
 
 /** Same fixed Work identity every time, derived only from the stored admission. Used for dispatch and stop. */
 export function externalAlphaIdentity(row){
@@ -93,8 +98,10 @@ const ADMISSION_REJECTIONS={INVALID_CLOUD_REQUEST:'AUTHORITY_SCHEMA',INVALID_CLO
  CLOUD_SOURCE_NOT_GRANTED:'AUTHORITY_SOURCE',CLOUD_CAPABILITIES_NOT_GRANTED:'AUTHORITY_FILES',EXTERNAL_ALPHA_WORK_LIMIT:'AUTHORITY_LIMITS',WORK_SCOPE_OR_GENERATION_CONFLICT:'AUTHORITY_CONSUMED',PREPARATION_REPLAY_CONFLICT:'AUTHORITY_CONSUMED'};
 function failure(error){
  if(error instanceof ExternalAlphaError){
-  // AUTHORITY_CAPABILITY is revocable configuration, not a durable per-request fence.
-  if(error.code==='AUTHORITY_CAPABILITY')return reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+  if(TEMPORARY_REFUSALS.has(error.code))return unavailable();
+  // Remaining ExternalAlphaError codes are properties of the signed request, Factory pin, or a closed
+  // expiry window: the identical document cannot later become valid. AUTHORITY_SIGNATURE also covers a
+  // key calendar window (residual mixed code; splitting it would add a new identity).
   return denied(error.code,error.status);
  }
  const status=error?.status;
@@ -103,14 +110,11 @@ function failure(error){
  const message=typeof error?.message==='string'?error.message:'';
  // Rejections raised INSIDE the admission transaction roll it back: nothing was consumed.
  // Pricing expiry is judged on the admission-transaction clock and stays a definitive 403.
- // Capability/configuration denials are revocable (pins can be restored, policy can change), so they
- // must stay ambiguous 503/UNKNOWN — a definitive DISABLED cancel would let MyEve refund, then a later
- // recovered identical request could admit. There is no durable per-request refusal fence.
+ // Temporary refusals (capability, operator install, not-yet-valid) must not DISABLED-cancel.
  if(message==='PRICING_EXPIRED')return denied('PRICING_EXPIRED');
  if(Object.hasOwn(ADMISSION_REJECTIONS,message)){const code=ADMISSION_REJECTIONS[message];return denied(code,code==='AUTHORITY_CONSUMED'?409:403);}
  if(message==='FACTORY_REQUEST_NOT_FOUND'||error?.status===404)return reply({error:'NOT_FOUND'},404);
- // Anything else is ambiguous (the caller must treat it as UNKNOWN). Fixed body, never the message.
- return reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+ return unavailable();
 }
 
 /**
@@ -119,8 +123,8 @@ function failure(error){
  */
 export async function handleExternalAlpha(request,env,{withRuntime=withExternalAlphaRuntime,verifyToken=verifyVercelOidcToken,now=Date.now,spendPlan=productionSpendPlan,slotCapability=externalAlphaSlotCapability}={}){
  let installations;
- try{installations=loadExternalAlphaInstallations(env);}catch{return denied('AUTHORITY_DISABLED');}
- if(!installations.length)return denied('AUTHORITY_DISABLED');
+ try{installations=loadExternalAlphaInstallations(env);}catch{return unavailable();}
+ if(!installations.length)return unavailable();
  try{
   const installation=await authenticateExternalAlphaCaller(request,installations,env,verifyToken,now);
   if(!installation)return reply({error:'UNAUTHORIZED'},401);
@@ -136,7 +140,7 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
    // Pure pre-flight against THIS slot's pinned installation: no database, nothing consumed.
    validateStatic(body.authority,body.prepare,installation);
    const requestId=body.prepare.requestId;
-   const ambiguous=()=>reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+   const ambiguous=unavailable;
    // A definitive refusal tells the caller to record a no-charge cancel, so it is returned only with PROOF that this request
    // is not admitted: the lookup runs inside the store's serialized admission transaction (global admission lock), so any
    // in-flight admission has committed or rolled back first, and it reports the database clock that admission itself uses.
