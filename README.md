@@ -178,7 +178,18 @@ npm run build
 npm start --workspace @factory/supervisor
 ```
 
-Open `http://127.0.0.1:8787`. `FACTORY_PORT` selects another local port and `FACTORY_DATA_DIR` selects a local data directory. Keep the loopback service private. The [standalone console](factory-console/README.md) uses the supervisor's Work/evidence state; its own model-backed chat requires separate configuration and spending authority.
+Open `http://127.0.0.1:8787`. Available environment variables for the local desk:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `FACTORY_PORT` | `8787` | TCP port for the loopback HTTP server. The port is also used in hosted-intake receipt URLs so callers can locate the desk on the owner's machine. |
+| `FACTORY_DATA_DIR` | `~/.local/share/sellerfi-factory` | Local SQLite database, session token and connection credentials. Keep this directory private. |
+| `FACTORY_HOSTED_INTAKE` | — | Set to `true` to enable the Linear-based hosted intake queue. Requires `data/hosted-routing.json` and `data/connections.json`. |
+| `FACTORY_START_PAUSED` | — | Set to `true` to start the desk with dispatch paused on a **brand-new** data directory. Has no effect once the policy has been changed (revision > 1). This is a safety option for installations that should not auto-dispatch until the owner explicitly enables it; the default (dispatch active) is intentional for single-operator local use where the owner is present at startup. |
+
+**Human-presence confirmation** — Write actions on the desk (pause/resume dispatch, approve publication, approve a repair) require the device owner to confirm via macOS Touch ID. On a non-macOS host the API returns `503 human_confirmation_unavailable`; this is by design and not a bug. The human-presence gate cannot be disabled; tests must use the injectable `confirmHumanPresence` option in `createSupervisor`.
+
+Keep the loopback service private. The [standalone console](factory-console/README.md) uses the supervisor's Work/evidence state; its own model-backed chat requires separate configuration and spending authority.
 
 The Feedback Hub App Builder uses a versioned starter and source-hashed manifest. `preview:prepare` fetches pinned starter dependencies during deliberate setup with package scripts disabled. A local preview checks the unchanged scaffold, installs cached dependencies offline, builds it and exposes bounded status/logs. Stop preview terminates that child process. A template preview is not independent verification of a generated change.
 

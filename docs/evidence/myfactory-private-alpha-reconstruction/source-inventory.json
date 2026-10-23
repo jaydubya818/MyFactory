@@ -37,7 +37,7 @@
       "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Retain SQLite transactions and all historical V2 semantics while using shared pure validation/accounting functions. Fabric boundary: Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "apps/supervisor/src/server.ts": {
-      "sha256": "de4694096a42bd75a634c60db8d8bf81667638f6a17f0830346966fb376fa614",
+      "sha256": "e12c969c9d9cf22901b99f0fc7864012a47be9a4a96e262bb35d4da7ba84f63c",
       "classification": "HOST_ACTIVATION",
       "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback. Fabric boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback. Consolidated boundary: Explicit validated provider config, no synthetic overrides; pinned configured model. Connected evidence POST is backend-authenticated, exact-reference only; Proof client Work details are owner-filtered and omit storage paths."
     },
@@ -97,9 +97,14 @@
       "authorityBoundary": " Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
     },
     "apps/supervisor/src/actions.ts": {
-      "sha256": "e50ebebdfe5e24004c8d32efa4a129acf5dba8fb8ddccb168c9a8a5bd681f489",
+      "sha256": "7b2517e87f4da0ad1abb60332a200b06369aff1caf389fef530587d75ca12bd0",
       "classification": "BOUNDED_REPAIR_LIFECYCLE",
       "authorityBoundary": " Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval."
+    },
+    "apps/supervisor/src/hosted-intake.ts": {
+      "sha256": "779d0f17340ed7db1c847e2246488a747847f3fb7ffff03c48d8b41084857d0b",
+      "classification": "HOSTED_INTAKE_RECEIPT",
+      "authorityBoundary": "Hosted Linear intake and receipt: reads WorkOrder from Linear queue; writes signed receipt URL derived from the running desk port (no hard-coded port). No model authority, dispatch override, credential access, or publication permission. Port is operator-supplied via constructor; loopback-only URL. Poll interval remains 15s. Admission, client scopes, receipts and WorkOrder authority unchanged."
     },
     "apps/supervisor/src/connections.ts": {
       "sha256": "4abd28f29c5351a3473315d91737189643fc1ce642698df535873f49bddd7454",

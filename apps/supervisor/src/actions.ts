@@ -565,7 +565,11 @@ async function requireHumanPresence(
 ): Promise<void> {
   if (actor.kind !== "human") return;
   if (!context.confirmHumanPresence) {
-    throw new ActionError("Device-owner confirmation is unavailable", "human_confirmation_unavailable", 503);
+    throw new ActionError(
+      "Device-owner confirmation is not available on this platform. Run the desk on the owner's Mac to perform this action.",
+      "human_confirmation_unavailable",
+      503,
+    );
   }
   if (!(await context.confirmHumanPresence({ action, summary }))) {
     throw new ActionError("Device owner did not confirm the action", "human_confirmation_denied", 403);

@@ -151,7 +151,10 @@ export interface SupervisorOptions {
   webDist?: string;
   startRun?: ActionContext["startRun"];
   cancelRun?: ActionContext["cancelRun"];
-  confirmHumanPresence?: NonNullable<ActionContext["confirmHumanPresence"]>;
+  /** Injected confirmation function. Omit the key, or forward `undefined`, for the
+   *  production default (Touch ID on darwin, unavailable otherwise). Only a function
+   *  overrides that default — wrappers must not disable the owner flow by spreading undefined. */
+  confirmHumanPresence?: ActionContext["confirmHumanPresence"];
   publishDraft?: NonNullable<ActionContext["publishDraft"]>;
   jobDependencies?: Partial<JobDependencies>;
   /** Backend-only fixture authorization; never read from HTTP or environment. */
@@ -159,10 +162,18 @@ export interface SupervisorOptions {
   /** Synthetic loopback provider only. Never sourced from public input or environment. */
   localSpendFixture?: { upstreamOrigin: string; upstreamApiKey: string; price: SpendPrice };
   linear?: LinearOptions;
+  /** Port the desk HTTP server will listen on; used for hosted-intake receipt URLs.
+   *  Defaults to FACTORY_PORT env var, then 8787. Only set this when calling
+   *  createSupervisor() directly (e.g. in tests); the CLI entry point derives it automatically. */
+  deskPort?: number;
+  /** When true and the policy is at the initial revision with dispatch still active (i.e. a
+   *  brand-new data directory), automatically set dispatch to paused before the server starts
+   *  accepting connections.  Has no effect on an existing desk that has been used before.
+   *  Controlled by the FACTORY_START_PAUSED environment variable in the CLI entry point. */
+  startPaused?: boolean;
 }
 
 async function confirmHumanPresence(request: Parameters<NonNullable<ActionContext["confirmHumanPresence"]>>[0]): Promise<boolean> {
-  if (process.platform !== "darwin") return false;
   const reason = `Factory ${request.action}: ${request.summary.replace(/[\x00-\x1f\x7f]/g, " ").slice(0, 250)}`;
   try {
     await execFileAsync("/usr/bin/swift", [confirmApprovalScript, reason], {
@@ -173,6 +184,25 @@ async function confirmHumanPresence(request: Parameters<NonNullable<ActionContex
   } catch {
     return false;
   }
+}
+
+/** Returns the macOS Touch ID confirmation function only when running on darwin.
+ * On other platforms, returns undefined so that requireHumanPresence throws 503
+ * "human_confirmation_unavailable" rather than the misleading 403 "human_confirmation_denied". */
+function darwinConfirmHumanPresence(): ActionContext["confirmHumanPresence"] {
+  return process.platform === "darwin" ? confirmHumanPresence : undefined;
+}
+
+/** Production default: omitted key and forwarded `undefined` both use the platform fallback
+ *  (Touch ID on darwin). Only an injected function overrides that. Non-darwin 503 tests omit
+ *  a function and are platform-scoped so they never invoke real authentication on Mac. */
+export function resolveConfirmHumanPresence(
+  options: Pick<SupervisorOptions, "confirmHumanPresence">,
+  platformFallback: () => ActionContext["confirmHumanPresence"] = darwinConfirmHumanPresence,
+): ActionContext["confirmHumanPresence"] {
+  const override = options.confirmHumanPresence;
+  if (typeof override === "function") return override;
+  return platformFallback();
 }
 
 export function createSupervisor(options: SupervisorOptions = {}) {
@@ -190,6 +220,12 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const webDist = resolve(options.webDist ?? defaultWebDist);
   const token = sessionToken(dataDir);
   const storage = openStorage(resolve(dataDir, "factory.sqlite"));
+  if (options.startPaused) {
+    const current = storage.getPolicy();
+    if (current.revision === 1 && !current.dispatchPaused) {
+      storage.setDispatchPaused(true, 1, "system:start-paused");
+    }
+  }
   const spend = new SpendLedger(resolve(dataDir, "factory.sqlite"));
   spend.recoverUnknown();
   const connectionsPath = resolve(dataDir, "connections.json");
@@ -267,13 +303,14 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     linear,
     appBuildDirectory: join(dataDir, "app-builds"),
     previewManager: previews,
-    confirmHumanPresence: options.confirmHumanPresence ?? confirmHumanPresence,
+    confirmHumanPresence: resolveConfirmHumanPresence(options),
     publishDraft: options.publishDraft ?? publishDraftPullRequest,
     notify,
     startRun: options.startRun ?? ((workOrder) => jobs.startRun(workOrder)),
     cancelRun: options.cancelRun ?? ((workOrder) => jobs.cancelRun(workOrder)),
   };
-  const hostedIntake = process.env.FACTORY_HOSTED_INTAKE === "true" ? new HostedIntake(context, linear, dataDir) : null;
+  const deskPort = options.deskPort ?? Number(process.env.FACTORY_PORT ?? 8787);
+  const hostedIntake = process.env.FACTORY_HOSTED_INTAKE === "true" ? new HostedIntake(context, linear, dataDir, deskPort) : null;
 
   function workOrderDetail(id: string, includeEvidenceRefs = false): WorkOrderDetail | null {
     const workOrder = storage.getWorkOrder(id);
@@ -591,7 +628,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
     throw new Error("FACTORY_PORT must be a valid TCP port");
   }
-  const supervisor = createSupervisor();
+  const startPaused = process.env.FACTORY_START_PAUSED === "true";
+  const supervisor = createSupervisor({ deskPort: port, startPaused });
   supervisor.server.listen(port, "127.0.0.1", () => {
     console.log(`Local Factory is ready at http://127.0.0.1:${port}`);
     supervisor.hostedIntake?.start();
