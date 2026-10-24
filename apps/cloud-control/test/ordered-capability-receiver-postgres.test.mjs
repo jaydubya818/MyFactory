@@ -18,7 +18,7 @@ import {signPolicyMessage,verifyPolicyMessage,policyMessageHash} from '../../../
 import {verifyFactoryPreparationTerminal} from '../../../packages/capability-enforcement/src/factory-preparation-terminal.ts';
 import {validationConfiguration as configuration,validationSourceGrant as originalGrant} from '../src/production-validation-plan.mjs';
 import {productionVerifierPolicy as verifierPolicy,productionVerifierPolicySha256 as verifierPolicySha256} from '../src/production-verifier-policy.mjs';
-import {productionSpendPlan} from '../src/production-execution-plan.mjs';
+import {syntheticAdmissionSpendPlan} from './fixtures/admission-spend-plan.mjs';
 
 const nativeUrl=process.env.FACTORY_RECEIVER_TEST_DATABASE_URL,witnessUrl=process.env.FACTORY_RECEIVER_TEST_WITNESS_URL;
 async function key(id){const pair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);return {keyId:id,jwk:await crypto.subtle.exportKey('jwk',pair.privateKey)};}
@@ -57,12 +57,14 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   if(!row||row.client_id!==grant.clientId||row.work_id!==input.workId||row.manifest_sha256!==digest(row.manifest)||row.state!=='AUTHORIZED')throw Error('WORK_EXECUTION_AUTHORITY_DENIED');
   if(action==='prepare'&&!row.consumed_at)await client.query("UPDATE factory.production_work_authority SET consumed_at=clock_timestamp() WHERE request_id=$1",[input.requestId]);
  }});
- const spend=new PostgresSpendLedger(pool),sourceDigest='a'.repeat(64),control=new CloudWorkControl({store,spend,grant,ownerScope:scope.ownerId,configuration,sourceDigest,signing:{factoryId:'fixture-factory'},executionSpendPlan:productionSpendPlan,verificationPolicy:{policy:verifierPolicy,policySha256:verifierPolicySha256}});
+ const spend=new PostgresSpendLedger(pool),sourceDigest='a'.repeat(64);
+ const executionSpendPlan=syntheticAdmissionSpendPlan(new Date(Date.now()+180000).toISOString());
+ const control=new CloudWorkControl({store,spend,grant,ownerScope:scope.ownerId,configuration,sourceDigest,signing:{factoryId:'fixture-factory'},executionSpendPlan,verificationPolicy:{policy:verifierPolicy,policySha256:verifierPolicySha256}});
  const secondGrant={...grant,clientId:'sofie-production'};
  const secondStore=new PostgresDispatchStore(pool,{capabilityBindings:{[secondGrant.clientId]:binding},verificationPolicySha256:verifierPolicySha256,
   assertRecordScope:async(client,row)=>{const original=(await client.query('SELECT * FROM factory.production_work_authority WHERE request_id=$1',[row.request_id])).rows[0];if(!original||original.client_id!==secondGrant.clientId||original.work_id!==row.work_id||original.manifest.ownerId!==scope.ownerId||original.manifest.organizationId!==scope.organizationId||original.manifest.installationId!==scope.installationId||original.manifest.agentId!==agentId||digest(original.manifest.request)!==row.input_digest)throw Error('ORIGINAL_SCOPE_UNAVAILABLE');},
   assertAuthority:async(client,input,_now,action)=>{const row=(await client.query('SELECT * FROM factory.production_work_authority WHERE request_id=$1',[input.requestId])).rows[0];if(!row||row.client_id!==secondGrant.clientId||row.work_id!==input.workId||row.manifest_sha256!==digest(row.manifest)||row.state!=='AUTHORIZED')throw Error('WORK_EXECUTION_AUTHORITY_DENIED');if(action==='prepare'&&!row.consumed_at)await client.query('UPDATE factory.production_work_authority SET consumed_at=clock_timestamp() WHERE request_id=$1',[input.requestId]);}});
- const secondControl=new CloudWorkControl({store:secondStore,spend,grant:secondGrant,ownerScope:scope.ownerId,configuration,sourceDigest,signing:{factoryId:'fixture-factory'},executionSpendPlan:productionSpendPlan,verificationPolicy:{policy:verifierPolicy,policySha256:verifierPolicySha256}});
+ const secondControl=new CloudWorkControl({store:secondStore,spend,grant:secondGrant,ownerScope:scope.ownerId,configuration,sourceDigest,signing:{factoryId:'fixture-factory'},executionSpendPlan,verificationPolicy:{policy:verifierPolicy,policySha256:verifierPolicySha256}});
  const originalControls=new Map([[grant.clientId,control],[secondGrant.clientId,secondControl]]);
  const ordered=new OrderedFactoryAdmission({receiver,witness,directPool:direct,control,signer,clientControls:originalControls,isRetainedAuthorityFenced:async(client,id)=>(await client.query('SELECT state FROM factory.production_work_authority WHERE request_id=$1 AND client_id=$2 AND work_id=$3',[id.requestId,id.clientId,id.workId])).rows[0]?.state==='REVOKED',invalidateRetainedAuthority:async(client,id)=>{await client.query("UPDATE factory.production_work_authority SET state='REVOKED' WHERE request_id=$1 AND client_id=$2 AND work_id=$3",[id.requestId,id.clientId,id.workId]);},assertRetainedAuthority:async(client,identity,outcome)=>{const row=(await client.query('SELECT * FROM factory.production_work_authority WHERE request_id=$1',[identity.requestId])).rows[0];if(!row||row.client_id!==identity.clientId||row.work_id!==identity.workId||row.manifest_sha256!==digest(row.manifest)||digest(row.manifest.request)!==identity.nativeRequestDigest||(outcome==='ADMITTED'&&!row.consumed_at))throw Error('FACTORY_NATIVE_LINEAGE_MISSING');},enrollment:{scope,agentId,registryVersion:'fixture-registry',environment:'qualification',directEndpointVerified:true,sourceKeys:keys,clientBindings:[{clientId:grant.clientId,...binding},{clientId:secondGrant.clientId,...binding}]}});
  const fence=async(authority,version,operation='enable')=>signPolicyMessage({...scope,authority,version,policyId:authority+'-policy-'+version,kind:'FENCE',capabilityId:'myfactory',operation},keys[authority]);
@@ -76,6 +78,15 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   const relay=await signPolicyMessage({...fields,...Object.fromEntries(['authority','version','policyId'].map(k=>[k,r[k]])),referenceId:'lse_'+randomUUID(),kind:'PERMIT',requiredCapabilities:['work','myfactory'],agentRevision,sourcePermitHash:await policyMessageHash(JSON.parse(myeve.message))},keys.relay);
   return {myeve,relay};
  };
+ await t.test('isolated receiver qualification uses the TEST-ONLY admission fixture; expired fixture pricing is still refused',async()=>{
+  assert.equal(executionSpendPlan.model,'fixture/authority-only');
+  assert.equal(executionSpendPlan.pricingRevision,'fixture-authority-only-v1');
+  const expiredWork=randomUUID();
+  await assert.rejects(new PostgresSpendLedger(pool,{requireExecutionLease:false}).createBudget(
+   {workId:expiredWork,workGeneration:1,requestId:randomUUID(),workOrderId:randomUUID()},
+   1000000,new Date(Date.now()+160000).toISOString(),syntheticAdmissionSpendPlan(new Date(0).toISOString())),/Qualified pricing has expired/);
+  assert.equal((await admin.query('SELECT count(*) FROM factory.work_spend_budgets WHERE work_id=$1',[expiredWork])).rows[0].count,'0');
+ });
  await t.test('restricted witness role sees its own session and enforces the reviewed server timeouts without monitor privileges',async()=>{
   const role=(await wadmin.query("SELECT rolsuper,rolcreaterole,rolcreatedb,rolreplication,rolbypassrls FROM pg_roles WHERE rolname='witness_runtime'")).rows[0];
   assert(Object.values(role).every(value=>value===false));
@@ -229,15 +240,15 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
    dispatchIdentity:randomUUID(),factoryVersion:admitted.result.snapshot.factoryVersion,runId:admitted.result.runId};
   const ledger=new PostgresSpendLedger(pool,{requireExecutionLease:false}); // No provider call; canonical accounting only.
   await ledger.bindAuthority(unknownBinding);unknownOperation=randomUUID();
-  await ledger.reserve({...unknownBinding,operationId:unknownOperation,model:productionSpendPlan.model,pricingRevision:productionSpendPlan.pricingRevision,reservedMicrousd:productionSpendPlan.perOperationReserveMicrousd,phase:'productive'});
+  await ledger.reserve({...unknownBinding,operationId:unknownOperation,model:executionSpendPlan.model,pricingRevision:executionSpendPlan.pricingRevision,reservedMicrousd:executionSpendPlan.perOperationReserveMicrousd,phase:'productive'});
   await ledger.markUnknown(unknownOperation);
   await ordered.receiveFence(await fence('myeve',2,'disable'));
   await assert.rejects(ordered.prepare(pending,'fixture-mission',old),/STALE_OR_FOREIGN/);
   assert.equal((await admin.query('SELECT count(*) FROM factory.intake_receipts')).rows[0].count,'2');
   assert.equal((await ordered.prepare(admitted.request,'fixture-mission',admitted.pair)).runId,admitted.result.runId);
   assert.equal((await spend.getOperation(unknownOperation)).state,'unknown');
-  assert.equal((await spend.read(admitted.request.workId)).unknownExposureMicrousd,productionSpendPlan.perOperationReserveMicrousd);
-  await assert.rejects(new PostgresSpendLedger(pool,{requireExecutionLease:false}).reserve({...unknownBinding,operationId:randomUUID(),model:productionSpendPlan.model,pricingRevision:productionSpendPlan.pricingRevision,reservedMicrousd:productionSpendPlan.perOperationReserveMicrousd,phase:'productive'}),/authority|UNKNOWN|Unresolved/);
+  assert.equal((await spend.read(admitted.request.workId)).unknownExposureMicrousd,executionSpendPlan.perOperationReserveMicrousd);
+  await assert.rejects(new PostgresSpendLedger(pool,{requireExecutionLease:false}).reserve({...unknownBinding,operationId:randomUUID(),model:executionSpendPlan.model,pricingRevision:executionSpendPlan.pricingRevision,reservedMicrousd:executionSpendPlan.perOperationReserveMicrousd,phase:'productive'}),/authority|UNKNOWN|Unresolved/);
  });
  await t.test('Relay native revocation fences original authority, denies older agent permits, and never certifies absent resources',async()=>{
   const pair=generateKeyPairSync('ed25519'),keyId='original-fixture-evidence';relaySigningPair=pair;
@@ -279,7 +290,7 @@ test('LOCAL remote receiver uses independent witness and native authority; resto
   await verification.cleanup(run,verifyLease,'sbx_fixture_verifier');
   const inventory=()=>ordered.receiver.transaction(async client=>receiverInventory(ordered,client,await ordered.receiver.state(client),()=>true));
   const current=await inventory(),ownRun=current.runs.find(r=>r.identity.runId===run);assert(ownRun.positiveCleanup);assert.equal(ownRun.unknown,false);
-  assert.equal((await spend.getOperation(unknownOperation)).state,'unknown');assert.equal((await spend.read(admitted.request.workId)).unknownExposureMicrousd,productionSpendPlan.perOperationReserveMicrousd);
+  assert.equal((await spend.getOperation(unknownOperation)).state,'unknown');assert.equal((await spend.read(admitted.request.workId)).unknownExposureMicrousd,executionSpendPlan.perOperationReserveMicrousd);
   const journal=(await admin.query("DELETE FROM factory.events WHERE run_id=$1 AND type='verifier.cleanup_confirmed' RETURNING *",[run])).rows[0];
   assert.equal((await inventory()).runs.find(r=>r.identity.runId===run).positiveCleanup,false);
   await admin.query('INSERT INTO factory.events(id,work_order_id,run_id,type,payload,created_at) OVERRIDING SYSTEM VALUE VALUES($1,$2,$3,$4,$5,$6)',[journal.id,journal.work_order_id,journal.run_id,journal.type,journal.payload,journal.created_at]);

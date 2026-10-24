@@ -82,10 +82,10 @@ export function pricedAdmission(assert,spendPlan){
 export function externalAlphaRuntimeComponents({env={},spendPlan=productionSpendPlan,pool,queue,installation,signing,sourceDigest,signReceipt,signReadback,registry,snapshots,sourceCustody,provider,providerFactory,verification,verifierProfile,deploymentId=env.VERCEL_DEPLOYMENT_ID,hostInstallation,capabilityBindings}){
  if((provider&&providerFactory)||(providerFactory!==undefined&&typeof providerFactory!=='function'))deny('AUTHORITY_DISABLED');
  if(!installation||typeof signReceipt!=='function'||typeof signReadback!=='function'||!pool||!queue)deny('AUTHORITY_DISABLED');
- if(sourceDigest!==installation.source.sourceDigest)deny('AUTHORITY_SOURCE');
+ if(sourceDigest!==installation.source.sourceDigest)deny('AUTHORITY_INSTALLATION_MISMATCH');
  const verificationPolicy=verification?.policy??alphaTasksVerificationPolicy,verificationPolicySha256=verification?.policySha256??alphaTasksVerificationPolicySha256;
  const configuration=externalAlphaConfiguration(installation,verificationPolicySha256);
- if(digest({sourceDigest,configurationDigest:digest(configuration)})!==installation.factoryVersion)deny('AUTHORITY_FACTORY_VERSION');
+ if(digest({sourceDigest,configurationDigest:digest(configuration)})!==installation.factoryVersion)deny('AUTHORITY_INSTALLATION_MISMATCH');
  if(!/^dpl_[A-Za-z0-9]+$/.test(deploymentId??''))deny('AUTHORITY_DISABLED');
  if(signing?.factoryId!=='myfactory-external-alpha'||signing?.key?.factoryId!==signing.factoryId||signing.key.keyId!=='external-alpha-result-v1')deny('AUTHORITY_DISABLED');
  const clientId=installation.application.clientId,plan=externalAlphaCheckpointPlan(installation);
@@ -104,8 +104,8 @@ export function externalAlphaRuntimeComponents({env={},spendPlan=productionSpend
   // Every record read or written through this store must belong to THIS slot's admission.
   assertRecordScope:async(client,row)=>{const a=await authority.ownedRow(client,row.request_id,{currentGeneration:false});if(row.client_id!==clientId||!a||row.work_id!==a.work_id||row.work_generation!==a.work_generation||row.snapshot.factoryVersion!==installation.factoryVersion||row.snapshot.requestDigest!==digest(row.request))throw new ExternalAlphaError('AUTHORITY_OWNER');}});
  const spend=new PostgresSpendLedger(pool,{assertPaidAuthority:authority.assertPaidAuthority(),onUnknown:authority.fenceUnknownSpend()});
- let entry,receipt;try{entry=Object.freeze({...registryEntryFor(registry,installation)});receipt=Object.freeze({...assertPrivateSnapshotReceipt(entry,snapshots?.[entry.slot])});}catch{deny('AUTHORITY_SOURCE');}
- if(!sourceCustody&&!hostInstallation?.custodyStoreId)deny('AUTHORITY_SOURCE');
+ let entry,receipt;try{entry=Object.freeze({...registryEntryFor(registry,installation)});receipt=Object.freeze({...assertPrivateSnapshotReceipt(entry,snapshots?.[entry.slot])});}catch{deny('AUTHORITY_DISABLED');}
+ if(!sourceCustody&&!hostInstallation?.custodyStoreId)deny('AUTHORITY_DISABLED');
  const rawCustody=sourceCustody??privateSourceCustody({put,get,storeId:hostInstallation.custodyStoreId,options:async()=>({oidcToken:await productionWorkloadIdentity(hostInstallation)})});
  const custody={async read(e,r){assertPrivateSnapshotReceipt(e,r);const read=await rawCustody.read(e,r);if(read.bytes?.length!==r.bytes)throw Error('PRIVATE_SOURCE_CUSTODY_BINDING');return{bytes:read.bytes,...validateSnapshotBytes(read.bytes,e,r.sha256)};}};
  const assertWorkAuthorized=row=>store.transaction((client,now)=>authority.assertAuthority()(client,row.request,now,'model'));
@@ -155,7 +155,7 @@ export async function withExternalAlphaRuntime(env,installation,action,{registry
  const pem=env.FACTORY_EXTERNAL_ALPHA_RECEIPT_SIGNING_KEY;
  if(typeof pem!=='string'||pem.length<50||pem.length>4000)deny('AUTHORITY_DISABLED');
  let signReceipt,signReadback;try{signReceipt=receiptSigner(pem.replaceAll('\\n','\n'));signReadback=readbackSigner(pem.replaceAll('\\n','\n'));}catch{deny('AUTHORITY_DISABLED');}
- let registry,snapshots;try{registry=await registryLoader(env);snapshots=await snapshotsLoader(env,registry);}catch{deny('AUTHORITY_SOURCE');}
+ let registry,snapshots;try{registry=await registryLoader(env);snapshots=await snapshotsLoader(env,registry);}catch{deny('AUTHORITY_DISABLED');}
  // Capability configuration is consumed only by the admission transaction, which fails closed without it
  // (CAPABILITY_INSTALLATION_UNQUALIFIED). Reads, results and stop must stay available when it is absent or malformed.
  let capability=null;try{capability=externalAlphaSlotCapability(env,loadExternalAlphaInstallations(env),installation);}catch{capability=null;}

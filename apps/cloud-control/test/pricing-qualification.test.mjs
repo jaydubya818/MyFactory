@@ -70,14 +70,14 @@ test('an exact old approval cannot authorize the successor execution contract', 
 
 import impact from '../../../docs/external-alpha/pricing-backport-20261011/identity-impact.json' with {type:'json'};
 import sourceIdentity from '../src/source-identity.json' with {type:'json'};
-import predecessorSuccessor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-unified-candidate-successor.json' with {type:'json'};
-import currentSuccessor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-confirm-seam-successor.json' with {type:'json'};
+import predecessorSuccessor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-runtime-source-successor.json' with {type:'json'};
+import currentSuccessor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-undici-advisory-successor.json' with {type:'json'};
 import {externalAlphaFactoryVersion,externalAlphaConfiguration,externalAlphaRuntimeComponents} from '../src/external-alpha-runtime.mjs';
 import {loadVectors,installationOf} from './fixtures/myeve-conformance/support.mjs';
 
 test('separate successor identity preserves configuration; an old installation cannot authorize it', () => {
  assert.equal(sourceIdentity.sourceDigest,currentSuccessor.sourceDigest);
- assert.equal(currentSuccessor.predecessorSourceDigest,'b89bbde0bd46a8176feb89ec83ae72f757ef721f57ea8563f1d888b278a9c765');
+ assert.equal(currentSuccessor.predecessorSourceDigest,'c239cad91c6811a738dcd9baac34b7e884df79ce051ab683cf6005b86a6c890c');
  assert.equal(currentSuccessor.predecessorSourceDigest,predecessorSuccessor.sourceDigest);
  assert.equal(currentSuccessor.configurationDigest,predecessorSuccessor.configurationDigest);
  assert.notEqual(sourceIdentity.sourceDigest,currentSuccessor.predecessorSourceDigest);
@@ -92,7 +92,7 @@ test('separate successor identity preserves configuration; an old installation c
  assert.notEqual(version,old.factoryVersion);
  let effects=0;
  const deps={pool:{query:()=>{effects++;throw Error('UNREACHABLE');}},queue:{send:()=>{effects++;throw Error('UNREACHABLE');}},signReceipt:()=>{effects++;throw Error('UNREACHABLE');},signReadback:()=>{effects++;throw Error('UNREACHABLE');},sourceDigest:sourceIdentity.sourceDigest};
- assert.throws(()=>externalAlphaRuntimeComponents({...deps,installation:old}),e=>e.code==='AUTHORITY_SOURCE');
- assert.throws(()=>externalAlphaRuntimeComponents({...deps,installation:successor}),e=>e.code==='AUTHORITY_FACTORY_VERSION');
+ assert.throws(()=>externalAlphaRuntimeComponents({...deps,installation:old}),e=>e.code==='AUTHORITY_INSTALLATION_MISMATCH');
+ assert.throws(()=>externalAlphaRuntimeComponents({...deps,installation:successor}),e=>e.code==='AUTHORITY_INSTALLATION_MISMATCH');
  assert.equal(effects,0);
 });

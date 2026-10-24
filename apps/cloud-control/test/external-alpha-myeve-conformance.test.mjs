@@ -94,18 +94,20 @@ test('the real MyEve prepare request body is accepted by parseCloudPrepare and b
 // ACCEPTED rows are fields the authority deliberately does not pin to a single value (a signed shorter/longer window
 // within the Factory ceiling, or an earlier request deadline); they are re-checked for single consumption below.
 const rules=[
+ [/^envelope:keyId$/,'AUTHORITY_DISABLED'],
  [/^envelope:/,'AUTHORITY_SIGNATURE'],
  // document: value flips
  [/^document:(schema|singleUse)$/,'AUTHORITY_SCHEMA'],
  [/^document:(authorityId|idempotencyKey|policySha256|work\.id|work\.version|work\.generation|project\.tupleSha256|candidateWriter\.(candidateSlot|writerId|requestId))$/,'AUTHORITY_IDENTIFIER'],
- [/^document:(cohortId|slot|ownerId|application\.clientId|application\.projectId)$/,'AUTHORITY_OWNER'],
- [/^document:source\.(repository|baseSha|treeSha|sourceDigest)$/,'AUTHORITY_SOURCE'],
+ [/^document:(cohortId|slot|ownerId|application\.clientId|application\.projectId)$/,'AUTHORITY_INSTALLATION_MISMATCH'],
+ [/^document:source\.(repository|baseSha|treeSha)$/,'AUTHORITY_SOURCE'],
+ [/^document:source\.sourceDigest$/,'AUTHORITY_INSTALLATION_MISMATCH'],
  [/^document:source\.allowedFiles(\.\d+|\.dropped-last|\.reversed|\.extended)?$|^document:source\.allowedFilesSha256$/,'AUTHORITY_FILES'],
  [/^document:work\.(title|objectiveSha256)$/,'AUTHORITY_WORK'],
  [/^document:(work\.criteriaSha256|work\.criteriaCount|project\.name|project\.task|project\.criteriaSha256|verifier\.criteriaSha256)$/,'AUTHORITY_TUPLE'],
  [/^document:environment$/,'AUTHORITY_ENVIRONMENT'],
  [/^document:(executionProvider|harness\.(id|version))$/,'AUTHORITY_PROVIDER'],
- [/^document:factoryVersion$/,'AUTHORITY_FACTORY_VERSION'],
+ [/^document:factoryVersion$/,'AUTHORITY_INSTALLATION_MISMATCH'],
  [/^document:model\./,'AUTHORITY_MODEL'],
  [/^document:verifier\.(id|verifiesExactArtifact|trustProducer)$/,'AUTHORITY_VERIFIER'],
  [/^document:(allowedEffects|forbiddenEffects)(\.\d+|\.dropped-last|\.reversed|\.extended)$/,'AUTHORITY_EFFECTS'],
@@ -126,7 +128,9 @@ const rules=[
  [/^prepare:-deadline$/,'AUTHORITY_EXPIRED'],
  [/^prepare:(maxSpendUsd|-maxSpendUsd)$/,'AUTHORITY_LIMITS'],
  [/^prepare:(input\.acceptanceCriteria\.\d+|acceptanceCriteria\.[a-z-]+|-input\.acceptanceCriteria)$/,'AUTHORITY_TUPLE'],
- [/^prepare:(input\.checkCommands\.\d+|-input\.checkCommands|checkCommands\.extended|input\.allowedPaths\.\d+|-input\.allowedPaths|allowedPaths\.widened)$/,'AUTHORITY_FILES'],
+ [/^prepare:(input\.checkCommands\.\d+|checkCommands\.extended)$/,'AUTHORITY_INSTALLATION_MISMATCH'],
+ [/^prepare:-input\.checkCommands$/,'AUTHORITY_FILES'],
+ [/^prepare:(input\.allowedPaths\.\d+|-input\.allowedPaths|allowedPaths\.widened)$/,'AUTHORITY_FILES'],
  [/^prepare:allowedPaths\.unsorted$/,'CLOUD_CAPABILITIES_NOT_GRANTED'],
 ];
 const expectedFor=name=>{for(const [re,code] of rules)if(re.test(name))return code;throw Error('NO EXPECTATION FOR '+name);};
@@ -140,7 +144,7 @@ test('every bound field of the MyEve document, envelope and prepare body is enfo
   assert.equal(got,want,m.name);
   seen[want]=(seen[want]??0)+1;
  }
- for(const code of ['AUTHORITY_SCHEMA','AUTHORITY_SIGNATURE','AUTHORITY_IDENTIFIER','AUTHORITY_OWNER','AUTHORITY_SOURCE','AUTHORITY_FILES','AUTHORITY_WORK','AUTHORITY_TUPLE','AUTHORITY_ENVIRONMENT','AUTHORITY_PROVIDER','AUTHORITY_FACTORY_VERSION','AUTHORITY_MODEL','AUTHORITY_VERIFIER','AUTHORITY_EFFECTS','AUTHORITY_LIMITS','AUTHORITY_EXPIRED','INVALID_CLOUD_REQUEST'])
+ for(const code of ['AUTHORITY_SCHEMA','AUTHORITY_SIGNATURE','AUTHORITY_DISABLED','AUTHORITY_IDENTIFIER','AUTHORITY_INSTALLATION_MISMATCH','AUTHORITY_SOURCE','AUTHORITY_FILES','AUTHORITY_WORK','AUTHORITY_TUPLE','AUTHORITY_ENVIRONMENT','AUTHORITY_PROVIDER','AUTHORITY_MODEL','AUTHORITY_VERIFIER','AUTHORITY_EFFECTS','AUTHORITY_LIMITS','AUTHORITY_EXPIRED','INVALID_CLOUD_REQUEST'])
   assert.ok(seen[code]>0,'no mutation exercised '+code);
  // Re-signed document mutations really are signed by the pinned key: they fail on the field, not on the signature.
  const resigned=v.mutations.filter(m=>m.target==='document');

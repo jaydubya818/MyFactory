@@ -25,6 +25,37 @@ const sha256hex=value=>createHash('sha256').update(value).digest('hex');
 const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype;
 export const reply=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
 const denied=(code,status=403)=>reply({error:'EXTERNAL_ALPHA_AUTHORITY_DENIED',code,admission:'DISABLED'},status);
+const unavailable=()=>reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+// Origin/permanence for HTTP mapping. Temporary codes stay 503 UNKNOWN so a later
+// identical request is not fenced by a DISABLED cancel after operator pins restore.
+// Permanent codes stay 403/409. Public 503 body is generic EXTERNAL_ALPHA_UNAVAILABLE.
+// Internal AUTHORITY_INSTALLATION_MISMATCH grants no identity or capability.
+export const REFUSAL_ORIGIN=Object.freeze({
+ AUTHORITY_CAPABILITY:{origin:'capability HTTP pins / in-transaction admission',permanence:'temporary'},
+ AUTHORITY_DISABLED:{origin:'operator installation load, missing key, expired key calendar, restorable runtime registry/snapshot/custody loading and composition',permanence:'temporary'},
+ AUTHORITY_NOT_YET_VALID:{origin:'document or pinned-key notBefore',permanence:'temporary'},
+ AUTHORITY_UNKNOWN_FENCE:{origin:'cohort UNKNOWN/FENCED spend hold',permanence:'temporary'},
+ AUTHORITY_INSTALLATION_MISMATCH:{origin:'document vs restorable operator owner/cohort/slot/policy/application/sourceDigest/source/files/checkCommands/factoryVersion pins; runtime sourceDigest/FV vs installation',permanence:'temporary'},
+ AUTHORITY_OWNER:{origin:'later-phase admitted-row vs this installation (assertPhase/ownedRow/assertRecordScope)',permanence:'temporary'},
+ AUTHORITY_SOURCE:{origin:'signed document vs this prepare repository/commit/tree; CLOUD_SOURCE_NOT_GRANTED',permanence:'permanent'},
+ AUTHORITY_FILES:{origin:'document files schema/digest; missing prepare path/command arrays; document vs prepare allowedPaths; INVALID_CLOUD_PATH',permanence:'permanent'},
+ AUTHORITY_SIGNATURE:{origin:'authoritySha256 digest mismatch or Ed25519 verify failure',permanence:'permanent'},
+ AUTHORITY_SCHEMA:{origin:'malformed envelope, document, or prepare shape',permanence:'permanent'},
+ AUTHORITY_IDENTIFIER:{origin:'derived ids vs signed document',permanence:'permanent'},
+ AUTHORITY_WORK:{origin:'prepare vs signed work fields',permanence:'permanent'},
+ AUTHORITY_TUPLE:{origin:'criteria tuple vs Factory-owned constants',permanence:'permanent'},
+ AUTHORITY_ENVIRONMENT:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_PROVIDER:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_MODEL:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_VERIFIER:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_EFFECTS:{origin:'document vs Factory-owned factoryPins',permanence:'permanent'},
+ AUTHORITY_LIMITS:{origin:'document vs Factory-owned factoryPins or request spend',permanence:'permanent'},
+ AUTHORITY_EXPIRED:{origin:'forward-only document expiry',permanence:'permanent'},
+ AUTHORITY_CONSUMED:{origin:'durable unique consumption',permanence:'permanent'},
+ AUTHORITY_REVOKED:{origin:'insert-only revocation',permanence:'permanent'},
+ PRICING_EXPIRED:{origin:'qualified production pricing window on the admission DB clock',permanence:'permanent'}
+});
+const TEMPORARY_REFUSALS=new Set(Object.entries(REFUSAL_ORIGIN).filter(([,v])=>v.permanence==='temporary').map(([code])=>code));
 
 /** Same fixed Work identity every time, derived only from the stored admission. Used for dispatch and stop. */
 export function externalAlphaIdentity(row){
@@ -92,19 +123,32 @@ export async function authenticateExternalAlphaCaller(request,installations,env,
 const ADMISSION_REJECTIONS={INVALID_CLOUD_REQUEST:'AUTHORITY_SCHEMA',INVALID_CLOUD_LIST:'AUTHORITY_SCHEMA',INVALID_CLOUD_PATH:'AUTHORITY_FILES',CLOUD_ENVELOPE_EXCEEDED:'AUTHORITY_LIMITS',
  CLOUD_SOURCE_NOT_GRANTED:'AUTHORITY_SOURCE',CLOUD_CAPABILITIES_NOT_GRANTED:'AUTHORITY_FILES',EXTERNAL_ALPHA_WORK_LIMIT:'AUTHORITY_LIMITS',WORK_SCOPE_OR_GENERATION_CONFLICT:'AUTHORITY_CONSUMED',PREPARATION_REPLAY_CONFLICT:'AUTHORITY_CONSUMED'};
 function failure(error){
- if(error instanceof ExternalAlphaError)return denied(error.code,error.status);
+ if(error instanceof ExternalAlphaError){
+  if(TEMPORARY_REFUSALS.has(error.code))return unavailable();
+  // Remaining ExternalAlphaError codes are properties of the signed request or a closed
+  // document-expiry window: the identical document cannot later become valid.
+  // Missing/unqualified/not-yet-valid/expired key configuration is AUTHORITY_DISABLED or
+  // AUTHORITY_NOT_YET_VALID (temporary). Restorable runtime registry/snapshot/custody
+  // loading is AUTHORITY_DISABLED (temporary): a later admission lookup cannot prove that
+  // failure was permanent. Operator installation-identity comparisons are
+  // AUTHORITY_INSTALLATION_MISMATCH (temporary). Genuine digest/verify stays AUTHORITY_SIGNATURE.
+  return denied(error.code,error.status);
+ }
  const status=error?.status;
  if(status===413)return reply({error:'PAYLOAD_TOO_LARGE'},413);
  if(status===400)return reply({error:'INVALID_REQUEST'},400);
  const message=typeof error?.message==='string'?error.message:'';
- // Rejections raised INSIDE the admission transaction roll it back: nothing was consumed, so these are definitive.
- // Capability admission runs only inside the prepare transaction, so its denials are definitive as well.
- if(error?.code==='CAPABILITY_ADMISSION_DENIED'||message==='CAPABILITY_INSTALLATION_UNQUALIFIED')return denied('AUTHORITY_CAPABILITY');
+ // Rejections raised INSIDE the admission transaction roll it back: nothing was consumed.
+ // Pricing expiry is judged on the admission-transaction clock and stays a definitive 403.
+ // Temporary refusals (capability, operator install, not-yet-valid, UNKNOWN fence) must not DISABLED-cancel.
  if(message==='PRICING_EXPIRED')return denied('PRICING_EXPIRED');
- if(Object.hasOwn(ADMISSION_REJECTIONS,message)){const code=ADMISSION_REJECTIONS[message];return denied(code,code==='AUTHORITY_CONSUMED'?409:403);}
+ if(Object.hasOwn(ADMISSION_REJECTIONS,message)){
+  const code=ADMISSION_REJECTIONS[message];
+  if(TEMPORARY_REFUSALS.has(code))return unavailable();
+  return denied(code,code==='AUTHORITY_CONSUMED'?409:403);
+ }
  if(message==='FACTORY_REQUEST_NOT_FOUND'||error?.status===404)return reply({error:'NOT_FOUND'},404);
- // Anything else is ambiguous (the caller must treat it as UNKNOWN). Fixed body, never the message.
- return reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+ return unavailable();
 }
 
 /**
@@ -113,8 +157,11 @@ function failure(error){
  */
 export async function handleExternalAlpha(request,env,{withRuntime=withExternalAlphaRuntime,verifyToken=verifyVercelOidcToken,now=Date.now,spendPlan=productionSpendPlan,slotCapability=externalAlphaSlotCapability}={}){
  let installations;
- try{installations=loadExternalAlphaInstallations(env);}catch{return denied('AUTHORITY_DISABLED');}
- if(!installations.length)return denied('AUTHORITY_DISABLED');
+ // Absent or malformed installation pins are operator configuration: restorable, so 503
+ // UNKNOWN this attempt. A 403 DISABLED cancel would release the caller reservation, after
+ // which restoring the pins would admit the delayed identical request.
+ try{installations=loadExternalAlphaInstallations(env);}catch{return unavailable();}
+ if(!installations.length)return unavailable();
  try{
   const installation=await authenticateExternalAlphaCaller(request,installations,env,verifyToken,now);
   if(!installation)return reply({error:'UNAUTHORIZED'},401);
@@ -130,7 +177,7 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
    // Pure pre-flight against THIS slot's pinned installation: no database, nothing consumed.
    validateStatic(body.authority,body.prepare,installation);
    const requestId=body.prepare.requestId;
-   const ambiguous=()=>reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
+   const ambiguous=unavailable;
    // A definitive refusal tells the caller to record a no-charge cancel, so it is returned only with PROOF that this request
    // is not admitted: the lookup runs inside the store's serialized admission transaction (global admission lock), so any
    // in-flight admission has committed or rolled back first, and it reports the database clock that admission itself uses.
@@ -151,8 +198,10 @@ export async function handleExternalAlpha(request,env,{withRuntime=withExternalA
     // Pricing is judged on the database clock under the admission lock: the admission transaction re-checks the same
     // window on the same clock, so no admission can commit for this request after a definitive PRICING_EXPIRED.
     else if(!pricingCurrent(state.dbNow))return denied('PRICING_EXPIRED');
-    // Absent capability configuration: the admission transaction of this deployment also lacks it and fails closed.
-    else if(!capability)return denied('AUTHORITY_CAPABILITY');
+    // Absent or malformed capability configuration is revocable (HTTP pins / bindings can be restored).
+    // Do not emit a definitive DISABLED cancel: that would release the caller's reservation, after which
+    // a delayed identical request can admit. Fail closed for this attempt with ambiguous 503/UNKNOWN.
+    else if(!capability)return ambiguous();
    }
    try{return await withRuntime(env,installation,async c=>{
     const prior=await c.authority.withClient(client=>c.authority.priorDeadline(client,requestId));

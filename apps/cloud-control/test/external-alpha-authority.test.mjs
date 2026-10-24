@@ -44,15 +44,15 @@ const documentCases=[
  ['authorityId altered','AUTHORITY_IDENTIFIER',d=>{d.authorityId=uuid4();}],
  ['writerId altered','AUTHORITY_IDENTIFIER',d=>{d.candidateWriter.writerId=uuid4();}],
  ['second candidate slot','AUTHORITY_IDENTIFIER',d=>{d.candidateWriter.candidateSlot=2;}],
- ['owner altered','AUTHORITY_OWNER',d=>{d.ownerId='other-owner';}],
- ['cohort altered','AUTHORITY_OWNER',d=>{d.cohortId=uuid4();}],
- ['slot altered','AUTHORITY_OWNER',d=>{d.slot='2';}],
- ['client altered','AUTHORITY_OWNER',d=>{d.application.clientId='external-alpha-'+'f'.repeat(32);}],
- ['project altered','AUTHORITY_OWNER',d=>{d.application.projectId='prj_other';}],
+ ['owner altered','AUTHORITY_INSTALLATION_MISMATCH',d=>{d.ownerId='other-owner';}],
+ ['cohort altered','AUTHORITY_INSTALLATION_MISMATCH',d=>{d.cohortId=uuid4();}],
+ ['slot altered','AUTHORITY_INSTALLATION_MISMATCH',d=>{d.slot='2';}],
+ ['client altered','AUTHORITY_INSTALLATION_MISMATCH',d=>{d.application.clientId='external-alpha-'+'f'.repeat(32);}],
+ ['project altered','AUTHORITY_INSTALLATION_MISMATCH',d=>{d.application.projectId='prj_other';}],
  ['repository altered','AUTHORITY_SOURCE',d=>{d.source.repository='fixture-org/other';}],
  ['base sha altered','AUTHORITY_SOURCE',d=>{d.source.baseSha='1'.repeat(40);}],
  ['tree sha altered','AUTHORITY_SOURCE',d=>{d.source.treeSha='2'.repeat(40);}],
- ['source digest altered','AUTHORITY_SOURCE',d=>{d.source.sourceDigest='3'.repeat(64);}],
+ ['source digest altered','AUTHORITY_INSTALLATION_MISMATCH',d=>{d.source.sourceDigest='3'.repeat(64);}],
  ['allowed files widened','AUTHORITY_FILES',d=>{d.source.allowedFiles=['src/app.js','src/other.js','test/app.test.js'];d.source.allowedFilesSha256=digest({version:1,files:d.source.allowedFiles});}],
  ['allowed files traversal','AUTHORITY_FILES',d=>{d.source.allowedFiles=['../escape.js'];}],
  ['allowed files digest','AUTHORITY_FILES',d=>{d.source.allowedFilesSha256='4'.repeat(64);}],
@@ -62,7 +62,7 @@ const documentCases=[
  ['environment','AUTHORITY_ENVIRONMENT',d=>{d.environment='STAGING';}],
  ['provider','AUTHORITY_PROVIDER',d=>{d.executionProvider='OTHER';}],
  ['harness version','AUTHORITY_PROVIDER',d=>{d.harness.version='2';}],
- ['factory version','AUTHORITY_FACTORY_VERSION',d=>{d.factoryVersion='7'.repeat(64);}],
+ ['factory version','AUTHORITY_INSTALLATION_MISMATCH',d=>{d.factoryVersion='7'.repeat(64);}],
  ['model','AUTHORITY_MODEL',d=>{d.model.id='openai/gpt-5.4';}],
  ['verifier trusts producer','AUTHORITY_VERIFIER',d=>{d.verifier.trustProducer=true;}],
  ['verifier not exact','AUTHORITY_VERIFIER',d=>{d.verifier.verifiesExactArtifact=false;}],
@@ -82,6 +82,8 @@ const prepareCases=[
  ['commit','AUTHORITY_SOURCE',(d,p)=>{p.source.commit='9'.repeat(40);}],
  ['tree','AUTHORITY_SOURCE',(d,p)=>{p.source.tree='9'.repeat(40);}],
  ['allowed paths widened','AUTHORITY_FILES',(d,p)=>{p.input.allowedPaths=[...p.input.allowedPaths,'package.json'];}],
+ ['check commands','AUTHORITY_INSTALLATION_MISMATCH',(d,p)=>{p.input.checkCommands=['npm run other'];}],
+ ['missing check commands','AUTHORITY_FILES',(d,p)=>{delete p.input.checkCommands;}],
  ['work id','AUTHORITY_WORK',(d,p)=>{p.workId=uuid4();}],
  ['generation','AUTHORITY_WORK',(d,p)=>{p.workGeneration=2;}],
  ['objective text','AUTHORITY_WORK',(d,p)=>{p.input.description+=' and deploy';}],
@@ -103,18 +105,45 @@ test('signature, key, digest and clock failures',()=>{
  assert.equal(v(a.envelope),'ACCEPTED');
  const flip=a.envelope.signature.startsWith('A')?'B':'A';
  assert.equal(v({...a.envelope,signature:flip+a.envelope.signature.slice(1)}),'AUTHORITY_SIGNATURE');
- assert.equal(v({...a.envelope,keyId:'0'.repeat(64)}),'AUTHORITY_SIGNATURE');
+ assert.equal(v({...a.envelope,keyId:'0'.repeat(64)}),'AUTHORITY_DISABLED');
  assert.equal(v({...a.envelope,authoritySha256:'0'.repeat(64)}),'AUTHORITY_SIGNATURE');
  assert.equal(v({...a.envelope,document:{...a.envelope.document,ownerId:'owner-opaque-1 '}}),'AUTHORITY_SIGNATURE'); // tampered after signing
  const other=makeKeys();
  assert.equal(v(signDocument(a.document,other,ctx.keys.keyId)),'AUTHORITY_SIGNATURE'); // pinned key id, foreign signer
- assert.equal(v(signDocument(a.document,other)),'AUTHORITY_SIGNATURE'); // unpinned key
+ assert.equal(v(signDocument(a.document,other)),'AUTHORITY_DISABLED'); // unpinned key
  assert.equal(v({...a.envelope,unexpected:1}),'AUTHORITY_SCHEMA');
  assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,ctx.installation,a.issuedAt-1)),'AUTHORITY_NOT_YET_VALID');
  assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,ctx.installation,a.issuedAt+290000)),'AUTHORITY_EXPIRED');
- // A pinned key outside its own validity window cannot authorize.
+ // A pinned key that is not yet valid is the same temporary clock class as document notBefore.
+ const futureKey=makeInstallation(ctx.keys,{...ctx.config,keys:[{...ctx.config.keys[0],notBefore:new Date(at+60000).toISOString()}]});
+ assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,futureKey.installation,at)),'AUTHORITY_NOT_YET_VALID');
+ // A pinned key outside its own validity window is operator calendar, not an immutable signature failure.
  const expiredKey=makeInstallation(ctx.keys,{...ctx.config,keys:[{...ctx.config.keys[0],notAfter:new Date(a.issuedAt+500).toISOString()}]});
- assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,expiredKey.installation,at)),'AUTHORITY_SIGNATURE');
+ assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,expiredKey.installation,at)),'AUTHORITY_DISABLED');
+});
+
+test('operator installation pins are AUTHORITY_INSTALLATION_MISMATCH; restoring them admits the identical document and prepare',()=>{
+ const ctx=makeInstallation(),a=build(ctx),at=a.issuedAt+1000;
+ const v=(installation)=>code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,installation,at));
+ assert.equal(v(ctx.installation),'ACCEPTED');
+ const owner=makeInstallation(ctx.keys,{...ctx.config,ownerId:'owner-opaque-restored'});
+ assert.equal(v(owner.installation),'AUTHORITY_INSTALLATION_MISMATCH');
+ const digestPin=makeInstallation(ctx.keys,{...ctx.config,source:{...ctx.config.source,sourceDigest:'3'.repeat(64)}});
+ assert.equal(v(digestPin.installation),'AUTHORITY_INSTALLATION_MISMATCH');
+ const files=makeInstallation(ctx.keys,{...ctx.config,source:{...ctx.config.source,allowedFiles:['src/app.js','src/other.js','test/app.test.js']}});
+ assert.equal(v(files.installation),'AUTHORITY_INSTALLATION_MISMATCH');
+ const fv=makeInstallation(ctx.keys,{...ctx.config,factoryVersion:'7'.repeat(64)});
+ assert.equal(v(fv.installation),'AUTHORITY_INSTALLATION_MISMATCH');
+ const commands=makeInstallation(ctx.keys,{...ctx.config,checkCommands:['npm run other']});
+ assert.equal(v(commands.installation),'AUTHORITY_INSTALLATION_MISMATCH');
+ assert.equal(v(ctx.installation),'ACCEPTED');
+});
+
+test('document-versus-prepare source and files stay AUTHORITY_SOURCE/FILES when installation already matches the document',()=>{
+ const ctx=makeInstallation(),a=build(ctx,{post:(d,p)=>{p.repository='fixture-org/other';}}),at=a.issuedAt+1000;
+ assert.equal(code(()=>validateExternalAlphaAuthority(a.envelope,a.prepare,ctx.installation,at)),'AUTHORITY_SOURCE');
+ const files=build(ctx,{post:(d,p)=>{p.input.allowedPaths=[...p.input.allowedPaths,'package.json'];}});
+ assert.equal(code(()=>validateExternalAlphaAuthority(files.envelope,files.prepare,ctx.installation,files.issuedAt+1000)),'AUTHORITY_FILES');
 });
 
 test('the receipt signature is over the schema-prefixed receipt digest',()=>{

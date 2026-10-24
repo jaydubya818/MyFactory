@@ -72,7 +72,7 @@ test('a replay after expiry is idempotent but a first delivery after expiry is d
  assert.equal(await code(store.consumeAtomically(a.envelope,a.prepare)),'AUTHORITY_EXPIRED');
  assert.equal(await count(query),0);
  const bad=build(ctx,{post:d=>{d.slot='2';}});
- assert.equal(await code(store.consumeAtomically(bad.envelope,bad.prepare)),'AUTHORITY_OWNER');
+ assert.equal(await code(store.consumeAtomically(bad.envelope,bad.prepare)),'AUTHORITY_INSTALLATION_MISMATCH');
  assert.equal(await count(query),0);
  const first=await store.consumeAtomically(b.envelope,b.prepare);assert.equal(first.replayed,false);
  await new Promise(r=>setTimeout(r,2100));

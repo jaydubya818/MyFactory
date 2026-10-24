@@ -56,9 +56,10 @@ export const deriveIdentifiers=({policySha256,work,tupleSha256:tuple})=>{
 };
 export const keyIdOf=publicKey=>sha(publicKey.export({type:'spki',format:'der'}));
 
-/** Parses the operator-reviewed installation. Returns null when absent, which
- * means every external-alpha route is DISABLED. A present-but-wrong installation
- * throws: it never degrades to a partial pin. */
+/** Parses the operator-reviewed installation. Returns null when absent.
+ * HTTP maps that absence to 503 UNKNOWN (operator configuration is restorable).
+ * A present-but-wrong installation throws AUTHORITY_DISABLED: it never degrades
+ * to a partial pin. */
 export function parseExternalAlphaInstallation(config){
  if(config===undefined||config===null)return null;
  exact(config,['cohortId','slot','ownerId','policySha256','application','source','factoryVersion','keys','checkCommands','caller'],'AUTHORITY_DISABLED');
@@ -102,7 +103,8 @@ export function loadExternalAlphaInstallation(env){
 }
 /** One Factory deployment serves both tester slots: FACTORY_EXTERNAL_ALPHA_INSTALLATION is either one
  * installation object or an array of 1..2 (one per slot). The pinned digest covers the whole value. Returns
- * [] when absent (everything DISABLED). Anything present but inconsistent throws AUTHORITY_DISABLED. */
+ * [] when absent. HTTP maps catch/empty to 503 UNKNOWN. Anything present but inconsistent throws
+ * AUTHORITY_DISABLED (also HTTP 503). */
 export function loadExternalAlphaInstallations(env){
  const raw=env?.FACTORY_EXTERNAL_ALPHA_INSTALLATION;
  if(!raw)return [];
@@ -149,8 +151,10 @@ export function validateStatic(envelope,prepare,installation){
  for(const t of ['issuedAt','notBefore','expiresAt'])if(typeof d[t]!=='string'||!TS.test(d[t])||new Date(d[t]).toISOString()!==d[t])deny('AUTHORITY_SCHEMA');
  if(!HEX64.test(envelope.authoritySha256)||!SIG.test(envelope.signature)||!HEX64.test(envelope.keyId))deny('AUTHORITY_SCHEMA');
  // Signature: pinned key, bytes bound to the digest recomputed here.
+ // Missing/unqualified keyId is operator key configuration (the pin set can later
+ // include that key). Digest mismatch and verify failure are immutable.
  const key=installation.keys.get(envelope.keyId);
- if(!key)deny('AUTHORITY_SIGNATURE');
+ if(!key)deny('AUTHORITY_DISABLED');
  if(digest(d)!==envelope.authoritySha256)deny('AUTHORITY_SIGNATURE');
  let good=false;
  try{good=verify(null,Buffer.concat([Buffer.from(AUTHORITY_SCHEMA),Buffer.from([0]),Buffer.from(envelope.authoritySha256)]),key.publicKey,Buffer.from(envelope.signature,'base64url'));}catch{good=false;}
@@ -162,27 +166,21 @@ export function validateStatic(envelope,prepare,installation){
  const ids=deriveIdentifiers({policySha256:d.policySha256,work:d.work,tupleSha256:d.project.tupleSha256});
  if(ids.idempotencyKey!==d.idempotencyKey||ids.authorityId!==d.authorityId||ids.requestId!==d.candidateWriter.requestId||ids.writerId!==d.candidateWriter.writerId||d.candidateWriter.candidateSlot!==1)deny('AUTHORITY_IDENTIFIER');
  if(!plain(prepare)||prepare.requestId!==ids.requestId)deny('AUTHORITY_IDENTIFIER');
- // Owner/application/cohort/slot/policy against the Factory's own installation.
- if(d.ownerId!==installation.ownerId||d.cohortId!==installation.cohortId||d.slot!==installation.slot||d.policySha256!==installation.policySha256||d.application.clientId!==installation.application.clientId||d.application.projectId!==installation.application.projectId)deny('AUTHORITY_OWNER');
- // Source.
- const s=installation.source,p=prepare;
- if(d.source.repository!==s.repository||d.source.baseSha!==s.baseSha||d.source.treeSha!==s.treeSha||d.source.sourceDigest!==s.sourceDigest)deny('AUTHORITY_SOURCE');
- if(p.repository!==s.repository||!plain(p.source)||p.source.repository!==s.repository||p.source.commit!==s.baseSha||p.source.tree!==s.treeSha)deny('AUTHORITY_SOURCE');
- const input=p.input;
+ const s=installation.source,p=prepare,input=p.input;
+ // Immutable: signed document versus this prepare. Restoring operator pins cannot make these agree.
+ if(p.repository!==d.source.repository||!plain(p.source)||p.source.repository!==d.source.repository||p.source.commit!==d.source.baseSha||p.source.tree!==d.source.treeSha)deny('AUTHORITY_SOURCE');
  if(!plain(input)||!Array.isArray(input.allowedPaths))deny('AUTHORITY_FILES');
- if(!same(d.source.allowedFiles,s.allowedFiles)||!same(sorted(input.allowedPaths),s.allowedFiles)||d.source.allowedFilesSha256!==digest({version:1,files:d.source.allowedFiles}))deny('AUTHORITY_FILES');
- // The Factory runs only the commands IT pinned; the request cannot choose them.
- if(!Array.isArray(input.checkCommands)||!same(input.checkCommands,installation.checkCommands))deny('AUTHORITY_FILES');
+ if(d.source.allowedFilesSha256!==digest({version:1,files:d.source.allowedFiles})||!same(sorted(input.allowedPaths),d.source.allowedFiles))deny('AUTHORITY_FILES');
+ if(!Array.isArray(input.checkCommands))deny('AUTHORITY_FILES');
  // Work.
  if(p.workId!==d.work.id||p.workGeneration!==d.work.generation||typeof input.description!=='string'||sha(input.description)!==d.work.objectiveSha256||input.title!==d.work.title||input.kind!=='feature')deny('AUTHORITY_WORK');
  // Tuple recomputed from the request, never from the document.
  const crit=input.acceptanceCriteria;
  if(!Array.isArray(crit)||crit.length!==acceptanceCriteria.length||crit.some((c,i)=>c!==acceptanceCriteria[i]))deny('AUTHORITY_TUPLE');
  if(d.project.name!=='Alpha Tasks'||d.project.task!==projectTask||d.project.criteriaSha256!==criteriaSha256||d.project.tupleSha256!==tupleSha256||d.work.criteriaSha256!==criteriaSha256||d.work.criteriaCount!==10||d.verifier.criteriaSha256!==criteriaSha256)deny('AUTHORITY_TUPLE');
- // Execution pins.
+ // Execution pins (Factory code constants, not operator installation).
  if(d.environment!==factoryPins.environment)deny('AUTHORITY_ENVIRONMENT');
  if(d.executionProvider!==factoryPins.executionProvider||!same(d.harness,factoryPins.harness))deny('AUTHORITY_PROVIDER');
- if(d.factoryVersion!==installation.factoryVersion)deny('AUTHORITY_FACTORY_VERSION');
  if(!same(d.model,factoryPins.model))deny('AUTHORITY_MODEL');
  if(d.verifier.id!==factoryPins.verifierId||d.verifier.verifiesExactArtifact!==true||d.verifier.trustProducer!==false)deny('AUTHORITY_VERIFIER');
  if(!same(d.allowedEffects,factoryPins.allowedEffects)||!same(d.forbiddenEffects,factoryPins.forbiddenEffects))deny('AUTHORITY_EFFECTS');
@@ -191,12 +189,24 @@ export function validateStatic(envelope,prepare,installation){
  if(!same(d.limits,factoryPins.limits)||microusd>factoryPins.limits.factory.microusd)deny('AUTHORITY_LIMITS');
  const deadline=Date.parse(p.deadline);
  if(!Number.isFinite(deadline)||deadline>Date.parse(d.expiresAt))deny('AUTHORITY_EXPIRED');
+ // Operator installation pins. Current source/configuration/FV does not freeze these;
+ // restoring the loaded pins is not ruled out. Internal temporary class only — HTTP
+ // maps it to generic 503 UNKNOWN. Grants no identity or capability.
+ if(d.ownerId!==installation.ownerId||d.cohortId!==installation.cohortId||d.slot!==installation.slot||d.policySha256!==installation.policySha256||d.application.clientId!==installation.application.clientId||d.application.projectId!==installation.application.projectId)deny('AUTHORITY_INSTALLATION_MISMATCH');
+ if(d.source.repository!==s.repository||d.source.baseSha!==s.baseSha||d.source.treeSha!==s.treeSha||d.source.sourceDigest!==s.sourceDigest)deny('AUTHORITY_INSTALLATION_MISMATCH');
+ if(!same(d.source.allowedFiles,s.allowedFiles))deny('AUTHORITY_INSTALLATION_MISMATCH');
+ if(!same(input.checkCommands,installation.checkCommands))deny('AUTHORITY_INSTALLATION_MISMATCH');
+ if(d.factoryVersion!==installation.factoryVersion)deny('AUTHORITY_INSTALLATION_MISMATCH');
  return {document:d,authoritySha256:envelope.authoritySha256,keyId:envelope.keyId,ids,keyWindow:key,expiresAtMs:Date.parse(d.expiresAt),notBeforeMs:from};
 }
 export function assertTime(v,now){
- if(now<v.notBeforeMs)deny('AUTHORITY_NOT_YET_VALID');
+ // Document and key notBefore are temporary clock conditions: a later identical
+ // request can become valid. Key notAfter is operator calendar on the installation
+ // (extendable), so it is not a definitive signature failure. Document expiry
+ // only moves forward.
+ if(now<v.notBeforeMs||now<v.keyWindow.notBefore)deny('AUTHORITY_NOT_YET_VALID');
  if(now>=v.expiresAtMs)deny('AUTHORITY_EXPIRED');
- if(now<v.keyWindow.notBefore||now>=v.keyWindow.notAfter)deny('AUTHORITY_SIGNATURE');
+ if(now>=v.keyWindow.notAfter)deny('AUTHORITY_DISABLED');
 }
 export const validateExternalAlphaAuthority=(envelope,prepare,installation,now)=>{const v=validateStatic(envelope,prepare,installation);assertTime(v,now);return v;};
 
