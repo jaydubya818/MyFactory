@@ -50,8 +50,8 @@ test('installation loader: one or two slots, digest-pinned, consistent cohort/bu
 
 test('injected providers cannot compose without the exact pinned source manifest',()=>{
  const f=fixture();
- for(const patch of [{registry:undefined},{snapshots:undefined},{snapshots:{}},{snapshots:{'slot-1':{...f.deps.snapshots['slot-1'],commit:'f'.repeat(40)}}},{registry:{'slot-1':{...f.deps.registry['slot-1'],owner:'foreign-org'}}}])
-  assert.equal(code(()=>externalAlphaRuntimeComponents({...f.deps,installation:f.installation,sourceDigest:f.sourceDigest,provider:{},...patch})),'AUTHORITY_SOURCE');
+ for(const patch of [{registry:undefined},{snapshots:undefined},{snapshots:{}},{snapshots:{'slot-1':{...f.deps.snapshots['slot-1'],commit:'f'.repeat(40)}}},{registry:{'slot-1':{...f.deps.registry['slot-1'],owner:'foreign-org'}}},{sourceCustody:undefined,hostInstallation:{projectId:'prj_x',teamId:'team_x'}}])
+  assert.equal(code(()=>externalAlphaRuntimeComponents({...f.deps,installation:f.installation,sourceDigest:f.sourceDigest,provider:{},...patch})),'AUTHORITY_DISABLED');
 });
 test('injected provider source preflight and verifier reread retain independent digest and cross-workspace denial',async()=>{
  const f=fixture(),receipt=f.deps.snapshots['slot-1'],entry=f.deps.registry['slot-1'];
@@ -117,4 +117,22 @@ test('hosted runtime refuses shared/canary host or missing profile before databa
  // A valid dedicated host proceeds to its dedicated signing prerequisite; no pool or provider is opened.
  await assert.rejects(run(env),/^Error: EXTERNAL_ALPHA_SIGNER_REQUIRED$/);
  assert.equal(actions,0);assert.equal(registryReads,0);
+});
+
+test('asynchronous registry/snapshot loaders refuse as AUTHORITY_DISABLED, not SOURCE',async()=>{
+ const f=fixture(),profile=JSON.stringify({version:1,kind:'EXTERNAL_ALPHA_VERIFIER_PROFILES_V1',entries:[{id:'alpha-tasks-node-json-v1',kind:'PRODUCT',tree:f.installation.source.treeSha}]}),sha=s=>createHash('sha256').update(s).digest('hex');
+ const receiptKeys=makeKeys(),resultKeys=makeKeys();
+ const receiptPem=receiptKeys.privateKey.export({type:'pkcs8',format:'pem'});
+ const resultPem=resultKeys.privateKey.export({type:'pkcs8',format:'pem'});
+ const signing={factoryId:'myfactory-external-alpha',key:{factoryId:'myfactory-external-alpha',keyId:'external-alpha-result-v1',publicKey:resultKeys.publicKeyPem,activeFrom:'2020-01-01T00:00:00.000Z',notAfter:'2100-01-01T00:00:00.000Z'},privateKey:resultPem};
+ const host={version:1,factoryId:'myfactory-external-alpha',environment:'production',ownerScope:'external-alpha:'+f.installation.cohortId,projectId:'prj_FixtureAlphaHost',teamId:'team_FixtureAlpha',custodyStoreId:'store_FixtureAlpha',databaseResourceId:'fixture-alpha-db'};
+ const raw=JSON.stringify(host);
+ const env={FACTORY_EXTERNAL_ALPHA_VERIFIER_PROFILES_JSON:profile,FACTORY_EXTERNAL_ALPHA_VERIFIER_PROFILES_SHA256:sha(profile),
+  FACTORY_EXTERNAL_ALPHA_HOST_INSTALLATION_JSON:raw,FACTORY_EXTERNAL_ALPHA_HOST_INSTALLATION_SHA256:sha(raw),
+  VERCEL:'1',VERCEL_ENV:'production',VERCEL_PROJECT_ID:host.projectId,VERCEL_ORG_ID:host.teamId,
+  FACTORY_EXTERNAL_ALPHA_RESULT_SIGNING_JSON:JSON.stringify(signing),FACTORY_EXTERNAL_ALPHA_RECEIPT_SIGNING_KEY:receiptPem};
+ let actions=0;
+ const err=await withExternalAlphaRuntime(env,f.installation,()=>{actions++;},{registryLoader:async()=>{throw Error('REGISTRY_IO');},snapshotsLoader:async()=>({})}).then(()=>'ACCEPTED',e=>e.code??e.message);
+ assert.equal(err,'AUTHORITY_DISABLED');
+ assert.equal(actions,0);
 });

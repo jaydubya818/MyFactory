@@ -342,6 +342,26 @@ test('signed document versus this prepare stays definitive 403 AUTHORITY_SOURCE;
  assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
 });
 
+test('restorable runtime registry/snapshot/custody composition is 503 UNKNOWN; restoring the runtime admits the delayed identical request',async()=>{
+ const w=world(),{b,oidc}=good(w),body={authority:b.envelope,prepare:b.prepare};
+ const rt=runtime();let compositionCalls=0;
+ const flaky={withRuntime:async(env,installation,action)=>{
+  compositionCalls++;
+  // First composition fails like runtime.mjs registry/snapshot/custody loading.
+  if(compositionCalls===1)throw new ExternalAlphaError('AUTHORITY_DISABLED');
+  return rt.withRuntime(env,installation,action);
+ }};
+ const first=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),flaky);
+ assert.equal(first.status,503);
+ const json=await code(first);
+ assert.deepEqual(json,{error:'EXTERNAL_ALPHA_UNAVAILABLE'});
+ assert.equal(myeveAccountingFromFactory(first.status,json),'UNKNOWN');
+ assert.equal(rt.calls.prepare.length,0);assert.equal(rt.calls.dispatch.length,0);
+ const recovered=await send(w,req('dispatches',{cred:CRED[0],oidc,body}),rt);
+ assert.equal(recovered.status,200);
+ assert.equal(rt.calls.prepare.length,1);assert.equal(rt.calls.dispatch.length,1);
+});
+
 test('signed document versus this prepare stays definitive 403 AUTHORITY_FILES; nothing dispatched',async()=>{
  const w=world(),rt=runtime(),{b,oidc}=good(w);
  const prepare={...b.prepare,input:{...b.prepare.input,allowedPaths:[...b.prepare.input.allowedPaths,'package.json']}};
@@ -453,6 +473,7 @@ test('definitive refusals require proof of non-admission; every interleaving wit
  const scripted=(lookups,{prepare,dispatch,unavailable=[]}={})=>{
   const rt=runtime();let n=0,runtimes=0;
   return {rt,withRuntime:async(env,installation,action)=>{
+   // Restorable runtime registry/snapshot/custody loading (runtime.mjs composition / loader catch).
    if(unavailable.includes(runtimes++))throw new ExternalAlphaError('AUTHORITY_DISABLED');
    return rt.withRuntime(env,installation,c=>action({...c,
     authority:{...c.authority,priorDeadline:async()=>lookups[n++]},

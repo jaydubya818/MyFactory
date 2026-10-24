@@ -32,12 +32,12 @@ const unavailable=()=>reply({error:'EXTERNAL_ALPHA_UNAVAILABLE'},503);
 // Internal AUTHORITY_INSTALLATION_MISMATCH grants no identity or capability.
 export const REFUSAL_ORIGIN=Object.freeze({
  AUTHORITY_CAPABILITY:{origin:'capability HTTP pins / in-transaction admission',permanence:'temporary'},
- AUTHORITY_DISABLED:{origin:'operator installation load, missing key, expired key calendar',permanence:'temporary'},
+ AUTHORITY_DISABLED:{origin:'operator installation load, missing key, expired key calendar, restorable runtime registry/snapshot/custody loading and composition',permanence:'temporary'},
  AUTHORITY_NOT_YET_VALID:{origin:'document or pinned-key notBefore',permanence:'temporary'},
  AUTHORITY_UNKNOWN_FENCE:{origin:'cohort UNKNOWN/FENCED spend hold',permanence:'temporary'},
  AUTHORITY_INSTALLATION_MISMATCH:{origin:'document vs restorable operator owner/cohort/slot/policy/application/sourceDigest/source/files/checkCommands/factoryVersion pins; runtime sourceDigest/FV vs installation',permanence:'temporary'},
  AUTHORITY_OWNER:{origin:'later-phase admitted-row vs this installation (assertPhase/ownedRow/assertRecordScope)',permanence:'temporary'},
- AUTHORITY_SOURCE:{origin:'signed document vs this prepare repository/commit/tree; CLOUD_SOURCE_NOT_GRANTED; registry/custody composition',permanence:'permanent'},
+ AUTHORITY_SOURCE:{origin:'signed document vs this prepare repository/commit/tree; CLOUD_SOURCE_NOT_GRANTED',permanence:'permanent'},
  AUTHORITY_FILES:{origin:'document files schema/digest; missing prepare path/command arrays; document vs prepare allowedPaths; INVALID_CLOUD_PATH',permanence:'permanent'},
  AUTHORITY_SIGNATURE:{origin:'authoritySha256 digest mismatch or Ed25519 verify failure',permanence:'permanent'},
  AUTHORITY_SCHEMA:{origin:'malformed envelope, document, or prepare shape',permanence:'permanent'},
@@ -128,7 +128,9 @@ function failure(error){
   // Remaining ExternalAlphaError codes are properties of the signed request or a closed
   // document-expiry window: the identical document cannot later become valid.
   // Missing/unqualified/not-yet-valid/expired key configuration is AUTHORITY_DISABLED or
-  // AUTHORITY_NOT_YET_VALID (temporary). Operator installation-identity comparisons are
+  // AUTHORITY_NOT_YET_VALID (temporary). Restorable runtime registry/snapshot/custody
+  // loading is AUTHORITY_DISABLED (temporary): a later admission lookup cannot prove that
+  // failure was permanent. Operator installation-identity comparisons are
   // AUTHORITY_INSTALLATION_MISMATCH (temporary). Genuine digest/verify stays AUTHORITY_SIGNATURE.
   return denied(error.code,error.status);
  }
