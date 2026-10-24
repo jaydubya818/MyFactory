@@ -32,7 +32,8 @@ import unknownRefusal from '../../../docs/capability-control/source-identity-202
 import zodAdvisory from '../../../docs/capability-control/source-identity-20261023/qa-remediation-zod-advisory-successor.json' with {type:'json'};
 import installationMismatch from '../../../docs/capability-control/source-identity-20261023/qa-remediation-installation-mismatch-successor.json' with {type:'json'};
 import mixedProducer from '../../../docs/capability-control/source-identity-20261023/qa-remediation-mixed-producer-successor.json' with {type:'json'};
-import successor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-runtime-source-successor.json' with {type:'json'};
+import runtimeSource from '../../../docs/capability-control/source-identity-20261023/qa-remediation-runtime-source-successor.json' with {type:'json'};
+import successor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-undici-advisory-successor.json' with {type:'json'};
 
 test('inventoried source and configuration resolve to the exact qualified successor',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
@@ -79,8 +80,10 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(zodAdvisory.executionContractSha256,installationMismatch.predecessorExecutionContractSha256);
  assert.equal(installationMismatch.sourceDigest,mixedProducer.predecessorSourceDigest);
  assert.equal(installationMismatch.executionContractSha256,mixedProducer.predecessorExecutionContractSha256);
- assert.equal(mixedProducer.sourceDigest,successor.predecessorSourceDigest);
- assert.equal(mixedProducer.executionContractSha256,successor.predecessorExecutionContractSha256);
+ assert.equal(mixedProducer.sourceDigest,runtimeSource.predecessorSourceDigest);
+ assert.equal(mixedProducer.executionContractSha256,runtimeSource.predecessorExecutionContractSha256);
+ assert.equal(runtimeSource.sourceDigest,successor.predecessorSourceDigest);
+ assert.equal(runtimeSource.executionContractSha256,successor.predecessorExecutionContractSha256);
  assert.equal(receiverRecovery.executionContractSha256,unifiedCandidate.predecessorExecutionContractSha256);
  assert.equal(pricingSuccessor.sourceDigest,unifiedCandidate.mergedPredecessorSourceDigest);
  assert.equal(pricingSuccessor.factoryVersion,unifiedCandidate.mergedPredecessorFactoryVersion);
@@ -99,7 +102,8 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(unknownRefusal.factoryVersion,zodAdvisory.predecessorFactoryVersion);
  assert.equal(zodAdvisory.factoryVersion,installationMismatch.predecessorFactoryVersion);
  assert.equal(installationMismatch.factoryVersion,mixedProducer.predecessorFactoryVersion);
- assert.equal(mixedProducer.factoryVersion,successor.predecessorFactoryVersion);
+ assert.equal(mixedProducer.factoryVersion,runtimeSource.predecessorFactoryVersion);
+ assert.equal(runtimeSource.factoryVersion,successor.predecessorFactoryVersion);
  assert.notEqual(receiverGrant.sourceDigest,source.sourceDigest);
  assert.notEqual(qaRemediation.sourceDigest,source.sourceDigest);
  assert.notEqual(mergedQaHead.sourceDigest,source.sourceDigest);
@@ -109,6 +113,7 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.notEqual(zodAdvisory.sourceDigest,source.sourceDigest);
  assert.notEqual(installationMismatch.sourceDigest,source.sourceDigest);
  assert.notEqual(mixedProducer.sourceDigest,source.sourceDigest);
+ assert.notEqual(runtimeSource.sourceDigest,source.sourceDigest);
  assert.equal(successor.authority,'ISOLATED_SOURCE_QUALIFICATION_ONLY');
  assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
 });
@@ -140,6 +145,7 @@ test('coherent historical source or contract grants cannot consume successor aut
   [zodAdvisory.sourceDigest,zodAdvisory.executionContractSha256,false],
   [installationMismatch.sourceDigest,installationMismatch.executionContractSha256,false],
   [mixedProducer.sourceDigest,mixedProducer.executionContractSha256,false],
+  [runtimeSource.sourceDigest,runtimeSource.executionContractSha256,false],
   [pricingSuccessor.sourceDigest,pricingSuccessor.executionContractSha256,false],
   [source.sourceDigest,receiverRecovery.executionContractSha256,false],
   [source.sourceDigest,pricingSuccessor.executionContractSha256,false],
