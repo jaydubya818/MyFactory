@@ -144,6 +144,8 @@ function artifactText(dataDir: string, candidate: unknown): string | null {
 export interface SupervisorOptions {
   /** Bounded host concurrency; values above one are currently fixture-qualified only. */
   maxParallelRuns?: number;
+  /** Retain scope-safe interrupted candidates; fixture qualification only. */
+  retainCheckpoints?: boolean;
   /** Host-authenticated observer identities; never granted through HTTP. Empty by default. */
   reviewObservers?: {reviewers:string[];verifiers:string[]};
   /** Explicit trusted-host activation; never accepted from an HTTP request. */
@@ -258,7 +260,9 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   const parallel = options.maxParallelRuns ?? 1;
   if (parallel !== 1 && (!options.localFactoryFixture && !options.localSpendFixture || realProvider))
     throw new Error('Parallel execution is deferred until live Factory Version qualification');
-  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer,realProvider?.price.model,parallel);
+  if(options.retainCheckpoints&&(!options.localFactoryFixture&&!options.localSpendFixture||realProvider))
+    throw new Error('Checkpoint export is deferred outside explicit fixture qualification');
+  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer,realProvider?.price.model,parallel,options.retainCheckpoints??false);
   const fixtureDependencies=!!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate;
   if(options.localFactoryFixture&&options.localSpendFixture)throw new Error('Fixture modes are mutually exclusive');
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');

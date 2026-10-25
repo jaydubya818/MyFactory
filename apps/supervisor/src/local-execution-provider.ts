@@ -114,7 +114,11 @@ export class LocalExecutionProvider implements ExecutionProvider {
     };
   }
 
-  async reconcile(run: Run) { return this.read(run); }
+  async reconcile(run: Run) {
+    const observation=await this.read(run);
+    if(observation.quiescent&&observation.recoveryEligible)await this.jobs.checkpointForRecovery(run.id);
+    return observation;
+  }
 
   async collect(run: Run) {
     const current = this.current(run);

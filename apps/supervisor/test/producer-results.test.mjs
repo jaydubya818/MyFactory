@@ -21,7 +21,7 @@ function signer(keyId='key-1') {
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function deferred(){let resolve; const promise=new Promise(r=>resolve=r);return {promise,resolve};}
 async function finished(storage,id){for(let i=0;i<500;i++){const r=storage.getRun(id);if(r.finishedAt)return r;await sleep(10);}throw new Error('Attempt did not finish');}
-async function fixture(t,{worker,verifier,notify=()=>{},signing=signer()}={}) {
+async function fixture(t,{worker,verifier,notify=()=>{},signing=signer(),retainCheckpoints=false}={}) {
   const dir=mkdtempSync(join(tmpdir(),'q37-producer-')), repo=join(dir,'repo');mkdirSync(repo);
   const git=(...args)=>execFileSync('git',['-C',repo,...args],{encoding:'utf8'}).trim();
   git('init','-q');git('config','user.name','Synthetic Q37');git('config','user.email','synthetic@example.invalid');
@@ -47,7 +47,7 @@ async function fixture(t,{worker,verifier,notify=()=>{},signing=signer()}={}) {
       });
       return {checks,reason:null};
     },
-  },producer);
+  },producer,undefined,1,retainCheckpoints);
   const order=storage.createWorkOrder({title:'Synthetic Q37',description:'Local fixture only',kind:'feature',repositoryPath:repo,baseRef:git('rev-parse','HEAD'),acceptanceCriteria:['Inspect returned bytes'],reproductionCommand:null,expectedFailureText:null,checkCommands:['check-one','check-two'],allowedPaths:['sample.txt'],workerProfile:'mac'});
   storage.appendEvent({workOrderId:order.id,runId:null,type:'hosted.intake_received',payload:{issueId:'11111111-1111-4111-a111-111111111111',actor:'connection:synthetic',transport:'synthetic-fixture'}});
   t.after(async()=>{await jobs.close();storage.close();rmSync(dir,{recursive:true,force:true});});
@@ -55,6 +55,22 @@ async function fixture(t,{worker,verifier,notify=()=>{},signing=signer()}={}) {
 }
 function expectation(f,s){return {keys:f.signing.keys,factoryId:s.factoryId,requestId:s.requestId,workOrderId:s.workOrderId,runId:s.runId,factoryVersion:s.factoryVersion};}
 async function golden(t,options){const f=await fixture(t,options), run=await f.jobs.startRun(f.order);const snapshot=f.producer.snapshot(run);await finished(f.storage,run.id);await f.jobs.close();const read=f.producer.read(run);assert.ok(read.result);return {...f,run,snapshot,result:read.result,expected:expectation(f,snapshot)};}
+
+test('cancelled managed fixture retains a signed unverified checkpoint before terminal time',async t=>{
+ const entered=deferred();
+ const f=await fixture(t,{retainCheckpoints:true,worker:async input=>{
+  writeFileSync(join(input.workspacePath,'sample.txt'),'partial\n');entered.resolve();
+  await new Promise(resolve=>input.signal.addEventListener('abort',resolve,{once:true}));
+  throw Error('Synthetic interruption');
+ }});
+ const run=await f.jobs.startRun(f.order);await entered.promise;await f.jobs.cancelRun(f.order);await finished(f.storage,run.id);await f.jobs.close();
+ const snapshot=f.producer.snapshot(run),result=f.producer.read(run).result;
+ const {manifest}=verifyResult(result,expectation(f,snapshot));
+ assert.equal(manifest.status,'CANCELLED');assert.ok(manifest.candidate);assert.deepEqual(manifest.evidence,[]);assert.equal(manifest.artifacts.length,3);
+ assert.ok(manifest.artifacts.every(a=>Date.parse(a.createdAt)<=Date.parse(manifest.completedAt)));
+ const checkpoint=f.storage.listEvents(f.order.id).find(e=>e.type==='run.recovery_checkpoint');assert.equal(checkpoint.payload.verified,false);
+ const reopened=openStorage(join(f.dir,'factory.sqlite'));try{assert.deepEqual(new ProducerResults(reopened,f.dir,f.signing).read(run).result,result);}finally{reopened.close();}
+});
 
 test('Gateway model identity survives signed candidate provenance without normalization',async t=>{
   const previous=process.env.FACTORY_CODEX_MODEL;

@@ -219,7 +219,7 @@ export class FactoryDispatchControl {
      if(!claim&&current.events.some(e=>e.type==='factory.dispatch_claimed'))return;
      // The tombstone is durable before reporting absence. No delayed dispatch
      // can re-enter JobManager after this event.
-     if(!terminalRun){this.storage.saveRun({...run,state:'cancelled',finishedAt:new Date().toISOString(),failure:'Bound attempt fenced after resource reconciliation'});this.storage.saveWorkOrder({...data.order,state:'cancelled'});}
+     if(!terminalRun){this.storage.saveRun({...this.storage.getRun(run.id)!,state:'cancelled',finishedAt:new Date().toISOString(),failure:'Bound attempt fenced after resource reconciliation'});this.storage.saveWorkOrder({...data.order,state:'cancelled'});}
      this.storage.appendEvent({workOrderId:data.order.id,runId:run.id,type:'factory.terminal',payload:{state:proposed,identity:binding,resourceProof:resources.evidence,at:new Date().toISOString()}});
     });
     const saved=this.record(client,requestId).events.find(e=>e.type==='factory.terminal');

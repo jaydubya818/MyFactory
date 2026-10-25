@@ -111,7 +111,7 @@ export class JobManager {
     if(maxParallelRuns>1&&(!dependencies.runCodex||dependencies.runCodex===runCodex||!dependencies.verifyCandidate||dependencies.verifyCandidate===verifyCandidate))
       throw new Error("Parallel Runs require explicit synthetic worker and verifier dependencies");
     this.maxParallelRuns = maxParallelRuns;
-    if (retainCheckpoints && (producer || dependencies.runCodex === undefined || dependencies.runCodex === runCodex))
+    if (retainCheckpoints && (dependencies.runCodex === undefined || dependencies.runCodex === runCodex || dependencies.verifyCandidate === undefined || dependencies.verifyCandidate === verifyCandidate))
       throw new Error("Checkpoint continuation is currently synthetic-local qualified only");
     this.retainCheckpoints = retainCheckpoints;
     this.storage = storage;
@@ -285,6 +285,16 @@ export class JobManager {
         return saved;}
       if(current.some(e=>e.runId===previousRunId&&e.type==='run.continuation_claimed'))
         throw new ActionError('Continuation outcome unknown; do not replay','resume_unknown',409);
+      // Recovery readback established absence before retaining this checkpoint.
+      // Recheck the exact host process groups before counting the old hold as
+      // available capacity. Keep this state change in the same transaction.
+      const hold=current.filter(e=>e.runId===previousRunId&&['run.recovery_hold','run.recovery_cleared'].includes(e.type)).at(-1);
+      if(hold?.type==='run.recovery_hold'){
+        const pids=hold.payload.processPids;
+        if(hold.payload.previousState!=='implementing'||!Array.isArray(pids)||!pids.length||!pids.every(pid=>typeof pid==='number'&&processGroupAbsent(pid)))
+          throw new ActionError('Previous worker may still be running','recovery_hold',409);
+        this.storage.appendEvent({workOrderId:workOrder.id,runId:previousRunId,type:'run.recovery_cleared',payload:{reason:'Retained checkpoint and absent previous process groups'}});
+      }
       this.#assertSlot(workOrder.id);
       if(this.activeRun(previousRunId))throw new ActionError('Previous process remains active','recovery_hold',409);
       this.storage.appendEvent({workOrderId:workOrder.id,runId:previousRunId,type:'run.continuation_claimed',payload:{checkpoint}});
@@ -296,18 +306,31 @@ export class JobManager {
     return run;
   }
 
-  async #retainCheckpoint(runId:string):Promise<void>{
+  async checkpointForRecovery(runId:string):Promise<void>{
+    if(this.activeRun(runId))throw new ActionError('Active process cannot supply a recovery checkpoint','recovery_hold',409);
+    await this.#retainCheckpoint(runId,true);
+  }
+
+  async #retainCheckpoint(runId:string,beforeTerminal=false):Promise<void>{
     if(!this.retainCheckpoints)return;
     const run=this.storage.getRun(runId);
-    if(!run||!['interrupted','cancelled'].includes(run.state)||run.candidateCommit)return;
+    if(!run||!['interrupted','cancelled',...(beforeTerminal?['implementing']:[])].includes(run.state)||run.candidateCommit)return;
     const order=this.storage.getWorkOrder(run.workOrderId);
-    if(!order||this.storage.listEvents(order.id).some(e=>e.runId===runId&&e.type==='run.recovery_checkpoint'))return;
+    if(!order||this.storage.listEvents(order.id).some(e=>e.runId===runId&&['run.recovery_checkpoint','run.signed_result'].includes(e.type)))return;
     const processes=this.storage.listEvents(order.id).filter(e=>e.runId===runId&&['agent.process_started','agent.completion_process_started'].includes(e.type));
     if(processes.some(e=>typeof e.payload.pid!=='number'||!processGroupAbsent(e.payload.pid)))return;
     try{
       const candidate=await this.dependencies.commitCandidate(run.workspacePath,run.inputCommit,order.allowedPaths,join(this.dataDir,'artifacts',runId,'checkpoint'));
+      if(this.producer){
+        const diffSha256=createHash('sha256').update(await readFile(candidate.diffPath)).digest('hex');
+        this.storage.transaction(()=>{
+          this.#event(order.id,runId,'run.candidate_committed',{candidateCommit:candidate.commit,candidateTree:candidate.tree,
+            diffPath:candidate.diffPath,diffSha256,changedPaths:candidate.changedPaths,checkpointOnly:true});
+          this.storage.saveRun({...run,candidateCommit:candidate.commit});
+        });
+      }
       this.#event(order.id,runId,'run.recovery_checkpoint',{commit:candidate.commit,tree:candidate.tree,base:run.inputCommit,
-        diffPath:candidate.diffPath,changedPaths:candidate.changedPaths,verified:false,mode:'SYNTHETIC_LOCAL'});
+        diffPath:candidate.diffPath,changedPaths:candidate.changedPaths,verified:false,mode:this.producer?'MANAGED_FIXTURE_CHECKPOINT':'SYNTHETIC_LOCAL'});
     }catch(error){this.#event(order.id,runId,'run.checkpoint_unavailable',{reason:message(error)});}
   }
 
@@ -745,6 +768,10 @@ export class JobManager {
       const interrupted = signal.aborted && active.reason === "service_shutdown";
       const runState = cancelled ? "cancelled" : interrupted ? "interrupted" : "failed";
       const orderState = runState;
+      if(this.producer&&(cancelled||interrupted)){
+        await this.#retainCheckpoint(run.id,true);
+        run=this.storage.getRun(run.id)??run;
+      }
       this.#transition(run, runState, orderState, `run.${runState}`, {
         reason: message(error),
       }, { failure: message(error) });
