@@ -34,7 +34,7 @@ export function sourceIdentity(): string {
 const loadedSource = sourceIdentity();
 export const SNAPSHOT_EVENT = 'run.execution_snapshot';
 export const RESULT_EVENT = 'run.signed_result';
-export interface ProducerOptions { factoryId: string; currentKeyId: string; privateKey: string; keys: ResultKey[] }
+export interface ProducerOptions { sessionMetadata?: boolean; factoryId: string; currentKeyId: string; privateKey: string; keys: ResultKey[] }
 
 /** Opt-in only. Reuses the hosted receipt private key; never creates or rotates a key. */
 export function producerOptions(dataDir: string): ProducerOptions | undefined {
@@ -111,7 +111,7 @@ export class ProducerResults {
     // Hash the admitted Work, not mutable current Factory state or a completion callback.
     const requestDigest=digest({requestId, work});
     const snapshot: ExecutionSnapshot = {
-      version:1, factoryId:this.options.factoryId, factoryVersion:digest({sourceDigest:loadedSource,configurationDigest}),
+      version:this.options.sessionMetadata?3:1, ...(this.options.sessionMetadata?{workspace:{kind:'GIT_WORKTREE' as const,path:run.workspacePath,branch:null}}:{}), factoryId:this.options.factoryId, factoryVersion:digest({sourceDigest:loadedSource,configurationDigest}),
       sourceDigest:loadedSource, configurationDigest, configuration, requestId, requestDigest,
       workOrderId:work.id, runId:run.id, attemptNumber:run.attemptNumber, inputCommit:run.inputCommit, capturedAt:run.startedAt,
     };

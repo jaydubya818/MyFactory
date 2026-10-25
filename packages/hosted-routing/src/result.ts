@@ -30,7 +30,7 @@ export interface ExecutionConfiguration {
   cloud?: CloudExecutionConfiguration;
 }
 export interface ExecutionSnapshot {
-  version: 1 | 2; inputTree?: string; factoryId: string; factoryVersion: string; sourceDigest: string;
+  version: 1 | 2 | 3; inputTree?: string; workspace?: {kind:'GIT_WORKTREE';path:string;branch:null}; factoryId: string; factoryVersion: string; sourceDigest: string;
   configurationDigest: string; configuration: ExecutionConfiguration;
   requestId: string; requestDigest: string; workOrderId: string; runId: string;
   attemptNumber: number; inputCommit: string; capturedAt: string;
@@ -113,9 +113,15 @@ export function validateManifest(value: unknown): asserts value is ResultManifes
   requireValue(Date.parse(value.completedAt) <= Date.parse(value.issuedAt), 'Completion after issuance');
   requireValue(['COMPLETED','FAILED','CANCELLED'].includes(String(value.status)), 'Nonterminal result');
   const e = value.execution;
-  exact(e, ['version','factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','capturedAt',...((e as Record<string,unknown>)?.version===2?['inputTree']:[])]);
-  requireValue((e.version === 1 || e.version === 2) && e.factoryId === value.producer, 'Producer mismatch');
+  exact(e, ['version','factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','capturedAt',...((e as Record<string,unknown>)?.version===2?['inputTree']:[]),...((e as Record<string,unknown>)?.version===3?['workspace']:[])]);
+  requireValue((e.version === 1 || e.version === 2 || e.version === 3) && e.factoryId === value.producer, 'Producer mismatch');
   if(e.version===2)gitHash(e.inputTree);
+  if(e.version===3){
+    exact(e.workspace,['kind','path','branch']);
+    requireValue(e.workspace.kind==='GIT_WORKTREE'&&e.workspace.branch===null,'Unknown workspace association');
+    text(e.workspace.path);
+    requireValue((e.workspace.path as string).startsWith('/')&&!(e.workspace.path as string).includes('\0'),'Invalid workspace association');
+  }
   for (const key of ['factoryId','requestId','workOrderId','runId']) text(e[key]);
   for (const key of ['factoryVersion','sourceDigest','configurationDigest','requestDigest']) hash(e[key]);
   gitHash(e.inputCommit); time(e.capturedAt);

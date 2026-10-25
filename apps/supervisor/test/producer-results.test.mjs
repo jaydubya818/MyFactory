@@ -299,3 +299,15 @@ const storage=openStorage(process.argv[1]);try{saveRunRecord(storage,JSON.parse(
   assert.match(results.find(r=>r.exit===2).out,/Conflicting/);
   assert.equal(f.storage.listEvents(f.order.id).filter(e=>e.type===SNAPSHOT_EVENT).length,1);
 });
+
+test('versioned workspace metadata is producer-recorded and signature protected',async t=>{
+ const signing={...signer(),sessionMetadata:true};const f=await golden(t,{signing});
+ const {manifest}=verifyResult(f.result,f.expected);
+ assert.equal(manifest.execution.version,3);assert.equal(manifest.execution.workspace.path,f.run.workspacePath);
+ assert.equal(manifest.execution.workspace.branch,null);assert.equal(manifest.execution.workspace.kind,'GIT_WORKTREE');
+ const altered=structuredClone(f.result);const decoded=JSON.parse(Buffer.from(altered.encoded,'base64url').toString());
+ decoded.execution.workspace.path='/substituted-worktree';altered.encoded=Buffer.from(canonical(decoded)).toString('base64url');
+ assert.throws(()=>verifyResult(altered,f.expected));
+ const malformed=structuredClone(manifest);malformed.execution.workspace.branch='main';
+ assert.throws(()=>signResult(malformed,signing.privateKey),/workspace/);
+});

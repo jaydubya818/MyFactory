@@ -86,7 +86,9 @@ function processGroupAbsent(pid: number): boolean {
 }
 
 export class JobManager {
-  #active: ActiveJob | null = null;
+  #active = new Map<string, ActiveJob>();
+  private readonly maxParallelRuns: number;
+  private readonly retainCheckpoints: boolean;
   private readonly storage: FactoryStorage;
   private readonly dataDir: string;
   private readonly notify: (event: FactoryEvent) => void;
@@ -101,7 +103,17 @@ export class JobManager {
     dependencies: Partial<JobDependencies> = {},
     producer?: ProducerResults,
     pinnedModel?: string,
+    maxParallelRuns = 1,
+    retainCheckpoints = false,
   ) {
+    if (!Number.isSafeInteger(maxParallelRuns) || maxParallelRuns < 1 || maxParallelRuns > 4)
+      throw new Error("Parallel Run limit must be an integer from 1 to 4");
+    if(maxParallelRuns>1&&(!dependencies.runCodex||dependencies.runCodex===runCodex||!dependencies.verifyCandidate||dependencies.verifyCandidate===verifyCandidate))
+      throw new Error("Parallel Runs require explicit synthetic worker and verifier dependencies");
+    this.maxParallelRuns = maxParallelRuns;
+    if (retainCheckpoints && (producer || dependencies.runCodex === undefined || dependencies.runCodex === runCodex))
+      throw new Error("Checkpoint continuation is currently synthetic-local qualified only");
+    this.retainCheckpoints = retainCheckpoints;
     this.storage = storage;
     this.dataDir = dataDir;
     this.notify = notify;
@@ -219,7 +231,8 @@ export class JobManager {
 
   private async initialize(workOrder: WorkOrder,prepareOnly:boolean): Promise<Run> {
     assertLocalCapabilityAdmission();
-    if (this.#active) throw new ActionError("Another run is already active", "concurrency_limit", 409);
+    this.#clearRecoveryHold(workOrder);
+    this.#assertSlot(workOrder.id);
     if(repairLink(this.storage,workOrder.id)&&this.storage.listRuns(workOrder.id).length)
       throw new ActionError("Repair Work has exactly one candidate attempt","repair_needs_you",409);
     workOrder = structuredClone(workOrder);
@@ -234,29 +247,78 @@ export class JobManager {
       preflight: null,
       prepareOnly,
     };
-    this.#active = active;
+    this.#active.set(workOrder.id, active);
     const started = this.#initializeRun(workOrder, active);
     active.done = started.then((run) => {
       active.runId = run.id;
       return prepareOnly ? undefined : this.#execute(workOrder, run, active);
     }).catch(() => {
       // The caller receives initialization errors through `started`.
-    }).finally(() => {
-      if (this.#active === active) this.#active = null;
+    }).finally(async () => {
+      if (active.runId) await this.#retainCheckpoint(active.runId);
+      if (this.#active.get(workOrder.id) === active) this.#active.delete(workOrder.id);
     });
     const run=await started;
     if(prepareOnly) await active.done;
     return run;
   }
 
+  /** Synthetic-local continuation seam. Managed/paid execution must obtain a
+   * newly admitted canonical Work and approved checkpoint source instead. */
+  async resumeRun(workOrder: WorkOrder, previousRunId: string): Promise<Run> {
+    if (!this.retainCheckpoints || this.producer || this.storage.listEvents(workOrder.id).some(e=>e.type==='factory.prepare_requested'))
+      throw new ActionError('Managed checkpoint resume is deferred pending protocol qualification','resume_deferred',409);
+    const previous=this.storage.getRun(previousRunId);
+    const events=this.storage.listEvents(workOrder.id);
+    const record=events.find(e=>e.runId===previousRunId&&e.type==='run.recovery_checkpoint');
+    if(!previous||previous.workOrderId!==workOrder.id||!['interrupted','cancelled'].includes(previous.state)||!record)
+      throw new ActionError('A quiescent retained checkpoint is required','recovery_hold',409);
+    const checkpoint=String(record.payload.commit);
+    if(!/^[a-f0-9]{40}$/.test(checkpoint))throw new ActionError('Checkpoint identity missing','recovery_hold',409);
+    // Durable claim precedes ANY initialization or productive work. A crash
+    // before successor identity is retained remains UNKNOWN; never replay it.
+    const successor=this.storage.transaction(()=>{
+      const current=this.storage.listEvents(workOrder.id);
+      const resumed=current.find(e=>e.type==='run.continued_from'&&e.payload.previousRunId===previousRunId);
+      if(resumed){const saved=resumed.runId?this.storage.getRun(resumed.runId):null;
+        if(!saved)throw new ActionError('Successor requires reconciliation','resume_unknown',409);
+        return saved;}
+      if(current.some(e=>e.runId===previousRunId&&e.type==='run.continuation_claimed'))
+        throw new ActionError('Continuation outcome unknown; do not replay','resume_unknown',409);
+      this.#assertSlot(workOrder.id);
+      if(this.activeRun(previousRunId))throw new ActionError('Previous process remains active','recovery_hold',409);
+      this.storage.appendEvent({workOrderId:workOrder.id,runId:previousRunId,type:'run.continuation_claimed',payload:{checkpoint}});
+      return null;
+    });
+    if(successor)return successor;
+    const run=await this.initialize({...workOrder,baseRef:checkpoint},false);
+    this.#event(workOrder.id,run.id,'run.continued_from',{previousRunId,checkpoint,originalInputCommit:previous.inputCommit,mode:'SYNTHETIC_LOCAL'});
+    return run;
+  }
+
+  async #retainCheckpoint(runId:string):Promise<void>{
+    if(!this.retainCheckpoints)return;
+    const run=this.storage.getRun(runId);
+    if(!run||!['interrupted','cancelled'].includes(run.state)||run.candidateCommit)return;
+    const order=this.storage.getWorkOrder(run.workOrderId);
+    if(!order||this.storage.listEvents(order.id).some(e=>e.runId===runId&&e.type==='run.recovery_checkpoint'))return;
+    const processes=this.storage.listEvents(order.id).filter(e=>e.runId===runId&&['agent.process_started','agent.completion_process_started'].includes(e.type));
+    if(processes.some(e=>typeof e.payload.pid!=='number'||!processGroupAbsent(e.payload.pid)))return;
+    try{
+      const candidate=await this.dependencies.commitCandidate(run.workspacePath,run.inputCommit,order.allowedPaths,join(this.dataDir,'artifacts',runId,'checkpoint'));
+      this.#event(order.id,runId,'run.recovery_checkpoint',{commit:candidate.commit,tree:candidate.tree,base:run.inputCommit,
+        diffPath:candidate.diffPath,changedPaths:candidate.changedPaths,verified:false,mode:'SYNTHETIC_LOCAL'});
+    }catch(error){this.#event(order.id,runId,'run.checkpoint_unavailable',{reason:message(error)});}
+  }
+
   /** Called only after the connection service atomically claims this exact attempt. */
   executePrepared(workOrder:WorkOrder,run:Run,claim:()=>boolean,gateway?:ActiveJob['gateway']):boolean {
-    if(this.#active) throw new ActionError('Another run is active','concurrency_limit',409);
+    this.#assertSlot(workOrder.id);
     if(!this.producer?.snapshot(run)) throw new ActionError('Prepared execution snapshot missing','binding_missing',409);
     const active:ActiveJob={workOrderId:workOrder.id,runId:run.id,controller:new AbortController(),reason:null,done:null,
       model:this.producer.snapshot(run)!.configuration.model,preflight:null,gateway};
     if(!claim()) return false;
-    this.#active=active;
+    this.#active.set(workOrder.id,active);
     const bound=this.storage.listEvents(workOrder.id).find(e=>e.type==='factory.writer_bound');
     const remaining=Date.parse(String(bound?.payload.deadline))-Date.now();
     const timer=setTimeout(()=>{active.reason='user_cancel';active.controller.abort();},Math.max(0,remaining));
@@ -271,13 +333,23 @@ export class JobManager {
           {reason:'Spend authority fence failed: '+message(error),previousState:'unknown'}); }
         clearTimeout(timer);
         this.#event(workOrder.id,run.id,'factory.execution_settled',{runId:run.id});
-        if(this.#active===active)this.#active=null;
+        if(this.#active.get(workOrder.id)===active)this.#active.delete(workOrder.id);
       }
     });
     return true;
   }
 
-  activeRun(runId:string):boolean {return this.#active?.runId===runId;}
+  #assertSlot(workOrderId: string): void {
+    // Reserve before the first await. Separate Works may run concurrently; one
+    // WorkOrder must never acquire two productive executors in this host.
+    const held = this.storage.listWorkOrders().filter(order=>!this.#active.has(order.id)&&
+      this.storage.listRuns(order.id).some(run=>run.state==='interrupted'&&
+        this.storage.listEvents(order.id).filter(e=>e.runId===run.id&&['run.recovery_hold','run.recovery_cleared'].includes(e.type)).at(-1)?.type==='run.recovery_hold')).length;
+    if (this.#active.has(workOrderId) || this.#active.size + held >= this.maxParallelRuns)
+      throw new ActionError("Run capacity or WorkOrder writer already held", "concurrency_limit", 409);
+  }
+
+  activeRun(runId:string):boolean {return [...this.#active.values()].some(active=>active.runId===runId);}
 
   async #initializeRun(workOrder: WorkOrder, active: ActiveJob): Promise<Run> {
     let workspacePath: string | null = null;
@@ -686,8 +758,8 @@ export class JobManager {
   }
 
   async cancelRun(workOrder: WorkOrder): Promise<Run | null> {
-    const active = this.#active;
-    if (!active || active.workOrderId !== workOrder.id) {
+    const active = this.#active.get(workOrder.id);
+    if (!active) {
       const last = this.storage.listRuns(workOrder.id).at(-1) ?? null;
       if (last?.state === "cancelled") return last;
       throw new ActionError("There is no active run to cancel", "not_running", 409);
@@ -701,12 +773,13 @@ export class JobManager {
   }
 
   async close(): Promise<void> {
-    const active = this.#active;
-    if (!active) return;
-    if (!active.controller.signal.aborted) {
-      active.reason = "service_shutdown";
-      active.controller.abort();
+    const activeJobs = [...this.#active.values()];
+    for (const active of activeJobs) {
+      if (!active.controller.signal.aborted) {
+        active.reason = "service_shutdown";
+        active.controller.abort();
+      }
     }
-    await active.done;
+    await Promise.all(activeJobs.map(active => active.done));
   }
 }

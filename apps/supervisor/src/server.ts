@@ -142,6 +142,8 @@ function artifactText(dataDir: string, candidate: unknown): string | null {
 }
 
 export interface SupervisorOptions {
+  /** Bounded host concurrency; values above one are currently fixture-qualified only. */
+  maxParallelRuns?: number;
   /** Host-authenticated observer identities; never granted through HTTP. Empty by default. */
   reviewObservers?: {reviewers:string[];verifiers:string[]};
   /** Explicit trusted-host activation; never accepted from an HTTP request. */
@@ -253,7 +255,10 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     if (listeners.size === 0) subscribers.delete(event.workOrderId);
   };
   const producer = signing ? new ProducerResults(storage, dataDir, signing) : undefined;
-  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer,realProvider?.price.model);
+  const parallel = options.maxParallelRuns ?? 1;
+  if (parallel !== 1 && (!options.localFactoryFixture && !options.localSpendFixture || realProvider))
+    throw new Error('Parallel execution is deferred until live Factory Version qualification');
+  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer,realProvider?.price.model,parallel);
   const fixtureDependencies=!!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate;
   if(options.localFactoryFixture&&options.localSpendFixture)throw new Error('Fixture modes are mutually exclusive');
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
