@@ -210,7 +210,7 @@ export class ProducerResults {
     const candidates=this.storage.listEvents(run.workOrderId).filter(e => e.runId === run.id && e.type === 'run.candidate_committed');
     if (candidates.length > 1) throw new Error('Ambiguous candidate');
     const candidateEvent=candidates[0] ?? null;
-    const stateDigest=digest({run,checks,candidateEvent,execution});
+    const stateDigest=digest({run,checks,candidates,execution});
     const manifest: ResultManifest={protocol:RESULT_PROTOCOL,keyId:this.options.currentKeyId,producer:execution.factoryId,operationId:operationId(execution),execution,
       status:status as ResultManifest['status'],candidate:null,evidence:[],artifacts:[],evidenceDigest:'',artifactDigest:'',completedAt:run.finishedAt,issuedAt:new Date().toISOString()};
     const {bytes:artifacts,...content}=producerArtifacts(this.dataDir,run,checks,candidateEvent,execution.factoryId);
@@ -218,7 +218,7 @@ export class ProducerResults {
     const result=signResult(manifest,artifacts,this.options.privateKey);
     verifyResult(result,{keys:this.options.keys,factoryId:execution.factoryId,requestId:execution.requestId,workOrderId:run.workOrderId,runId:run.id,factoryVersion:execution.factoryVersion});
     return this.storage.transaction(() => {
-      const observed={run:this.storage.getRun(run.id),checks:this.storage.listChecks(run.id),candidateEvent:this.storage.listEvents(run.workOrderId).find(e => e.runId === run.id && e.type === 'run.candidate_committed') ?? null,execution:this.snapshot(run)};
+      const observed={run:this.storage.getRun(run.id),checks:this.storage.listChecks(run.id),candidates:this.storage.listEvents(run.workOrderId).filter(e => e.runId === run.id && e.type === 'run.candidate_committed'),execution:this.snapshot(run)};
       if (digest(observed) !== stateDigest) throw new Error('Attempt changed during result freeze');
       return saveRunRecord(this.storage,run,RESULT_EVENT,result);
     });

@@ -118,6 +118,7 @@ test('V4 direct producer: shared artifact extraction preserves legacy V1 and V3 
   const snapshot=legacy.capture(f.work,f.run,'openai/gpt-5.4-mini','direct-synthetic-fixture'),run=candidate(f),result=legacy.read(run).result;
   const {manifest}=verifyResult(result,{keys:f.options.keys,factoryId:snapshot.factoryId,requestId:snapshot.requestId,workOrderId:run.workOrderId,runId:run.id,factoryVersion:snapshot.factoryVersion});
   assert.deepEqual(manifest.execution,snapshot);assert.equal(manifest.status,'COMPLETED');assert.equal(manifest.artifacts.length,4);assert.equal(manifest.evidence.length,1);assert.deepEqual(legacy.finalize(run),result);
+  const reopened=openStorage(f.path);try{assert.deepEqual(new ProducerResults(reopened,f.dir,f.options).read(run).result,result);}finally{reopened.close();}
  }
 });
 
@@ -132,4 +133,16 @@ test('V4 direct producer: key expiration during object reads cannot admit a snap
  const f=fixture(t),transaction=f.storage.transaction.bind(f.storage),originalNow=Date.now;let changed=false;
  f.storage.transaction=operation=>{if(!changed){changed=true;Date.now=()=>Date.parse('2100-01-01T00:00:00Z');}return transaction(operation);};
  try{assert.throws(f.capture,/Signing key expired/);assert.equal(readRunRecord(f.storage,f.run,SNAPSHOT_EVENT),null);}finally{Date.now=originalNow;}
+});
+
+for(const version of [1,3])test(`Legacy direct producer: V${version} duplicate candidate event at freeze refuses the Result`,t=>{
+ const f=fixture(t),legacy=new ProducerResults(f.storage,f.dir,{...f.options,...(version===3?{sessionMetadata:true}:{})});
+ legacy.capture(f.work,f.run,'openai/gpt-5.4-mini','direct-synthetic-fixture');
+ const run=candidate(f),transaction=f.storage.transaction.bind(f.storage);let changed=false,failure=null;
+ const original=f.storage.listEvents(f.work.id).find(e=>e.type==='run.candidate_committed');
+ f.storage.transaction=operation=>{if(!changed){changed=true;f.storage.appendEvent({workOrderId:f.work.id,runId:run.id,type:original.type,payload:original.payload});}return transaction(operation);};
+ try{legacy.finalize(run);}catch(error){failure=error;}
+ const result=readRunRecord(f.storage,run,RESULT_EVENT),candidateEvents=f.storage.listEvents(f.work.id).filter(e=>e.type==='run.candidate_committed').length;
+ console.log('LEGACY_FREEZE_PROBE '+JSON.stringify({version,candidateEvents,resultPersisted:result!==null}));
+ assert.ok(failure,'Ambiguous candidate history must refuse finalization');assert.match(failure.message,/Attempt changed/);assert.equal(result,null);
 });
