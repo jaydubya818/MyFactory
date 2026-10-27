@@ -260,3 +260,159 @@ export function compareResults(previous: SignedResult, next: SignedResult): 'DUP
   if (previous.manifestDigest !== next.manifestDigest) throw new Error('Conflicting result operation');
   return 'DUPLICATE';
 }
+
+/** Inactive local-only codec. Legacy entry points deliberately reject V4.
+ * No producer, admission, custody reader or server selects these APIs. */
+export interface LocalExecutionConfigurationV4 extends Omit<ExecutionConfiguration, 'cloud'> {
+  executor: 'codex-cli';
+  workerProfile: 'mac' | 'container';
+}
+export interface LocalExecutionSnapshotV4 extends Omit<ExecutionSnapshot, 'version' | 'inputTree' | 'workspace' | 'configuration'> {
+  version: 4;
+  inputTree: string;
+  workspace: { kind: 'GIT_WORKTREE'; path: string; branch: null };
+  configuration: LocalExecutionConfigurationV4;
+}
+export interface LocalResultManifestV4 extends Omit<ResultManifest, 'execution' | 'verification'> {
+  execution: LocalExecutionSnapshotV4;
+}
+/** Trusted admission expectations, never fields inferred from a returned Result.
+ * configuration is the exact execution profile. Canonical Work/owner/criteria
+ * authorization remains outside this codec, bound by the admitted request. */
+export type LocalResultV4Expected = Omit<LocalExecutionSnapshotV4, 'version' | 'workspace' | 'capturedAt'>;
+
+function localModelReferenceV4(value: unknown): boolean {
+  return typeof value === 'string' && value.length <= 120 && !value.includes('..') && !/\s/.test(value) &&
+    value.split('/').length <= 2 && value.split('/').every(part => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(part));
+}
+
+export function validateLocalResultManifestV4(value: unknown): asserts value is LocalResultManifestV4 {
+  exact(value, ['protocol','keyId','producer','operationId','execution','status','candidate','evidence','artifacts','evidenceDigest','artifactDigest','completedAt','issuedAt']);
+  requireValue(value.protocol === RESULT_PROTOCOL, 'Unknown result protocol');
+  text(value.keyId); text(value.producer); hash(value.operationId); hash(value.evidenceDigest); hash(value.artifactDigest);
+  time(value.completedAt); time(value.issuedAt);
+  requireValue(Date.parse(value.completedAt) <= Date.parse(value.issuedAt), 'Completion after issuance');
+  requireValue(['COMPLETED','FAILED','CANCELLED'].includes(String(value.status)), 'Nonterminal result');
+  const e = value.execution;
+  exact(e, ['version','factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','inputTree','workspace','capturedAt']);
+  requireValue(e.version === 4 && e.factoryId === value.producer, 'Local V4 producer required');
+  for (const key of ['factoryId','requestId','workOrderId','runId']) text(e[key]);
+  for (const key of ['factoryVersion','sourceDigest','configurationDigest','requestDigest']) hash(e[key]);
+  gitHash(e.inputCommit); gitHash(e.inputTree); time(e.capturedAt);
+  requireValue(e.inputTree.length === e.inputCommit.length, 'Input Git object format mismatch');
+  requireValue(Number.isSafeInteger(e.attemptNumber) && Number(e.attemptNumber) > 0, 'Invalid attempt');
+  requireValue(Date.parse(e.capturedAt) <= Date.parse(value.completedAt), 'Completion before admission');
+  exact(e.workspace, ['kind','path','branch']);
+  requireValue(e.workspace.kind === 'GIT_WORKTREE' && e.workspace.branch === null, 'Unknown workspace association');
+  text(e.workspace.path);
+  requireValue(e.workspace.path.startsWith('/') && !e.workspace.path.includes('\0'), 'Invalid workspace association');
+  const c = e.configuration;
+  exact(c, ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture','commands','allowedPaths','timeoutMs']);
+  for (const key of ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture']) text(c[key]);
+  requireValue(c.executor === 'codex-cli' && ['mac','container'].includes(String(c.workerProfile)), 'Local execution profile required');
+  requireValue(localModelReferenceV4(c.model), 'Invalid local model reference');
+  for (const key of ['commands','allowedPaths']) {
+    const list = c[key]; requireValue(Array.isArray(list) && list.length > 0 && list.length <= 100, 'Invalid configuration list'); list.forEach(text);
+  }
+  requireValue(Number.isSafeInteger(c.timeoutMs) && Number(c.timeoutMs) > 0, 'Invalid timeout');
+  requireValue(digest(c) === e.configurationDigest && digest({sourceDigest:e.sourceDigest, configurationDigest:e.configurationDigest}) === e.factoryVersion, 'Execution version mismatch');
+  requireValue(digest([RESULT_PROTOCOL,e.factoryId,e.requestId,e.workOrderId,e.runId]) === value.operationId, 'Operation mismatch');
+  requireValue(Array.isArray(value.artifacts) && value.artifacts.length <= 103, 'Invalid artifacts');
+  const ids = new Set();
+  for (const a of value.artifacts) {
+    exact(a, ['id','kind','producer','runId','candidateCommit','sha256','size','createdAt']);
+    text(a.id); hash(a.sha256); gitHash(a.candidateCommit); time(a.createdAt);
+    requireValue(Date.parse(a.createdAt) >= Date.parse(e.capturedAt) && Date.parse(a.createdAt) <= Date.parse(value.completedAt), 'Artifact chronology mismatch');
+    requireValue(!ids.has(a.id), 'Duplicate artifact'); ids.add(a.id);
+    requireValue(['git-commit','git-tree','patch','check-log'].includes(String(a.kind)), 'Unknown artifact kind');
+    requireValue(a.producer === value.producer && a.runId === e.runId, 'Artifact provenance mismatch');
+    requireValue(Number.isSafeInteger(a.size) && Number(a.size) >= 0 && Number(a.size) <= MAX_ARTIFACT_BYTES, 'Artifact size limit');
+  }
+  requireValue(Array.isArray(value.evidence) && value.evidence.length <= 100, 'Invalid evidence');
+  const evidenceIds = new Set(), logIds = new Set();
+  for (const check of value.evidence) {
+    exact(check, ['id','producer','runId','candidateCommit','command','status','exitCode','startedAt','finishedAt','logArtifactId']);
+    text(check.id); text(check.command); gitHash(check.candidateCommit); time(check.startedAt); time(check.finishedAt);
+    requireValue(!evidenceIds.has(check.id) && !logIds.has(check.logArtifactId), 'Duplicate evidence'); evidenceIds.add(check.id); logIds.add(check.logArtifactId);
+    requireValue(check.producer === value.producer && check.runId === e.runId, 'Evidence provenance mismatch');
+    requireValue(['passed','failed','skipped','unavailable'].includes(String(check.status)), 'Unknown check status');
+    requireValue(check.exitCode === null || Number.isSafeInteger(check.exitCode), 'Invalid check exit');
+    requireValue(check.status !== 'passed' || check.exitCode === 0, 'Contradictory check');
+    requireValue(Date.parse(check.startedAt) >= Date.parse(e.capturedAt) && Date.parse(check.startedAt) <= Date.parse(check.finishedAt) && Date.parse(check.finishedAt) <= Date.parse(value.completedAt), 'Invalid check chronology');
+    const log = value.artifacts.find(a => a.id === check.logArtifactId);
+    requireValue(log?.kind === 'check-log' && log.candidateCommit === check.candidateCommit, 'Unbound check log');
+  }
+  if (value.candidate !== null) {
+    const candidate = value.candidate;
+    exact(candidate, ['commit','tree','base','patchDigest','commitArtifactId','treeArtifactId','patchArtifactId']);
+    gitHash(candidate.commit); gitHash(candidate.tree); gitHash(candidate.base); hash(candidate.patchDigest);
+    requireValue(candidate.base === e.inputCommit, 'Wrong candidate base');
+    for (const [key, kind] of [['commitArtifactId','git-commit'],['treeArtifactId','git-tree'],['patchArtifactId','patch']]) {
+      const a = value.artifacts.find(a => a.id === candidate[key]);
+      requireValue(a?.kind === kind && a.candidateCommit === candidate.commit, 'Missing candidate artifact');
+      if (kind === 'patch') requireValue(a.sha256 === candidate.patchDigest, 'Patch digest mismatch');
+    }
+    requireValue(value.artifacts.every(a => a.candidateCommit === candidate.commit) && value.evidence.every(c => c.candidateCommit === candidate.commit), 'Cross-candidate data');
+    requireValue(value.artifacts.length === value.evidence.length + 3, 'Unbound artifact');
+  } else requireValue(value.artifacts.length === 0 && value.evidence.length === 0, 'Artifacts without candidate');
+  if (value.status === 'COMPLETED') {
+    requireValue(value.candidate !== null && value.evidence.length > 0 && value.evidence.every(c => c.status === 'passed'), 'Incomplete success');
+    requireValue(canonical(value.evidence.map(c => c.command)) === canonical(c.commands), 'Missing required checks');
+  }
+  requireValue(digest(value.evidence) === value.evidenceDigest && digest(value.artifacts) === value.artifactDigest, 'Manifest digest mismatch');
+}
+
+function verifyLocalArtifactBytesV4(m: LocalResultManifestV4, artifacts: SignedResult['artifacts']): void {
+  requireValue(Array.isArray(artifacts) && artifacts.length === m.artifacts.length, 'Missing artifact bytes');
+  const bytes = new Map<string, Buffer>();
+  for (const a of artifacts) {
+    exact(a, ['id','base64']); text(a.id);
+    requireValue(typeof a.base64 === 'string' && a.base64.length <= Math.ceil(MAX_ARTIFACT_BYTES / 3) * 4, 'Artifact size limit');
+    const content = Buffer.from(a.base64, 'base64');
+    requireValue(content.toString('base64') === a.base64 && !bytes.has(a.id), 'Invalid artifact encoding or duplicate');
+    const meta = m.artifacts.find(item => item.id === a.id);
+    requireValue(meta && meta.size === content.length && meta.sha256 === sha256(content), 'Artifact digest mismatch');
+    bytes.set(a.id, content);
+  }
+  if (m.candidate) {
+    const c = m.candidate, commit = bytes.get(c.commitArtifactId)!, tree = bytes.get(c.treeArtifactId)!;
+    const objectId = (type: string, b: Buffer, id: string) => createHash(id.length === 40 ? 'sha1' : 'sha256').update(`${type} ${b.length}\0`).update(b).digest('hex');
+    requireValue(objectId('commit',commit,c.commit) === c.commit && objectId('tree',tree,c.tree) === c.tree, 'Git object digest mismatch');
+    const headers = commit.toString('utf8').split('\n\n')[0].split('\n');
+    requireValue(headers[0] === `tree ${c.tree}` && headers.filter(h => h.startsWith('parent ')).join('\n') === `parent ${c.base}`, 'Candidate tree/base mismatch');
+  }
+}
+
+export function signLocalResultV4(manifest: LocalResultManifestV4, artifacts: SignedResult['artifacts'], privateKey: string | KeyObject): SignedResult {
+  validateLocalResultManifestV4(manifest); verifyLocalArtifactBytesV4(manifest, artifacts);
+  const encoded = Buffer.from(canonical(manifest)).toString('base64url');
+  const result: SignedResult = {protocol:RESULT_PROTOCOL,encoded,signature:signProtocolPayload(RESULT_PROTOCOL,encoded,privateKey),manifestDigest:digest(manifest),artifacts};
+  requireValue(Buffer.byteLength(JSON.stringify(result)) <= MAX_RESULT_BYTES, 'Result size limit'); return result;
+}
+
+export function verifyLocalResultV4(input: unknown, options: {
+  keys: ResultKey[]; expected: LocalResultV4Expected; now?: number; historical?: boolean;
+}): {manifest: LocalResultManifestV4; keyValidForCurrentUse: boolean} {
+  requireValue(Buffer.byteLength(JSON.stringify(input) ?? '') <= MAX_RESULT_BYTES, 'Result size limit');
+  exact(input, ['protocol','encoded','signature','manifestDigest','artifacts']);
+  requireValue(input.protocol === RESULT_PROTOCOL && typeof input.encoded === 'string' && typeof input.signature === 'string', 'Unknown result protocol');
+  const raw = Buffer.from(input.encoded,'base64url').toString('utf8'), manifest: unknown = JSON.parse(raw);
+  validateLocalResultManifestV4(manifest);
+  requireValue(canonical(manifest) === raw && Buffer.from(raw).toString('base64url') === input.encoded, 'Noncanonical result');
+  const expected = options.expected, e = manifest.execution;
+  const keys = options.keys.filter(k => k.factoryId === expected.factoryId && k.keyId === manifest.keyId);
+  requireValue(keys.length === 1, 'Unknown or ambiguous key'); const key = keys[0];
+  requireValue(verifyProtocolPayload(RESULT_PROTOCOL,input.encoded,input.signature,key.publicKey), 'Invalid signature');
+  requireValue(manifest.producer === expected.factoryId &&
+    (['factoryId','factoryVersion','sourceDigest','configurationDigest','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','inputTree'] as const).every(field => e[field] === expected[field]) &&
+    canonical(e.configuration) === canonical(expected.configuration), 'Local V4 admission/profile mismatch');
+  const now = options.now ?? Date.now(), issued = Date.parse(manifest.issuedAt);
+  time(key.activeFrom); time(key.notAfter); if (key.retiredAt) time(key.retiredAt); if (key.revokedAt) time(key.revokedAt);
+  requireValue(issued >= Date.parse(key.activeFrom) && issued <= Date.parse(key.notAfter) && issued <= now, 'Key validity window');
+  requireValue(!key.retiredAt || issued < Date.parse(key.retiredAt), 'Issued after retirement');
+  const current = !key.revokedAt && !key.retiredAt && now <= Date.parse(key.notAfter);
+  requireValue(options.historical || current, 'Key revoked, retired or expired for current admission');
+  requireValue(digest(manifest) === input.manifestDigest, 'Result manifest digest mismatch');
+  verifyLocalArtifactBytesV4(manifest,input.artifacts as SignedResult['artifacts']);
+  return {manifest,keyValidForCurrentUse:!options.historical && current};
+}
