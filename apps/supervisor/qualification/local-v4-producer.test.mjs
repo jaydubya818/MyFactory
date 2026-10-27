@@ -12,9 +12,9 @@ import {digest,sha256,verifyLocalResultV4,verifyResult} from '../../../packages/
 
 const GIT='/opt/homebrew/Cellar/git/2.48.1/bin/git';
 const env={PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C',GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_SYSTEM:'/dev/null',GIT_CONFIG_GLOBAL:'/dev/null',GIT_TERMINAL_PROMPT:'0',GIT_ALLOW_PROTOCOL:''};
-function fixture(t){
+function fixture(t,gitBinary=GIT){
  const dir=realpathSync(mkdtempSync(join(tmpdir(),'local-v4-producer-'))),repo=join(dir,'repo');mkdirSync(repo);
- const git=(...args)=>execFileSync(GIT,['-c','core.hooksPath=/dev/null','-c','protocol.allow=never','-C',repo,...args],{env,encoding:'utf8',timeout:10000,maxBuffer:4*1024*1024}).trim();
+ const git=(...args)=>execFileSync(gitBinary,['-c','core.hooksPath=/dev/null','-c','protocol.allow=never','-C',repo,...args],{env,encoding:'utf8',timeout:10000,maxBuffer:4*1024*1024}).trim();
  git('init','-q','--template=');git('config','user.name','Ordinary producer fixture');git('config','user.email','producer@example.invalid');
  writeFileSync(join(repo,'sample.txt'),'before\n');git('add','sample.txt');git('commit','-qm','Admitted input');
  const inputCommit=git('rev-parse','HEAD'),inputTree=git('rev-parse','HEAD^{tree}');
@@ -26,12 +26,12 @@ function fixture(t){
  t.after(()=>{storage.close();rmSync(dir,{recursive:true,force:true});});
  const capture=()=>{const snapshot=producer.capture(work,run,'openai/gpt-5.4-mini','direct-synthetic-fixture');const {version,workspace,capturedAt,...expected}=snapshot;return {snapshot,admission:{work,expected}};};
  const finish=(state='failed')=>storage.saveRun({...storage.getRun(run.id),state,finishedAt:new Date().toISOString()});
- return {dir,repo,path,storage,work,run,options,producer,git,inputCommit,inputTree,capture,finish};
+ return {dir,repo,path,storage,work,run,options,producer,git,gitBinary,inputCommit,inputTree,capture,finish};
 }
 function candidate(f){
  writeFileSync(join(f.repo,'sample.txt'),'after\n');f.git('add','sample.txt');f.git('commit','-qm','Synthetic candidate');
  const commit=f.git('rev-parse','HEAD'),tree=f.git('rev-parse','HEAD^{tree}'),artifacts=join(f.dir,'artifacts',f.run.id);mkdirSync(artifacts,{recursive:true});
- const diffPath=join(artifacts,'candidate.patch'),patch=execFileSync(GIT,['-C',f.repo,'show','--format=','--binary','--no-ext-diff','--no-textconv',commit],{env,timeout:10000});writeFileSync(diffPath,patch);
+ const diffPath=join(artifacts,'candidate.patch'),patch=execFileSync(f.gitBinary,['-C',f.repo,'show','--format=','--binary','--no-ext-diff','--no-textconv',commit],{env,timeout:10000});writeFileSync(diffPath,patch);
  f.storage.appendEvent({workOrderId:f.work.id,runId:f.run.id,type:'run.candidate_committed',payload:{candidateCommit:commit,candidateTree:tree,diffPath,diffSha256:sha256(patch)}});
  const logPath=join(artifacts,'check.log');writeFileSync(logPath,'Synthetic producer check only; independent verification NOT_RUN\n');const at=new Date().toISOString();
  f.storage.insertCheck({runId:f.run.id,candidateCommit:commit,command:'check-one',status:'passed',exitCode:0,startedAt:at,finishedAt:at,logPath,logSha256:sha256(readFileSync(logPath))});
@@ -112,9 +112,9 @@ test('V4 direct producer: ordinary fixture creates no spend budgets or charge op
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM work_spend_operations').get().n,0);
  }finally{db.close();}
 });
-test('V4 direct producer: shared artifact extraction preserves legacy V1 and V3 terminal signing',t=>{
+test('Legacy direct producer: valid V1 and V3 terminal signing and reopened replay',t=>{
  for(const version of [1,3]){
-  const f=fixture(t),legacy=new ProducerResults(f.storage,f.dir,{...f.options,...(version===3?{sessionMetadata:true}:{})});
+  const f=fixture(t,'/usr/bin/git'),legacy=new ProducerResults(f.storage,f.dir,{...f.options,...(version===3?{sessionMetadata:true}:{})});
   const snapshot=legacy.capture(f.work,f.run,'openai/gpt-5.4-mini','direct-synthetic-fixture'),run=candidate(f),result=legacy.read(run).result;
   const {manifest}=verifyResult(result,{keys:f.options.keys,factoryId:snapshot.factoryId,requestId:snapshot.requestId,workOrderId:run.workOrderId,runId:run.id,factoryVersion:snapshot.factoryVersion});
   assert.deepEqual(manifest.execution,snapshot);assert.equal(manifest.status,'COMPLETED');assert.equal(manifest.artifacts.length,4);assert.equal(manifest.evidence.length,1);assert.deepEqual(legacy.finalize(run),result);
@@ -136,7 +136,7 @@ test('V4 direct producer: key expiration during object reads cannot admit a snap
 });
 
 for(const version of [1,3])test(`Legacy direct producer: V${version} duplicate candidate event at freeze refuses the Result`,t=>{
- const f=fixture(t),legacy=new ProducerResults(f.storage,f.dir,{...f.options,...(version===3?{sessionMetadata:true}:{})});
+ const f=fixture(t,'/usr/bin/git'),legacy=new ProducerResults(f.storage,f.dir,{...f.options,...(version===3?{sessionMetadata:true}:{})});
  legacy.capture(f.work,f.run,'openai/gpt-5.4-mini','direct-synthetic-fixture');
  const run=candidate(f),transaction=f.storage.transaction.bind(f.storage);let changed=false,failure=null;
  const original=f.storage.listEvents(f.work.id).find(e=>e.type==='run.candidate_committed');
