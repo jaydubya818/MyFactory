@@ -207,3 +207,158 @@ export class ProducerResults {
     });
   }
 }
+
+// Inactive primitive: no producer/service calls it. A future admitted host caller
+// must select a local, stable, host-owned repository and the exact input commit.
+// These guards do not provide atomic revocation against a concurrent repository
+// administrator. Returned object identity proves no Work/owner/source authority.
+import { createHash as localGitHashV4 } from 'node:crypto';
+import { constants as localGitFsV4, opendirSync as localGitOpenDirectoryV4 } from 'node:fs';
+import { isAbsolute as localGitIsAbsoluteV4 } from 'node:path';
+
+const LOCAL_GIT_INPUT_V4 = {
+  executable: '/opt/homebrew/Cellar/git/2.48.1/bin/git',
+  executableSha256: '7ed424dafb29f1d4e3df1ca215efcba044b19cc78cf8b8df5a74cbdbfcbf4899',
+  version: 'git version 2.48.1\n',
+  objectBytes: 4 * 1024 * 1024,
+  timeoutMs: 10_000,
+  metadataBytes: 16 * 1024,
+} as const;
+
+function localGitInputFileV4(path: string, limit: number): Buffer {
+  if (realpathSync(path) !== path) throw new Error('Git input path redirection is unsupported');
+  const fd = openSync(path, localGitFsV4.O_RDONLY | localGitFsV4.O_NOFOLLOW | localGitFsV4.O_NONBLOCK);
+  try {
+    const before = fstatSync(fd);
+    if (!before.isFile() || before.size > limit) throw new Error('Git input file type or size limit');
+    const buffer = Buffer.alloc(limit + 1); let size = 0;
+    while (size < buffer.length) {
+      const count = readSync(fd, buffer, size, buffer.length - size, null);
+      if (!count) break;
+      size += count;
+    }
+    const after = fstatSync(fd);
+    if (size > limit || size !== before.size || after.size !== size || after.ino !== before.ino || after.dev !== before.dev ||
+      after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs) throw new Error('Git input file changed during bounded read');
+    return buffer.subarray(0, size);
+  } finally { closeSync(fd); }
+}
+
+function localGitInputDirectoryV4(path: string, limit: number): string[] {
+  if (realpathSync(path) !== path || !lstatSync(path).isDirectory()) throw new Error('Git input directory redirection is unsupported');
+  const directory = localGitOpenDirectoryV4(path), names: string[] = [];
+  try {
+    for (;;) {
+      const entry = directory.readSync(); if (!entry) return names.sort();
+      if (names.length >= limit || entry.isSymbolicLink()) throw new Error('Git input directory bound or redirection');
+      names.push(entry.name);
+    }
+  } finally { directory.closeSync(); }
+}
+
+/** Unused identity-only read of exact raw commit/tree objects, including packs.
+ * Supports SHA-1/SHA-256 regular working repositories on the pinned host Git.
+ * Linked/bare layouts, includes, alternates, promisor/unknown config fail closed;
+ * no writes, network, ref resolution, retries or alternate-executable fallback.
+ * Caller must keep repository layout/config/object store stable for this call. */
+export function readLocalGitInputTreeV4(trustedRepository: string, expectedCommit: string): { inputCommit: string; inputTree: string } {
+  if (typeof trustedRepository !== 'string' || trustedRepository.length > 4096 || !localGitIsAbsoluteV4(trustedRepository) || trustedRepository.includes('\0') ||
+    typeof expectedCommit !== 'string' || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(expectedCommit)) throw new Error('Unsupported exact Git input identity');
+  const env: NodeJS.ProcessEnv = {
+    PATH: '/nonexistent', XDG_CONFIG_HOME: '/nonexistent', LANG: 'C', LC_ALL: 'C',
+    GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_SYSTEM: '/dev/null', GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_NO_REPLACE_OBJECTS: '1', GIT_NO_LAZY_FETCH: '1', GIT_OPTIONAL_LOCKS: '0',
+    GIT_TERMINAL_PROMPT: '0', GIT_ALLOW_PROTOCOL: '', GIT_CEILING_DIRECTORIES: '/',
+  };
+  const git = (args: string[], input?: Buffer, maxBuffer: number = LOCAL_GIT_INPUT_V4.metadataBytes * 4, timeout: number = LOCAL_GIT_INPUT_V4.timeoutMs): Buffer => {
+    try {
+      return execFileSync(LOCAL_GIT_INPUT_V4.executable, ['--no-pager', '--no-replace-objects', '--no-lazy-fetch', '--no-optional-locks',
+        '-c', 'protocol.allow=never', '-c', 'credential.helper=', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false',
+        '-c', 'gc.auto=0', '-c', 'maintenance.auto=false', '-c', 'core.commitGraph=false', '-c', 'core.multiPackIndex=false', ...args], {
+        cwd: '/', env, input, timeout, killSignal: 'SIGKILL', maxBuffer, stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    } catch { throw new Error('Bounded pinned Git input command failed; no fallback'); }
+  };
+  if (existsSync('/.git') || sha256(localGitInputFileV4(LOCAL_GIT_INPUT_V4.executable, LOCAL_GIT_INPUT_V4.objectBytes)) !== LOCAL_GIT_INPUT_V4.executableSha256 ||
+    git(['--version']).toString('utf8') !== LOCAL_GIT_INPUT_V4.version) throw new Error('Unsupported trusted Git executable or root discovery');
+  if (realpathSync(trustedRepository) !== trustedRepository || !lstatSync(trustedRepository).isDirectory()) throw new Error('Trusted local Git repository directory required');
+  const gitDir = join(trustedRepository, '.git'), objects = join(gitDir, 'objects');
+  const guard = (): Buffer => {
+    const names = localGitInputDirectoryV4(gitDir, 128);
+    if (names.some(name => ['commondir', 'config.worktree', 'shallow'].includes(name)) || existsSync(join(gitDir, 'info', 'grafts'))) throw new Error('Unsupported Git repository layout');
+    const stores = localGitInputDirectoryV4(objects, 258), packs = new Set<string>();
+    if (stores.includes('pack')) {
+      const path = join(objects, 'pack');
+      for (const file of localGitInputDirectoryV4(path, 1024)) {
+        if (!/^pack-[a-f0-9]{40}(?:[a-f0-9]{24})?\.(?:pack|idx|rev|bitmap|keep)$/.test(file) || !lstatSync(join(path, file)).isFile()) throw new Error('Promisor or redirected Git packs are unsupported');
+        if (file.endsWith('.pack')) packs.add(file);
+      }
+    }
+    for (const name of stores) {
+      if (!/^[a-f0-9]{2}$/.test(name) && !['info', 'pack'].includes(name)) throw new Error('Unsupported Git object store');
+      const path = join(objects, name);
+      if (name === 'info') {
+        const info = localGitInputDirectoryV4(path, 1);
+        if (info.some(file => file !== 'packs')) throw new Error('Alternate or auxiliary Git object stores are unsupported');
+        if (info.length) {
+          // Normal repack writes this inert catalog. Never use it to select a
+          // path/store: each exact entry must already name a validated pack.
+          const lines = localGitInputFileV4(join(path, 'packs'), LOCAL_GIT_INPUT_V4.metadataBytes).toString('utf8').split('\n');
+          if (lines.pop() !== '') throw new Error('Invalid Git pack catalog framing');
+          if (lines.at(-1) === '') lines.pop();
+          const listed = new Set<string>(), pattern = new RegExp(`^P (pack-[a-f0-9]{${expectedCommit.length}}\\.pack)$`);
+          for (const line of lines) {
+            const match = pattern.exec(line);
+            if (!match || !packs.has(match[1]) || listed.has(match[1])) throw new Error('Invalid, duplicate or missing Git pack catalog entry');
+            listed.add(match[1]);
+          }
+          if (listed.size !== packs.size) throw new Error('Incomplete Git pack catalog');
+        }
+      } else if (name !== 'pack' && !lstatSync(path).isDirectory()) throw new Error('Unsupported Git object directory');
+    }
+    return localGitInputFileV4(join(gitDir, 'config'), LOCAL_GIT_INPUT_V4.metadataBytes);
+  };
+  const configuration = guard();
+  // Parse bounded inert stdin outside the repository; never follow includes.
+  const fields = git(['config', '--no-includes', '--file', '-', '--null', '--list'], configuration).toString('utf8').split('\0');
+  if (fields.pop() !== '') throw new Error('Invalid Git configuration framing');
+  const config = new Map<string, string>();
+  for (const field of fields) {
+    const at = field.indexOf('\n'), name = field.slice(0, at), value = field.slice(at + 1);
+    const allowed = ['core.filemode', 'core.logallrefupdates', 'core.ignorecase', 'core.precomposeunicode'].includes(name) ? /^(true|false)$/.test(value) :
+      name === 'core.repositoryformatversion' ? /^(0|1)$/.test(value) : name === 'core.bare' ? value === 'false' :
+      name === 'extensions.objectformat' ? value === 'sha256' :
+      /^(?:user\.(?:name|email)|remote\.[A-Za-z0-9_./-]+\.(?:url|fetch)|branch\.[A-Za-z0-9_./-]+\.(?:remote|merge))$/.test(name) && value.length > 0 && value.length <= 4096 && !/[\0\r\n]/.test(value);
+    if (at < 1 || !allowed || config.has(name)) throw new Error('Unsupported Git input configuration');
+    config.set(name, value);
+  }
+  const format = config.get('core.repositoryformatversion') === '0' && !config.has('extensions.objectformat') ? 'sha1' :
+    config.get('core.repositoryformatversion') === '1' && config.get('extensions.objectformat') === 'sha256' ? 'sha256' : null;
+  if (!format || config.get('core.bare') !== 'false' || expectedCommit.length !== (format === 'sha1' ? 40 : 64)) throw new Error('Unsupported or mixed Git object format');
+  const args = ['--git-dir=' + gitDir];
+  if (git([...args, 'rev-parse', '--show-object-format=storage']).toString('utf8') !== format + '\n') throw new Error('Git repository format mismatch');
+  const object = (id: string, kind: 'commit' | 'tree'): Buffer => {
+    const deadline = Date.now() + LOCAL_GIT_INPUT_V4.timeoutMs;
+    const remaining = (): number => { const ms = deadline - Date.now(); if (ms <= 0) throw new Error('Git input object timeout'); return ms; };
+    if (!guard().equals(configuration)) throw new Error('Git input configuration changed');
+    const loose = join(objects, id.slice(0, 2), id.slice(2));
+    if (existsSync(loose) && (realpathSync(loose) !== loose || !lstatSync(loose).isFile())) throw new Error('Redirected Git object');
+    const input = Buffer.from(id + '\n');
+    const metadata = git([...args, 'cat-file', '--batch-check=%(objectname) %(objecttype) %(objectsize)'], input, 256, remaining()).toString('utf8');
+    const match = new RegExp(`^${id} ${kind} (0|[1-9][0-9]*)\\n$`).exec(metadata);
+    if (!match || !Number.isSafeInteger(Number(match[1])) || Number(match[1]) > LOCAL_GIT_INPUT_V4.objectBytes) throw new Error('Missing, wrong-kind or oversized Git object');
+    const size = Number(match[1]), raw = git([...args, 'cat-file', '--batch'], input, LOCAL_GIT_INPUT_V4.objectBytes + 256, remaining());
+    const header = Buffer.from(metadata), bytes = raw.subarray(header.length, header.length + size);
+    if (!raw.subarray(0, header.length).equals(header) || raw.length !== header.length + size + 1 || raw.at(-1) !== 10 ||
+      localGitHashV4(format).update(`${kind} ${size}\0`).update(bytes).digest('hex') !== id) throw new Error('Git object raw framing or typed hash mismatch');
+    remaining();
+    return bytes;
+  };
+  const commit = object(expectedCommit, 'commit'), split = commit.indexOf('\n\n');
+  if (split < 0 || commit.subarray(0, split).includes(0)) throw new Error('Invalid Git commit headers');
+  const headers = commit.subarray(0, split).toString('utf8').split('\n'), treePattern = new RegExp(`^tree [a-f0-9]{${expectedCommit.length}}$`);
+  if (!treePattern.test(headers[0]) || headers.filter(line => /^tree(?:\s|$)/.test(line)).length !== 1) throw new Error('Unique valid input tree header required');
+  const inputTree = headers[0].slice(5); object(inputTree, 'tree');
+  if (!guard().equals(configuration)) throw new Error('Git input configuration changed');
+  return { inputCommit: expectedCommit, inputTree };
+}
