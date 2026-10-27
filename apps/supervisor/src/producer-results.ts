@@ -9,6 +9,8 @@ import type { Run, WorkOrder } from '../../../packages/contracts/src/index.ts';
 import { DEFAULT_VERIFICATION_IMAGE } from '../../../packages/verification/src/index.ts';
 import {
   canonical, digest, sha256, operationId, signResult, verifyResult, RESULT_PROTOCOL, MAX_ARTIFACT_BYTES,
+  signLocalResultV4, verifyLocalResultV4, validateLocalResultManifestV4,
+  type LocalExecutionSnapshotV4, type LocalResultManifestV4, type LocalResultV4Expected,
   type ExecutionConfiguration, type ExecutionSnapshot, type ResultKey, type ResultManifest, type SignedResult,
 } from '../../../packages/hosted-routing/src/result.ts';
 
@@ -72,6 +74,59 @@ export function producerState(storage: FactoryStorage, run: Run): 'COMPLETED' | 
   return 'RUNNING';
 }
 
+function producerArtifacts(dataDir: string,run: Run,checks: ReturnType<FactoryStorage['listChecks']>,
+  candidateEvent: ReturnType<FactoryStorage['listEvents']>[number] | null,factoryId: string,localGit?: (args:string[])=>Buffer) {
+  const manifest: Pick<ResultManifest,'candidate'|'evidence'|'artifacts'|'evidenceDigest'|'artifactDigest'>={
+    candidate:null,evidence:[],artifacts:[],evidenceDigest:'',artifactDigest:''};
+  const artifacts: SignedResult['artifacts']=[];
+  let total=0;
+  const add=(id: string,kind: ResultManifest['artifacts'][number]['kind'],bytes: Buffer,createdAt: string) => {
+    total+=bytes.length;
+    if (bytes.length > MAX_ARTIFACT_BYTES || total > 8*1024*1024) throw new Error('Artifact export size limit');
+    manifest.artifacts.push({id,kind,producer:factoryId,runId:run.id,candidateCommit:run.candidateCommit!,sha256:sha256(bytes),size:bytes.length,createdAt});
+    artifacts.push({id,base64:bytes.toString('base64')});
+  };
+  if (run.candidateCommit) {
+    const p=candidateEvent?.payload;
+    if (!p || p.candidateCommit !== run.candidateCommit || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(run.candidateCommit) || typeof p.candidateTree !== 'string' || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(p.candidateTree)) throw new Error('Candidate provenance missing');
+    const readArtifact=(path: unknown): Buffer => {
+      if (typeof path !== 'string') throw new Error('Artifact path missing');
+      const base=realpathSync(join(dataDir,'artifacts',run.id)), actual=realpathSync(path);
+      if (!actual.startsWith(base+sep)) throw new Error('Artifact outside attempt');
+      const fd=openSync(actual,'r');
+      try {
+        const stat=fstatSync(fd);
+        if (!stat.isFile() || stat.size > MAX_ARTIFACT_BYTES) throw new Error('Artifact outside attempt or oversized');
+        const buffer=Buffer.alloc(MAX_ARTIFACT_BYTES+1); let size=0;
+        while (size < buffer.length) {
+          const count=readSync(fd,buffer,size,buffer.length-size,null); if (!count) break; size+=count;
+        }
+        if (size > MAX_ARTIFACT_BYTES || size !== stat.size || fstatSync(fd).size !== size) throw new Error('Artifact changed during bounded read');
+        return buffer.subarray(0,size);
+      } finally { closeSync(fd); }
+    };
+    const patch=readArtifact(p.diffPath);
+    if (sha256(patch) !== p.diffSha256) throw new Error('Candidate patch changed');
+    const object=(type: string,id: string) => localGit?localGit(['cat-file',type,id]):execFileSync('git',['-C',run.workspacePath,'cat-file',type,id],{maxBuffer:MAX_ARTIFACT_BYTES,timeout:10_000});
+    const commit=object('commit',run.candidateCommit), tree=object('tree',p.candidateTree);
+    const patchArgs=['show','--format=','--binary','--no-ext-diff','--no-textconv',run.candidateCommit];
+    const actualPatch=localGit?localGit(patchArgs):execFileSync('git',['-C',run.workspacePath,...patchArgs],{maxBuffer:MAX_ARTIFACT_BYTES,timeout:10_000});
+    if (!actualPatch.equals(patch)) throw new Error('Patch does not match candidate');
+    add('candidate.commit','git-commit',commit,candidateEvent!.createdAt);
+    add('candidate.tree','git-tree',tree,candidateEvent!.createdAt);
+    add('candidate.patch','patch',patch,candidateEvent!.createdAt);
+    manifest.candidate={commit:run.candidateCommit,tree:p.candidateTree,base:run.inputCommit,patchDigest:sha256(patch),commitArtifactId:'candidate.commit',treeArtifactId:'candidate.tree',patchArtifactId:'candidate.patch'};
+    for (const c of checks) {
+      if (c.runId !== run.id || c.candidateCommit !== run.candidateCommit || !c.logSha256) throw new Error('Check binding missing');
+      const bytes=readArtifact(c.logPath); if (sha256(bytes) !== c.logSha256) throw new Error('Check log changed');
+      const id=`check:${c.id}`; add(id,'check-log',bytes,c.finishedAt);
+      manifest.evidence.push({id:c.id,producer:factoryId,runId:run.id,candidateCommit:c.candidateCommit,command:c.command,status:c.status,exitCode:c.exitCode,startedAt:c.startedAt,finishedAt:c.finishedAt,logArtifactId:id});
+    }
+  } else if (candidateEvent || checks.length) throw new Error('Orphaned candidate evidence');
+  manifest.evidenceDigest=digest(manifest.evidence); manifest.artifactDigest=digest(manifest.artifacts);
+  return {...manifest,bytes:artifacts};
+}
+
 export class ProducerResults {
   private readonly storage: FactoryStorage;
   private readonly dataDir: string;
@@ -117,7 +172,11 @@ export class ProducerResults {
     };
     return saveRunRecord(this.storage,run,SNAPSHOT_EVENT,snapshot);
   }
-  snapshot(run: Run): ExecutionSnapshot | null { return readRunRecord(this.storage,run,SNAPSHOT_EVENT); }
+  snapshot(run: Run): ExecutionSnapshot | null {
+    const saved=readRunRecord<ExecutionSnapshot | LocalExecutionSnapshotV4>(this.storage,run,SNAPSHOT_EVENT);
+    if (saved?.version===4) throw new Error('Local V4 snapshot requires the explicit V4 producer API');
+    return saved;
+  }
   private savedResult(run: Run): SignedResult | null {
     const result=readRunRecord<SignedResult>(this.storage,run,RESULT_EVENT);
     if (!result) return null;
@@ -132,6 +191,7 @@ export class ProducerResults {
   read(run: Run): {state: ReturnType<typeof producerState>; result: SignedResult | null} {
     const current=this.storage.getRun(run.id);
     if (!current || current.workOrderId !== run.workOrderId) throw new Error('Unknown attempt');
+    this.snapshot(current);
     const state=producerState(this.storage,current);
     if (['UNKNOWN','RUNNING','STOPPING'].includes(state)) return {state,result:null};
     const saved=this.savedResult(current);
@@ -153,51 +213,8 @@ export class ProducerResults {
     const stateDigest=digest({run,checks,candidateEvent,execution});
     const manifest: ResultManifest={protocol:RESULT_PROTOCOL,keyId:this.options.currentKeyId,producer:execution.factoryId,operationId:operationId(execution),execution,
       status:status as ResultManifest['status'],candidate:null,evidence:[],artifacts:[],evidenceDigest:'',artifactDigest:'',completedAt:run.finishedAt,issuedAt:new Date().toISOString()};
-    const artifacts: SignedResult['artifacts']=[];
-    let total=0;
-    const add=(id: string,kind: ResultManifest['artifacts'][number]['kind'],bytes: Buffer,createdAt: string) => {
-      total+=bytes.length;
-      if (bytes.length > MAX_ARTIFACT_BYTES || total > 8*1024*1024) throw new Error('Artifact export size limit');
-      manifest.artifacts.push({id,kind,producer:execution.factoryId,runId:run.id,candidateCommit:run.candidateCommit!,sha256:sha256(bytes),size:bytes.length,createdAt});
-      artifacts.push({id,base64:bytes.toString('base64')});
-    };
-    if (run.candidateCommit) {
-      const p=candidateEvent?.payload;
-      if (!p || p.candidateCommit !== run.candidateCommit || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(run.candidateCommit) || typeof p.candidateTree !== 'string' || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(p.candidateTree)) throw new Error('Candidate provenance missing');
-      const readArtifact=(path: unknown): Buffer => {
-        if (typeof path !== 'string') throw new Error('Artifact path missing');
-        const base=realpathSync(join(this.dataDir,'artifacts',run.id)), actual=realpathSync(path);
-        if (!actual.startsWith(base+sep)) throw new Error('Artifact outside attempt');
-        const fd=openSync(actual,'r');
-        try {
-          const stat=fstatSync(fd);
-          if (!stat.isFile() || stat.size > MAX_ARTIFACT_BYTES) throw new Error('Artifact outside attempt or oversized');
-          const buffer=Buffer.alloc(MAX_ARTIFACT_BYTES+1); let size=0;
-          while (size < buffer.length) {
-            const count=readSync(fd,buffer,size,buffer.length-size,null); if (!count) break; size+=count;
-          }
-          if (size > MAX_ARTIFACT_BYTES || size !== stat.size || fstatSync(fd).size !== size) throw new Error('Artifact changed during bounded read');
-          return buffer.subarray(0,size);
-        } finally { closeSync(fd); }
-      };
-      const patch=readArtifact(p.diffPath);
-      if (sha256(patch) !== p.diffSha256) throw new Error('Candidate patch changed');
-      const object=(type: string,id: string) => execFileSync('git',['-C',run.workspacePath,'cat-file',type,id],{maxBuffer:MAX_ARTIFACT_BYTES,timeout:10_000});
-      const commit=object('commit',run.candidateCommit), tree=object('tree',p.candidateTree);
-      const actualPatch=execFileSync('git',['-C',run.workspacePath,'show','--format=','--binary','--no-ext-diff','--no-textconv',run.candidateCommit],{maxBuffer:MAX_ARTIFACT_BYTES,timeout:10_000});
-      if (!actualPatch.equals(patch)) throw new Error('Patch does not match candidate');
-      add('candidate.commit','git-commit',commit,candidateEvent!.createdAt);
-      add('candidate.tree','git-tree',tree,candidateEvent!.createdAt);
-      add('candidate.patch','patch',patch,candidateEvent!.createdAt);
-      manifest.candidate={commit:run.candidateCommit,tree:p.candidateTree,base:run.inputCommit,patchDigest:sha256(patch),commitArtifactId:'candidate.commit',treeArtifactId:'candidate.tree',patchArtifactId:'candidate.patch'};
-      for (const c of checks) {
-        if (c.runId !== run.id || c.candidateCommit !== run.candidateCommit || !c.logSha256) throw new Error('Check binding missing');
-        const bytes=readArtifact(c.logPath); if (sha256(bytes) !== c.logSha256) throw new Error('Check log changed');
-        const id=`check:${c.id}`; add(id,'check-log',bytes,c.finishedAt);
-        manifest.evidence.push({id:c.id,producer:execution.factoryId,runId:run.id,candidateCommit:c.candidateCommit,command:c.command,status:c.status,exitCode:c.exitCode,startedAt:c.startedAt,finishedAt:c.finishedAt,logArtifactId:id});
-      }
-    } else if (candidateEvent || checks.length) throw new Error('Orphaned candidate evidence');
-    manifest.evidenceDigest=digest(manifest.evidence); manifest.artifactDigest=digest(manifest.artifacts);
+    const {bytes:artifacts,...content}=producerArtifacts(this.dataDir,run,checks,candidateEvent,execution.factoryId);
+    Object.assign(manifest,content);
     const result=signResult(manifest,artifacts,this.options.privateKey);
     verifyResult(result,{keys:this.options.keys,factoryId:execution.factoryId,requestId:execution.requestId,workOrderId:run.workOrderId,runId:run.id,factoryVersion:execution.factoryVersion});
     return this.storage.transaction(() => {
@@ -208,8 +225,139 @@ export class ProducerResults {
   }
 }
 
-// Inactive primitive: no producer/service calls it. A future admitted host caller
-// must select a local, stable, host-owned repository and the exact input commit.
+/** Explicit direct local producer. This class is not accepted by legacy server,
+ * dispatch or evidence APIs. Its caller must retain the original admitted Work
+ * and trusted expected identity; returned result fields are never expectations. */
+export interface LocalProducerAdmissionV4 { work: WorkOrder; expected: LocalResultV4Expected }
+export class LocalProducerResultsV4 {
+  private readonly storage: FactoryStorage;
+  private readonly dataDir: string;
+  private readonly options: Omit<ProducerOptions,'sessionMetadata'>;
+  constructor(storage: FactoryStorage,dataDir: string,options: Omit<ProducerOptions,'sessionMetadata'>) {
+    if (Object.keys(options).sort().join(',')!=='currentKeyId,factoryId,keys,privateKey') throw new Error('Invalid explicit V4 signing options');
+    new ProducerResults(storage,dataDir,options); // Reuse the exact configured-key validation only.
+    this.storage=storage;this.dataDir=dataDir;this.options=structuredClone(options);
+  }
+  private assertSource(): void { if (sourceIdentity()!==loadedSource) throw new Error('Producer source changed; restart before attesting'); }
+  private requestId(work: WorkOrder): string {
+    const events=this.storage.listEvents(work.id),intake=events.filter(e=>e.type==='hosted.intake_received');
+    if (intake.length>1) throw new Error('Ambiguous initiating request');
+    const created=events.filter(e=>e.type==='workorder.created');
+    if (created.length>1) throw new Error('Ambiguous initiating Work');
+    const request=intake[0]?.payload.issueId??created[0]?.payload.requestId??`local-workorder:${work.id}`;
+    if (typeof request!=='string'||!request) throw new Error('Request identity missing');
+    return request;
+  }
+  capture(work: WorkOrder,run: Run,model: string,executorVersion: string): LocalExecutionSnapshotV4 {
+    this.assertSource();
+    const admittedWork=this.storage.getWorkOrder(work.id),admittedRun=this.storage.getRun(run.id);
+    if (!admittedWork||!admittedRun||canonical(admittedWork)!==canonical(work)||canonical(admittedRun)!==canonical(run)
+      ||run.workOrderId!==work.id||run.workerProfile!==work.workerProfile||run.finishedAt||run.candidateCommit
+      ||run.state!=='planning') throw new Error('Exact stored Work and admission Run required');
+    const key=this.options.keys.find(k=>k.factoryId===this.options.factoryId&&k.keyId===this.options.currentKeyId)!,now=Date.now();
+    if (key.revokedAt||key.retiredAt||!(Date.parse(key.activeFrom)<=now&&now<=Date.parse(key.notAfter))) throw new Error('Current producer signing key is unavailable for admission');
+    if (!executorVersion||!isModelReference(model)||(run.workerProfile!=='mac'&&run.workerProfile!=='container')) throw new Error('Execution configuration unavailable');
+    const requestId=this.requestId(admittedWork),eventsBefore=digest(this.storage.listEvents(work.id));
+    const input=readLocalGitInputTreeV4(admittedWork.repositoryPath,admittedRun.inputCommit);
+    const configuration={model,executor:'codex-cli' as const,executorVersion,skillRevision:'fd8f20a879b507cf09feba08663a1edf7a949353',
+      workerProfile:run.workerProfile,verificationImage:DEFAULT_VERIFICATION_IMAGE,nodeVersion:process.version,platform:process.platform,architecture:process.arch,
+      commands:work.kind==='defect'&&work.reproductionCommand?[...new Set([work.reproductionCommand,...work.checkCommands])]:[...work.checkCommands],
+      allowedPaths:[...work.allowedPaths],timeoutMs:30*60*1000};
+    const configurationDigest=digest(configuration),snapshot:LocalExecutionSnapshotV4={version:4,...input,
+      workspace:{kind:'GIT_WORKTREE',path:run.workspacePath,branch:null},factoryId:this.options.factoryId,
+      factoryVersion:digest({sourceDigest:loadedSource,configurationDigest}),sourceDigest:loadedSource,configurationDigest,configuration,
+      requestId,requestDigest:digest({requestId,work:admittedWork}),workOrderId:work.id,runId:run.id,attemptNumber:run.attemptNumber,capturedAt:run.startedAt};
+    this.validateSnapshot(snapshot);
+    return this.storage.transaction(()=>{
+      if (canonical(this.storage.getWorkOrder(work.id))!==canonical(admittedWork)||canonical(this.storage.getRun(run.id))!==canonical(admittedRun)
+        ||digest(this.storage.listEvents(work.id))!==eventsBefore||this.requestId(admittedWork)!==requestId) throw new Error('Admission changed during V4 capture');
+      this.assertSource();
+      const persistedAt=Date.now();
+      if (!(Date.parse(key.activeFrom)<=persistedAt&&persistedAt<=Date.parse(key.notAfter))) throw new Error('Signing key expired during V4 capture');
+      return saveRunRecord(this.storage,run,SNAPSHOT_EVENT,snapshot);
+    });
+  }
+  private validateSnapshot(execution: LocalExecutionSnapshotV4): void {
+    validateLocalResultManifestV4({protocol:RESULT_PROTOCOL,keyId:this.options.currentKeyId,producer:execution.factoryId,
+      operationId:digest([RESULT_PROTOCOL,execution.factoryId,execution.requestId,execution.workOrderId,execution.runId]),execution,
+      status:'FAILED',candidate:null,evidence:[],artifacts:[],evidenceDigest:digest([]),artifactDigest:digest([]),completedAt:execution.capturedAt,issuedAt:execution.capturedAt});
+  }
+  snapshot(run: Run,admission: LocalProducerAdmissionV4): LocalExecutionSnapshotV4 | null {
+    const current=this.storage.getRun(run.id),work=this.storage.getWorkOrder(run.workOrderId),original=admission.work;
+    const stable=(w:WorkOrder)=>{const {state,updatedAt,...input}=w;return input;};
+    if (!current||!work||work.id!==original.id||current.workOrderId!==work.id||run.workOrderId!==work.id
+      ||canonical(stable(work))!==canonical(stable(original))) throw new Error('V4 Work binding changed');
+    const saved=readRunRecord<LocalExecutionSnapshotV4>(this.storage,current,SNAPSHOT_EVENT);
+    if (!saved) return null;
+    this.validateSnapshot(saved);
+    const {version,workspace,capturedAt,...expected}=saved;
+    if (canonical(expected)!==canonical(admission.expected)||saved.factoryId!==this.options.factoryId||saved.workOrderId!==work.id
+      ||saved.runId!==current.id||saved.attemptNumber!==current.attemptNumber||saved.inputCommit!==current.inputCommit
+      ||saved.capturedAt!==current.startedAt||saved.workspace.path!==current.workspacePath
+      ||saved.configuration.workerProfile!==current.workerProfile||saved.requestId!==this.requestId(original)
+      ||saved.requestDigest!==digest({requestId:saved.requestId,work:original})) throw new Error('V4 admission binding changed');
+    return saved;
+  }
+  private savedResult(run: Run,admission: LocalProducerAdmissionV4): SignedResult | null {
+    const result=readRunRecord<SignedResult>(this.storage,run,RESULT_EVENT);
+    if (!result) return null;
+    const execution=this.snapshot(run,admission);
+    if (!execution) throw new Error('Signed result has no execution snapshot');
+    const {manifest}=verifyLocalResultV4(result,{keys:this.options.keys,expected:admission.expected,historical:true});
+    if (canonical(manifest.execution)!==canonical(execution)||manifest.status!==producerState(this.storage,run)
+      ||manifest.completedAt!==run.finishedAt||(manifest.candidate?.commit??null)!==run.candidateCommit) throw new Error('Frozen result differs from saved attempt');
+    return result;
+  }
+  read(run: Run,admission: LocalProducerAdmissionV4): {state:ReturnType<typeof producerState>;result:SignedResult|null} {
+    const current=this.storage.getRun(run.id);
+    if (!current||current.workOrderId!==run.workOrderId) throw new Error('Unknown attempt');
+    if (!this.snapshot(current,admission)) throw new Error('Attempt has no execution snapshot; cannot backfill attestation');
+    const state=producerState(this.storage,current);
+    if (['UNKNOWN','RUNNING','STOPPING'].includes(state)) return {state,result:null};
+    return {state,result:this.savedResult(current,admission)??this.finalize(current,admission)};
+  }
+  finalize(run: Run,admission: LocalProducerAdmissionV4): SignedResult {
+    this.assertSource();
+    const current=this.storage.getRun(run.id);
+    if (!current||canonical(current)!==canonical(run)) throw new Error('Exact terminal Run required');
+    const execution=this.snapshot(current,admission);
+    if (!execution) throw new Error('Attempt has no execution snapshot; cannot backfill attestation');
+    const saved=this.savedResult(current,admission);if(saved)return saved;
+    if (execution.sourceDigest!==loadedSource) throw new Error('V4 source changed since admission');
+    const status=producerState(this.storage,current);
+    if (!['COMPLETED','FAILED','CANCELLED'].includes(status)||!current.finishedAt) throw new Error('Attempt outcome unresolved');
+    const checks=this.storage.listChecks(current.id),candidates=this.storage.listEvents(current.workOrderId).filter(e=>e.runId===current.id&&e.type==='run.candidate_committed');
+    if (candidates.length>1) throw new Error('Ambiguous candidate');
+    const candidateEvent=candidates[0]??null,stateDigest=digest({run:current,checks,candidates,execution,work:this.storage.getWorkOrder(current.workOrderId)});
+    const repository=admission.work.repositoryPath;
+    if (current.candidateCommit) readLocalGitInputTreeV4(repository,current.candidateCommit);
+    const localGit=(args:string[])=>execFileSync(LOCAL_GIT_INPUT_V4.executable,
+      ['--no-pager','--no-replace-objects','--no-lazy-fetch','--no-optional-locks','-c','protocol.allow=never','-c','credential.helper=',
+        '-c','core.hooksPath=/dev/null','-c','core.fsmonitor=false','-c','gc.auto=0','--git-dir='+join(repository,'.git'),...args],
+      {cwd:'/',env:{PATH:'/nonexistent',LANG:'C',LC_ALL:'C',GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_SYSTEM:'/dev/null',GIT_CONFIG_GLOBAL:'/dev/null',
+        GIT_NO_REPLACE_OBJECTS:'1',GIT_NO_LAZY_FETCH:'1',GIT_TERMINAL_PROMPT:'0',GIT_ALLOW_PROTOCOL:''},
+        maxBuffer:MAX_ARTIFACT_BYTES,timeout:LOCAL_GIT_INPUT_V4.timeoutMs,killSignal:'SIGKILL'});
+    const {bytes,...content}=producerArtifacts(this.dataDir,current,checks,candidateEvent,execution.factoryId,localGit);
+    const input=readLocalGitInputTreeV4(repository,current.inputCommit);
+    if (input.inputTree!==execution.inputTree) throw new Error('Input tree changed during V4 freeze');
+    const manifest:LocalResultManifestV4={protocol:RESULT_PROTOCOL,keyId:this.options.currentKeyId,producer:execution.factoryId,
+      operationId:digest([RESULT_PROTOCOL,execution.factoryId,execution.requestId,execution.workOrderId,execution.runId]),execution,
+      status:status as LocalResultManifestV4['status'],...content,completedAt:current.finishedAt,issuedAt:new Date().toISOString()};
+    const result=signLocalResultV4(manifest,bytes,this.options.privateKey);
+    verifyLocalResultV4(result,{keys:this.options.keys,expected:admission.expected});
+    return this.storage.transaction(()=>{
+      const observed={run:this.storage.getRun(current.id),checks:this.storage.listChecks(current.id),
+        candidates:this.storage.listEvents(current.workOrderId).filter(e=>e.runId===current.id&&e.type==='run.candidate_committed'),
+        execution:this.snapshot(current,admission),work:this.storage.getWorkOrder(current.workOrderId)};
+      if (digest(observed)!==stateDigest) throw new Error('Attempt changed during result freeze');
+      this.assertSource();
+      return saveRunRecord(this.storage,current,RESULT_EVENT,result);
+    });
+  }
+}
+
+// Direct local V4 callers select a stable host-owned admitted repository and
+// the exact commit. Legacy producers and services do not call this primitive.
 // These guards do not provide atomic revocation against a concurrent repository
 // administrator. Returned object identity proves no Work/owner/source authority.
 import { createHash as localGitHashV4 } from 'node:crypto';
@@ -256,7 +404,7 @@ function localGitInputDirectoryV4(path: string, limit: number): string[] {
   } finally { directory.closeSync(); }
 }
 
-/** Unused identity-only read of exact raw commit/tree objects, including packs.
+/** Identity-only read of exact raw commit/tree objects, including packs.
  * Supports SHA-1/SHA-256 regular working repositories on the pinned host Git.
  * Linked/bare layouts, includes, alternates, promisor/unknown config fail closed;
  * no writes, network, ref resolution, retries or alternate-executable fallback.

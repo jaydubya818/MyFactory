@@ -173,10 +173,12 @@ test('V4 Git input identity: bare, unsupported and contradictory repository form
   }
   writeFileSync(f.config,original);
 });
-test('V4 Git input identity: unchanged producer prefix, no production callers and fixed command/time controls',()=>{
+test('V4 Git input identity: reviewed helper unchanged, explicit producer only and fixed command/time controls',()=>{
   const source=readFileSync(new URL('../src/producer-results.ts',import.meta.url));
-  assert.equal(sha256(source.subarray(0,15479)),'358ec81249eca77098019ee27df80d7c0431e32d468a2234e7c19c5c10cfc163');
-  const text=source.toString('utf8');assert.equal((text.match(/readLocalGitInputTreeV4/g)||[]).length,1);
+  const text=source.toString('utf8');
+  assert.equal(sha256(text.slice(text.indexOf("import { createHash as localGitHashV4 }"))),'0b7986b95959f16e8e99b7b6be1054a55ca1eae2fdb1ba48b0d2bec48a38ee09');
+  for(const file of ['server.ts','dispatch-control.ts','evidence-transport.ts','local-execution-provider.ts','jobs.ts'])
+    assert.doesNotMatch(readFileSync(new URL('../src/'+file,import.meta.url),'utf8'),/LocalProducerResultsV4|readLocalGitInputTreeV4/);
   assert.ok(text.includes("executable: '/opt/homebrew/Cellar/git/2.48.1/bin/git'"));
   assert.ok(text.includes("executableSha256: '7ed424dafb29f1d4e3df1ca215efcba044b19cc78cf8b8df5a74cbdbfcbf4899'"));
   assert.ok(text.includes('objectBytes: 4 * 1024 * 1024'));assert.ok(text.includes('timeoutMs: 10_000'));
