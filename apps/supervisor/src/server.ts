@@ -25,6 +25,7 @@ import type { SpendPrice } from "./spend-gateway.ts";
 import { type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
 import { LocalV4ServiceProducer, type ServiceProducer } from "./service-producer.ts";
+import { createLocalV4Preparation, bindLocalV4PreparationCapture } from './local-v4-preparation.ts';
 import { readBoundEvidence } from "./evidence-transport.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
@@ -233,6 +234,9 @@ export function createLocalV4Supervisor(options: LocalV4SupervisorOptions) {
 function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceProbe?: LocalResourceProbe}, resultMode: 'LEGACY' | 'LOCAL_V4') {
   if (resultMode === 'LOCAL_V4' && options.realProvider)
     throw new Error('Local V4 service is not qualified for live provider execution');
+  if (resultMode === 'LOCAL_V4' && options.jobDependencies &&
+      ['resolveCommit', 'createTaskWorktree', 'removeTaskWorktree'].some(key => key in options.jobDependencies!))
+    throw new Error('Local V4 preparation overrides are not permitted');
   if (options.localV4ResourceProbe && (resultMode !== 'LOCAL_V4' || options.realProvider ||
       !options.localFactoryFixture && !options.localSpendFixture ||
       typeof options.jobDependencies?.runCodex !== 'function' || options.jobDependencies.runCodex === runCodex ||
@@ -248,6 +252,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
       throw new Error('Factory model differs from the pinned private-alpha provider');
   }
   const dataDir = resolve(options.dataDir ?? process.env.FACTORY_DATA_DIR ?? defaultDataDir);
+  const localPreparation = resultMode === 'LOCAL_V4' ? createLocalV4Preparation(dataDir) : undefined;
   const signing = options.resultSigning ?? producerOptions(dataDir);
   if(options.realProvider&&!signing)throw new Error('Private-alpha result signing must be provisioned before activation');
   const realProvider=options.realProvider?loadRealProvider(options.realProvider):undefined;
@@ -288,13 +293,14 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   };
   const legacyProducer = resultMode === 'LEGACY' && signing ? new ProducerResults(storage, dataDir, signing) : undefined;
   const producer: ServiceProducer | undefined = resultMode === 'LOCAL_V4' && signing
-    ? new LocalV4ServiceProducer(storage, dataDir, signing) : legacyProducer;
+    ? bindLocalV4PreparationCapture(localPreparation!, new LocalV4ServiceProducer(storage, dataDir, signing)) : legacyProducer;
   const parallel = options.maxParallelRuns ?? 1;
   if (parallel !== 1 && (!options.localFactoryFixture && !options.localSpendFixture || realProvider))
     throw new Error('Parallel execution is deferred until live Factory Version qualification');
   if(options.retainCheckpoints&&(!options.localFactoryFixture&&!options.localSpendFixture||realProvider))
     throw new Error('Checkpoint export is deferred outside explicit fixture qualification');
-  const jobs = new JobManager(storage, dataDir, notify, options.jobDependencies, producer,realProvider?.price.model,parallel,options.retainCheckpoints??false);
+  const jobDependencies = localPreparation ? { ...options.jobDependencies, ...localPreparation } : options.jobDependencies;
+  const jobs = new JobManager(storage, dataDir, notify, jobDependencies, producer,realProvider?.price.model,parallel,options.retainCheckpoints??false);
   const fixtureDependencies=!!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate;
   if(options.localFactoryFixture&&options.localSpendFixture)throw new Error('Fixture modes are mutually exclusive');
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
