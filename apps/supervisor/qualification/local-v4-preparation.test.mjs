@@ -38,10 +38,10 @@ test('native V4 preparation: branch names refuse before native creation', async 
   const f = fixture(t); await assert.rejects(f.preparation.resolveCommit(f.repo, 'HEAD'), /LOCAL_V4_PREPARATION_REFUSED/);
   assert(!existsSync(join(f.data, 'workspaces'))); assert.equal(f.git('show-ref'), f.refs);
 });
-test('native V4 preparation: exact SHA256 checkout and clean cleanup retain object format', async t => {
+test('native V4 preparation: input profile refuses SHA256 before workspace creation', async t => {
   const f = fixture(t, false, 'sha256'); assert.match(f.input, /^[a-f0-9]{64}$/);
-  const workspace = await f.create(); await f.preparation.removeTaskWorktree(f.repo, workspace);
-  assert(!existsSync(workspace)); assert.equal(f.git('show-ref'), f.refs);
+  await assert.rejects(f.preparation.resolveCommit(f.repo, f.input), /REFUSED/);
+  assert(!existsSync(join(f.data, 'workspaces'))); assert.equal(f.git('show-ref'), f.refs);
 });
 test('native V4 preparation: no create without this instance exact input observation', async t => {
   const f = fixture(t); await assert.rejects(f.preparation.createTaskWorktree(f.repo, f.input, join(f.data, 'workspaces')), /REFUSED/);

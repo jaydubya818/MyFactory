@@ -5,13 +5,15 @@ import {
   opendirSync, readSync, realpathSync, type Stats,
 } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { performance } from 'node:perf_hooks';
 import type { JobDependencies } from './jobs.ts';
 import { readLocalGitInputTreeV4 } from './producer-results.ts';
 import type { ServiceProducer } from './service-producer.ts';
+import { validateLocalV4TextTree, type TextObjectKind } from './local-v4-text-tree.ts';
 
 type Preparation = Readonly<Pick<JobDependencies, 'resolveCommit' | 'createTaskWorktree' | 'removeTaskWorktree'>>;
 type FileObservation = { bytes: Buffer; identity: string; digest: string };
-type Repository = { path: string; identity: string; gitIdentity: string; config: FileObservation; commit: string; tree: string };
+type Repository = { path: string; identity: string; gitIdentity: string; config: FileObservation; commit: string; tree: string; deadline?: number };
 type Workspace = {
   path: string; repository: Repository; rootIdentity: string; identity: string;
   state: 'creating' | 'ready' | 'captured' | 'uncertain';
@@ -46,7 +48,8 @@ const identity = (s: Stats) => [s.dev, s.ino, s.uid, s.mode].join(':');
 const fullIdentity = (s: Stats) => [identity(s), s.size, s.mtimeMs, s.ctimeMs].join(':');
 const pathString = (path: string) => typeof path === 'string' && path.length <= 4096 &&
   isAbsolute(path) && resolve(path) === path && !/[\x00-\x1f\x7f]/.test(path);
-const commitString = (commit: string) => typeof commit === 'string' && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(commit);
+const commitString = (commit: string) => typeof commit === 'string' && /^[a-f0-9]{40}$/.test(commit);
+function budget(deadline: number): void { if (!Number.isFinite(deadline) || performance.now() >= deadline) hold(); }
 function owner(s: Stats, hostOnly = true): void {
   if ((s.uid !== process.getuid!() && (hostOnly || s.uid !== 0)) || (s.mode & 0o022)) refuse();
 }
@@ -88,8 +91,13 @@ function groupAbsent(pid: number): boolean {
 }
 
 /** Fixed internal argv only. A delivered signal or parent exit is never cleanup evidence. */
-async function command(repository: string, args: string[]): Promise<Buffer> {
+async function command(repository: string, args: string[], limits: { bytes?: number; deadline?: number } = {}): Promise<Buffer> {
+  if (limits.deadline !== undefined) budget(limits.deadline);
   runtime();
+  const outputLimit = limits.bytes ?? 1024 * 1024;
+  if (!Number.isSafeInteger(outputLimit) || outputLimit < 0 || outputLimit > 1024 * 1024) refuse();
+  if (limits.deadline !== undefined) budget(limits.deadline);
+  const timeout = limits.deadline === undefined ? 10000 : Math.max(1, Math.min(10000, Math.ceil(limits.deadline - performance.now())));
   return new Promise((resolveResult, reject) => {
     const child = spawn(GIT, [...controls, '-C', repository, ...args], {
       cwd: '/', env: { ...environment }, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
@@ -111,16 +119,17 @@ async function command(repository: string, args: string[]): Promise<Buffer> {
       interruptOwned(); closeDeadline = setTimeout(() => {
         child.stdout.destroy(); child.stderr.destroy(); finish(false);
       }, 1000);
-    }, 10_000);
+    }, timeout);
     const observe = (bytes: Buffer, stdout: boolean) => {
       size += bytes.length;
-      if (size > 1024 * 1024) { interruptOwned(); return; }
+      if (size > outputLimit) { interruptOwned(); return; }
       if (stdout && !failed) output.push(bytes);
     };
     child.stdout.on('data', bytes => observe(bytes, true)); child.stderr.on('data', bytes => observe(bytes, false));
     child.stdout.on('error', () => { failed = true; }); child.stderr.on('error', () => { failed = true; });
     child.on('error', () => { failed = true; });
-    child.on('close', (code, signal) => finish(!failed && code === 0 && signal === null && !!child.pid && groupAbsent(child.pid)));
+    child.on('close', (code, signal) => finish(!failed && code === 0 && signal === null && !!child.pid && groupAbsent(child.pid) &&
+      (limits.deadline === undefined || performance.now() < limits.deadline)));
   });
 }
 function text(bytes: Buffer): string { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
@@ -149,8 +158,27 @@ export function createLocalV4Preparation(dataDir: string): Preparation {
     catch { quarantined.add(repository); return hold(); }
     finally { busy.delete(repository); }
   };
+  const validateInput = async (r: Repository, deadline: number) => {
+    const observe = async (args: string[], bytes: number) => {
+      budget(deadline); checkRepository(r);
+      const result = await command(r.path, args, { bytes, deadline });
+      checkRepository(r); budget(deadline); return result;
+    };
+    const read = async (kind: TextObjectKind, id: string, maxBytes: number): Promise<Buffer> => {
+      const maximum = kind === 'blob' ? 100000 : 65536;
+      if (!['commit', 'tree', 'blob'].includes(kind) || !commitString(id) || maxBytes !== maximum) hold();
+      if (text(await observe(['cat-file', '-t', id], 256)) !== kind + '\n') hold();
+      const sizeText = text(await observe(['cat-file', '-s', id], 256));
+      if (!/^(?:0|[1-9][0-9]*)\n$/.test(sizeText)) hold();
+      const size = Number(sizeText.trim()); if (!Number.isSafeInteger(size) || size > maximum) hold();
+      const raw = await observe(['cat-file', kind, id], size); if (raw.length !== size) hold(); return raw;
+    };
+    const input = await validateLocalV4TextTree(r.commit, read, deadline);
+    if (input.inputTree !== r.tree) hold(); checkRepository(r); budget(deadline);
+  };
   const root = () => { directory(dataDir); return directory(workspaces); };
   const inspect = (w: Workspace) => {
+    if (w.state === 'creating') { if (w.repository.deadline === undefined) hold(); budget(w.repository.deadline); }
     checkRepository(w.repository);
     if (root() !== w.rootIdentity || directory(w.path) !== w.identity || !w.admin || directory(w.admin) !== w.adminIdentity ||
       directory(dirname(w.admin)) !== w.adminRootIdentity || !w.pointer || !w.index) hold();
@@ -160,7 +188,8 @@ export function createLocalV4Preparation(dataDir: string): Preparation {
       text(file(join(w.admin, 'gitdir'), 8192).bytes) !== join(w.path, '.git') + '\n') hold();
   };
   const read = async (w: Workspace, args: string[]) => {
-    inspect(w); const result = await command(w.path, args); inspect(w); return text(result);
+    inspect(w); const result = await command(w.path, args, { deadline: w.state === 'creating' ? w.repository.deadline : undefined });
+    inspect(w); return text(result);
   };
   const clean = async (w: Workspace) => {
     if ((await read(w, ['rev-parse', '--verify', 'HEAD'])) !== w.repository.commit + '\n' ||
@@ -188,6 +217,7 @@ export function createLocalV4Preparation(dataDir: string): Preparation {
       const before = directory(path), stream = opendirSync(path);
       try {
         for (;;) {
+          if (w.state === 'creating') { if (w.repository.deadline === undefined) hold(); budget(w.repository.deadline); }
           const entry = stream.readSync(); if (!entry) break;
           if (++count > 1024) hold();
           if (!prefix && entry.name === '.git') continue;
@@ -212,28 +242,39 @@ export function createLocalV4Preparation(dataDir: string): Preparation {
     async resolveCommit(repositoryPath: string, baseRef: string) {
       if (!pathString(repositoryPath) || !commitString(baseRef)) refuse();
       return exclusive(repositoryPath, async () => {
-        if (resolved.size >= 128 && !resolved.has(repositoryKey(repositoryPath, baseRef))) hold();
-        const r = qualify(repositoryPath, baseRef); resolved.set(repositoryKey(repositoryPath, baseRef), r); return r.commit;
+        const key = repositoryKey(repositoryPath, baseRef), pending = resolved.get(key);
+        if (pending) {
+          if (pending.deadline === undefined) hold(); budget(pending.deadline); checkRepository(pending); return pending.commit;
+        }
+        if (resolved.size >= 128) hold();
+        const deadline = performance.now() + 30000; budget(deadline);
+        const r = qualify(repositoryPath, baseRef); budget(deadline); await validateInput(r, deadline);
+        r.deadline = deadline; resolved.set(key, r); return r.commit;
       });
     },
     async createTaskWorktree(repositoryPath: string, inputCommit: string, workspacesDir: string) {
       if (!pathString(repositoryPath) || !commitString(inputCommit) || workspacesDir !== workspaces) refuse();
+      if (quarantined.has(repositoryPath)) hold();
       const admitted = resolved.get(repositoryKey(repositoryPath, inputCommit)); if (!admitted) refuse();
       return exclusive(repositoryPath, async () => {
+        const deadline = admitted.deadline; if (deadline === undefined) hold(); budget(deadline);
         if (owned.size >= 128) hold(); checkRepository(admitted);
-        const current = qualify(repositoryPath, inputCommit); if (current.tree !== admitted.tree) hold();
+        const current = qualify(repositoryPath, inputCommit); budget(deadline);
+        if (current.tree !== admitted.tree) hold(); await validateInput(current, deadline); current.deadline = deadline;
         directory(dataDir);
         try { mkdirSync(workspaces, { mode: 0o700 }); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') hold(); }
         const rootIdentity = root(), path = join(workspaces, randomUUID()); mkdirSync(path, { mode: 0o700 });
         const w: Workspace = { path, repository: current, rootIdentity, identity: directory(path), state: 'creating' }; owned.set(path, w);
         try {
-          await command(repositoryPath, ['worktree', 'add', '--detach', '--no-guess-remote', '--', path, inputCommit]);
+          await command(repositoryPath, ['worktree', 'add', '--detach', '--no-guess-remote', '--', path, inputCommit], { deadline });
+          budget(deadline);
           checkRepository(current); if (root() !== rootIdentity || directory(path) !== w.identity) hold();
           const pointer = file(join(path, '.git'), 16384), admin = join(repositoryPath, '.git/worktrees', path.slice(workspaces.length + 1));
           if (text(pointer.bytes) !== 'gitdir: ' + admin + '\n') hold();
           w.adminRootIdentity = directory(dirname(admin)); w.admin = admin; w.adminIdentity = directory(admin);
           w.pointer = pointer; w.index = file(join(admin, 'index'), 1024 * 1024);
-          await clean(w); w.state = 'ready'; return path;
+          await clean(w); budget(deadline); w.repository.deadline = undefined; w.state = 'ready';
+          resolved.delete(repositoryKey(repositoryPath, inputCommit)); return path;
         } catch { w.state = 'uncertain'; return hold(); }
       });
     },

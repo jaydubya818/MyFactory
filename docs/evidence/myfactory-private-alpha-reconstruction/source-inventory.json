@@ -737,9 +737,14 @@
       "authorityBoundary": "Static host composition over retained original capture/admission/read/finalize. Missing, partial, duplicate, legacy or changed originals deny. No payload-selected codec, admission backfill, execution permission, spend, live provider, independent verification/Proof or installed authority."
     },
     "apps/supervisor/src/local-v4-preparation.ts": {
-      "sha256": "1a3c81a6b9187c127fe07776a9dc511c8b2f9453fd0a70e070039d298b16ae47",
+      "sha256": "31b22859e9817d254475c842b6976a2d724422fe93275a7c0b8de69e1633a637",
       "classification": "LOCAL_PREPARATION",
-      "authorityBoundary": "Static local V4 preparation only. Pinned Git executable/helper/dylib closure, cleared child environment, owned detached process-group settlement, literal immutable input, exact owned clean pre-capture cleanup; all uncertainty and capture-entered cleanup retain HOLD. No provider, grant, retry, financial, protected verification or installed authority. Entry-guarded unchanged sync reader is not newly group-qualified; full pre-checkout input and later native candidate paths remain separate."
+      "authorityBoundary": "Static local V4 preparation only. Pinned Git executable/helper/dylib closure, cleared child environment, owned detached process-group settlement, literal immutable input, exact owned clean pre-capture cleanup; all uncertainty and capture-entered cleanup retain HOLD. No provider, grant, retry, financial, protected verification or installed authority. Entry-guarded unchanged sync reader is not newly group-qualified; full pre-checkout input and later native candidate paths remain separate. Finite B1: fixed private typed SHA1 metadata/body adapter and full bounded regular-text input validation before checkout; one shared monotonic pending observation budget consumed only after successful create. Case/prefix/admin aliases and current __proto__ consumer loss refuse. No candidate pre-ready/export, later native, Work/spend or protected acceptance authority."
+    },
+    "apps/supervisor/src/local-v4-text-tree.ts": {
+      "sha256": "fce4682cff52c0999822eeed496b00467fed7afc01eb711a89eb99dc02c9ff81",
+      "classification": "BOUNDED_INPUT_FORMAT",
+      "authorityBoundary": "Pure typed SHA1 raw commit/tree/blob hash, framing/order/path and full text-map reconstruction checks with incremental bounds and fixed monotonic caller deadline. Only fixed trusted host closure supplies native reads; parser grants no Work, native execution, spending, protected verification, candidate readiness, publication or installed authority."
     }
   }
 }
