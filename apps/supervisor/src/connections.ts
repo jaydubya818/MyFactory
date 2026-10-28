@@ -24,6 +24,10 @@ export function readClients(path: string): FactoryClient[] {
   const ids = new Set<string>();
   const hashes = new Set<string>();
   for (const client of data.clients) {
+    if (client && Object.hasOwn(client, 'expiresAt') &&
+        (typeof client.expiresAt !== 'string' || !Number.isFinite(Date.parse(client.expiresAt)))) {
+      throw new ActionError('Current connection lifetime is invalid', 'forbidden', 403);
+    }
     if (!client || typeof client.id !== "string" || !/^[a-z0-9_-]{1,64}$/.test(client.id) ||
         typeof client.name !== "string" || !client.name.trim() ||
         typeof client.tokenSha256 !== "string" || !/^[a-f0-9]{64}$/.test(client.tokenSha256) ||
@@ -51,7 +55,10 @@ export function authenticateClient(request: IncomingMessage, clients: FactoryCli
   const digest = createHash("sha256").update(token).digest();
   const client = clients.find((entry) => timingSafeEqual(digest, Buffer.from(entry.tokenSha256, "hex")));
   if (!client) throw new ActionError("Invalid connection token", "unauthorized", 401);
-  if (client.expiresAt && Date.parse(client.expiresAt) <= Date.now()) throw new ActionError("Connection expired", "unauthorized", 401);
+  const expiresAt = client.expiresAt;
+  if ('expiresAt' in client && (typeof expiresAt !== 'string' ||
+      !Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) <= Date.now()))
+    throw new ActionError("Connection expired", "unauthorized", 401);
   return client;
 }
 

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createSupervisor } from "../src/server.ts";
+import { readClients, authenticateClient } from '../src/connections.ts';
 
 const token = "1".repeat(64);
 const input = { title: "Connection acceptance test", description: "Create once and show shared evidence.",
@@ -78,4 +79,53 @@ test("connections cannot escape repository/action scope, impersonate humans, or 
   assert.equal(status.includes(token), false);
   writeFileSync(f.configPath, JSON.stringify({ clients: [] }));
   assert.equal((await f.get("/api/connect/v1/work-orders")).status, 401);
+});
+
+// Host-owned synthetic config only; these fixtures neither read nor change any
+// real connection, grant or credential. Shared default and strict callers use
+// the same loader/authentication boundary.
+function lifetimeFixture(t) {
+  const directory = mkdtempSync(join(tmpdir(), 'connection-lifetime-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const client = {id: 'synthetic', name: 'Public lifetime fixture', tokenSha256: createHash('sha256').update(token).digest('hex'),
+    repositoryPaths: [directory], actions: ['factory.observe'], ownerScope: 'owner:synthetic'};
+  const request = {headers: {authorization: 'Bearer ' + token}};
+  return {client, request, load(value) {const path = join(directory, 'connections.json');writeFileSync(path, JSON.stringify({clients: [value]}));return readClients(path)}};
+}
+for (const [name, value] of [['invalid text', 'not-a-date'], ['empty', ''], ['null', null], ['boolean', false], ['number', 0], ['array', []], ['object', {}]]) {
+  test('connection lifetime loader: supplied ' + name + ' refuses', t => {
+    const f = lifetimeFixture(t);
+    assert.throws(() => f.load({...f.client, expiresAt: value}), {code: 'forbidden', status: 403});
+  });
+  test('connection lifetime authentication: supplied ' + name + ' refuses defensively', t => {
+    const f = lifetimeFixture(t);
+    assert.throws(() => authenticateClient(f.request, [{...f.client, expiresAt: value}]), {code: 'unauthorized', status: 401});
+  });
+}
+for (const [name, extra] of [['absent', {}], ['future', {expiresAt: '2099-01-01T00:00:00Z'}]]) test('connection lifetime: ordinary ' + name + ' remains a valid current grant', t => {
+  const f = lifetimeFixture(t), clients = f.load({...f.client, ...extra});
+  assert.equal(authenticateClient(f.request, clients).id, f.client.id);
+});
+for (const delta of [-1, 0]) test('connection lifetime: expiry at now' + (delta ? '-1ms' : '') + ' cannot authenticate', t => {
+  const f = lifetimeFixture(t), now = Date.parse('2026-10-28T00:00:00Z');t.mock.method(Date, 'now', () => now);
+  const clients = f.load({...f.client, expiresAt: new Date(now + delta).toISOString()});
+  assert.throws(() => authenticateClient(f.request, clients), {code: 'unauthorized', status: 401});
+});
+test('connection lifetime: explicit undefined is not absence at defensive authentication', t => {
+  const f = lifetimeFixture(t);assert.throws(() => authenticateClient(f.request, [{...f.client, expiresAt: undefined}]), {code: 'unauthorized', status: 401});
+});
+for (const [name, expiresAt] of [['expired', '2020-01-01T00:00:00Z'], ['invalid', 'not-a-date'], ['undefined', undefined]]) test('connection lifetime: inherited ' + name + ' still fences defensive authentication', t => {
+  const f = lifetimeFixture(t), client = Object.assign(Object.create({expiresAt}), f.client);
+  assert.equal(Object.hasOwn(client, 'expiresAt'), false);
+  assert.throws(() => authenticateClient(f.request, [client]), {code: 'unauthorized', status: 401});
+});
+test('connection lifetime: inherited finite future preserves the existing ordinary grant', t => {
+  const f = lifetimeFixture(t), client = Object.assign(Object.create({expiresAt: '2099-01-01T00:00:00Z'}), f.client);
+  assert.equal(Object.hasOwn(client, 'expiresAt'), false);assert.equal(authenticateClient(f.request, [client]).id, f.client.id);
+});
+test('connection lifetime: Proof still requires a finite supplied expiry and its existing read grant', t => {
+  const f = lifetimeFixture(t), proof = {...f.client, purpose: 'myeve-proof', actions: ['evidence.read']};
+  assert.throws(() => f.load(proof));
+  const clients = f.load({...proof, expiresAt: '2099-01-01T00:00:00Z'});
+  assert.equal(authenticateClient(f.request, clients).purpose, 'myeve-proof');assert.deepEqual(clients[0].actions, ['evidence.read']);
 });
