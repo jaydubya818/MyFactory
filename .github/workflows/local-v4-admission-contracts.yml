@@ -1,0 +1,33 @@
+name: Local V4 original admission source contracts
+
+on:
+  push:
+    branches: [codex/sofie-multi-agent-integration-20261025]
+
+permissions:
+  contents: read
+
+jobs:
+  retained-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.18.1
+      - name: Verify exact reviewed checkout
+        run: test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node scripts/check-producer-governance.mjs
+      - run: npm run typecheck:producer
+      - name: Portable original-record and existing producer contracts
+        run: node --test apps/supervisor/test/local-v4-admission.test.mjs apps/supervisor/test/producer-results.test.mjs
+      - name: Existing legacy signing and reopened replay
+        run: node --test --test-name-pattern='^Legacy direct producer:' apps/supervisor/qualification/local-v4-producer.test.mjs
+      - name: Require unchanged tracked source
+        run: git diff --exit-code HEAD

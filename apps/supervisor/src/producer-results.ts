@@ -229,6 +229,57 @@ export class ProducerResults {
  * dispatch or evidence APIs. Its caller must retain the original admitted Work
  * and trusted expected identity; returned result fields are never expectations. */
 export interface LocalProducerAdmissionV4 { work: WorkOrder; expected: LocalResultV4Expected }
+export const LOCAL_V4_ADMISSION_EVENT = 'run.local_v4_admission';
+const LOCAL_V4_ADMISSION_SCHEMA = 'myfactory.local-producer-admission/v4';
+
+/** Bounded plain data only. Inspect descriptors before reading values so a
+ * malformed host input cannot run an accessor during admission capture. */
+function localAdmissionJson<T>(value:T):T {
+  let nodes=0,bytes=0;const active=new Set<object>();
+  const denied=()=>{throw new Error('Bounded canonical local V4 admission required');};
+  const visit=(item:unknown,depth:number):void=>{
+    if(++nodes>8192||depth>16)denied();
+    bytes+=8;if(bytes>256*1024)denied();
+    if(typeof item==='string'){if(item.length>65536)denied();bytes+=Buffer.byteLength(item);if(bytes>256*1024)denied();return;}
+    if(item===null||typeof item==='boolean'||typeof item==='number'&&Number.isFinite(item))return;
+    if(!item||typeof item!=='object'||active.has(item))return denied();
+    const array=Array.isArray(item);
+    if(!array&&Object.getPrototypeOf(item)!==Object.prototype)return denied();
+    if(array&&Number(Object.getOwnPropertyDescriptor(item,'length')?.value)>8192)return denied();
+    const descriptors=Object.getOwnPropertyDescriptors(item),keys=Reflect.ownKeys(descriptors);
+    active.add(item);
+    if(array){
+      const length=descriptors.length?.value;
+      if(!Number.isSafeInteger(length)||length>8192||keys.length!==length+1)return denied();
+      for(let i=0;i<length;i++){
+        const d=descriptors[String(i)];if(!d||!d.enumerable||!Object.hasOwn(d,'value'))return denied();visit(d.value,depth+1);
+      }
+    }else for(const key of keys){
+      if(typeof key!=='string')return denied();
+      const d=descriptors[key];if(!d.enumerable||!Object.hasOwn(d,'value'))return denied();
+      bytes+=Buffer.byteLength(key);if(bytes>256*1024)return denied();visit(d.value,depth+1);
+    }
+    active.delete(item);
+  };
+  visit(value,0);const encoded=canonical(value);
+  if(Buffer.byteLength(encoded)>256*1024)throw new Error('Bounded canonical local V4 admission required');
+  return JSON.parse(encoded) as T;
+}
+function localAdmissionFields(value:unknown,required:string[],optional:string[]=[]):asserts value is Record<string,unknown> {
+  if(!value||typeof value!=='object'||Array.isArray(value)||required.some(key=>!Object.hasOwn(value,key))||
+    Object.keys(value).some(key=>!required.includes(key)&&!optional.includes(key)))throw new Error('Exact local V4 admission fields required');
+}
+function localAdmissionWork(value:unknown):asserts value is WorkOrder {
+  localAdmissionFields(value,['id','title','description','kind','repositoryPath','baseRef','acceptanceCriteria','reproductionCommand','expectedFailureText','checkCommands','allowedPaths','workerProfile','state','createdAt','updatedAt'],['idempotencyKey','syncToLinear']);
+  const strings=['id','title','description','repositoryPath','baseRef','createdAt','updatedAt'];
+  if(strings.some(key=>typeof value[key]!=='string')||
+    ['reproductionCommand','expectedFailureText'].some(key=>value[key]!==null&&typeof value[key]!=='string')||
+    ['acceptanceCriteria','checkCommands','allowedPaths'].some(key=>!Array.isArray(value[key])||(value[key] as unknown[]).some(item=>typeof item!=='string'))||
+    !['defect','feature','investigation'].includes(String(value.kind))||!['container','mac','browser'].includes(String(value.workerProfile))||
+    !['needs_investigation','awaiting_clarification','queued','planning','implementing','verifying','ready_for_review','awaiting_approval','awaiting_human_login','awaiting_environment','failed','interrupted','cancelled'].includes(String(value.state))||
+    Object.hasOwn(value,'idempotencyKey')&&typeof value.idempotencyKey!=='string'||Object.hasOwn(value,'syncToLinear')&&typeof value.syncToLinear!=='boolean')
+    throw new Error('Exact original local V4 Work required');
+}
 export class LocalProducerResultsV4 {
   private readonly storage: FactoryStorage;
   private readonly dataDir: string;
@@ -237,6 +288,82 @@ export class LocalProducerResultsV4 {
     if (Object.keys(options).sort().join(',')!=='currentKeyId,factoryId,keys,privateKey') throw new Error('Invalid explicit V4 signing options');
     new ProducerResults(storage,dataDir,options); // Reuse the exact configured-key validation only.
     this.storage=storage;this.dataDir=dataDir;this.options=structuredClone(options);
+  }
+  private admissionRun(run:Run):Run {
+    const supplied=localAdmissionJson(run),current=this.storage.getRun(supplied.id);
+    const fields=['id','workOrderId','attemptNumber','inputCommit','workspacePath','workerProfile','startedAt'] as const;
+    if(!current||fields.some(key=>current[key]!==supplied[key]))throw new Error('Exact immutable local V4 admission Run required');
+    return current;
+  }
+  private admissionEvents(run:Run) {
+    const events=this.storage.listEvents(run.workOrderId).filter(event=>event.runId===run.id);
+    const selected=(type:string)=>{
+      const rows=events.filter(event=>event.type===type);
+      if(rows.length>1)throw new Error('Ambiguous immutable local V4 admission record');
+      return rows[0];
+    };
+    return {admission:selected(LOCAL_V4_ADMISSION_EVENT),snapshot:selected(SNAPSHOT_EVENT),result:selected(RESULT_EVENT)};
+  }
+  private retainedAdmission(run:Run) {
+    const current=this.admissionRun(run);
+    const records=this.admissionEvents(current);
+    if(!records.admission||!records.snapshot)throw new Error('Complete original local V4 admission pair required; cannot backfill');
+    const saved:unknown=localAdmissionJson(records.admission.payload);
+    localAdmissionFields(saved,['schema','work','expected']);
+    if(saved.schema!==LOCAL_V4_ADMISSION_SCHEMA)throw new Error('Explicit original local V4 admission required');
+    localAdmissionWork(saved.work);
+    localAdmissionFields(saved.expected,['factoryId','factoryVersion','sourceDigest','configurationDigest','configuration','requestId','requestDigest','workOrderId','runId','attemptNumber','inputCommit','inputTree']);
+    const admission:LocalProducerAdmissionV4={work:saved.work,expected:saved.expected as unknown as LocalResultV4Expected};
+    const execution=this.snapshot(current,admission);
+    if(!execution||saved.work.workerProfile!==current.workerProfile)throw new Error('Original local V4 admission binding changed');
+    return {run:current,admission,execution};
+  }
+  /** New provenance capture only. Does not dispatch or grant Work authority. */
+  captureAdmitted(work:WorkOrder,run:Run,model:string,executorVersion:string):LocalExecutionSnapshotV4 {
+    const original=localAdmissionJson(work),supplied=localAdmissionJson(run);
+    localAdmissionWork(original);
+    return this.storage.transaction(()=>{
+      const currentKey=()=>{
+        const key=this.options.keys.find(value=>value.factoryId===this.options.factoryId&&value.keyId===this.options.currentKeyId)!,now=Date.now();
+        if(key.revokedAt||key.retiredAt||!(Date.parse(key.activeFrom)<=now&&now<=Date.parse(key.notAfter)))
+          throw new Error('Current producer signing key is unavailable for admission');
+      };
+      currentKey();
+      const current=this.admissionRun(supplied);
+      const records=this.admissionEvents(current);
+      if(records.result)
+        throw new Error('Completed local V4 capture cannot be repeated; use retained read');
+      if(Boolean(records.admission)!==Boolean(records.snapshot))throw new Error('Complete original local V4 admission pair required; cannot backfill');
+      if(records.admission){
+        const saved=this.retainedAdmission(supplied);this.assertSource();
+        if(canonical(original)!==canonical(saved.admission.work)||saved.execution.sourceDigest!==loadedSource||
+          saved.execution.configuration.model!==model||saved.execution.configuration.executorVersion!==executorVersion)
+          throw new Error('Conflicting original local V4 admission replay');
+        currentKey();
+        return saved.execution;
+      }
+      const execution=this.capture(original,supplied,model,executorVersion);
+      const {version,workspace,capturedAt,...expected}=execution;
+      const payload=localAdmissionJson({schema:LOCAL_V4_ADMISSION_SCHEMA,work:original,expected});
+      // Only this method constructs the admission record. The shared generic
+      // immutable writer still accepts only its original snapshot/result types.
+      this.storage.appendEvent({workOrderId:current.workOrderId,runId:current.id,type:LOCAL_V4_ADMISSION_EVENT,payload});
+      const joined=this.retainedAdmission(supplied);
+      if(canonical(joined.execution)!==canonical(execution))throw new Error('Original local V4 capture changed');
+      const result=localAdmissionJson(execution);
+      currentKey();
+      return result;
+    });
+  }
+  admission(run:Run):LocalProducerAdmissionV4 {
+    const supplied=localAdmissionJson(run);
+    return this.storage.transaction(()=>this.retainedAdmission(supplied).admission);
+  }
+  readAdmitted(run:Run):ReturnType<LocalProducerResultsV4['read']> {
+    const current=this.admissionRun(run);return this.read(current,this.admission(current));
+  }
+  finalizeAdmitted(run:Run):SignedResult {
+    const current=this.admissionRun(run);return this.finalize(current,this.admission(current));
   }
   private assertSource(): void { if (sourceIdentity()!==loadedSource) throw new Error('Producer source changed; restart before attesting'); }
   private requestId(work: WorkOrder): string {
