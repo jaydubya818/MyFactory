@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import type { FactoryStorage } from '../../../packages/storage/src/index.ts';
 import type { Run, WorkOrder } from '../../../packages/contracts/src/index.ts';
 import { DEFAULT_VERIFICATION_IMAGE } from '../../../packages/verification/src/index.ts';
+import { LocalV4CandidatePolicy, candidatePolicyFailure } from './local-v4-candidate-policy.ts';
+import { performance } from 'node:perf_hooks';
 import {
   canonical, digest, sha256, operationId, signResult, verifyResult, RESULT_PROTOCOL, MAX_ARTIFACT_BYTES,
   signLocalResultV4, verifyLocalResultV4, validateLocalResultManifestV4,
@@ -284,10 +286,13 @@ export class LocalProducerResultsV4 {
   private readonly storage: FactoryStorage;
   private readonly dataDir: string;
   private readonly options: Omit<ProducerOptions,'sessionMetadata'>;
+  #candidatePolicy: LocalV4CandidatePolicy;
+  #candidateQueue: Promise<void> = Promise.resolve();
   constructor(storage: FactoryStorage,dataDir: string,options: Omit<ProducerOptions,'sessionMetadata'>) {
     if (Object.keys(options).sort().join(',')!=='currentKeyId,factoryId,keys,privateKey') throw new Error('Invalid explicit V4 signing options');
     new ProducerResults(storage,dataDir,options); // Reuse the exact configured-key validation only.
     this.storage=storage;this.dataDir=dataDir;this.options=structuredClone(options);
+    this.#candidatePolicy = new LocalV4CandidatePolicy(dataDir);
   }
   private admissionRun(run:Run):Run {
     const supplied=localAdmissionJson(run),current=this.storage.getRun(supplied.id);
@@ -362,7 +367,7 @@ export class LocalProducerResultsV4 {
   readAdmitted(run:Run):ReturnType<LocalProducerResultsV4['read']> {
     const current=this.admissionRun(run);return this.read(current,this.admission(current));
   }
-  finalizeAdmitted(run:Run):SignedResult {
+  finalizeAdmitted(run:Run):ReturnType<LocalProducerResultsV4['finalize']> {
     const current=this.admissionRun(run);return this.finalize(current,this.admission(current));
   }
   private assertSource(): void { if (sourceIdentity()!==loadedSource) throw new Error('Producer source changed; restart before attesting'); }
@@ -435,18 +440,114 @@ export class LocalProducerResultsV4 {
       ||manifest.completedAt!==run.finishedAt||(manifest.candidate?.commit??null)!==run.candidateCommit) throw new Error('Frozen result differs from saved attempt');
     return result;
   }
-  read(run: Run,admission: LocalProducerAdmissionV4): {state:ReturnType<typeof producerState>;result:SignedResult|null} {
+  private candidateBinding(run: Run, admission: LocalProducerAdmissionV4): string {
+    return digest({ run: this.storage.getRun(run.id), work: this.storage.getWorkOrder(run.workOrderId),
+      checks: this.storage.listChecks(run.id), events: this.storage.listEvents(run.workOrderId),
+      execution: this.snapshot(run, admission), admission });
+  }
+  private currentKey(): void {
+    const key = this.options.keys.find(value => value.factoryId === this.options.factoryId && value.keyId === this.options.currentKeyId);
+    const now = Date.now();
+    if (!key || key.revokedAt || key.retiredAt || !(Date.parse(key.activeFrom) <= now && now <= Date.parse(key.notAfter)))
+      throw new Error('Current producer signing key is unavailable');
+  }
+  private observeCandidate(run: Run, admission: LocalProducerAdmissionV4, purpose: 'pre-ready' | 'read' | 'freeze', invocation: object, binding: string, deadline?: number) {
+    const execution = this.snapshot(run, admission);
+    const candidates = this.storage.listEvents(run.workOrderId).filter(event => event.runId === run.id && event.type === 'run.candidate_committed');
+    const payload = candidates[0]?.payload;
+    if (!execution || candidates.length !== 1 || !run.candidateCommit || payload?.candidateCommit !== run.candidateCommit ||
+        typeof payload.candidateTree !== 'string' || typeof payload.diffPath !== 'string' || typeof payload.diffSha256 !== 'string')
+      throw candidatePolicyFailure(null);
+    return this.#candidatePolicy.observe({ repository: admission.work.repositoryPath, inputCommit: run.inputCommit,
+      inputTree: execution.inputTree, candidateCommit: run.candidateCommit, candidateTree: payload.candidateTree,
+      runId: run.id, diffPath: payload.diffPath, diffSha256: payload.diffSha256 }, purpose, binding, invocation, deadline);
+  }
+  /** Native work happens before the caller's synchronous ready transaction. The
+   * returned one-use closure rechecks exact state/source/key inside that write. */
+  async beforeReady(run: Run): Promise<() => void> {
+    try {
+      const admission = this.admission(run), current = this.storage.getRun(run.id);
+      if (!current || canonical(current) !== canonical(run) || current.state !== 'verifying') throw candidatePolicyFailure(null);
+      const execution = this.snapshot(current, admission);
+      this.assertSource(); this.currentKey();
+      if (execution?.sourceDigest !== loadedSource) throw candidatePolicyFailure(null);
+      const invocation = Object.freeze({}), binding = this.candidateBinding(current, admission);
+      const guard = await this.observeCandidate(current, admission, 'pre-ready', invocation, binding);
+      return () => {
+        try {
+          this.assertSource(); this.currentKey();
+          this.#candidatePolicy.consume(guard, 'pre-ready', this.candidateBinding(current, admission), invocation, current.id).assertCurrent();
+        } catch (error) { throw candidatePolicyFailure(error); }
+      };
+    } catch (error) { throw candidatePolicyFailure(error); }
+  }
+  private candidateResult(run: Run, admission: LocalProducerAdmissionV4, purpose: 'read' | 'freeze'): Promise<SignedResult> {
+    const deadline = performance.now() + 30000;
+    const invocation = Object.freeze({});
+    const result = this.#candidateQueue.then(() => this.observedCandidateResult(run, admission, purpose, invocation, deadline));
+    this.#candidateQueue = result.then(() => undefined, () => undefined);
+    return result;
+  }
+  private async observedCandidateResult(run: Run, admission: LocalProducerAdmissionV4, purpose: 'read' | 'freeze', invocation: object, deadline: number): Promise<SignedResult> {
+    try {
+      this.assertSource();
+      const binding = this.candidateBinding(run, admission);
+      const guard = await this.observeCandidate(run, admission, purpose, invocation, binding, deadline);
+      return this.storage.transaction(() => {
+        const current = this.storage.getRun(run.id);
+        if (!current || canonical(current) !== canonical(run) || this.candidateBinding(current, admission) !== binding) throw candidatePolicyFailure(null);
+        this.assertSource();
+        const material = this.#candidatePolicy.consume(guard, purpose, binding, invocation, current.id);
+        const execution = this.snapshot(current, admission);
+        if (!execution) throw candidatePolicyFailure(null);
+        const saved = this.savedResult(current, admission), status = producerState(this.storage, current);
+        if (!['COMPLETED', 'FAILED', 'CANCELLED'].includes(status) || !current.finishedAt) throw candidatePolicyFailure(null);
+        const checks = this.storage.listChecks(current.id);
+        const candidates = this.storage.listEvents(current.workOrderId).filter(event => event.runId === current.id && event.type === 'run.candidate_committed');
+        if (candidates.length !== 1) throw candidatePolicyFailure(null);
+        const { bytes, ...content } = producerArtifacts(this.dataDir, current, checks, candidates[0], execution.factoryId, material.git);
+        if (this.candidateBinding(current, admission) !== binding) throw candidatePolicyFailure(null);
+        this.assertSource(); material.assertCurrent();
+        if (saved) {
+          const { manifest } = verifyLocalResultV4(saved, { keys: this.options.keys, expected: admission.expected, historical: true });
+          const actual = { candidate: manifest.candidate, evidence: manifest.evidence, artifacts: manifest.artifacts,
+            evidenceDigest: manifest.evidenceDigest, artifactDigest: manifest.artifactDigest };
+          if (canonical(actual) !== canonical(content) || canonical(saved.artifacts) !== canonical(bytes)) throw candidatePolicyFailure(null);
+          return saved;
+        }
+        if (execution.sourceDigest !== loadedSource) throw candidatePolicyFailure(null);
+        this.currentKey();
+        const manifest: LocalResultManifestV4 = { protocol: RESULT_PROTOCOL, keyId: this.options.currentKeyId, producer: execution.factoryId,
+          operationId: digest([RESULT_PROTOCOL, execution.factoryId, execution.requestId, execution.workOrderId, execution.runId]), execution,
+          status: status as LocalResultManifestV4['status'], ...content, completedAt: current.finishedAt, issuedAt: new Date().toISOString() };
+        const result = signLocalResultV4(manifest, bytes, this.options.privateKey);
+        verifyLocalResultV4(result, { keys: this.options.keys, expected: admission.expected });
+        this.currentKey(); this.assertSource(); material.assertCurrent();
+        if (this.candidateBinding(current, admission) !== binding) throw candidatePolicyFailure(null);
+        return saveRunRecord(this.storage, current, RESULT_EVENT, result);
+      });
+    } catch (error) { throw candidatePolicyFailure(error); }
+  }
+  read(run: Run,admission: LocalProducerAdmissionV4): {state:ReturnType<typeof producerState>;result:SignedResult|null} | Promise<{state:ReturnType<typeof producerState>;result:SignedResult|null}> {
     const current=this.storage.getRun(run.id);
     if (!current||current.workOrderId!==run.workOrderId) throw new Error('Unknown attempt');
     if (!this.snapshot(current,admission)) throw new Error('Attempt has no execution snapshot; cannot backfill attestation');
     const state=producerState(this.storage,current);
     if (['UNKNOWN','RUNNING','STOPPING'].includes(state)) return {state,result:null};
-    return {state,result:this.savedResult(current,admission)??this.finalize(current,admission)};
+    if (current.candidateCommit) return this.candidateResult(current, admission, 'read').then(result => ({ state, result }));
+    return {state,result:this.savedResult(current,admission)??this.finalizeMetadata(current,admission)};
   }
-  finalize(run: Run,admission: LocalProducerAdmissionV4): SignedResult {
+  finalize(run: Run,admission: LocalProducerAdmissionV4): SignedResult | Promise<SignedResult> {
+    const current = this.storage.getRun(run.id);
+    if (!current || canonical(current) !== canonical(run)) throw new Error('Exact terminal Run required');
+    if (current.candidateCommit) return this.candidateResult(current, admission, 'freeze');
+    return this.finalizeMetadata(current, admission);
+  }
+  private finalizeMetadata(run: Run,admission: LocalProducerAdmissionV4): SignedResult {
     this.assertSource();
     const current=this.storage.getRun(run.id);
     if (!current||canonical(current)!==canonical(run)) throw new Error('Exact terminal Run required');
+    if (current.candidateCommit) throw candidatePolicyFailure(null);
     const execution=this.snapshot(current,admission);
     if (!execution) throw new Error('Attempt has no execution snapshot; cannot backfill attestation');
     const saved=this.savedResult(current,admission);if(saved)return saved;
@@ -457,14 +558,7 @@ export class LocalProducerResultsV4 {
     if (candidates.length>1) throw new Error('Ambiguous candidate');
     const candidateEvent=candidates[0]??null,stateDigest=digest({run:current,checks,candidates,execution,work:this.storage.getWorkOrder(current.workOrderId)});
     const repository=admission.work.repositoryPath;
-    if (current.candidateCommit) readLocalGitInputTreeV4(repository,current.candidateCommit);
-    const localGit=(args:string[])=>execFileSync(LOCAL_GIT_INPUT_V4.executable,
-      ['--no-pager','--no-replace-objects','--no-lazy-fetch','--no-optional-locks','-c','protocol.allow=never','-c','credential.helper=',
-        '-c','core.hooksPath=/dev/null','-c','core.fsmonitor=false','-c','gc.auto=0','--git-dir='+join(repository,'.git'),...args],
-      {cwd:'/',env:{PATH:'/nonexistent',LANG:'C',LC_ALL:'C',GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_SYSTEM:'/dev/null',GIT_CONFIG_GLOBAL:'/dev/null',
-        GIT_NO_REPLACE_OBJECTS:'1',GIT_NO_LAZY_FETCH:'1',GIT_TERMINAL_PROMPT:'0',GIT_ALLOW_PROTOCOL:''},
-        maxBuffer:MAX_ARTIFACT_BYTES,timeout:LOCAL_GIT_INPUT_V4.timeoutMs,killSignal:'SIGKILL'});
-    const {bytes,...content}=producerArtifacts(this.dataDir,current,checks,candidateEvent,execution.factoryId,localGit);
+    const {bytes,...content}=producerArtifacts(this.dataDir,current,checks,candidateEvent,execution.factoryId,() => { throw candidatePolicyFailure(null); });
     const input=readLocalGitInputTreeV4(repository,current.inputCommit);
     if (input.inputTree!==execution.inputTree) throw new Error('Input tree changed during V4 freeze');
     const manifest:LocalResultManifestV4={protocol:RESULT_PROTOCOL,keyId:this.options.currentKeyId,producer:execution.factoryId,

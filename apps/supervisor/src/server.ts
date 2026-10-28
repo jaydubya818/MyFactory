@@ -415,6 +415,9 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
 
       if (pathname.startsWith("/api/connect/v1/")) {
         const client = authenticateClient(request, readClients(connectionsPath));
+        if (resultMode === 'LOCAL_V4' && client.purpose !== 'myeve-proof' && Object.hasOwn(client, 'expiresAt') &&
+            (typeof client.expiresAt !== 'string' || !Number.isFinite(Date.parse(client.expiresAt)) || Date.parse(client.expiresAt) <= Date.now()))
+          return json(response, 401, { error: 'Connection expired' });
         if (resultMode === 'LOCAL_V4' && (typeof client.ownerScope !== 'string' || !/^[A-Za-z0-9:_-]{1,128}$/.test(client.ownerScope)))
           return json(response, 403, {error: 'Current owner-scoped connection required'});
         if (resultMode === 'LOCAL_V4' && client.purpose === 'myeve-proof' && !currentV4ProofReader(client))
@@ -456,7 +459,28 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
             return json(response, 404, { error: "Attempt not found" });
           }
           if (!producer) return json(response, 503, { error: "Producer result attestation is not configured" });
-          return json(response, 200, producer.read(run));
+          if (resultMode !== 'LOCAL_V4') return json(response, 200, await producer.read(run));
+          // Capture the actual original credential, never substitute a renewed
+          // connection after an awaited material read (including a refusal).
+          const originalHeaders = { authorization: request.headers.authorization, origin: request.headers.origin };
+          let outcome: { value: Awaited<ReturnType<ServiceProducer['read']>> } | { error: unknown };
+          try { outcome = { value: await producer.read(run) }; }
+          catch (error) { outcome = { error }; }
+          const fresh = authenticateClient({ headers: originalHeaders } as IncomingMessage, readClients(connectionsPath));
+          if (fresh.id !== client.id || fresh.ownerScope !== client.ownerScope || fresh.purpose !== client.purpose ||
+              fresh.tokenSha256 !== client.tokenSha256 || typeof fresh.ownerScope !== 'string' || !/^[A-Za-z0-9:_-]{1,128}$/.test(fresh.ownerScope))
+            return json(response, 403, { error: 'Current owner-scoped connection required' });
+          if (fresh.purpose === 'myeve-proof' ? !currentV4ProofReader(fresh) : !fresh.actions.includes('factory.observe'))
+            return json(response, 403, { error: 'Current read grant required' });
+          if (fresh.purpose !== 'myeve-proof' && Object.hasOwn(fresh, 'expiresAt') &&
+              (typeof fresh.expiresAt !== 'string' || !Number.isFinite(Date.parse(fresh.expiresAt)) || Date.parse(fresh.expiresAt) <= Date.now()))
+            return json(response, 401, { error: 'Connection expired' });
+          const currentOrder = storage.getWorkOrder(order.id), currentRun = storage.getRun(run.id);
+          if (!currentOrder || !currentRun || currentRun.workOrderId !== order.id || currentOrder.repositoryPath !== order.repositoryPath ||
+              !canAccessRepository(fresh, currentOrder.repositoryPath) || !proofClientOwnsWork(fresh, order.id))
+            return json(response, 404, { error: 'Attempt not found' });
+          if ('error' in outcome) throw outcome.error;
+          return json(response, 200, outcome.value);
         }
         if (request.method === "GET" && pathname === "/api/connect/v1/actions") {
           return json(response, 200, { client: client.id, actions: client.actions.map((name) => actionRegistry[name as keyof typeof actionRegistry]).filter(Boolean), controls:client.actions.filter(name=>name.startsWith("factory.")), execution:dispatchControl?.executionAvailability()??{mode:"DISABLED",spendEnforced:false} });

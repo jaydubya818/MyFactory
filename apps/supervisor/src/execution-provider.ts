@@ -32,7 +32,7 @@ export interface ExecutionProvider {
   cancel(work: WorkOrder, run: Run): Promise<void>;
   read(run: Run): Promise<ExecutionObservation>;
   reconcile(run: Run): Promise<ExecutionObservation>;
-  collect(run: Run): Promise<ReturnType<ServiceProducer['read']>>;
+  collect(run: Run): Promise<Awaited<ReturnType<ServiceProducer['read']>>>;
   health(): Promise<{ ready: boolean; reason: string | null }>;
   teardown(run: Run): Promise<{ destroyed: boolean; reason: string | null }>;
 }

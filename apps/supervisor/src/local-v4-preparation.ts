@@ -10,6 +10,7 @@ import type { JobDependencies } from './jobs.ts';
 import { readLocalGitInputTreeV4 } from './producer-results.ts';
 import type { ServiceProducer } from './service-producer.ts';
 import { validateLocalV4TextTree, type TextObjectKind } from './local-v4-text-tree.ts';
+import type { CandidateMaterial } from './local-v4-candidate-policy.ts';
 
 type Preparation = Readonly<Pick<JobDependencies, 'resolveCommit' | 'createTaskWorktree' | 'removeTaskWorktree'>>;
 type FileObservation = { bytes: Buffer; identity: string; digest: string };
@@ -21,6 +22,8 @@ type Workspace = {
   entries?: Map<string, string>;
 };
 const captureMarkers = new WeakMap<Preparation, (repository: string, workspace: string) => void>();
+type CandidateInspection = Readonly<{ repository: string; inputCommit: string; inputTree: string; candidateCommit: string; candidateTree: string }>;
+const candidateInspectors = new WeakMap<Preparation, (input: CandidateInspection, deadline: number) => Promise<CandidateMaterial>>();
 const GIT = '/opt/homebrew/Cellar/git/2.48.1/bin/git';
 const HELPERS = '/opt/homebrew/Cellar/git/2.48.1/libexec/git-core';
 const pins = [
@@ -95,7 +98,7 @@ async function command(repository: string, args: string[], limits: { bytes?: num
   if (limits.deadline !== undefined) budget(limits.deadline);
   runtime();
   const outputLimit = limits.bytes ?? 1024 * 1024;
-  if (!Number.isSafeInteger(outputLimit) || outputLimit < 0 || outputLimit > 1024 * 1024) refuse();
+  if (!Number.isSafeInteger(outputLimit) || outputLimit < 0 || outputLimit > 2 * 1024 * 1024) refuse();
   if (limits.deadline !== undefined) budget(limits.deadline);
   const timeout = limits.deadline === undefined ? 10000 : Math.max(1, Math.min(10000, Math.ceil(limits.deadline - performance.now())));
   return new Promise((resolveResult, reject) => {
@@ -300,7 +303,58 @@ export function createLocalV4Preparation(dataDir: string): Preparation {
     // custody is outside this unit; no permission callback can clear this HOLD.
     w.state = 'captured';
   });
+  candidateInspectors.set(preparation, async (input, deadline) => {
+    if (!pathString(input.repository) || ![input.inputCommit, input.inputTree, input.candidateCommit, input.candidateTree].every(commitString)) hold();
+    // Read-only observation does not adopt a previous process's workspace or
+    // permit physical cleanup. Original Work authority remains with the producer.
+    if (busy.has(input.repository) || quarantined.has(input.repository)) hold();
+    busy.add(input.repository);
+    try {
+      budget(deadline); const r = qualify(input.repository, input.inputCommit); budget(deadline);
+      if (r.tree !== input.inputTree) hold();
+      const observed = new Map<string, Buffer>();
+      const observe = async (args: string[], bytes: number) => {
+        budget(deadline); checkRepository(r);
+        const value = await command(r.path, args, { bytes, deadline });
+        checkRepository(r); budget(deadline); return value;
+      };
+      const unsupported = (): never => { throw new Error('LOCAL_V4_CANDIDATE_FORMAT_UNSUPPORTED'); };
+      const read = async (kind: TextObjectKind, id: string, limit: number) => {
+        if (!commitString(id) || limit !== (kind === 'blob' ? 100000 : 65536)) hold();
+        if (text(await observe(['cat-file', '-t', id], 256)) !== kind + '\n') unsupported();
+        const sizeText = text(await observe(['cat-file', '-s', id], 256));
+        if (!/^(?:0|[1-9][0-9]*)\n$/.test(sizeText)) hold();
+        const size = Number(sizeText.trim()); if (!Number.isSafeInteger(size)) hold();
+        if (size > limit) unsupported();
+        const raw = await observe(['cat-file', kind, id], size); if (raw.length !== size) hold();
+        if ((kind === 'commit' && id === input.candidateCommit) || (kind === 'tree' && id === input.candidateTree)) observed.set(kind, Buffer.from(raw));
+        return raw;
+      };
+      const tree = async (commit: string) => {
+        try { return await validateLocalV4TextTree(commit, read, deadline); }
+        catch (error) {
+          budget(deadline);
+          if (error instanceof Error && error.message === 'LOCAL_V4_TEXT_INPUT_REFUSED') unsupported();
+          throw error;
+        }
+      };
+      const base = await tree(input.inputCommit), candidate = await tree(input.candidateCommit);
+      if (base.inputTree !== input.inputTree || candidate.inputTree !== input.candidateTree) hold();
+      const rawCommit = observed.get('commit'), rawTree = observed.get('tree'); if (!rawCommit || !rawTree) hold();
+      const patch = await observe(['show', '--format=', '--binary', '--no-ext-diff', '--no-textconv', input.candidateCommit], 2 * 1024 * 1024);
+      const numstat = await observe(['show', '--format=', '--numstat', '-z', '--no-ext-diff', '--no-textconv', input.candidateCommit], 65536);
+      checkRepository(r); budget(deadline);
+      return Object.freeze({ base, candidate, rawCommit, rawTree, patch: Buffer.from(patch), numstat: Buffer.from(numstat) });
+    } catch (error) { quarantined.add(input.repository); throw error; }
+    finally { busy.delete(input.repository); }
+  });
   return preparation;
+}
+
+/** Fixed host operation only. No argv, environment or native callback is exposed. */
+export function inspectLocalV4Candidate(preparation: Preparation, input: CandidateInspection, deadline: number): Promise<CandidateMaterial> {
+  const inspect = candidateInspectors.get(preparation); if (!inspect) hold();
+  return inspect(input, deadline);
 }
 
 /** Fixed host composition; the marker can only deny physical cleanup. */
@@ -311,6 +365,7 @@ export function bindLocalV4PreparationCapture(preparation: Preparation, producer
     snapshot(run) { return producer.snapshot(run); },
     read(run) { return producer.read(run); },
     finalize(run) { return producer.finalize(run); },
+    ...(producer.beforeReady ? { beforeReady: (run: Parameters<NonNullable<ServiceProducer['beforeReady']>>[0]) => producer.beforeReady!(run) } : {}),
   };
   return Object.freeze(bound);
 }

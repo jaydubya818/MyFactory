@@ -26,7 +26,7 @@ jobs:
       - run: node scripts/check-producer-governance.mjs
       - run: npm run typecheck:producer
       - name: Portable original-record and existing producer contracts
-        run: node --test apps/supervisor/test/local-v4-admission.test.mjs apps/supervisor/test/producer-results.test.mjs apps/supervisor/test/local-v4-service.test.mjs apps/supervisor/test/server.test.mjs apps/supervisor/test/jobs.test.mjs apps/supervisor/test/local-v4-preparation.test.mjs apps/supervisor/test/local-v4-text-tree.test.mjs
+        run: node --test apps/supervisor/test/local-v4-admission.test.mjs apps/supervisor/test/producer-results.test.mjs apps/supervisor/test/local-v4-service.test.mjs apps/supervisor/test/server.test.mjs apps/supervisor/test/jobs.test.mjs apps/supervisor/test/local-v4-preparation.test.mjs apps/supervisor/test/local-v4-text-tree.test.mjs apps/supervisor/test/local-v4-candidate-policy.test.mjs
       - name: Existing legacy signing and reopened replay
         run: node --test --test-name-pattern='^Legacy direct producer:' apps/supervisor/qualification/local-v4-producer.test.mjs
       - name: Require unchanged tracked source

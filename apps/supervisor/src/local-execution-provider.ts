@@ -120,7 +120,7 @@ export class LocalExecutionProvider implements ExecutionProvider {
     return observation;
   }
 
-  async collect(run: Run) {
+  async collect(run: Run): Promise<Awaited<ReturnType<ServiceProducer['read']>>> {
     const current = this.current(run);
     if (!(await this.read(current)).quiescent) throw new Error('Local execution resources are not quiescent');
     return this.producer.read(current);

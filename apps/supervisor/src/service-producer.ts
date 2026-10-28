@@ -4,13 +4,15 @@ import type { ExecutionSnapshot, LocalExecutionSnapshotV4, SignedResult } from '
 import { LocalProducerResultsV4, type ProducerOptions, type producerState } from './producer-results.ts';
 
 export type ServiceExecutionSnapshot = ExecutionSnapshot | LocalExecutionSnapshotV4;
+export type ServiceResult = { state: ReturnType<typeof producerState>; result: SignedResult | null };
 
 /** Host-selected result plumbing. This interface grants no execution authority. */
 export interface ServiceProducer {
   capture(work: WorkOrder, run: Run, model: string, executorVersion: string): ServiceExecutionSnapshot;
   snapshot(run: Run): ServiceExecutionSnapshot | null;
-  read(run: Run): { state: ReturnType<typeof producerState>; result: SignedResult | null };
-  finalize(run: Run): SignedResult;
+  read(run: Run): ServiceResult | Promise<ServiceResult>;
+  finalize(run: Run): SignedResult | Promise<SignedResult>;
+  beforeReady?(run: Run): Promise<() => void>;
 }
 
 /** Explicit local V4 only; retained original admission is required on every read. */
@@ -33,7 +35,9 @@ export class LocalV4ServiceProducer implements ServiceProducer {
     return this.producer.readAdmitted(run);
   }
 
-  finalize(run: Run): SignedResult {
+  finalize(run: Run) {
     return this.producer.finalizeAdmitted(run);
   }
+
+  beforeReady(run: Run) { return this.producer.beforeReady(run); }
 }

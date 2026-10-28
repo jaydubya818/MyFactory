@@ -77,19 +77,19 @@ test('V4 direct producer: exact trusted expectations and Work spec are required 
  assert.throws(()=>f.producer.snapshot(f.run,{...admission,work:{...f.work,title:'other'}}),/Work binding/);
  f.storage.saveWorkOrder({...f.work,allowedPaths:['different.txt']});assert.throws(()=>f.producer.snapshot(f.run,admission),/Work binding/);
 });
-test('V4 direct producer: known synthetic candidate freezes exact result and survives SQLite reopen',t=>{
- const f=fixture(t),{snapshot,admission}=f.capture(),run=candidate(f),result=f.producer.read(run,admission).result;
- assert.ok(result);const {manifest}=verifyLocalResultV4(result,{keys:f.options.keys,expected:admission.expected});assert.equal(manifest.status,'COMPLETED');assert.deepEqual(manifest.execution,snapshot);assert.equal(manifest.artifacts.length,4);assert.equal(manifest.evidence.length,1);assert.deepEqual(f.producer.finalize(run,admission),result);
- const reopened=openStorage(f.path);try{assert.deepEqual(new LocalProducerResultsV4(reopened,f.dir,f.options).read(run,admission).result,result);}finally{reopened.close();}
+test('V4 direct producer: known synthetic candidate freezes exact result and survives SQLite reopen',async t=>{
+ const f=fixture(t),{snapshot,admission}=f.capture(),run=candidate(f),result=(await f.producer.read(run,admission)).result;
+ assert.ok(result);const {manifest}=verifyLocalResultV4(result,{keys:f.options.keys,expected:admission.expected});assert.equal(manifest.status,'COMPLETED');assert.deepEqual(manifest.execution,snapshot);assert.equal(manifest.artifacts.length,4);assert.equal(manifest.evidence.length,1);assert.deepEqual(await f.producer.finalize(run,admission),result);
+ const reopened=openStorage(f.path);try{assert.deepEqual((await new LocalProducerResultsV4(reopened,f.dir,f.options).read(run,admission)).result,result);}finally{reopened.close();}
  assert.throws(()=>verifyResult(result,{keys:f.options.keys,factoryId:f.options.factoryId,requestId:snapshot.requestId,workOrderId:run.workOrderId,runId:run.id,factoryVersion:snapshot.factoryVersion}));
  assert.throws(()=>new ProducerResults(f.storage,f.dir,f.options).read(run),/explicit V4/);
  assert.equal(f.storage.listEvents(f.work.id).filter(e=>e.type===RESULT_EVENT).length,1);assert.equal(f.storage.listRuns(f.work.id).length,1);
  const changed=structuredClone(result);changed.artifacts[0].base64=Buffer.from('altered').toString('base64');assert.throws(()=>verifyLocalResultV4(changed,{keys:f.options.keys,expected:admission.expected}));
  assert.equal(snapshot.sourceDigest,sourceIdentity());assert.equal(snapshot.factoryVersion,digest({sourceDigest:snapshot.sourceDigest,configurationDigest:snapshot.configurationDigest}));
 });
-test('V4 direct producer: altered check artifacts and changed terminal Run do not freeze a Result',t=>{
+test('V4 direct producer: altered check artifacts and changed terminal Run do not freeze a Result',async t=>{
  const f=fixture(t),{admission}=f.capture(),run=candidate(f);writeFileSync(join(f.dir,'artifacts',run.id,'check.log'),'changed');
- assert.throws(()=>f.producer.finalize(run,admission),/Check log changed/);assert.equal(readRunRecord(f.storage,run,RESULT_EVENT),null);
+ await assert.rejects(f.producer.finalize(run,admission),{code:'candidate_policy_hold',status:503});assert.equal(readRunRecord(f.storage,run,RESULT_EVENT),null);
  assert.throws(()=>f.producer.finalize({...run,workspacePath:f.dir},admission),/Exact terminal Run/);
 });
 test('V4 direct producer: failed no-candidate result is immutable without implying software verification',t=>{
@@ -97,13 +97,13 @@ test('V4 direct producer: failed no-candidate result is immutable without implyi
  assert.equal(manifest.status,'FAILED');assert.equal(manifest.candidate,null);assert.deepEqual(manifest.evidence,[]);assert.deepEqual(manifest.artifacts,[]);assert.deepEqual(f.producer.read(run,admission).result,result);
 });
 
-test('V4 direct producer: admission and terminal freeze races refuse before persistence',t=>{
+test('V4 direct producer: admission and terminal freeze races refuse before persistence',async t=>{
  const f=fixture(t),transaction=f.storage.transaction.bind(f.storage);let changed=false;
  f.storage.transaction=operation=>{if(!changed){changed=true;f.storage.saveWorkOrder({...f.work,title:'racing replacement'});}return transaction(operation);};
  assert.throws(f.capture,/Admission changed/);assert.equal(readRunRecord(f.storage,f.run,SNAPSHOT_EVENT),null);
  const g=fixture(t),{admission}=g.capture(),run=candidate(g),freeze=g.storage.transaction.bind(g.storage);let frozen=false;
  g.storage.transaction=operation=>{if(!frozen){frozen=true;g.storage.saveRun({...run,state:'failed'});}return freeze(operation);};
- assert.throws(()=>g.producer.finalize(run,admission),/changed|differs/);assert.equal(readRunRecord(g.storage,run,RESULT_EVENT),null);
+ await assert.rejects(g.producer.finalize(run,admission),{code:'candidate_policy_hold',status:503});assert.equal(readRunRecord(g.storage,run,RESULT_EVENT),null);
 });
 test('V4 direct producer: ordinary fixture creates no spend budgets or charge operations',t=>{
  const f=fixture(t),{admission}=f.capture();f.producer.finalize(f.finish(),admission);
@@ -122,11 +122,11 @@ test('Legacy direct producer: valid V1 and V3 terminal signing and reopened repl
  }
 });
 
-test('V4 direct producer: duplicate candidate event arriving at freeze refuses the Result',t=>{
+test('V4 direct producer: duplicate candidate event arriving at freeze refuses the Result',async t=>{
  const f=fixture(t),{admission}=f.capture(),run=candidate(f),transaction=f.storage.transaction.bind(f.storage);let changed=false;
  const original=f.storage.listEvents(f.work.id).find(e=>e.type==='run.candidate_committed');
  f.storage.transaction=operation=>{if(!changed){changed=true;f.storage.appendEvent({workOrderId:f.work.id,runId:run.id,type:original.type,payload:original.payload});}return transaction(operation);};
- assert.throws(()=>f.producer.finalize(run,admission),/Attempt changed/);assert.equal(readRunRecord(f.storage,run,RESULT_EVENT),null);
+ await assert.rejects(f.producer.finalize(run,admission),{code:'candidate_policy_hold',status:503});assert.equal(readRunRecord(f.storage,run,RESULT_EVENT),null);
 });
 
 test('V4 direct producer: key expiration during object reads cannot admit a snapshot',t=>{

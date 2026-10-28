@@ -1,0 +1,27 @@
+# Local V4 candidate format and Result custody, finite unit C
+
+This source unit builds on the actual accepted input fence `1be35629c47f3ff9072baff8515ef00a3875c657`. It is not installed execution, independent acceptance, financial authority, signed independent Proof or beta qualification. The public C2 contract has independent design acceptance; source and hosted evidence require their own exact identities.
+
+The fixed V4 native inspector reuses A's pinned Git/helper/dylib runtime, sanitized environment, stable trusted repository administration precondition and observed owned-group absence on successful commands. It reads complete base and candidate graphs through the unchanged B1 typed text parser. Each native object is type/size checked before its bounded raw body is acquired. The original base tree and candidate root must match the retained admission and candidate event. Raw commit and tree hashes, unique original parent and lossless UTF8 commit text must agree.
+
+The authentic `show --format= --binary --no-ext-diff --no-textconv` output must be nonempty regular UTF8 text without NUL and at most2MiB. Unique identical a/b paths, native textual numstat and the complete maps' changed paths must agree. Binary, rename/copy, executable/symlink/submodule and structural mode changes are refused without rewriting artifacts. Only100644 creation/deletion is supported. B1's complete SHA1/file/path/text/JSON bounds, including the current top-level `__proto__` compatibility fence, remain required. MyEve still independently applies and reconstructs the candidate tree; this format policy is not an acceptance verdict.
+
+Each producer owns a fixed native issuer. Pure data validation cannot mint an accepted material guard. Its frozen opaque objects are tracked privately by identity, with original monotonic30000ms deadlines, invocation, purpose, exact admission/Work/Run/snapshot/check/event binding and detached raw bytes. A serialized, cloned, expired, consumed or foreign guard cannot be used. Every pre-ready, freeze or saved read obtains fresh material. Candidate Result operations serialize within the producer without renewing the deadline while queued. Guard consumption occurs once at the synchronous final boundary; internal read-to-freeze uses that same operation. The internal byte adapter answers only the unchanged shared artifact helper's three exact requests, without fallback to ambient/native Git.
+
+Native work stays outside SQLite transactions. After awaited preparation, JobManager's ready transaction checks exact current Work/Run/check/event/snapshot and cancellation/shutdown state, then consumes the guard and writes ready without an intervening await. A concurrent terminal/recovery decision is preserved. Known observed format refusal becomes failed/needs_investigation; observation/state uncertainty becomes interrupted/awaiting_environment with `run.recovery_hold`. Neither category asserts worker absence or clears financial liabilities. Finalization is awaited inside its existing error boundary.
+
+Candidate sign/persist and saved read recheck current source, original admission, state, checks, events and actual retained artifact equality. New signatures require the current valid configured key; historical signatures retain the existing historical key policy and original source/factory identities. Saved reads compare actual fresh artifacts and return original signed bytes. Unsupported historical evidence is retained; strict reads reject with503 and fixed `candidate_policy_hold`, without Result bytes, a signed null candidate or a new signed status. No-candidate ordinary failed/cancelled metadata preserves its existing synchronous semantics and does not invent native candidate proof. Legacy producers, shared artifact helper and Result codecs remain unchanged.
+
+The connected Result endpoint refreshes the original request credential after both awaited success and rejection. Exact client/owner/purpose and current repository/Work/read grants must remain valid before either data or a candidate-specific error is emitted. Ordinary owner grants retain optional expiry: any present expiry must be finite and future. Proof readers always require finite future expiry and `evidence.read`. Revoked/rebound/foreign readers receive existing opaque authorization denial. Stop authorization remains separate.
+
+Public regression checks:
+
+```sh
+node --test apps/supervisor/test/local-v4-candidate-policy.test.mjs
+npm run typecheck:producer
+node scripts/check-producer-governance.mjs
+```
+
+The existing source-only workflow includes the portable suite. The separate Mac qualification file uses only small ordinary owned text repositories, real format guards, synthetic workers/checks and ephemeral fixture keys. It includes one explicitly accepted ordinary text rename refusal, deterministic clock expiry and deferred state/cancellation tests. No malformed/compressed/resource-growth/native timeout/hook/adversarial-child experiment, genuine private case, protected holdout, provider call, paid execution or production/tester action is part of this unit.
+
+Later context/progress/snapshot/commit/verifier native paths remain separately unqualified. Protected acceptance custody, current installed/owner/MissionControl authority, original financial history and shared cost parent, independent signed Proof, canonical dashboard approval/transport/isolated runtime, MyApps delivery/recovery/rollback and both actual tester journeys remain mandatory.

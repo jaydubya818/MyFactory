@@ -14,6 +14,8 @@ import { isTrustedCandidatePreview, type CandidatePreview } from "../../../packa
 import { ActionError } from "./actions.ts";
 import { snapshotCandidateTree, commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
 import type { ServiceProducer } from "./service-producer.ts";
+import { candidatePolicyKind, candidatePolicyFailure } from './local-v4-candidate-policy.ts';
+import { digest } from '../../../packages/hosted-routing/src/result.ts';
 
 interface ActiveJob {
   workOrderId: string;
@@ -759,26 +761,50 @@ export class JobManager {
           }
         }
       }
-      run = this.#transition(run, "ready_for_review", "ready_for_review", "run.ready_for_review", {
-        candidateCommit: candidate.commit,
-        candidateTree: candidate.tree,
-      });
+      if (this.producer?.beforeReady) {
+        const observed = () => {
+          try { return digest({ run: this.storage.getRun(run.id), work: this.storage.getWorkOrder(workOrder.id),
+            checks: this.storage.listChecks(run.id), events: this.storage.listEvents(workOrder.id), snapshot: this.producer!.snapshot(run) }); }
+          catch (error) { throw candidatePolicyFailure(error); }
+        };
+        const binding = observed();
+        const accept = await this.producer.beforeReady(run);
+        run = this.storage.transaction(() => {
+          if (signal.aborted || active.reason || observed() !== binding) throw candidatePolicyFailure(null);
+          accept();
+          return this.#transition(run, 'ready_for_review', 'ready_for_review', 'run.ready_for_review', {
+            candidateCommit: candidate.commit, candidateTree: candidate.tree,
+          });
+        });
+      } else {
+        run = this.#transition(run, "ready_for_review", "ready_for_review", "run.ready_for_review", {
+          candidateCommit: candidate.commit,
+          candidateTree: candidate.tree,
+        });
+      }
     } catch (error) {
       const cancelled = signal.aborted && active.reason === "user_cancel";
       const interrupted = signal.aborted && active.reason === "service_shutdown";
-      const runState = cancelled ? "cancelled" : interrupted ? "interrupted" : "failed";
-      const orderState = runState;
+      const policy = candidatePolicyKind(error);
+      // A strict pending observation must not overwrite a concurrent terminal or
+      // recovery decision. It does not prove anything about resource absence.
+      const latest = this.storage.getRun(run.id);
+      if (this.producer?.beforeReady && latest && latest.state !== run.state) return;
+      if (this.producer?.beforeReady && latest) run = latest;
+      const runState = cancelled ? "cancelled" : interrupted || policy === 'uncertain' ? "interrupted" : "failed";
+      const orderState = policy === 'unsupported' && !cancelled && !interrupted ? 'needs_investigation' :
+        policy === 'uncertain' && !cancelled && !interrupted ? 'awaiting_environment' : runState;
       if(this.producer&&(cancelled||interrupted)){
         await this.#retainCheckpoint(run.id,true);
         run=this.storage.getRun(run.id)??run;
       }
-      this.#transition(run, runState, orderState, `run.${runState}`, {
-        reason: message(error),
+      this.#transition(run, runState, orderState, policy === 'uncertain' && !cancelled && !interrupted ? 'run.recovery_hold' : `run.${runState}`, {
+        reason: message(error), ...(policy === 'uncertain' ? { previousState: 'verifying', pid: null } : {}),
       }, { failure: message(error) });
     } finally {
       const current = this.storage.getRun(initialRun.id);
       if (this.producer && current && ["ready_for_review", "failed", "cancelled"].includes(current.state)) {
-        try { this.producer.finalize(current); }
+        try { await this.producer.finalize(current); }
         catch (error) { this.#event(current.workOrderId, current.id, "run.result_unavailable", { reason: message(error) }); }
       }
     }
