@@ -13,7 +13,7 @@ import { collectBrowserEvidence } from "../../../packages/verification/src/brows
 import { isTrustedCandidatePreview, type CandidatePreview } from "../../../packages/verification/src/candidate-preview.ts";
 import { ActionError } from "./actions.ts";
 import { snapshotCandidateTree, commitCandidate, createTaskWorktree, removeTaskWorktree, resolveCommit } from "./git.ts";
-import { ProducerResults } from "./producer-results.ts";
+import type { ServiceProducer } from "./service-producer.ts";
 
 interface ActiveJob {
   workOrderId: string;
@@ -93,7 +93,7 @@ export class JobManager {
   private readonly dataDir: string;
   private readonly notify: (event: FactoryEvent) => void;
   private readonly dependencies: JobDependencies;
-  private readonly producer: ProducerResults | undefined;
+  private readonly producer: ServiceProducer | undefined;
   private readonly pinnedModel: string | undefined;
 
   constructor(
@@ -101,7 +101,7 @@ export class JobManager {
     dataDir: string,
     notify: (event: FactoryEvent) => void,
     dependencies: Partial<JobDependencies> = {},
-    producer?: ProducerResults,
+    producer?: ServiceProducer,
     pinnedModel?: string,
     maxParallelRuns = 1,
     retainCheckpoints = false,

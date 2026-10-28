@@ -1,7 +1,7 @@
 import type { Run, WorkOrder } from '../../../packages/contracts/src/index.ts';
 import type { EnvironmentType } from '../../../packages/contracts/src/environment.ts';
 import type { JobManager } from './jobs.ts';
-import type { ProducerResults } from './producer-results.ts';
+import type { ServiceProducer } from './service-producer.ts';
 
 /** Resource observations are evidence, never permission to dispatch or publish. */
 export interface ExecutionObservation {
@@ -32,7 +32,7 @@ export interface ExecutionProvider {
   cancel(work: WorkOrder, run: Run): Promise<void>;
   read(run: Run): Promise<ExecutionObservation>;
   reconcile(run: Run): Promise<ExecutionObservation>;
-  collect(run: Run): Promise<ReturnType<ProducerResults['read']>>;
+  collect(run: Run): Promise<ReturnType<ServiceProducer['read']>>;
   health(): Promise<{ ready: boolean; reason: string | null }>;
   teardown(run: Run): Promise<{ destroyed: boolean; reason: string | null }>;
 }

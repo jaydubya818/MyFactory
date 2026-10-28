@@ -5,7 +5,7 @@ import type { Run, WorkOrder } from '../../../packages/contracts/src/index.ts';
 import type { FactoryStorage } from '../../../packages/storage/src/index.ts';
 import { DEFAULT_VERIFICATION_IMAGE } from '../../../packages/verification/src/index.ts';
 import type { JobManager } from './jobs.ts';
-import type { ProducerResults } from './producer-results.ts';
+import type { ServiceProducer } from './service-producer.ts';
 import type { ExecutionGateway, ExecutionObservation, ExecutionProvider } from './execution-provider.ts';
 
 const exec = promisify(execFile);
@@ -50,10 +50,10 @@ export class LocalExecutionProvider implements ExecutionProvider {
   readonly environment = 'LOCAL_FACTORY' as const;
   private readonly storage: FactoryStorage;
   private readonly jobs: JobManager;
-  private readonly producer: ProducerResults;
+  private readonly producer: ServiceProducer;
   private readonly probe: LocalResourceProbe;
 
-  constructor(storage: FactoryStorage, jobs: JobManager, producer: ProducerResults, probe = defaultProbe) {
+  constructor(storage: FactoryStorage, jobs: JobManager, producer: ServiceProducer, probe = defaultProbe) {
     this.storage = storage;
     this.jobs = jobs;
     this.producer = producer;

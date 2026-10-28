@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { createReadStream, existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { homedir } from "node:os";
-import { extname, join, resolve, sep } from "node:path";
+import { extname, isAbsolute, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import type { FactoryEvent, WorkOrderDetail } from "../../../packages/contracts/src/index.ts";
@@ -17,11 +17,14 @@ import { JobManager, type JobDependencies } from "./jobs.ts";
 import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
 import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
-import { LocalExecutionProvider } from './local-execution-provider.ts';
+import { LocalExecutionProvider, type LocalResourceProbe } from './local-execution-provider.ts';
+import { runCodex } from '../../../packages/agents/src/index.ts';
+import { verifyCandidate } from '../../../packages/verification/src/index.ts';
 import { FactoryDispatchControl } from "./dispatch-control.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
 import { type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
+import { LocalV4ServiceProducer, type ServiceProducer } from "./service-producer.ts";
 import { readBoundEvidence } from "./evidence-transport.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
@@ -210,6 +213,33 @@ export function resolveConfirmHumanPresence(
 }
 
 export function createSupervisor(options: SupervisorOptions = {}) {
+  return createSupervisorInternal(options, 'LEGACY');
+}
+
+export interface LocalV4SupervisorOptions extends Omit<SupervisorOptions, 'resultSigning' | 'realProvider'> {
+  dataDir: string;
+  resultSigning: Omit<ProducerOptions, 'sessionMetadata'>;
+  /** Explicit synthetic fixture resources only; never live or environment supplied. */
+  localV4ResourceProbe?: LocalResourceProbe;
+}
+
+/** Trusted host composition only. No CLI, environment or HTTP protocol selector. */
+export function createLocalV4Supervisor(options: LocalV4SupervisorOptions) {
+  if (!options?.resultSigning || typeof options.dataDir !== 'string' || !isAbsolute(options.dataDir) || resolve(options.dataDir) !== options.dataDir)
+    throw new Error('Explicit local V4 data directory and signing options required');
+  return createSupervisorInternal(options, 'LOCAL_V4');
+}
+
+function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceProbe?: LocalResourceProbe}, resultMode: 'LEGACY' | 'LOCAL_V4') {
+  if (resultMode === 'LOCAL_V4' && options.realProvider)
+    throw new Error('Local V4 service is not qualified for live provider execution');
+  if (options.localV4ResourceProbe && (resultMode !== 'LOCAL_V4' || options.realProvider ||
+      !options.localFactoryFixture && !options.localSpendFixture ||
+      typeof options.jobDependencies?.runCodex !== 'function' || options.jobDependencies.runCodex === runCodex ||
+      typeof options.jobDependencies?.verifyCandidate !== 'function' || options.jobDependencies.verifyCandidate === verifyCandidate ||
+      typeof options.localV4ResourceProbe.processAbsent !== 'function' ||
+      typeof options.localV4ResourceProbe.verifierAbsent !== 'function' || typeof options.localV4ResourceProbe.readiness !== 'function'))
+    throw new Error('Local V4 resource probe requires explicit synthetic mode, worker and verifier');
   if(options.realProvider){
     validateRealProvider(options.realProvider);
     if(options.localFactoryFixture||options.localSpendFixture||options.jobDependencies||options.startRun||options.cancelRun||options.publishDraft||options.confirmHumanPresence)
@@ -256,7 +286,9 @@ export function createSupervisor(options: SupervisorOptions = {}) {
     }
     if (listeners.size === 0) subscribers.delete(event.workOrderId);
   };
-  const producer = signing ? new ProducerResults(storage, dataDir, signing) : undefined;
+  const legacyProducer = resultMode === 'LEGACY' && signing ? new ProducerResults(storage, dataDir, signing) : undefined;
+  const producer: ServiceProducer | undefined = resultMode === 'LOCAL_V4' && signing
+    ? new LocalV4ServiceProducer(storage, dataDir, signing) : legacyProducer;
   const parallel = options.maxParallelRuns ?? 1;
   if (parallel !== 1 && (!options.localFactoryFixture && !options.localSpendFixture || realProvider))
     throw new Error('Parallel execution is deferred until live Factory Version qualification');
@@ -268,7 +300,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
   if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
     throw new Error('Local spend fixture must target loopback only');
-  const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer),producer,spend,
+  const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer,options.localV4ResourceProbe),producer,spend,
     options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture,!!realProvider):null;
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
@@ -331,10 +363,23 @@ export function createSupervisor(options: SupervisorOptions = {}) {
       publicationRequests: storage.listPublicationRequests(id), publicationApprovals: storage.listPublicationApprovals(id),
       linearLink: storage.getLinearLink(id), reviewRepair: reviewRepair.view(id) };
   }
+  function currentV4ProofReader(client: ReturnType<typeof readClients>[number]): boolean {
+    return client.purpose === 'myeve-proof' && client.actions.includes('evidence.read') &&
+      typeof client.expiresAt === 'string' && Number.isFinite(Date.parse(client.expiresAt)) && Date.parse(client.expiresAt) > Date.now();
+  }
   function proofClientOwnsWork(client: ReturnType<typeof readClients>[number], workOrderId: string): boolean {
+    if (resultMode === 'LOCAL_V4') {
+      const bindings = storage.listEvents(workOrderId).filter(event => event.type === 'factory.owner_scope_bound');
+      return !!client.ownerScope && bindings.length === 1 && bindings[0].payload.ownerScope === client.ownerScope &&
+        (client.purpose === 'myeve-proof' ? currentV4ProofReader(client) : bindings[0].payload.clientId === client.id);
+    }
     if (client.purpose !== 'myeve-proof') return true;
     const bindings = storage.listEvents(workOrderId).filter(event => event.type === 'factory.owner_scope_bound');
     return bindings.length === 1 && bindings[0].payload.ownerScope === client.ownerScope;
+  }
+  function currentV4RequestOwner(client: ReturnType<typeof readClients>[number], requestId: string): boolean {
+    const intake = storage.getIntake('gateb:' + client.id, requestId);
+    return !intake || proofClientOwnsWork(client, intake.work_order_id);
   }
   function connectedDetailFor(client: ReturnType<typeof readClients>[number], id: string): WorkOrderDetail | null {
     const detail = workOrderDetail(id, client.purpose === 'myeve-proof' && proofClientOwnsWork(client, id));
@@ -364,15 +409,30 @@ export function createSupervisor(options: SupervisorOptions = {}) {
 
       if (pathname.startsWith("/api/connect/v1/")) {
         const client = authenticateClient(request, readClients(connectionsPath));
+        if (resultMode === 'LOCAL_V4' && (typeof client.ownerScope !== 'string' || !/^[A-Za-z0-9:_-]{1,128}$/.test(client.ownerScope)))
+          return json(response, 403, {error: 'Current owner-scoped connection required'});
+        if (resultMode === 'LOCAL_V4' && client.purpose === 'myeve-proof' && !currentV4ProofReader(client))
+          return json(response, 403, {error: 'Current Proof read grant required'});
+        if (resultMode === 'LOCAL_V4' && request.method === 'GET' && client.purpose !== 'myeve-proof' && !client.actions.includes('factory.observe'))
+          return json(response, 403, {error: 'Current Factory observation grant required'});
         if (pathname === '/api/connect/v1/evidence/read') {
           if (request.method !== 'POST') return json(response, 405, { error: 'Method not allowed' });
-          return json(response, 200, await readBoundEvidence(client, await requestBody(request), storage, producer, dataDir));
+          return json(response, 200, await readBoundEvidence(client, await requestBody(request), storage, legacyProducer, dataDir));
         }
         const controlRoute=/^\/api\/connect\/v1\/dispatches(?:\/([a-f0-9-]{36})(?:\/(dispatch|stop))?)?$/.exec(pathname);
         if(controlRoute){
+          if(resultMode==='LOCAL_V4'&&client.purpose==='myeve-proof')return json(response,403,{error:'Proof connection is read-only'});
           if(!dispatchControl)return json(response,503,{error:'Producer result signing is required'});
           const id=controlRoute[1],action=controlRoute[2];
-          if(request.method==='POST'&&!id)return json(response,200,await dispatchControl.prepare(client,await requestBody(request) as never));
+          if(resultMode==='LOCAL_V4'&&id&&!currentV4RequestOwner(client,id))return json(response,404,{error:'Factory request not found'});
+          if(request.method==='POST'&&!id){
+            const input=await requestBody(request) as import('./dispatch-control.ts').PrepareRequest;
+            if(resultMode==='LOCAL_V4'&&input&&typeof input==='object'&&Object.hasOwn(input,'repairWorkOrderId'))
+              return json(response,503,{error:'Local V4 repair owner and cost-parent admission is not qualified'});
+            if(resultMode==='LOCAL_V4'&&typeof input?.requestId==='string'&&!currentV4RequestOwner(client,input.requestId))
+              return json(response,404,{error:'Factory request not found'});
+            return json(response,200,await dispatchControl.prepare(client,input));
+          }
           if(request.method==='GET'&&id&&!action)return json(response,200,await dispatchControl.read(client,id));
           if(request.method==='POST'&&id&&action){
             const identity=await requestBody(request) as import('./dispatch-control.ts').ExecutionIdentity;
@@ -407,6 +467,7 @@ export function createSupervisor(options: SupervisorOptions = {}) {
           return json(response, 200, connectedDetailFor(client, order.id));
         }
         if (request.method === "POST" && pathname === "/api/connect/v1/actions") {
+          if (resultMode === 'LOCAL_V4') return json(response, 503, {error: 'Local V4 writes require canonical dispatch controls'});
           const body = await requestBody(request) as { action?: unknown; input?: unknown } | null;
           if (!body || typeof body !== "object" || typeof body.action !== "string") throw new ActionError("Action name is required", "invalid_input");
           const input = authorizeClientAction(client, body.action, body.input, (id) => storage.getWorkOrder(id));

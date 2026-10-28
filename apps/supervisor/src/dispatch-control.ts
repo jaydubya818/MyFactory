@@ -6,8 +6,9 @@ import {realpathSync} from 'node:fs';
 import {ActionError,parseCreateInput,admissionState} from './actions.ts';
 import {canAccessRepository,type FactoryClient} from './connections.ts';
 import type {ExecutionProvider} from './execution-provider.ts';
-import {ProducerResults,producerState} from './producer-results.ts';
-import {canonical,digest,type ExecutionSnapshot} from '../../../packages/hosted-routing/src/result.ts';
+import {producerState} from './producer-results.ts';
+import type {ServiceProducer,ServiceExecutionSnapshot} from './service-producer.ts';
+import {canonical,digest} from '../../../packages/hosted-routing/src/result.ts';
 import type {FactoryStorage} from '../../../packages/storage/src/index.ts';
 import {SpendLedger,type SpendPlan} from '../../../packages/storage/src/spend.ts';
 import {SpendGateway,type SpendPrice,validatePrice} from './spend-gateway.ts';
@@ -33,12 +34,12 @@ const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 export class FactoryDispatchControl {
  private readonly storage:FactoryStorage;
  private readonly execution:ExecutionProvider;
- private readonly producer:ProducerResults;
+ private readonly producer:ServiceProducer;
  private readonly spend:SpendLedger;
  private readonly localFixture:boolean;
  private readonly live:boolean;
  private readonly spendFixture?:ProviderConnection;
- constructor(storage:FactoryStorage,execution:ExecutionProvider,producer:ProducerResults,spend:SpendLedger,localFixture=false,
+ constructor(storage:FactoryStorage,execution:ExecutionProvider,producer:ServiceProducer,spend:SpendLedger,localFixture=false,
   spendFixture?:ProviderConnection,live=false){
   this.localFixture=localFixture;this.storage=storage;this.execution=execution;this.producer=producer;this.spend=spend;this.spendFixture=spendFixture;
   this.live=live;
@@ -120,7 +121,7 @@ export class FactoryDispatchControl {
    canonical(identity.allowedPaths)!==canonical(s.configuration.allowedPaths))throw new ActionError('Dispatch differs from prepared execution','binding_mismatch',409);
   const prior=data.events.find(e=>e.type==='factory.writer_bound');
   if(prior&&canonical(prior.payload)!==canonical(identity))throw new ActionError('Writer binding conflict','conflict',409);
-  return data as typeof data & {run:Run;snapshot:ExecutionSnapshot};
+  return data as typeof data & {run:Run;snapshot:ServiceExecutionSnapshot};
  }
  async dispatch(client:FactoryClient,identity:ExecutionIdentity){
   this.authorize(client,'factory.dispatch');
