@@ -2,6 +2,7 @@ import { canAccessRepository, type FactoryClient } from './connections.ts';
 import { ActionError } from './actions.ts';
 import type { FactoryStorage } from '../../../packages/storage/src/index.ts';
 import type { ProducerResults } from './producer-results.ts';
+import { digest } from '../../../packages/hosted-routing/src/result.ts';
 import { EVIDENCE_KINDS, proofEvidenceReference, readEvidenceArtifact, type EvidenceKind, type EvidenceRef } from '../../../packages/verification/src/evidence.ts';
 
 export interface EvidenceReadRequest {
@@ -30,10 +31,17 @@ function exactRequest(value: unknown): EvidenceReadRequest {
 
 /** One exact reference, for the MyEve Proof backend only. No path or listing input. */
 export async function readBoundEvidence(client: FactoryClient, input: unknown, storage: FactoryStorage,
-  producer: ProducerResults | undefined, dataDir: string): Promise<{ scope: EvidenceTransportScope; ref: TransportEvidenceMetadata; proofReference: string; base64: string }> {
-  if (client.purpose !== 'myeve-proof' || !client.actions.includes('evidence.read') || !client.ownerScope ||
-    !client.expiresAt || Date.parse(client.expiresAt) <= Date.now())
-    throw new ActionError('Evidence recipient is not authorized', 'forbidden', 403);
+  producer: ProducerResults | undefined, dataDir: string, currentClient?: () => FactoryClient): Promise<{ scope: EvidenceTransportScope; ref: TransportEvidenceMetadata; proofReference: string; base64: string }> {
+  const original = { id: client.id, ownerScope: client.ownerScope, purpose: client.purpose, tokenSha256: client.tokenSha256 };
+  const current = () => {
+    const fresh = currentClient?.() ?? client;
+    if (fresh.id !== original.id || fresh.ownerScope !== original.ownerScope || fresh.purpose !== original.purpose || fresh.tokenSha256 !== original.tokenSha256 ||
+        fresh.purpose !== 'myeve-proof' || !fresh.actions.includes('evidence.read') || !fresh.ownerScope ||
+        typeof fresh.expiresAt !== 'string' || !Number.isFinite(Date.parse(fresh.expiresAt)) || Date.parse(fresh.expiresAt) <= Date.now())
+      throw new ActionError('Evidence recipient is not authorized', 'forbidden', 403);
+    return fresh;
+  };
+  client = current();
   const requested = exactRequest(input);
   const denied = () => new ActionError('Evidence not found for this binding', 'not_found', 404);
   if (requested.ownerScope !== client.ownerScope || !producer) throw denied();
@@ -67,14 +75,21 @@ export async function readBoundEvidence(client: FactoryClient, input: unknown, s
   if (ref.workOrderId !== order.id || ref.runId !== run.id || ref.candidateCommit !== requested.candidateCommit ||
     ref.factoryVersion !== requested.factoryVersion || ref.kind !== requested.evidenceKind ||
     ref.sha256 !== requested.expectedDigest || proofReference !== proofEvidenceReference(ref)) throw denied();
+  const binding = digest({ order, run, events });
   try {
     const bytes = await readEvidenceArtifact(dataDir, {
       workOrderId: order.id, runId: run.id, candidateCommit: requested.candidateCommit,
       factoryVersion: requested.factoryVersion,
     }, ref);
+    const fresh = current(), currentOrder = storage.getWorkOrder(order.id), currentRun = storage.getRun(run.id);
+    if (!currentOrder || !currentRun || !canAccessRepository(fresh, currentOrder.repositoryPath) ||
+        digest({ order: currentOrder, run: currentRun, events: storage.listEvents(order.id) }) !== binding) throw denied();
     const { relativePath: _storagePath, ...metadata } = ref;
     const { ownerScope, repository, workId, workGeneration, requestId } = requested;
     return { scope: { ownerScope, repository, workId, workGeneration, requestId },
       ref: metadata, proofReference, base64: bytes.toString('base64') };
-  } catch { throw new ActionError('Evidence unavailable or changed', 'evidence_unavailable', 409); }
+  } catch (error) {
+    if (error instanceof ActionError && [401, 403, 404].includes(error.status)) throw error;
+    throw new ActionError('Evidence unavailable or changed', 'evidence_unavailable', 409);
+  }
 }

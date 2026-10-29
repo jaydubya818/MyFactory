@@ -20,7 +20,7 @@ function setup(t){
     maxPaidOperations:4,completionReserveMicrousd:2400};
   const client={id:'review',repositoryPaths:[dir],actions:['factory.observe']};
   const jobs={activeRun:()=>false,checkpointForRecovery:async()=>{}},producer={snapshot:()=>({})};
-  const control=new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer),producer,ledger);
+  const control=new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer),producer,ledger,false,undefined,false,client=>client);
   function attempt(workId,generation,requestId,{bind=true}={}){
     const order=storage.createWorkOrder({title:'Review fixture',description:'No paid provider',kind:'feature',
       repositoryPath:dir,baseRef:'a'.repeat(40),acceptanceCriteria:['test'],reproductionCommand:null,

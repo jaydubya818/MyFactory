@@ -27,12 +27,13 @@ export type ExecutionGateway = Parameters<JobManager['executePrepared']>[3];
 export interface ExecutionProvider {
   readonly id: string;
   readonly environment: EnvironmentType;
-  prepare(work: WorkOrder): Promise<Run>;
+  prepare(work: WorkOrder, assertCurrentConnection?: () => void): Promise<Run>;
   start(work: WorkOrder, run: Run, claim: () => boolean, gateway?: ExecutionGateway): Promise<boolean>;
   cancel(work: WorkOrder, run: Run): Promise<void>;
   read(run: Run): Promise<ExecutionObservation>;
-  reconcile(run: Run): Promise<ExecutionObservation>;
+  reconcile(run: Run, assertCurrentConnection?: () => void): Promise<ExecutionObservation>;
   collect(run: Run): Promise<Awaited<ReturnType<ServiceProducer['read']>>>;
+  assertImplementationProgress?(run: Run, inputCommit: string, allowedPaths: string[]): Promise<void>;
   health(): Promise<{ ready: boolean; reason: string | null }>;
   teardown(run: Run): Promise<{ destroyed: boolean; reason: string | null }>;
 }

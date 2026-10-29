@@ -1,6 +1,7 @@
 import { assertLocalCapabilityAdmission } from "./capability-admission.ts";
 import { claimRepairPreparation } from "./review-repair.ts";
 import {assertImplementationProgress} from './execution-context.ts';
+import {contextPolicyFailure,requireStrictSourceOperations} from './local-v4-context-policy.ts';
 import {randomBytes} from 'node:crypto';
 import {realpathSync} from 'node:fs';
 import {ActionError,parseCreateInput,admissionState} from './actions.ts';
@@ -39,27 +40,49 @@ export class FactoryDispatchControl {
  private readonly localFixture:boolean;
  private readonly live:boolean;
  private readonly spendFixture?:ProviderConnection;
+ private readonly refreshConnection:(client:FactoryClient)=>FactoryClient;
  constructor(storage:FactoryStorage,execution:ExecutionProvider,producer:ServiceProducer,spend:SpendLedger,localFixture=false,
-  spendFixture?:ProviderConnection,live=false){
+  spendFixture?:ProviderConnection,live=false,refreshConnection?:(client:FactoryClient)=>FactoryClient){
   this.localFixture=localFixture;this.storage=storage;this.execution=execution;this.producer=producer;this.spend=spend;this.spendFixture=spendFixture;
   this.live=live;
+  this.refreshConnection=refreshConnection??(()=>{throw new ActionError('Current connection authority is required','forbidden',403)});
  }
  executionAvailability(){return {mode:this.live?'LIVE':this.localFixture?'LOCAL_FIXTURE':this.spendFixture?'LOCAL_SPEND_FIXTURE':'DISABLED',
   spendEnforced:this.localFixture||!!this.spendFixture,reason:this.localFixture?'Backend-injected zero-cost fixture':
    this.live?'Explicit private-alpha provider; every call requires bounded Work admission':this.spendFixture?'Loopback synthetic provider fixture; live paid execution remains disabled':'Paid Codex gateway routing is not live-qualified'};}
  private authorize(client:FactoryClient,action:string){if(!client.actions.includes(action))throw new ActionError('Factory control action is not granted','forbidden',403);}
- private record(client:FactoryClient,requestId:string){
+ private implementationProgress(run:Run,inputCommit:string,allowedPaths:string[]):Promise<void>{
+  let strict:boolean;
+  try{strict=requireStrictSourceOperations(this.producer.snapshot(run),this.producer);}catch(error){throw contextPolicyFailure(error)}
+  if(this.execution.assertImplementationProgress){
+   if(typeof this.execution.assertImplementationProgress!=='function')throw contextPolicyFailure(null);
+   return this.execution.assertImplementationProgress(run,inputCommit,allowedPaths);
+  }
+  if(strict)throw contextPolicyFailure(null);
+  return assertImplementationProgress(run.workspacePath,inputCommit,allowedPaths);
+ }
+ private current(client:FactoryClient,action:string){
+  const fresh=this.refreshConnection(client);
+  if(fresh.id!==client.id||fresh.ownerScope!==client.ownerScope||fresh.purpose!==client.purpose||fresh.tokenSha256!==client.tokenSha256)
+   throw new ActionError('Current connection identity is unavailable','forbidden',403);
+  this.authorize(fresh,action);return fresh;
+ }
+ private record(client:FactoryClient,requestId:string,action='factory.observe'){
+  client=this.current(client,action);
   const intake=this.storage.getIntake('gateb:'+client.id,requestId);
   if(!intake)throw new ActionError('Factory request not found','not_found',404);
-  const order=this.storage.getWorkOrder(intake.work_order_id)!;
+  const order=this.storage.getWorkOrder(intake.work_order_id);
+  if(!order)throw new ActionError('Factory request not found','not_found',404);
   if(!canAccessRepository(client,order.repositoryPath))throw new ActionError('Repository outside connection scope','forbidden',403);
-  const events=this.storage.listEvents(order.id),request=events.find(e=>e.type==='factory.prepare_requested');
+  const events=this.storage.listEvents(order.id),owners=events.filter(e=>e.type==='factory.owner_scope_bound'),request=events.find(e=>e.type==='factory.prepare_requested');
+  if(owners.length&&(owners.length!==1||owners[0].payload.ownerScope!==client.ownerScope||
+    client.purpose!=='myeve-proof'&&owners[0].payload.clientId!==client.id))throw new ActionError('Factory request not found','not_found',404);
   if(!request)throw new ActionError('Incomplete preparation record','binding_missing',409);
   const prepared=events.find(e=>e.type==='run.prepared'),run=prepared?.runId?this.storage.getRun(prepared.runId):null;
   return {order,events,request:request.payload as unknown as PrepareRequest,run,snapshot:run?this.producer.snapshot(run):null};
  }
  async prepare(client:FactoryClient,input:PrepareRequest){
-  this.authorize(client,'factory.prepare');
+  client=this.current(structuredClone(client),'factory.prepare');
   if(!input||!['deadline,input,maxSpendUsd,repository,requestId,workGeneration,workId',
     'deadline,input,maxSpendUsd,repository,requestId,spendContract,workGeneration,workId',
     'deadline,input,maxSpendUsd,repairWorkOrderId,repository,requestId,spendContract,workGeneration,workId'].includes(Object.keys(input).sort().join(','))||
@@ -91,6 +114,8 @@ export class FactoryDispatchControl {
   work.repositoryPath=realpathSync(work.repositoryPath);
   const request={...input,input:work},hash=digest(request);
   const created=this.storage.transaction(()=>{
+   const fresh=this.current(client,'factory.prepare');
+   if(!canAccessRepository(fresh,work.repositoryPath))throw new ActionError('Repository outside connection scope','forbidden',403);
    const existing=this.storage.getIntake('gateb:'+client.id,input.requestId);
    if(existing){if(existing.input_digest!==hash)throw new ActionError('Preparation replay conflict','conflict',409);return null;}
    assertLocalCapabilityAdmission();
@@ -108,14 +133,14 @@ export class FactoryDispatchControl {
   this.spend.createBudget({workId:input.workId,workGeneration:input.workGeneration,requestId:input.requestId,
     workOrderId:created?.id??this.record(client,input.requestId).order.id},
     Math.floor(input.maxSpendUsd*1_000_000),input.deadline,plan);
-  if(created){try{await this.execution.prepare(created);}catch(e){this.storage.appendEvent({workOrderId:created.id,runId:null,type:'factory.prepare_failed',payload:{reason:e instanceof Error?e.message:String(e)}});throw e;}}
+  if(created){try{await this.execution.prepare(created,()=>{this.record(client,input.requestId,'factory.prepare')});}catch(e){this.storage.appendEvent({workOrderId:created.id,runId:null,type:'factory.prepare_failed',payload:{reason:e instanceof Error?e.message:String(e)}});throw e;}}
   return this.read(client,input.requestId);
  }
- private bind(client:FactoryClient,identity:ExecutionIdentity){
+ private bind(client:FactoryClient,identity:ExecutionIdentity,action:string){
   if(!identity||Object.keys(identity).sort().join(',')!=='allowedPaths,baseSha,deadline,dispatchIdentity,factoryId,factoryVersion,remoteRunId,repository,requestId,runId,workGeneration,workId,workOrderId,writerGeneration'||
     !uuid.test(identity.runId)||!uuid.test(identity.dispatchIdentity)||!Number.isSafeInteger(identity.writerGeneration)||identity.writerGeneration<1)
    throw new ActionError('Complete MyEve writer identity required','invalid_input');
-  const data=this.record(client,identity.requestId),s=data.snapshot,q=data.request;
+  const data=this.record(client,identity.requestId,action),s=data.snapshot,q=data.request;
   if(!s||!data.run||identity.workId!==q.workId||identity.workGeneration!==q.workGeneration||identity.repository!==q.repository||identity.deadline!==q.deadline||
    identity.factoryId!==s.factoryId||identity.factoryVersion!==s.factoryVersion||identity.workOrderId!==s.workOrderId||identity.remoteRunId!==s.runId||identity.baseSha!==s.inputCommit||
    canonical(identity.allowedPaths)!==canonical(s.configuration.allowedPaths))throw new ActionError('Dispatch differs from prepared execution','binding_mismatch',409);
@@ -124,21 +149,24 @@ export class FactoryDispatchControl {
   return data as typeof data & {run:Run;snapshot:ServiceExecutionSnapshot};
  }
  async dispatch(client:FactoryClient,identity:ExecutionIdentity){
-  this.authorize(client,'factory.dispatch');
-  const data=this.bind(client,identity);
+  client=this.current(structuredClone(client),'factory.dispatch');
+  const data=this.bind(client,identity,'factory.dispatch');
   // A terminal tombstone/claim is checked before touching JobManager, so replay
   // readback remains available even when another unrelated Run is active.
   if(data.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return this.read(client,identity.requestId);
   if(!this.localFixture&&!this.spendFixture)throw new ActionError('Paid execution disabled: actual paid boundary is not qualified','spend_unqualified',503);
   const admittedWork={...data.order,...data.request.input as object} as WorkOrder;
   let gateway:SpendGateway|undefined, gatewayBinding:{baseUrl:string;childToken:string;close:()=>Promise<void>;
-   productiveEndSignal:AbortSignal;nextProductive:()=>Promise<{baseUrl:string;childToken:string;productiveEndSignal:AbortSignal}>;beginCompletion:()=>Promise<{baseUrl:string;childToken:string}>;assertCompleted:()=>void;fenceAuthority:()=>void}|undefined;
+   productiveEndSignal:AbortSignal;nextProductive:()=>Promise<{baseUrl:string;childToken:string;productiveEndSignal:AbortSignal}>;beginCompletion:()=>Promise<{baseUrl:string;childToken:string}>;assertCompleted:()=>void;fenceAuthority:()=>void;assertCurrentConnection:()=>void}|undefined;
   if(this.spendFixture){
    if(!data.request.spendContract)throw new ActionError('V2 paid plan required before dispatch','spend_unqualified',409);
    const binding={workId:identity.workId,workGeneration:identity.workGeneration,
     dispatchIdentity:identity.dispatchIdentity,requestId:identity.requestId,workOrderId:identity.workOrderId,
     factoryVersion:identity.factoryVersion,runId:identity.remoteRunId};
    this.spend.bindAuthority(binding);
+   const connectionClient=structuredClone(client),connectionIdentity=structuredClone(identity);
+   Object.freeze(connectionClient.actions);Object.freeze(connectionClient.repositoryPaths);Object.freeze(connectionClient);
+   Object.freeze(connectionIdentity.allowedPaths);Object.freeze(connectionIdentity);
    const childToken=randomBytes(32).toString('hex');
    const onDecision=(evidence:Parameters<NonNullable<import('./spend-gateway.ts').SpendGatewayOptions['onDecision']>>[0])=>{
     this.storage.appendEvent({workOrderId:identity.workOrderId,runId:identity.remoteRunId,type:'provider.operation_decision',payload:{...evidence}});
@@ -146,10 +174,12 @@ export class FactoryDispatchControl {
    let productiveEnd=new AbortController();
    gateway=new SpendGateway({ledger:this.spend,binding,phase:'productive',
     ...this.spendFixture,childToken,onDecision,productiveCheckpointAfter:data.request.spendContract.plannedProductiveOperations===2?1:undefined,onProductiveBoundary:()=>productiveEnd.abort(),
-    assertImplementationProgress:()=>assertImplementationProgress(data.run.workspacePath,identity.baseSha,identity.allowedPaths)});
+    assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
    let current=gateway;
    let repairIssued=false;
    gatewayBinding={baseUrl:await gateway.listen(),childToken,productiveEndSignal:productiveEnd.signal,close:()=>current.close(),
+    assertCurrentConnection:()=>{this.bind(connectionClient,connectionIdentity,'factory.dispatch');
+     if(Date.parse(connectionIdentity.deadline)<=Date.now())throw new ActionError('Dispatch expired','dispatch_denied',409);},
     nextProductive:async()=>{
      this.spend.assertCompletionEligible(binding);
      const used=this.spend.read(binding.workId)!.operations.filter(op=>op.phase==='productive').length;
@@ -160,7 +190,7 @@ export class FactoryDispatchControl {
      const repairToken=randomBytes(32).toString('hex');
      current=new SpendGateway({ledger:this.spend,binding,phase:'productive',...this.spendFixture!,childToken:repairToken,
       onDecision,productiveCheckpointAfter:2,onProductiveBoundary:()=>productiveEnd.abort(),
-      assertImplementationProgress:()=>assertImplementationProgress(data.run.workspacePath,identity.baseSha,identity.allowedPaths)});
+      assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
      return {baseUrl:await current.listen(),childToken:repairToken,productiveEndSignal:productiveEnd.signal};
     },
     beginCompletion:async()=>{
@@ -173,7 +203,7 @@ export class FactoryDispatchControl {
   }
   try{
   const started=await this.execution.start(admittedWork,data.run,()=>this.storage.transaction(()=>{
-   const current=this.bind(client,identity);
+   const current=this.bind(client,identity,'factory.dispatch');
    if(current.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return false;
    if(Date.parse(identity.deadline)<=Date.now()||this.storage.getPolicy().dispatchPaused)throw new ActionError('Dispatch expired or paused','dispatch_denied',409);
    if(!current.events.some(e=>e.type==='factory.writer_bound'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.writer_bound',payload:{...identity}});
@@ -185,9 +215,9 @@ export class FactoryDispatchControl {
   return this.read(client,identity.requestId);
  }
  async stop(client:FactoryClient,identity:ExecutionIdentity){
-  this.authorize(client,'factory.stop');
+  client=this.current(structuredClone(client),'factory.stop');
   const data=this.storage.transaction(()=>{
-   const data=this.bind(client,identity);
+   const data=this.bind(client,identity,'factory.stop');
    if(!data.events.some(e=>e.type==='factory.writer_bound'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.writer_bound',payload:{...identity}});
    if(!data.events.some(e=>e.type==='factory.stop_requested'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.stop_requested',payload:{...identity}});
    return data;
@@ -197,7 +227,7 @@ export class FactoryDispatchControl {
   return this.read(client,identity.requestId);
  }
  async read(client:FactoryClient,requestId:string){
-  this.authorize(client,'factory.observe');
+  client=this.current(structuredClone(client),'factory.observe');
   const data=this.record(client,requestId),{run,snapshot,events}=data;
   const binding=events.find(e=>e.type==='factory.writer_bound')?.payload as unknown as ExecutionIdentity|undefined;
   const claim=events.find(e=>e.type==='factory.dispatch_claimed');
@@ -206,16 +236,23 @@ export class FactoryDispatchControl {
   let state='PREPARING',quiescent=false;
   if(terminal){state=String(terminal.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));}
   else if(run&&snapshot){
-   const resources=await this.execution.reconcile(run);
+   const resourceBinding=digest(data);
+   const resources=await this.execution.reconcile(run,()=>{this.record(client,requestId)});
+   const resourcesCurrent=digest(this.record(client,requestId))===resourceBinding;
    state=claim?resources.active?stopped?'STOPPING':'RUNNING':'UNKNOWN':stopped?'STOPPING':'PREPARED';
    const terminalRun=['ready_for_review','failed','cancelled'].includes(run.state);
-   if(binding&&resources.quiescent&&
+   if(binding&&resourcesCurrent&&resources.quiescent&&
      ((!claim&&stopped)||(resources.settled&&terminalRun)||resources.recoveryEligible)){
     const proposed=!claim?'NOT_DISPATCHED':terminalRun?producerState(this.storage,run):'CANCELLED';
+    if(digest(this.record(client,requestId))===resourceBinding){
     // A terminal claim cannot precede the durable paid-authority fence.
+    // SpendLedger owns a separate SQLite connection; keep this before the
+    // terminal transaction. Later drift retains the fence and every liability.
     this.spend.fenceAuthority(spendBinding(binding));
+    let currentResourceRecord=true;
     this.storage.transaction(()=>{
      const current=this.record(client,requestId);
+     if(digest(current)!==resourceBinding){currentResourceRecord=false;return;}
      if(current.events.some(e=>e.type==='factory.terminal'))return;
      if(!claim&&current.events.some(e=>e.type==='factory.dispatch_claimed'))return;
      // The tombstone is durable before reporting absence. No delayed dispatch
@@ -223,10 +260,12 @@ export class FactoryDispatchControl {
      if(!terminalRun){this.storage.saveRun({...this.storage.getRun(run.id)!,state:'cancelled',finishedAt:new Date().toISOString(),failure:'Bound attempt fenced after resource reconciliation'});this.storage.saveWorkOrder({...data.order,state:'cancelled'});}
      this.storage.appendEvent({workOrderId:data.order.id,runId:run.id,type:'factory.terminal',payload:{state:proposed,identity:binding,resourceProof:resources.evidence,at:new Date().toISOString()}});
     });
-    const saved=this.record(client,requestId).events.find(e=>e.type==='factory.terminal');
+    const saved=currentResourceRecord?this.record(client,requestId).events.find(e=>e.type==='factory.terminal'):undefined;
     if(saved){state=String(saved.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));}
+    }
    }
   }
+  this.record(client,requestId);
   return {requestId,workOrderId:data.order.id,runId:run?.id??null,snapshot,identity:binding??null,state,quiescent,
    evidenceRef:quiescent?'factory-event:'+data.order.id+':terminal':null,
    spend:this.localFixture?{status:'KNOWN',ceilingUsd:0,reason:'Backend-injected local fixture; no paid provider'}:

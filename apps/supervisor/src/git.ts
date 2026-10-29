@@ -78,7 +78,7 @@ function parseStatusPaths(raw: string): string[] {
 
 export async function validateChangedPaths(workspacePath: string, scopes: string[]): Promise<string[]> {
   const paths = parseStatusPaths(await git(workspacePath, [
-    "status", "--porcelain=v1", "-z", "--untracked-files=all",
+    "--no-optional-locks", "status", "--porcelain=v1", "-z", "--untracked-files=all",
   ]));
   if (paths.length === 0) throw new Error("Agent produced no source changes");
   for (const path of paths) {

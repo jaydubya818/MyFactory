@@ -27,7 +27,7 @@ test('provider configuration rejects inline secrets and oversized model bounds',
   assert.throws(()=>validateRealProvider({...config,price}),/limits exceed/);
 });
 test('live preparation rejects expanded Work authority before touching persistence or provider',async()=>{
- const control=new FactoryDispatchControl(null,null,null,null,false,undefined,true);
+ const control=new FactoryDispatchControl(null,null,null,null,false,undefined,true,client=>client);
  assert.equal(control.executionAvailability().mode,'LIVE');
  const client={actions:['factory.prepare']};
  const input={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,repository:'fixture/golden',deadline:new Date(Date.now()+300000).toISOString(),maxSpendUsd:1.35,input:{},

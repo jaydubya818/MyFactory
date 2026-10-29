@@ -9,6 +9,11 @@ import type { Run, WorkOrder } from '../../../packages/contracts/src/index.ts';
 import { DEFAULT_VERIFICATION_IMAGE } from '../../../packages/verification/src/index.ts';
 import { LocalV4CandidatePolicy, candidatePolicyFailure } from './local-v4-candidate-policy.ts';
 import { performance } from 'node:perf_hooks';
+import { contextPolicyFailure, selectContextPhase, type ContextBasis, type ContextPhase } from './local-v4-context-policy.ts';
+import { checkpointPolicyFailure, checkpointIdentity, selectCheckpointPhase, type CheckpointBasis, type CheckpointPhase } from './local-v4-checkpoint-policy.ts';
+import { finalizationPolicyFailure, selectFinalizationPhase, type FinalizationBasis, type FinalizationPhase } from './local-v4-finalization-policy.ts';
+import { verificationInputFailure, verificationInputHold, selectVerificationInputPhase,
+  type VerificationInputBasis, type VerificationInputPhase } from './local-v4-verification-input-policy.ts';
 import {
   canonical, digest, sha256, operationId, signResult, verifyResult, RESULT_PROTOCOL, MAX_ARTIFACT_BYTES,
   signLocalResultV4, verifyLocalResultV4, validateLocalResultManifestV4,
@@ -36,6 +41,11 @@ export function sourceIdentity(): string {
   return digest(files);
 }
 const loadedSource = sourceIdentity();
+/** A read-only code identity fence; it grants no execution or verification. */
+export function readCurrentProducerSourceIdentity(): string {
+  if (sourceIdentity() !== loadedSource) throw new Error('Producer source changed; restart required');
+  return loadedSource;
+}
 export const SNAPSHOT_EVENT = 'run.execution_snapshot';
 export const RESULT_EVENT = 'run.signed_result';
 export interface ProducerOptions { sessionMetadata?: boolean; factoryId: string; currentKeyId: string; privateKey: string; keys: ResultKey[] }
@@ -363,6 +373,70 @@ export class LocalProducerResultsV4 {
   admission(run:Run):LocalProducerAdmissionV4 {
     const supplied=localAdmissionJson(run);
     return this.storage.transaction(()=>this.retainedAdmission(supplied).admission);
+  }
+  /** Current implementation-visible basis only; original admission and host
+   * events select immutable data, never a model-supplied root or phase grant. */
+  contextBasis(run: Run, phaseValue: ContextPhase): ContextBasis {
+    try {
+      const phase = localAdmissionJson(phaseValue), current = this.admissionRun(run);
+      const { admission, execution } = this.retainedAdmission(current);
+      const work = this.storage.getWorkOrder(current.workOrderId);
+      if (!work || current.state !== 'implementing' || current.finishedAt || current.candidateCommit ||
+          work.state !== 'implementing' || execution.sourceDigest !== readCurrentProducerSourceIdentity()) throw contextPolicyFailure(null);
+      const events = this.storage.listEvents(current.workOrderId).filter(event => event.runId === current.id);
+      if (events.some(event => event.workOrderId !== current.workOrderId)) throw contextPolicyFailure(null);
+      const selected = selectContextPhase(events, phase, execution.configuration.commands);
+      if (canonical(this.snapshot(current, admission)) !== canonical(execution)) throw contextPolicyFailure(null);
+      return localAdmissionJson({ run: current, work, execution, phase,
+        tree: selected.tree ?? execution.inputTree, checkpointEventId: selected.checkpointEventId,
+        productiveStep: selected.productiveStep,
+        binding: digest({ current, work, admission, execution, phase, selected }) });
+    } catch (error) { throw contextPolicyFailure(error); }
+  }
+  /** Read-only host phase join; settlement records confer no native authority. */
+  checkpointBasis(run: Run, phaseValue: CheckpointPhase): CheckpointBasis {
+    try {
+      const phase = localAdmissionJson(phaseValue), current = this.admissionRun(run);
+      const { admission, execution } = this.retainedAdmission(current), work = this.storage.getWorkOrder(current.workOrderId);
+      if (!work || current.state !== 'implementing' || current.finishedAt || current.candidateCommit ||
+          work.state !== 'implementing' || execution.sourceDigest !== readCurrentProducerSourceIdentity()) throw checkpointPolicyFailure(null);
+      const events = this.storage.listEvents(current.workOrderId).filter(event => event.runId === current.id);
+      if (events.some(event => event.workOrderId !== current.workOrderId)) throw checkpointPolicyFailure(null);
+      const selected = selectCheckpointPhase(events, phase, execution.configuration.commands, checkpointIdentity(current, execution));
+      if (canonical(this.snapshot(current, admission)) !== canonical(execution)) throw checkpointPolicyFailure(null);
+      return localAdmissionJson({ run: current, work, execution, phase,
+        binding: digest({ current, work, admission, execution, phase, selected }) });
+    } catch (error) { throw checkpointPolicyFailure(error); }
+  }
+  /** Actual full current history, not a projected event stream, binds this read. */
+  candidateBasis(run: Run, phaseValue: FinalizationPhase): FinalizationBasis {
+    try {
+      const phase = localAdmissionJson(phaseValue), current = this.admissionRun(run);
+      const { admission, execution } = this.retainedAdmission(current), work = this.storage.getWorkOrder(current.workOrderId);
+      if (!work || current.state !== 'implementing' || current.finishedAt || current.candidateCommit ||
+          work.state !== 'implementing' || execution.sourceDigest !== readCurrentProducerSourceIdentity()) throw finalizationPolicyFailure(null);
+      const events = this.storage.listEvents(current.workOrderId).filter(event => event.runId === current.id);
+      const selected = selectFinalizationPhase(events, phase, current, execution);
+      if (canonical(this.snapshot(current, admission)) !== canonical(execution)) throw finalizationPolicyFailure(null);
+      return localAdmissionJson({ run: current, work, execution, phase, settledAt: selected.settledAt,
+        binding: digest({ current, work, admission, execution, phase, events, selected }) });
+    } catch (error) { throw finalizationPolicyFailure(error); }
+  }
+  verificationBasis(run:Run,phaseValue:VerificationInputPhase):VerificationInputBasis {
+    try {
+      const phase=localAdmissionJson(phaseValue),current=this.admissionRun(run);
+      const {admission,execution}=this.retainedAdmission(current),work=this.storage.getWorkOrder(current.workOrderId);
+      if(!work||current.finishedAt||!['planning','implementing','verifying'].includes(current.state)||
+        current.state!=='verifying'&&current.candidateCommit||
+        work.state!==current.state||execution.sourceDigest!==readCurrentProducerSourceIdentity()||
+        canonical(this.snapshot(current,admission))!==canonical(execution))verificationInputHold();
+      const allEvents=this.storage.listEvents(current.workOrderId),events=allEvents.filter(event=>event.runId===current.id);
+      const checks=this.storage.listChecks(current.id);
+      if(phase.kind!=='ENTRY'&&checks.length)verificationInputHold();
+      const selected=selectVerificationInputPhase(events,phase,current,work,execution);
+      return localAdmissionJson({run:current,work,execution,phase,selectedTree:selected.tree,selectedCommit:selected.commit,
+        binding:digest({current,work,admission,execution,phase,events:allEvents,checks})});
+    } catch(error){throw verificationInputFailure(error);}
   }
   readAdmitted(run:Run):ReturnType<LocalProducerResultsV4['read']> {
     const current=this.admissionRun(run);return this.read(current,this.admission(current));

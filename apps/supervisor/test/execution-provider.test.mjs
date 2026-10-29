@@ -117,3 +117,59 @@ test('readiness failure cannot expose provider errors or start work', async t =>
   assert.equal(JSON.stringify(health).includes('SECRET_CANARY'), false);
   assert.deepEqual(f.calls, []);
 });
+
+
+// Pure deferred caller regressions. Synthetic Booleans are no native absence proof.
+// Tiny detached caller data; no native absence evidence or private guard.
+function pureResourceFixture({pause=true,recovery=false}={}){
+ const run={id:'public-run',workOrderId:'public-work',attemptNumber:1,inputCommit:'a'.repeat(40),workspacePath:'/unused',state:'implementing'};
+ const events=[];const row=(type,payload={},runId=run.id)=>events.push({id:events.length+1,runId,workOrderId:run.workOrderId,type,payload});row('run.reproduction_started');
+ if(recovery){row('agent.process_started',{pid:12345});row('run.interrupted')}
+ let release,entered,collect=0,checkpoint=0;const held=new Promise(r=>release=r),started=new Promise(r=>entered=r);
+ const storage={getRun:()=>structuredClone(run),listEvents:()=>structuredClone(events)};
+ const jobs={activeRun:()=>false,checkpointForRecovery:async()=>{checkpoint++;throw Error('inert recovery boundary')}};
+ const producer={read(){collect++;throw Error('inert Result boundary')}};
+ const probe={processAbsent(){return true},async verifierAbsent(){entered();if(pause)await held;return true},async readiness(){throw Error('No readiness operation')}};
+ const provider=new LocalExecutionProvider(storage,jobs,producer,probe);
+ return {provider,jobs,row,run,started,release:()=>release(),get collect(){return collect},get checkpoint(){return checkpoint}};
+}
+for(const change of ['productive process','completion process','settlement','saved Run'])test('actual resource read refuses stale '+change+' during verifier await',async()=>{
+ const f=pureResourceFixture(),p=f.provider.read(f.run);await f.started;
+ if(change==='saved Run')f.run.state='interrupted';else f.row(change==='settlement'?'factory.execution_settled':change==='productive process'?'agent.process_started':'agent.completion_process_started',{pid:12345});
+ f.release();const r=await p;assert.equal(r.quiescent,false);assert.equal(r.settled,false);assert.equal(r.recoveryEligible,false);assert.equal(f.collect,0);assert.equal(f.checkpoint,0);
+});
+test('stable actual resource observation retains component Boolean data only',async()=>{const f=pureResourceFixture(),p=f.provider.read(f.run);await f.started;f.release();const r=await p;assert.equal(r.quiescent,true);assert.equal(r.recoveryEligible,false)});
+test('unrelated prior-attempt event never enters current resource cut',async()=>{const f=pureResourceFixture(),p=f.provider.read(f.run);await f.started;f.row('agent.process_started',{pid:12345},'public-prior-run');f.release();const r=await p;assert.equal(r.quiescent,true);assert.deepEqual(r.evidence.processGroups,[])});
+function holdAfterResourceRead(f){let entered,release;const started=new Promise(r=>entered=r),paused=new Promise(r=>release=r),read=f.provider.read.bind(f.provider);f.provider.read=async(...args)=>{const r=await read(...args);entered();await paused;return r};return {started,release:()=>release()}}
+test('actual collect checks current rows after inner read returns',async()=>{const f=pureResourceFixture({pause:false}),gap=holdAfterResourceRead(f),p=f.provider.collect(f.run);await gap.started;f.row('agent.completion_process_started',{pid:12345});gap.release();await assert.rejects(p,/not quiescent/);assert.equal(f.collect,0);assert.equal(f.checkpoint,0)});
+test('actual reconcile checks current rows after inner read returns',async()=>{const f=pureResourceFixture({pause:false,recovery:true}),gap=holdAfterResourceRead(f),p=f.provider.reconcile(f.run);await gap.started;f.row('agent.completion_process_started',{pid:12345});gap.release();const r=await p;assert.equal(r.quiescent,false);assert.equal(r.recoveryEligible,false);assert.equal(f.checkpoint,0);assert.equal(f.collect,0)});
+
+// Actual reconcile's final await, with a deferred inert checkpoint callback.
+// Rows and Booleans remain synthetic data; no native guard or writer executes.
+function postCheckpointFixture() {
+  const f = pureResourceFixture({pause:false,recovery:true});
+  let entered, release, calls = 0;
+  const started = new Promise(resolve => entered = resolve), pending = new Promise(resolve => release = resolve);
+  f.jobs.checkpointForRecovery = async () => { calls++; entered(); await pending; };
+  return { ...f, started, release:()=>release(), get calls(){return calls;} };
+}
+for (const change of ['stable checkpoint','own checkpoint row','new process row','saved Run drift']) test('post-checkpoint resource cut: '+change, async () => {
+  const f=postCheckpointFixture(),pending=f.provider.reconcile(f.run);await f.started;
+  if(change==='own checkpoint row')f.row('run.recovery_checkpoint',{verified:false,mode:'SYNTHETIC_LOCAL'});
+  else if(change==='new process row')f.row('agent.completion_process_started',{pid:12345});
+  else if(change==='saved Run drift')f.run.state='interrupted';
+  f.release();const result=await pending;assert.equal(f.calls,1);
+  assert.equal(result.quiescent,change==='stable checkpoint');
+  if(change!=='stable checkpoint'){assert.equal(result.settled,false);assert.equal(result.recoveryEligible,false);assert.equal(result.evidence.observationCurrent,false);}
+});
+test('post-checkpoint resource cut: current connection denial precedes stale return',async()=>{
+  const f=postCheckpointFixture();let revoked=false;
+  const pending=f.provider.reconcile(f.run,()=>{if(revoked)throw Error('Connection revoked after checkpoint')});await f.started;
+  f.row('agent.completion_process_started',{pid:12345});revoked=true;f.release();
+  await assert.rejects(pending,/Connection revoked after checkpoint/);assert.equal(f.calls,1);
+});
+test('post-checkpoint resource cut: final connection callback cannot hide new current rows',async()=>{
+  const f=postCheckpointFixture();let checks=0;
+  const pending=f.provider.reconcile(f.run,()=>{checks++;if(checks===3)f.row('agent.completion_process_started',{pid:12345})});await f.started;f.release();
+  const result=await pending;assert.equal(checks,3);assert.equal(f.calls,1);assert.equal(result.quiescent,false);assert.equal(result.recoveryEligible,false);assert.equal(result.evidence.observationCurrent,false);
+});

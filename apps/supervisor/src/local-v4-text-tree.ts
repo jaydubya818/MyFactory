@@ -14,10 +14,10 @@ const compare = (a: { name: string; directory: boolean }, b: { name: string; dir
 
 /** Pure typed-data validation. Only the fixed host preparation closure supplies
  * native reads; this parser grants no Work, execution or source authority. */
-export async function validateLocalV4TextTree(commit: string, read: TextObjectReader, deadline: number) {
-  if (typeof commit !== 'string' || !/^[a-f0-9]{40}$/.test(commit) || typeof read !== 'function') refuse();
+function objectReader(read: TextObjectReader, deadline: number) {
+  if (typeof read !== 'function') refuse();
   budget(deadline);
-  const object = async (kind: TextObjectKind, id: string, limit: number) => {
+  return async (kind: TextObjectKind, id: string, limit: number) => {
     budget(deadline);
     if (!/^[a-f0-9]{40}$/.test(id)) refuse();
     const raw = await read(kind, id, limit); budget(deadline);
@@ -26,11 +26,22 @@ export async function validateLocalV4TextTree(commit: string, read: TextObjectRe
     if (sha(kind, bytes) !== id) refuse();
     return bytes;
   };
+}
+export async function validateLocalV4TextTree(commit: string, read: TextObjectReader, deadline: number) {
+  if (typeof commit !== 'string' || !/^[a-f0-9]{40}$/.test(commit)) refuse();
+  const object = objectReader(read, deadline);
   const rawCommit = await object('commit', commit, 65536), split = rawCommit.indexOf('\n\n');
   if (split < 0 || rawCommit.subarray(0, split).includes(0)) refuse();
   const headers = rawCommit.subarray(0, split).toString('utf8').split('\n');
   if (!/^tree [a-f0-9]{40}$/.test(headers[0]) || headers.filter(line => /^tree(?:\s|$)/.test(line)).length !== 1) refuse();
-  const inputTree = headers[0].slice(5), files: Record<string, string> = Object.create(null);
+  const root = await validateLocalV4RootTextTree(headers[0].slice(5), read, deadline);
+  return Object.freeze({ inputCommit: commit, ...root });
+}
+
+/** Pure root graph only. This entry never invents a commit or execution basis. */
+export async function validateLocalV4RootTextTree(inputTree: string, read: TextObjectReader, deadline: number) {
+  if (typeof inputTree !== 'string' || !/^[a-f0-9]{40}$/.test(inputTree)) refuse();
+  const object = objectReader(read, deadline), files: Record<string, string> = Object.create(null);
   const folded = new Map<string, { path: string; directory: boolean }>();
   let entries = 0, directories = 0, fileCount = 0, metadata = 0, jsonBytes = 2;
   const activeTrees = new Set<string>();
@@ -87,5 +98,5 @@ export async function validateLocalV4TextTree(commit: string, read: TextObjectRe
     return sha('tree', Buffer.concat(data));
   };
   if (reconstruct('') !== inputTree) refuse(); budget(deadline);
-  return Object.freeze({ inputCommit: commit, inputTree, files: Object.freeze(files) });
+  return Object.freeze({ inputTree, files: Object.freeze(files) });
 }

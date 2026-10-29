@@ -48,6 +48,8 @@ export interface HumanPresenceRequest {
 }
 
 export interface ActionContext {
+  /** Per-request connection denial fence; never supplies new authority. */
+  assertCurrentConnection?(): void;
   storage: FactoryStorage;
   reviewRepair?: ReviewRepair;
   linear?: LinearIntegration;
@@ -582,6 +584,7 @@ export async function performAction(
   rawInput: unknown,
   actor: Actor,
 ): Promise<unknown> {
+  context.assertCurrentConnection?.();
   const definition = actionRegistry[action as ActionName];
   if (!definition) throw new ActionError("Unknown action", "unknown_action", 404);
   if (!definition.actorKinds.includes(actor.kind)) {
@@ -743,6 +746,7 @@ export async function performAction(
     const state = admissionState(input);
     await requireHumanPresence(context, actor, "workorder.create",
       `Create WorkOrder ${input.title.slice(0, 80)} for ${input.repositoryPath.slice(0, 100)}`);
+    context.assertCurrentConnection?.();
     const { workOrder, event } = context.storage.transaction(() => {
       const repeated = replay();
       if (repeated) return { workOrder: repeated, event: null };
@@ -761,6 +765,7 @@ export async function performAction(
     if (event) context.notify(event);
     if (syncToLinear) {
       // WorkOrder persistence succeeds even when Linear is offline. Its durable link exposes retry status.
+      context.assertCurrentConnection?.();
       await context.linear!.sync(workOrder, actor.id).catch(() => undefined);
     }
     return workOrder;

@@ -62,6 +62,20 @@ export function authenticateClient(request: IncomingMessage, clients: FactoryCli
   return client;
 }
 
+/** Refresh the originally authenticated identity, never rebind an in-flight
+ * request to another owner, purpose, client or credential. Denial only. */
+export function refreshClient(original: Pick<FactoryClient, 'id' | 'ownerScope' | 'purpose' | 'tokenSha256'>,
+  clients: FactoryClient[]): FactoryClient {
+  const current = clients.find(client => client.id === original.id && client.tokenSha256 === original.tokenSha256);
+  if (!current || current.ownerScope !== original.ownerScope || current.purpose !== original.purpose)
+    throw new ActionError('Current connection identity is unavailable', 'forbidden', 403);
+  const expiresAt = current.expiresAt;
+  if ('expiresAt' in current && (typeof expiresAt !== 'string' ||
+      !Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) <= Date.now()))
+    throw new ActionError('Connection expired', 'unauthorized', 401);
+  return current;
+}
+
 export function canAccessRepository(client: FactoryClient, repositoryPath: string): boolean {
   if (!isAbsolute(repositoryPath)) return false;
   try {

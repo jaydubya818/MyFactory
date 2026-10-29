@@ -14,7 +14,7 @@ test('enrolled local Factory preparation fails before intake or execution', asyn
   process.env.FACTORY_CAPABILITY_CONTROL_ENABLED='true';
   t.after(()=>{storage.close();rmSync(directory,{recursive:true,force:true});
     if(previous===undefined)delete process.env.FACTORY_CAPABILITY_CONTROL_ENABLED;else process.env.FACTORY_CAPABILITY_CONTROL_ENABLED=previous;});
-  const control=new FactoryDispatchControl(storage,{prepare:()=>assert.fail('execution must not start')},{},{});
+  const control=new FactoryDispatchControl(storage,{prepare:()=>assert.fail('execution must not start')},{},{},false,undefined,false,client=>client);
   const requestId=randomUUID();
   const request={requestId,workId:randomUUID(),workGeneration:1,repository:'fixture/repository',deadline:new Date(Date.now()+60000).toISOString(),maxSpendUsd:1,
     input:{title:'Synthetic Work',description:'No execution',kind:'feature',repositoryPath:directory,baseRef:'a'.repeat(40),

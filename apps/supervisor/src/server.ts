@@ -16,7 +16,7 @@ import { publishDraftPullRequest } from "./github.ts";
 import { JobManager, type JobDependencies } from "./jobs.ts";
 import { LinearIntegration, linearOptionsFromEnvironment, type LinearOptions } from "./linear.ts";
 import { HostedIntake } from "./hosted-intake.ts";
-import { authenticateClient, authorizeClientAction, canAccessRepository, readClients } from "./connections.ts";
+import { authenticateClient, authorizeClientAction, canAccessRepository, readClients, refreshClient, type FactoryClient } from "./connections.ts";
 import { LocalExecutionProvider, type LocalResourceProbe } from './local-execution-provider.ts';
 import { runCodex } from '../../../packages/agents/src/index.ts';
 import { verifyCandidate } from '../../../packages/verification/src/index.ts';
@@ -300,14 +300,16 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   if(options.retainCheckpoints&&(!options.localFactoryFixture&&!options.localSpendFixture||realProvider))
     throw new Error('Checkpoint export is deferred outside explicit fixture qualification');
   const jobDependencies = localPreparation ? { ...options.jobDependencies, ...localPreparation } : options.jobDependencies;
-  const jobs = new JobManager(storage, dataDir, notify, jobDependencies, producer,realProvider?.price.model,parallel,options.retainCheckpoints??false);
   const fixtureDependencies=!!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate;
+  const trustedFixtureVerification=resultMode==='LOCAL_V4'&&!realProvider&&
+    (options.localFactoryFixture===true||!!options.localSpendFixture)&&fixtureDependencies;
+  const jobs = new JobManager(storage, dataDir, notify, jobDependencies, producer,realProvider?.price.model,parallel,options.retainCheckpoints??false,trustedFixtureVerification);
   if(options.localFactoryFixture&&options.localSpendFixture)throw new Error('Fixture modes are mutually exclusive');
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
   if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
     throw new Error('Local spend fixture must target loopback only');
   const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer,options.localV4ResourceProbe),producer,spend,
-    options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture,!!realProvider):null;
+    options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture,!!realProvider,currentConnection):null;
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
     const link = storage.getLinearLink(order.id);
@@ -373,6 +375,21 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
     return client.purpose === 'myeve-proof' && client.actions.includes('evidence.read') &&
       typeof client.expiresAt === 'string' && Number.isFinite(Date.parse(client.expiresAt)) && Date.parse(client.expiresAt) > Date.now();
   }
+  function currentConnection(original: FactoryClient): FactoryClient {
+    const fresh = refreshClient(original, readClients(connectionsPath));
+    if (resultMode === 'LOCAL_V4' && (typeof fresh.ownerScope !== 'string' || !/^[A-Za-z0-9:_-]{1,128}$/.test(fresh.ownerScope)))
+      throw new ActionError('Current owner-scoped connection required', 'forbidden', 403);
+    if (resultMode === 'LOCAL_V4' && fresh.purpose === 'myeve-proof' && !currentV4ProofReader(fresh))
+      throw new ActionError('Current Proof read grant required', 'forbidden', 403);
+    return fresh;
+  }
+  async function currentOutcome<T>(operation: () => Promise<T>, assertCurrent: () => void): Promise<T> {
+    let outcome: { value: T } | { error: unknown };
+    try { outcome = { value: await operation() }; } catch (error) { outcome = { error }; }
+    assertCurrent();
+    if ('error' in outcome) throw outcome.error;
+    return outcome.value;
+  }
   function proofClientOwnsWork(client: ReturnType<typeof readClients>[number], workOrderId: string): boolean {
     if (resultMode === 'LOCAL_V4') {
       const bindings = storage.listEvents(workOrderId).filter(event => event.type === 'factory.owner_scope_bound');
@@ -386,6 +403,17 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   function currentV4RequestOwner(client: ReturnType<typeof readClients>[number], requestId: string): boolean {
     const intake = storage.getIntake('gateb:' + client.id, requestId);
     return !intake || proofClientOwnsWork(client, intake.work_order_id);
+  }
+  function assertControlReadback(original: FactoryClient, requestId: unknown, action: string): void {
+    const fresh = currentConnection(original);
+    if (!fresh.actions.includes(action) || !fresh.actions.includes('factory.observe'))
+      throw new ActionError('Current Factory control grant required', 'forbidden', 403);
+    if (typeof requestId !== 'string') return;
+    const intake = storage.getIntake('gateb:' + fresh.id, requestId);
+    if (!intake) return;
+    const order = storage.getWorkOrder(intake.work_order_id);
+    if (!order || !canAccessRepository(fresh, order.repositoryPath) || !proofClientOwnsWork(fresh, order.id))
+      throw new ActionError('Factory request not found', 'not_found', 404);
   }
   function connectedDetailFor(client: ReturnType<typeof readClients>[number], id: string): WorkOrderDetail | null {
     const detail = workOrderDetail(id, client.purpose === 'myeve-proof' && proofClientOwnsWork(client, id));
@@ -426,7 +454,14 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
           return json(response, 403, {error: 'Current Factory observation grant required'});
         if (pathname === '/api/connect/v1/evidence/read') {
           if (request.method !== 'POST') return json(response, 405, { error: 'Method not allowed' });
-          return json(response, 200, await readBoundEvidence(client, await requestBody(request), storage, legacyProducer, dataDir));
+          const input = await requestBody(request), fresh = currentConnection(client);
+          return json(response, 200, await currentOutcome(
+            () => readBoundEvidence(fresh, input, storage, legacyProducer, dataDir, () => currentConnection(client)),
+            () => {
+              const current = currentConnection(client);
+              const scoped = authorizeClientAction(current, 'evidence.read', input, id => storage.getWorkOrder(id));
+              if (!proofClientOwnsWork(current, String(scoped.workOrderId))) throw new ActionError('Evidence not found for this binding', 'not_found', 404);
+            }));
         }
         const controlRoute=/^\/api\/connect\/v1\/dispatches(?:\/([a-f0-9-]{36})(?:\/(dispatch|stop))?)?$/.exec(pathname);
         if(controlRoute){
@@ -436,17 +471,20 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
           if(resultMode==='LOCAL_V4'&&id&&!currentV4RequestOwner(client,id))return json(response,404,{error:'Factory request not found'});
           if(request.method==='POST'&&!id){
             const input=await requestBody(request) as import('./dispatch-control.ts').PrepareRequest;
+            const fresh=currentConnection(client);
             if(resultMode==='LOCAL_V4'&&input&&typeof input==='object'&&Object.hasOwn(input,'repairWorkOrderId'))
               return json(response,503,{error:'Local V4 repair owner and cost-parent admission is not qualified'});
-            if(resultMode==='LOCAL_V4'&&typeof input?.requestId==='string'&&!currentV4RequestOwner(client,input.requestId))
+            if(resultMode==='LOCAL_V4'&&typeof input?.requestId==='string'&&!currentV4RequestOwner(fresh,input.requestId))
               return json(response,404,{error:'Factory request not found'});
-            return json(response,200,await dispatchControl.prepare(client,input));
+            return json(response,200,await currentOutcome(()=>dispatchControl.prepare(fresh,input),()=>{assertControlReadback(client,input?.requestId,'factory.prepare')}));
           }
-          if(request.method==='GET'&&id&&!action)return json(response,200,await dispatchControl.read(client,id));
+          if(request.method==='GET'&&id&&!action)return json(response,200,await currentOutcome(()=>dispatchControl.read(client,id),()=>{assertControlReadback(client,id,'factory.observe')}));
           if(request.method==='POST'&&id&&action){
             const identity=await requestBody(request) as import('./dispatch-control.ts').ExecutionIdentity;
+            const fresh=currentConnection(client);
+            if(resultMode==='LOCAL_V4'&&!currentV4RequestOwner(fresh,id))return json(response,404,{error:'Factory request not found'});
             if(identity?.requestId!==id)throw new ActionError('Request path binding mismatch','invalid_input');
-            return json(response,200,await (action==='dispatch'?dispatchControl.dispatch(client,identity):dispatchControl.stop(client,identity)));
+            return json(response,200,await currentOutcome(()=>action==='dispatch'?dispatchControl.dispatch(fresh,identity):dispatchControl.stop(fresh,identity),()=>{assertControlReadback(client,id,'factory.'+action)}));
           }
           return json(response,405,{error:'Method not allowed'});
         }
@@ -500,8 +538,11 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
           if (resultMode === 'LOCAL_V4') return json(response, 503, {error: 'Local V4 writes require canonical dispatch controls'});
           const body = await requestBody(request) as { action?: unknown; input?: unknown } | null;
           if (!body || typeof body !== "object" || typeof body.action !== "string") throw new ActionError("Action name is required", "invalid_input");
-          const input = authorizeClientAction(client, body.action, body.input, (id) => storage.getWorkOrder(id));
-          const result = await performAction(context, body.action, input, { kind: "agent", id: `connection:${client.id}` });
+          const action = body.action, rawInput = body.input;
+          const assertCurrentConnection = () => { authorizeClientAction(currentConnection(client), action, rawInput, (id) => storage.getWorkOrder(id)); };
+          const input = authorizeClientAction(currentConnection(client), action, rawInput, (id) => storage.getWorkOrder(id));
+          const result = await currentOutcome(() => performAction({ ...context, assertCurrentConnection }, action, input,
+            { kind: "agent", id: `connection:${client.id}` }), assertCurrentConnection);
           return json(response, 200, { result });
         }
         return json(response, 404, { error: "Connection route not found" });
