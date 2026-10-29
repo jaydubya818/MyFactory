@@ -4,8 +4,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync,createHash} from 'node:crypto';
-import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,realpathSync,lstatSync,unlinkSync} from 'node:fs';
-import {join} from 'node:path';
+import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,realpathSync,lstatSync,unlinkSync,readdirSync,chmodSync} from 'node:fs';
+import {join,dirname} from 'node:path';
 import {tmpdir} from 'node:os';
 import {openStorage} from '../../../packages/storage/src/index.ts';
 import {LocalV4ServiceProducer} from '../src/service-producer.ts';
@@ -25,14 +25,14 @@ function fixture(t,defect=false){
  const env={PATH:'/opt/homebrew/Cellar/git/2.48.1/libexec/git-core',GIT_EXEC_PATH:'/opt/homebrew/Cellar/git/2.48.1/libexec/git-core',LANG:'C',LC_ALL:'C',GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_GLOBAL:'/dev/null',GIT_CONFIG_SYSTEM:'/dev/null'};
  const raw=(...args)=>execFileSync(GIT,['-c','core.hooksPath=/dev/null','-c','protocol.allow=never','-C',repo,...args],{env,timeout:10000,maxBuffer:1024*1024});const git=(...args)=>raw(...args).toString().trim();
  git('init','-q','--template=','--object-format=sha1');git('config','user.name','Public context fixture');git('config','user.email','fixture@example.invalid');
- writeFileSync(join(repo,'sample.txt'),'original\n');writeFileSync(join(repo,'README.md'),'public guide\n');writeFileSync(join(repo,'other.txt'),'inventory only\n');git('add','.');git('commit','-qm','Input');
+ writeFileSync(join(repo,'sample.txt'),'original\n');writeFileSync(join(repo,'README.md'),'public guide\n');writeFileSync(join(repo,'other.txt'),'inventory only\n');mkdirSync(join(repo,'docs'));writeFileSync(join(repo,'docs/guide.txt'),'nested public guide\n');git('add','.');git('commit','-qm','Input');
  const inputCommit=git('rev-parse','HEAD'),inputTree=git('rev-parse','HEAD^{tree}'),storage=openStorage(join(dir,'factory.sqlite'));
  const created=storage.createWorkOrder({title:'Ordinary context qualification',description:'No protected acceptance or spend',kind:defect?'defect':'feature',repositoryPath:repo,baseRef:inputCommit,acceptanceCriteria:['Preserve actual context identities'],reproductionCommand:defect?'synthetic-reproduction':null,expectedFailureText:defect?'public baseline':null,checkCommands:['synthetic-check'],allowedPaths:['sample.txt','missing.txt'],workerProfile:'mac'});
  const work=storage.getWorkOrder(created.id),pair=generateKeyPairSync('ed25519'),key={factoryId:'public-context-fixture',keyId:'ephemeral',publicKey:pair.publicKey.export({type:'spki',format:'pem'}).toString(),activeFrom:'2020-01-01T00:00:00Z',notAfter:'2099-01-01T00:00:00Z'};
  const service=new LocalV4ServiceProducer(storage,dir,{factoryId:key.factoryId,currentKeyId:key.keyId,privateKey:pair.privateKey.export({type:'pkcs8',format:'pem'}).toString(),keys:[key]});
- const preparation=createLocalV4Preparation(dir),bound=bindLocalV4PreparationCapture(preparation,service);
- const f={dir,repo,git,raw,storage,work,inputCommit,inputTree,service,preparation,bound};
- t.after(async()=>{if(f.jobs)await f.jobs.close();storage.close();rmSync(dir,{recursive:true,force:true})});return f;
+ const preparation=createLocalV4Preparation(dir,{sourceArtifacts:true}),bound=bindLocalV4PreparationCapture(preparation,service);
+ const f={dir,repo,git,raw,storage,work,inputCommit,inputTree,service,preparation,bound,artifactFixtures:[]};
+ t.after(async()=>{if(f.jobs)await f.jobs.close();storage.close();for(const artifact of f.artifactFixtures){const directories=new Set([artifact.path]);for(const path of artifact.paths){let at=dirname(join(artifact.path,path));while(at.startsWith(artifact.path)){directories.add(at);if(at===artifact.path)break;at=dirname(at)}}for(const path of directories)chmodSync(path,0o700)}rmSync(dir,{recursive:true,force:true})});return f;
 }
 
 function indexObservation(run){
@@ -45,6 +45,13 @@ for(const variant of ['modify','create-delete','reproduction'])test('actual fixe
  const f=fixture(t,variant==='reproduction'),seen=[];let productive=0;
  const check=async input=>{
   const source=input.sourceInput;assert(source);assert.equal(source.schema,'local-v4-fixture-source/v1');
+  const artifact=input.sourceArtifact;assert(artifact);assert(Object.isFrozen(artifact));assert.equal(artifact.schema,'local-v4-source-artifact/v1');assert.equal(artifact.tree,source.tree);
+  assert(artifact.path.startsWith(join(f.dir,'verification-inputs')+'/'));assert.equal(lstatSync(artifact.path).mode&0o777,0o555);
+  for(const [path,bytes] of Object.entries(source.files)){assert.equal(readFileSync(join(artifact.path,path),'utf8'),bytes);assert.equal(lstatSync(join(artifact.path,path)).mode&0o777,0o444)}
+  assert.equal(readFileSync(join(artifact.path,'docs/guide.txt'),'utf8'),'nested public guide\n');
+  assert.deepEqual(readdirSync(artifact.path).sort(),Object.keys(source.files).map(path=>path.split('/')[0]).filter((name,i,all)=>all.indexOf(name)===i).sort());
+  const manifest=readFileSync(join(dirname(artifact.path),'manifest.json'));assert.equal(createHash('sha256').update(manifest).digest('hex'),artifact.manifestSha256);
+  f.artifactFixtures.push({path:artifact.path,paths:Object.keys(source.files)});
   assert(Object.isFrozen(source));assert(Object.isFrozen(source.files));assert.equal(source.files['README.md'],'public guide\n');assert.equal(source.files['other.txt'],'inventory only\n');
   assert.equal(source.workOrderId,f.work.id);assert.equal(source.tree,input.tree??f.git('rev-parse',input.candidateSha+'^{tree}'));
   if(source.kind==='IMPLEMENTATION')assert.equal(source.commit,null);else assert.equal(source.commit,input.candidateSha);

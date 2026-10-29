@@ -12,8 +12,9 @@ export type VerificationInputBasis = Readonly<{run:Run;work:WorkOrder;execution:
   phase:VerificationInputPhase;selectedTree:string|null;selectedCommit:string|null;binding:string}>;
 export type VerificationSourceData = Readonly<{schema:'local-v4-fixture-source/v1';runId:string;workOrderId:string;
   kind:Exclude<VerificationInputPhase['kind'],'ENTRY'>;commit:string|null;tree:string;files:Readonly<Record<string,string>>}>;
+export type SourceArtifactDescriptor = Readonly<{schema:'local-v4-source-artifact/v1';path:string;tree:string;manifestSha256:string}>;
 /** A structurally similar object is not a privately registered lease. */
-export type VerificationInputLease = Readonly<{source:VerificationSourceData}>;
+export type VerificationInputLease = Readonly<{source:VerificationSourceData;artifact?:SourceArtifactDescriptor}>;
 export type VerificationInputFence = ()=>void;
 const denied = new WeakSet<Error>();
 class VerificationInputError extends ActionError {

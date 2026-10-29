@@ -1,3 +1,4 @@
+import { createLocalV4SourceArtifacts } from './local-v4-source-artifact.ts';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import {
@@ -174,11 +175,13 @@ async function command(repository: string, args: string[], limits: { bytes?: num
 function text(bytes: Buffer): string { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
 
 /** No eager filesystem/native effects: portable seeded read fixtures do not use preparation. */
-export function createLocalV4Preparation(dataDir: string): Preparation {
+export function createLocalV4Preparation(dataDir: string, options: Readonly<{sourceArtifacts?:boolean}> = {}): Preparation {
   if (!pathString(dataDir)) refuse();
   const workspaces = join(dataDir, 'workspaces'), resolved = new Map<string, Repository>();
   const owned = new Map<string, Workspace>(), busy = new Set<string>(), quarantined = new Set<string>();
   const contextCaptures = new Map<string, string>();
+  const materializeSource=options.sourceArtifacts===true;
+  const verificationArtifacts = createLocalV4SourceArtifacts(dataDir);
   const checkpointOutputs=new Map<string,string>();
   const finalOutputs=new WeakMap<Workspace,{commit:string;tree:string;index:FileObservation;mainHead:FileObservation}>();
   const verificationKeys=new WeakMap<Workspace,Map<string,'preparing'|'open'|'consumed'|'uncertain'>>();
@@ -522,7 +525,8 @@ export function createLocalV4Preparation(dataDir: string): Preparation {
           kind:basis.phase.kind as 'REPRODUCTION'|'IMPLEMENTATION'|'FINAL',commit:selected.commit,tree:selected.tree};
         if(Buffer.byteLength(JSON.stringify(metadata))>8192)verificationInputHold();
         const source=Object.freeze({...metadata,files:Object.freeze({...graph.files})});
-        const lease=Object.freeze({source});current();
+        const artifact=materializeSource?await verificationArtifacts.prepare(source,basis.binding,deadline,current):undefined;current();
+        const lease=Object.freeze({source,...(artifact?{artifact}:{})});current();
         verificationLeases.set(lease,{w,key:selected.key,binding:basis.binding,
           digest:hash(Buffer.from(JSON.stringify(source))),phase:basis.phase});keys.set(selected.key,'open');return lease;
       }catch(error){keys.set(selected.key,'uncertain');throw verificationInputFailure(error);}
@@ -537,6 +541,7 @@ export function createLocalV4Preparation(dataDir: string): Preparation {
         if(w!==record.w||selected.key!==record.key||record.binding!==basis.binding||
           verificationKeys.get(w)?.get(record.key)!=='open'||
           hash(Buffer.from(JSON.stringify(lease.source)))!==record.digest)verificationInputHold();
+        if(materializeSource){if(!lease.artifact)verificationInputHold();verificationArtifacts.assert(lease.artifact,lease.source,basis.binding,assertCurrent);}
         verificationInputFence(assertCurrent);budget(deadline);verificationKeys.get(w)!.set(record.key,'consumed');
       }catch(error){verificationKeys.get(record.w)?.set(record.key,'uncertain');throw verificationInputFailure(error);}
     },
@@ -547,6 +552,7 @@ export function createLocalV4Preparation(dataDir: string): Preparation {
       if(w!==record.w||selected.key!==record.key||record.binding!==basis.binding||
         verificationKeys.get(w)?.get(record.key)!=='consumed'||
         hash(Buffer.from(JSON.stringify(lease.source)))!==record.digest)verificationInputHold();
+      if(materializeSource){if(!lease.artifact)verificationInputHold();verificationArtifacts.assert(lease.artifact,lease.source,basis.binding,assertCurrent);}
       verificationInputFence(assertCurrent);
     },
     verificationReject(lease){const record=verificationLeases.get(lease);if(record)verificationKeys.get(record.w)?.set(record.key,'uncertain');},

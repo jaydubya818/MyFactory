@@ -18,6 +18,8 @@ const tree='1'.repeat(40),input='2'.repeat(40),candidate='3'.repeat(40),command=
 const run={id:'public-run',workOrderId:'public-work',attemptNumber:1,inputCommit:input,workspacePath:'/unused',workerProfile:'mac',startedAt:'2026-10-28T00:00:00Z',state:'implementing'};
 const work={id:run.workOrderId,state:'implementing',kind:'feature'};
 const execution={version:4,inputCommit:input,inputTree:'4'.repeat(40),sourceDigest:'public-source',configurationDigest:'public-config',configuration:{commands:[command]}};
+// Inert descriptor data below is only for isolated caller probes, never store registration or native authority.
+const inertArtifact=Object.freeze({schema:'local-v4-source-artifact/v1',path:'/inert-metadata-only',tree,manifestSha256:'a'.repeat(64)});
 const identity=checkpointIdentity(run,execution),row=(id,type,payload={})=>({id,type,payload,runId:run.id,workOrderId:work.id,createdAt:'2026-10-28T00:00:00Z'});
 function chain(step=1,final=false){
  const events=[row(1,'run.implementing')];let next=2,last,result,settled;
@@ -86,7 +88,7 @@ for(const change of['gateway callback','active callback','producer ready','consu
 });
 function checkWrapper({callbackThrows=false,closeThrows=false}={}){
  let closes=0,calls=0,deny=false;const source={runId:run.id,workOrderId:run.workOrderId,commit:candidate,tree,files:{}};
- const producer={prepareVerificationInput:async()=>({source}),closeVerificationInput:async()=>{closes++;if(closeThrows)throw Error('inert close denied');return ()=>{}}};
+ const producer={prepareVerificationInput:async()=>({source,artifact:inertArtifact}),closeVerificationInput:async()=>{closes++;if(closeThrows)throw Error('inert close denied');return ()=>{}}};
  const current=()=>{if(deny)verificationInputFence(()=>{throw Error('current authority denied')})};
  const dependencies={verifyCandidate:async()=>{calls++;await Promise.resolve();if(callbackThrows)throw Error('inert callback failed');return{checks:[]}},verifyWorkspaceTree:async()=>{throw Error('No tree call')}};
  const code='class Probe {constructor(){this.producer=producer;this.dependencies=dependencies;}\n'+member('#verifySource')+'\ninvoke(){return this.#verifySource(run,current,{kind:"FINAL",candidateEventId:1},"candidate",{candidateSha:candidate,commands:["public-check"]},{assertCurrent:()=>{}})}}';
@@ -120,7 +122,7 @@ test('input actual execution ActiveJob retains the canonical gateway authority f
 for(const change of ['authority after callback','close operation replacement'])test('input exact wrapper retains original close and current authority: '+change,async()=>{
  let entered,release,closes=0,deny=false;const started=new Promise(r=>entered=r),held=new Promise(r=>release=r),source={runId:run.id,workOrderId:run.workOrderId,commit:candidate,tree,files:{}};
  const authorityError=Error('Actual current authority denied');
- const producer={prepareVerificationInput:async()=>({source}),closeVerificationInput:async()=>{closes++;await Promise.resolve();return ()=>{}}};
+ const producer={prepareVerificationInput:async()=>({source,artifact:inertArtifact}),closeVerificationInput:async()=>{closes++;await Promise.resolve();return ()=>{}}};
  const originalClose=producer.closeVerificationInput;
  const dependencies={verifyCandidate:async()=>{entered();await held;return{checks:[]}},verifyWorkspaceTree:async()=>{throw Error('No tree call')}};
  const current=()=>{if(deny)verificationInputFence(()=>{throw authorityError});if(producer.closeVerificationInput!==originalClose)verificationInputHold()};
@@ -173,10 +175,10 @@ function phaseWriteFixture(kind,race){
  const mutate=()=>{events.push(row(events.at(-1).id+1,'run.agent_result',{checkpointVersion:1,productiveStep:1,implementationEligible:true}));mutated=true};
  const raw=(r,phase)=>{const selected=selectVerificationInputPhase(events,phase,actualRun,actualWork,execution);const basis=structuredClone({run:actualRun,work:actualWork,execution,phase,selectedTree:selected.tree,selectedCommit:selected.commit,binding:digest({run:actualRun,work:actualWork,execution,phase,events})});if(phase.kind!=='ENTRY'&&++phaseReads===5&&race==='close')queueMicrotask(mutate);return basis};
  const original=raw(actualRun,f.phase);phaseReads=0;
- const source=Object.freeze({schema:'local-v4-fixture-source/v1',runId:run.id,workOrderId:run.workOrderId,kind,commit:kind==='IMPLEMENTATION'?null:kind==='FINAL'?candidate:input,tree:kind==='REPRODUCTION'?execution.inputTree:tree,files:Object.freeze({'sample.txt':'tiny public fixture\n'})}),lease=Object.freeze({source}),w={},key='public-phase';
+ const source=Object.freeze({schema:'local-v4-fixture-source/v1',runId:run.id,workOrderId:run.workOrderId,kind,commit:kind==='IMPLEMENTATION'?null:kind==='FINAL'?candidate:input,tree:kind==='REPRODUCTION'?execution.inputTree:tree,files:Object.freeze({'sample.txt':'tiny public fixture\n'})}),lease=Object.freeze({source,artifact:Object.freeze({...inertArtifact,tree:source.tree})}),w={},key='public-phase';
  const verificationKeys=new WeakMap([[w,new Map([[key,'open']])]]),verificationLeases=new WeakMap([[lease,{w,key,binding:original.binding,digest:createHash('sha256').update(JSON.stringify(source)).digest('hex'),phase:f.phase}]]),inputPhases=new WeakMap([[lease,original]]);
  const controls=compileBody('const controls={'+['verificationClose','verificationAccept','verificationReject'].map(name=>preparationNode(name,'method')).join(',')+'};',{
-  verificationKeys,verificationLeases,verificationInputHold,verificationInputFence,verificationInputFailure,budget:deadline=>{if(performance.now()>=deadline)verificationInputHold()},verificationOwner:()=>w,verificationSelection:()=>({key,tree:source.tree,commit:source.commit}),hash:value=>createHash('sha256').update(value).digest('hex')},'return controls;');
+  materializeSource:false,verificationArtifacts:{assert(){}},verificationKeys,verificationLeases,verificationInputHold,verificationInputFence,verificationInputFailure,budget:deadline=>{if(performance.now()>=deadline)verificationInputHold()},verificationOwner:()=>w,verificationSelection:()=>({key,tree:source.tree,commit:source.commit}),hash:value=>createHash('sha256').update(value).digest('hex')},'return controls;');
  const unused=()=>{throw Error('No native/source operation in pure outer witness')};
  const producer={context:unused,assertProgress:unused,checkpoint:unused,commitCandidate:unused,verificationBasis:raw,snapshot:()=>execution,assertVerificationInputReady:()=>{raw(actualRun,{kind:'ENTRY'})},prepareVerificationInput:async()=>lease};
  producer.closeVerificationInput=compileBody('const '+preparationNode('verificationBasis','variable')+';const '+preparationNode('closeVerificationInput','variable')+';',{
@@ -209,7 +211,7 @@ test('input final write chain cannot adopt a foreign row during notification',()
 for(const variant of ['missing receipt','async receipt','nonvoid receipt','actual denial'])test('input outer phase requires synchronous-void original close receipt: '+variant,async()=>{
  const actualError=Error('Actual phase authority denied'),source={runId:run.id,workOrderId:run.workOrderId,commit:candidate,tree,files:{}},phaseFence={assertCurrent:()=>{throw Error('No installed phase receipt')}};
  const receipt=variant==='missing receipt'?undefined:variant==='async receipt'?async()=>{}:variant==='nonvoid receipt'?()=>true:()=>{throw actualError};
- const producer={prepareVerificationInput:async()=>({source}),closeVerificationInput:async()=>receipt},dependencies={verifyCandidate:async()=>({checks:[]}),verifyWorkspaceTree:async()=>{throw Error('Unused tree')}};
+ const producer={prepareVerificationInput:async()=>({source,artifact:inertArtifact}),closeVerificationInput:async()=>receipt},dependencies={verifyCandidate:async()=>({checks:[]}),verifyWorkspaceTree:async()=>{throw Error('Unused tree')}};
  const code='class Probe{constructor(){this.producer=producer;this.dependencies=dependencies;}\n'+member('#verifySource')+'\nasync invoke(){await this.#verifySource(run,()=>{},{kind:"FINAL",candidateEventId:1},"candidate",{candidateSha:candidate,commands:["public-check"]},phaseFence);phaseFence.assertCurrent()}}';
  const Type=compileBody(code,{run,candidate,producer,dependencies,phaseFence,verificationInputHold,verificationInputFence,verificationInputFailure},'return Probe;');
  if(variant==='actual denial')await assert.rejects(new Type().invoke(),error=>error===actualError);else await assert.rejects(new Type().invoke(),{code:'local_verification_input_hold'});

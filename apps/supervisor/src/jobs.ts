@@ -20,7 +20,7 @@ import { contextPolicyFailure, contextPolicyKind, requireStrictSourceOperations,
 import { checkpointIdentity, checkpointPolicyFailure, checkpointPolicyKind, type CheckpointPhase } from './local-v4-checkpoint-policy.ts';
 import { finalizationPolicyFailure, finalizationPolicyKind, type FinalizationPhase } from './local-v4-finalization-policy.ts';
 import {verificationInputFailure,verificationInputHold,verificationInputFence,verificationInputKind,
-  type VerificationInputPhase,type VerificationInputLease,type VerificationSourceData} from './local-v4-verification-input-policy.ts';
+  type VerificationInputPhase,type VerificationInputLease,type VerificationSourceData,type SourceArtifactDescriptor} from './local-v4-verification-input-policy.ts';
 
 interface ActiveJob {
   workOrderId: string;
@@ -51,8 +51,8 @@ export interface AcceptanceOutcome {
 export interface JobDependencies {
   preflightCodex: typeof preflightCodex;
   runCodex: typeof runCodex;
-  verifyCandidate:(input:Parameters<typeof verifyCandidate>[0]&{sourceInput?:VerificationSourceData})=>ReturnType<typeof verifyCandidate>;
-  verifyWorkspaceTree:(input:Parameters<typeof verifyWorkspaceTree>[0]&{sourceInput?:VerificationSourceData})=>ReturnType<typeof verifyWorkspaceTree>;
+  verifyCandidate:(input:Parameters<typeof verifyCandidate>[0]&{sourceInput?:VerificationSourceData;sourceArtifact?:SourceArtifactDescriptor})=>ReturnType<typeof verifyCandidate>;
+  verifyWorkspaceTree:(input:Parameters<typeof verifyWorkspaceTree>[0]&{sourceInput?:VerificationSourceData;sourceArtifact?:SourceArtifactDescriptor})=>ReturnType<typeof verifyWorkspaceTree>;
   resolveCommit: typeof resolveCommit;
   createTaskWorktree: typeof createTaskWorktree;
   removeTaskWorktree: typeof removeTaskWorktree;
@@ -271,9 +271,9 @@ export class JobManager {
     input:Parameters<typeof verifyCandidate>[0]|Parameters<typeof verifyWorkspaceTree>[0],
     phaseFence:{assertCurrent:()=>void}):Promise<Awaited<ReturnType<typeof verifyCandidate>>> {
     const candidateConsumer=this.dependencies.verifyCandidate,treeConsumer=this.dependencies.verifyWorkspaceTree;
-    const invoke=(sourceInput?:VerificationSourceData)=>kind==='tree'?
-      treeConsumer({...input as Parameters<typeof verifyWorkspaceTree>[0],...(sourceInput?{sourceInput}:{})}):
-      candidateConsumer({...input as Parameters<typeof verifyCandidate>[0],...(sourceInput?{sourceInput}:{})});
+    const invoke=(sourceInput?:VerificationSourceData,sourceArtifact?:SourceArtifactDescriptor)=>kind==='tree'?
+      treeConsumer({...input as Parameters<typeof verifyWorkspaceTree>[0],...(sourceInput?{sourceInput,sourceArtifact}:{})}):
+      candidateConsumer({...input as Parameters<typeof verifyCandidate>[0],...(sourceInput?{sourceInput,sourceArtifact}:{})});
     if(!current){phaseFence.assertCurrent=()=>{};return invoke();}
     if(!phaseFence||typeof phaseFence.assertCurrent!=='function')verificationInputHold();
     const producer=this.producer!,prepare=producer.prepareVerificationInput!,close=producer.closeVerificationInput!;
@@ -285,7 +285,8 @@ export class JobManager {
       if(lease.source.runId!==run.id||lease.source.workOrderId!==run.workOrderId||
         (kind==='tree'?lease.source.tree!==(input as {tree:string}).tree||lease.source.commit!==null:
           lease.source.commit!==(input as {candidateSha:string}).candidateSha))verificationInputHold();
-      result=await invoke(lease.source);current();if(!result||!Array.isArray(result.checks))verificationInputHold();
+      if(lease.artifact&&(lease.artifact.schema!=='local-v4-source-artifact/v1'||lease.artifact.tree!==lease.source.tree||typeof lease.artifact.path!=='string'))verificationInputHold();
+      result=await invoke(lease.source,lease.artifact);current();if(!result||!Array.isArray(result.checks))verificationInputHold();
     }catch(error){failure=error;failed=true;}
     finally{
       if(lease){try{closedCurrent=await close.call(producer,run,lease,current);if(typeof closedCurrent!=='function')verificationInputHold();}catch(error){failure=error;failed=true;}}
