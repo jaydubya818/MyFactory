@@ -35,7 +35,7 @@ async function setup(t,{queueUnknown=false}={}){
  const env={FACTORY_EXTERNAL_ALPHA_INSTALLATION:JSON.stringify([ctx.config]),FACTORY_EXTERNAL_ALPHA_INSTALLATION_SHA256:digest([ctx.installation.sha256]),VERCEL_DEPLOYMENT_ID:'dpl_fixture'},a=build(ctx);
  // Admission-only synthetic identity: the deterministic provider throws before model execution.
  const makeRuntime=()=>{
-  const r=externalAlphaRuntimeComponents(runtimeDeps);
+  const r=externalAlphaRuntimeComponents({...runtimeDeps,spendPlan:syntheticAdmissionSpendPlan(a.prepare.deadline)});
   Object.defineProperty(r.control,'executionSpendPlan',{value:syntheticAdmissionSpendPlan(a.prepare.deadline),writable:false,configurable:false});
   return r;
  };

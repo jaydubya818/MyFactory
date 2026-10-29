@@ -272,7 +272,7 @@ async function runtimeFixture(t,{bindingMode='qualified',spendPlan}={}){
  const capabilityBindings=bindingMode==='missing'?undefined:bindingMode==='wrong-owner'?{[clientId]:{...capability.bindings[clientId],ownerId:'foreign-owner'}}:bindingMode==='wrong-client'?{'foreign-client':capability.bindings[clientId]}:capability.bindings;
  let destroys=0,allocations=0,sends=0;
  const c=externalAlphaRuntimeComponents({...runtimePrivateSource(ctx.installation),pool:capability.pool,capabilityBindings,queue:{send:async()=>{sends++;throw Error('MUST_NOT_DISPATCH');}},provider:{destroy:async()=>{destroys++;},allocate:async()=>{allocations++;throw Error('MUST_NOT_ALLOCATE');}},
-  installation:ctx.installation,signing,...(spendPlan?{spendPlan}:{}),sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(privateKey),signReadback:readbackSigner(privateKey),deploymentId:'dpl_fixture',hostInstallation:{projectId:'prj_fixture',teamId:'team_fixture',custodyStoreId:'store_fixture'}});
+  installation:ctx.installation,signing,spendPlan:spendPlan??syntheticAdmissionSpendPlan(new Date(Date.now()+300000).toISOString()),sourceDigest:ctx.config.source.sourceDigest,signReceipt:receiptSigner(privateKey),signReadback:readbackSigner(privateKey),deploymentId:'dpl_fixture',hostInstallation:{projectId:'prj_fixture',teamId:'team_fixture',custodyStoreId:'store_fixture'}});
  // Bind only the admission fixture dependency before intake; no model executes.
  const prepare=async options=>{
   const a=build(ctx,options);
@@ -282,6 +282,16 @@ async function runtimeFixture(t,{bindingMode='qualified',spendPlan}={}){
  };
  return{...e,ctx,c,prepare,keys,capability,effects:()=>({destroys,allocations,sends})};
 }
+
+test('authority-only fixture admission uses a distinct bounded plan without model operations',{skip},async t=>{
+ const e=await runtimeFixture(t),{a}=await e.prepare();
+ const budget=(await e.query('SELECT * FROM factory.work_spend_budgets WHERE work_id=$1',[a.prepare.workId])).rows[0];
+ assert.equal(budget.pricing_revision,'fixture-authority-only-v1');
+ assert.equal(e.c.control.executionSpendPlan.validUntil,a.prepare.deadline);
+ assert.equal(e.c.control.executionSpendPlan.model,'fixture/authority-only');
+ assert.equal((await e.query('SELECT count(*) FROM factory.work_spend_operations')).rows[0].count,'0');
+ assert.deepEqual(e.effects(),{destroys:0,allocations:0,sends:0});
+});
 
 test('real PostgreSQL Result/readback remain request/run/version bound and duplicate pending reads mint nothing',{skip},async t=>{
  const e=await runtimeFixture(t),{a,row}=await e.prepare(),challenge='a'.repeat(32);
