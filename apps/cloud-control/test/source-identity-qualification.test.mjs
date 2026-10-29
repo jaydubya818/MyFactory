@@ -34,9 +34,11 @@ import installationMismatch from '../../../docs/capability-control/source-identi
 import mixedProducer from '../../../docs/capability-control/source-identity-20261023/qa-remediation-mixed-producer-successor.json' with {type:'json'};
 import runtimeSource from '../../../docs/capability-control/source-identity-20261023/qa-remediation-runtime-source-successor.json' with {type:'json'};
 import undiciSuccessor from '../../../docs/capability-control/source-identity-20261023/qa-remediation-undici-advisory-successor.json' with {type:'json'};
-import successor from '../../../docs/capability-control/source-identity-20261025/sofie-integration-successor.json' with {type:'json'};
+import sofieIntegration from '../../../docs/capability-control/source-identity-20261025/sofie-integration-successor.json' with {type:'json'};
 
-test('inventoried source and configuration resolve to the exact qualified successor',()=>{
+import successor from '../../../docs/capability-control/source-identity-20261029/developer-beta-candidate.json' with {type:'json'};
+
+test('inventoried source and configuration bind the exact unqualified source candidate',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
  const computed=JSON.parse(execFileSync(process.execPath,['apps/cloud-control/scripts/cloud-source-identity.mjs'],{cwd:root,encoding:'utf8'}));
  assert.deepEqual(computed,source);
@@ -85,8 +87,10 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(mixedProducer.executionContractSha256,runtimeSource.predecessorExecutionContractSha256);
  assert.equal(runtimeSource.sourceDigest,undiciSuccessor.predecessorSourceDigest);
  assert.equal(runtimeSource.executionContractSha256,undiciSuccessor.predecessorExecutionContractSha256);
- assert.equal(undiciSuccessor.sourceDigest,successor.predecessorSourceDigest);
- assert.equal(undiciSuccessor.executionContractSha256,successor.predecessorExecutionContractSha256);
+ assert.equal(undiciSuccessor.sourceDigest,sofieIntegration.predecessorSourceDigest);
+ assert.equal(sofieIntegration.sourceDigest,successor.predecessorSourceDigest);
+ assert.equal(undiciSuccessor.executionContractSha256,sofieIntegration.predecessorExecutionContractSha256);
+ assert.equal(sofieIntegration.executionContractSha256,successor.predecessorExecutionContractSha256);
  assert.equal(receiverRecovery.executionContractSha256,unifiedCandidate.predecessorExecutionContractSha256);
  assert.equal(pricingSuccessor.sourceDigest,unifiedCandidate.mergedPredecessorSourceDigest);
  assert.equal(pricingSuccessor.factoryVersion,unifiedCandidate.mergedPredecessorFactoryVersion);
@@ -107,7 +111,8 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(installationMismatch.factoryVersion,mixedProducer.predecessorFactoryVersion);
  assert.equal(mixedProducer.factoryVersion,runtimeSource.predecessorFactoryVersion);
  assert.equal(runtimeSource.factoryVersion,undiciSuccessor.predecessorFactoryVersion);
- assert.equal(undiciSuccessor.factoryVersion,successor.predecessorFactoryVersion);
+ assert.equal(undiciSuccessor.factoryVersion,sofieIntegration.predecessorFactoryVersion);
+ assert.equal(sofieIntegration.factoryVersion,successor.predecessorFactoryVersion);
  assert.notEqual(receiverGrant.sourceDigest,source.sourceDigest);
  assert.notEqual(qaRemediation.sourceDigest,source.sourceDigest);
  assert.notEqual(mergedQaHead.sourceDigest,source.sourceDigest);
@@ -119,6 +124,10 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.notEqual(mixedProducer.sourceDigest,source.sourceDigest);
  assert.notEqual(runtimeSource.sourceDigest,source.sourceDigest);
  assert.equal(successor.authority,'ISOLATED_SOURCE_QUALIFICATION_ONLY');
+ assert.equal(successor.independentSourceQualification,'PENDING');
+ assert.equal(successor.releaseQualified,false);
+ assert.equal(successor.installedAuthority,'NONE');
+ assert.equal(successor.paidExecution,'NOT_AUTHORIZED');
  assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
 });
 
@@ -151,6 +160,7 @@ test('coherent historical source or contract grants cannot consume successor aut
   [mixedProducer.sourceDigest,mixedProducer.executionContractSha256,false],
   [runtimeSource.sourceDigest,runtimeSource.executionContractSha256,false],
   [undiciSuccessor.sourceDigest,undiciSuccessor.executionContractSha256,false],
+  [sofieIntegration.sourceDigest,sofieIntegration.executionContractSha256,false],
   [pricingSuccessor.sourceDigest,pricingSuccessor.executionContractSha256,false],
   [source.sourceDigest,receiverRecovery.executionContractSha256,false],
   [source.sourceDigest,pricingSuccessor.executionContractSha256,false],

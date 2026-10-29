@@ -76,8 +76,14 @@ import currentSuccessor from '../../../docs/capability-control/source-identity-2
 import {externalAlphaFactoryVersion,externalAlphaConfiguration,externalAlphaRuntimeComponents} from '../src/external-alpha-runtime.mjs';
 import {loadVectors,installationOf} from './fixtures/myeve-conformance/support.mjs';
 
+import candidateSuccessor from '../../../docs/capability-control/source-identity-20261029/developer-beta-candidate.json' with {type:'json'};
+
 test('separate successor identity preserves configuration; an old installation cannot authorize it', () => {
- assert.equal(sourceIdentity.sourceDigest,currentSuccessor.sourceDigest);
+ assert.equal(sourceIdentity.sourceDigest,candidateSuccessor.sourceDigest);
+ assert.equal(candidateSuccessor.predecessorSourceDigest,currentSuccessor.sourceDigest);
+ assert.equal(candidateSuccessor.configurationDigest,currentSuccessor.configurationDigest);
+ assert.equal(candidateSuccessor.independentSourceQualification,'PENDING');
+ assert.equal(candidateSuccessor.releaseQualified,false);
  assert.equal(predecessorSuccessor.predecessorSourceDigest,'c239cad91c6811a738dcd9baac34b7e884df79ce051ab683cf6005b86a6c890c');
  assert.equal(predecessorSuccessor.predecessorSourceDigest,runtimeSuccessor.sourceDigest);
  assert.equal(currentSuccessor.predecessorSourceDigest,'8b5f65861455f3290820cb111ad81e9f3729781e4ef00188521b7fe020776600');
