@@ -1,9 +1,11 @@
 // Actual dispatch caller with detached tiny row data and inert counted effects.
 // Synthetic observation is not native absence/guard or financial authority.
 import test from 'node:test';import assert from 'node:assert/strict';
+import {realpathSync}from'node:fs';import{tmpdir}from'node:os';
+const fixtureRepository=realpathSync(tmpdir());
 import {FactoryDispatchControl} from '../src/dispatch-control.ts';
 function fixture({transactionDrift=false}={}){
- const work={id:'public-work',repositoryPath:'/private/tmp',state:'failed'};
+ const work={id:'public-work',repositoryPath:fixtureRepository,state:'failed'};
  const run={id:'public-run',workOrderId:work.id,attemptNumber:1,inputCommit:'a'.repeat(40),workspacePath:'/unused',state:'failed',finishedAt:'2026-10-28T00:00:00Z'};
  const identity={workId:'public-canonical-work',workGeneration:1,requestId:'public-request',workOrderId:work.id,factoryVersion:'b'.repeat(64),remoteRunId:run.id};
  const events=[];const row=(type,payload={})=>events.push({id:events.length+1,runId:run.id,workOrderId:work.id,type,payload});
@@ -13,7 +15,7 @@ function fixture({transactionDrift=false}={}){
  const execution={async reconcile(){entered();await paused;return {active:false,quiescent:true,settled:true,recoveryEligible:false,evidence:{synthetic:'no-native-proof'}}}};
  const producer={snapshot:()=>({version:1,factoryVersion:identity.factoryVersion})};
  const spend={fenceAuthority(){fences++;return true},read:()=>({status:'UNKNOWN'})};
- const client={id:'public-client',actions:['factory.observe'],repositoryPaths:['/private/tmp'],tokenSha256:'c'.repeat(64)};
+ const client={id:'public-client',actions:['factory.observe'],repositoryPaths:[fixtureRepository],tokenSha256:'c'.repeat(64)};
  const control=new FactoryDispatchControl(storage,execution,producer,spend,true,undefined,false,value=>{if(revoked)throw Error('Current connection denied');return value});
  return {read:()=>control.read(client,identity.requestId),started,release:()=>release(),row,run,work,revoke:()=>revoked=true,get fences(){return fences},get writes(){return writes},get terminal(){return terminal}};
 }

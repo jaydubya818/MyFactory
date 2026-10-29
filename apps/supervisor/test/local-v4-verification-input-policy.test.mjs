@@ -1,7 +1,8 @@
 // Public tiny data and exact caller control flow only. Inert callbacks cannot
 // issue native material, an accepted C guard, financial authority or Proof.
 import test from 'node:test';import assert from 'node:assert/strict';
-import {readFileSync}from'node:fs';import{randomUUID}from'node:crypto';import ts from'typescript';
+import{tmpdir}from'node:os';
+import {readFileSync,realpathSync}from'node:fs';import{randomUUID}from'node:crypto';import ts from'typescript';
 import {selectVerificationInputPhase,verificationCheckpointKey,verificationInputFence,verificationInputHold,verificationInputFailure,verificationInputKind}from'../src/local-v4-verification-input-policy.ts';
 import {digest}from'../../../packages/hosted-routing/src/result.ts';
 import {createHash}from'node:crypto';
@@ -12,6 +13,7 @@ import {contextPolicyKind}from'../src/local-v4-context-policy.ts';
 import {requireStrictSourceOperations}from'../src/local-v4-context-policy.ts';
 import {bindLocalV4PreparationCapture,createLocalV4Preparation}from'../src/local-v4-preparation.ts';
 import {FactoryDispatchControl}from'../src/dispatch-control.ts';
+const fixtureRepository=realpathSync(tmpdir());
 const tree='1'.repeat(40),input='2'.repeat(40),candidate='3'.repeat(40),command='public-check';
 const run={id:'public-run',workOrderId:'public-work',attemptNumber:1,inputCommit:input,workspacePath:'/unused',workerProfile:'mac',startedAt:'2026-10-28T00:00:00Z',state:'implementing'};
 const work={id:run.workOrderId,state:'implementing',kind:'feature'};
@@ -95,9 +97,9 @@ for(const variant of['stable','callback throws','close throws'])test('input exac
 // Actual constructed dispatch arrow, actual current/record/bind methods, and
 // actual executePrepared handoff. Detached records/inert targets, no SQL/native.
 function canonicalAuthority(){
- const owner='public-owner',client={id:'public-client',ownerScope:owner,actions:['factory.prepare','factory.dispatch'],repositoryPaths:['/private/tmp'],tokenSha256:'a'.repeat(64)},live=structuredClone(client);
+ const owner='public-owner',client={id:'public-client',ownerScope:owner,actions:['factory.prepare','factory.dispatch'],repositoryPaths:[fixtureRepository],tokenSha256:'a'.repeat(64)},live=structuredClone(client);
  const workOrderId=randomUUID(),remoteRunId=randomUUID(),requestId=randomUUID(),workId=randomUUID(),deadline=new Date(Date.now()+600000).toISOString();
- const request={workId,workGeneration:1,requestId,repository:'public/source',deadline},order={id:workOrderId,repositoryPath:'/private/tmp'},saved={id:remoteRunId,workOrderId};
+ const request={workId,workGeneration:1,requestId,repository:'public/source',deadline},order={id:workOrderId,repositoryPath:fixtureRepository},saved={id:remoteRunId,workOrderId};
  const snapshot={factoryId:'public-fixture',factoryVersion:'b'.repeat(64),workOrderId,runId:remoteRunId,inputCommit:input,configuration:{allowedPaths:['sample.txt']}};
  const identity={runId:randomUUID(),writerGeneration:1,dispatchIdentity:randomUUID(),workId,workGeneration:1,factoryId:snapshot.factoryId,factoryVersion:snapshot.factoryVersion,requestId,workOrderId,remoteRunId,repository:request.repository,baseSha:input,allowedPaths:['sample.txt'],deadline};
  const events=[{type:'factory.prepare_requested',payload:request},{type:'run.prepared',runId:remoteRunId}],storage={getIntake:()=>({work_order_id:workOrderId}),getWorkOrder:()=>order,getRun:()=>saved,listEvents:()=>events};
