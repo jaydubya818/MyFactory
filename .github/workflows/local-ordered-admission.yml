@@ -1,0 +1,44 @@
+name: Local ordered-admission receiver source contracts
+
+# Source CI only: synthetic keys, a temporary git repository, fixture worker/verifier and loopback. No provider, deployment,
+# enrollment, custody or paid execution. The matrix reports where the local V4 profile is portable; neither leg grants authority.
+on:
+  push:
+    branches: [codex/local-ordered-admission-receiver-20261030]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-ordered-admission-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  receiver:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.18.1
+      - name: Verify exact reviewed checkout
+        run: test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Fetch the reconstruction baseline object required by producer governance
+        run: git fetch --no-tags origin 8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f || true
+      - run: node scripts/check-producer-governance.mjs
+      - run: npm run typecheck:producer
+      - name: Receiver, native revocation races and the unchanged spend boundary
+        run: node --test apps/supervisor/test/local-ordered-admission.test.mjs apps/supervisor/test/local-ordered-admission-race.test.mjs apps/supervisor/test/spend-gateway.test.mjs apps/supervisor/test/spend-review-regressions.test.mjs
+      - name: Require unchanged tracked source
+        run: git diff --exit-code HEAD
