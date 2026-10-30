@@ -1,5 +1,7 @@
 import test from 'node:test';
+import {DatabaseSync} from 'node:sqlite';
 import {profileTest} from './local-v4-profile.mjs';
+let reviewWorker;   // optional held worker for failure-injection tests
 const ptest=profileTest(test);
 import assert from 'node:assert/strict';
 import {randomUUID,generateKeyPairSync,createHash} from 'node:crypto';
@@ -36,7 +38,7 @@ async function start(t,{ordered=true,dir,repo,base,keys,factory}={}){
   writeFileSync(join(dataDir,'connections.json'),JSON.stringify({clients:[{id:'myeve',name:'Local fixture',tokenSha256:createHash('sha256').update(token).digest('hex'),repositoryPaths:[f.repo],ownerScope:scope.ownerId,actions:['factory.prepare','factory.dispatch','factory.observe','factory.stop']}]}));
   let calls=0;
   const jobDependencies={preflightCodex:async()=>({binaryAvailable:true,authenticated:true,version:'synthetic-codex-1',workerProfile:'mac',error:null}),
-    runCodex:async input=>{calls++;writeFileSync(join(input.workspacePath,'quantity.mjs'),'console.log(2);\n');return {success:true,status:'completed',threadId:'fixture',eventsPath:'fixture',usage:null};},
+    runCodex:async input=>{calls++;if(reviewWorker)return reviewWorker(input);writeFileSync(join(input.workspacePath,'quantity.mjs'),'console.log(2);\n');return {success:true,status:'completed',threadId:'fixture',eventsPath:'fixture',usage:null};},
     verifyCandidate:async input=>{mkdirSync(input.artifactDir,{recursive:true});return {checks:input.commands.map((command,i)=>{const logPath=join(input.artifactDir,i+'.log');writeFileSync(logPath,'fixture check\n');const at=new Date().toISOString();return {candidateCommit:input.candidateSha,candidateTree:execFileSync('git',['-C',f.repo,'rev-parse',input.candidateSha+'^{tree}'],{encoding:'utf8'}).trim(),command,status:'passed',exitCode:0,startedAt:at,finishedAt:at,logPath,reason:null};}),reason:null};}};
   const witnessPath=join(f.dir,'witness',`head-${randomUUID().slice(0,8)}.json`);
   const ks=keys??{myeve:await policyKey('myeve'),relay:await policyKey('relay'),signer:await policyKey(SIGNER)};
@@ -235,4 +237,43 @@ test('witness must live outside the Factory data directory',()=>{
   assertWitnessOutsideData('/tmp/x/witness/head.json','/tmp/x/data');
   assert.throws(()=>new FileReceiverWitness('relative/path','e'),/absolute/);
   assert.equal(existsSync('/nonexistent-witness'),false);
+});
+
+// Failure injection after independent finding (restore of native metadata while the worker stays active).
+ptest('lifecycle: restored native metadata cannot turn an active worker into cleanup-confirmed (positive proof from the receiver lineage is required)',{timeout:20000},async t=>{
+ const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
+ const {pair}=await admitted(t,h,request);const prep=await h.prepare(request,pair);assert.equal(prep.status,200);const s=prep.body.snapshot;
+ const db=new DatabaseSync(join(h.dataDir,'factory.sqlite'));
+ const events=db.prepare('SELECT * FROM factory_events WHERE work_order_id=? ORDER BY id').all(s.workOrderId);
+ const run=h.supervisor.storage.getRun(s.runId),work=h.supervisor.storage.getWorkOrder(s.workOrderId);
+ let enterWorker,releaseWorker;const entered=new Promise(r=>{enterWorker=r}),gate=new Promise(r=>{releaseWorker=r});
+ reviewWorker=async()=>{enterWorker();await gate;return {success:false,status:'failed',eventsPath:'synthetic',usage:null}};
+ try{
+  const identity={runId:randomUUID(),writerGeneration:1,dispatchIdentity:randomUUID(),workId:request.workId,workGeneration:1,factoryId:s.factoryId,factoryVersion:s.factoryVersion,requestId:s.requestId,workOrderId:s.workOrderId,remoteRunId:s.runId,repository:request.repository,baseSha:s.inputCommit,allowedPaths:s.configuration.allowedPaths,deadline:request.deadline};
+  assert.equal((await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,identity)).status,200);await entered;
+  assert.equal(h.supervisor.jobs.activeRun(s.runId),true);
+  // Failure injection: restore this disposable Work's metadata to its pre-dispatch snapshot while its synthetic worker is still active.
+  db.exec('BEGIN IMMEDIATE');db.prepare('DELETE FROM factory_events WHERE work_order_id=?').run(s.workOrderId);
+  const ins=db.prepare('INSERT INTO factory_events(id,work_order_id,run_id,type,payload_json,created_at) VALUES(?,?,?,?,?,?)');
+  for(const e of events)ins.run(e.id,e.work_order_id,e.run_id,e.type,e.payload_json,e.created_at);db.exec('COMMIT');
+  h.supervisor.storage.saveRun(run);h.supervisor.storage.saveWorkOrder(work);db.close();
+  const observation=await fetch(h.origin+`/api/connect/v1/dispatches/${request.requestId}`,{headers:{authorization:'Bearer '+token}});const observed={status:observation.status,body:await observation.json()};assert.equal(observed.status,200);assert.equal(observed.body.quiescent,false);
+  const envelope=await signPolicyMessage({kind:'FENCE',authority:'myeve',...scope,version:2,policyId:'myeve-policy-2',capabilityId:'myfactory',operation:'revoke'},h.keys.myeve);
+  const res=await h.post('/api/capability-admission/control',{envelope});assert.equal(res.status,200,JSON.stringify(res.body));
+  const receipt=await verifyLifecycleReceipt(res.body,h.keys.signer);
+  t.diagnostic(JSON.stringify({workerActive:h.supervisor.jobs.activeRun(s.runId),observeStatus:observed.status,nativeState:observed.body.state,nativeQuiescent:observed.body.quiescent,controlState:receipt.state,inventoryComplete:receipt.inventoryComplete}));
+  assert.notEqual(receipt.state,'CLEANUP_CONFIRMED','An active worker or unproved native lineage must not be signed as cleanup-confirmed');
+  assert.equal(receipt.state,'STOP_UNKNOWN');assert.equal(receipt.inventoryComplete,false);
+  const pause=await signPolicyMessage({kind:'FENCE',authority:'myeve',...scope,version:3,policyId:'myeve-policy-3',capabilityId:'myfactory',operation:'pause'},h.keys.myeve);
+  const again=await verifyLifecycleReceipt((await h.post('/api/capability-admission/control',{envelope:pause})).body,h.keys.signer);assert.notEqual(again.state,'PAUSE_CONFIRMED');
+ }finally{releaseWorker();reviewWorker=undefined;try{db.close()}catch{}}
+});
+
+ptest('lifecycle control: a genuinely never-dispatched Work (no dispatch authority issued) is positively clean after revoke',async t=>{
+ const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
+ const {pair}=await admitted(t,h,request);assert.equal((await h.prepare(request,pair)).status,200);
+ const envelope=await signPolicyMessage({kind:'FENCE',authority:'myeve',...scope,version:2,policyId:'myeve-policy-2',capabilityId:'myfactory',operation:'revoke'},h.keys.myeve);
+ const res=await h.post('/api/capability-admission/control',{envelope});assert.equal(res.status,200,JSON.stringify(res.body));
+ const receipt=await verifyLifecycleReceipt(res.body,h.keys.signer);
+ assert.equal(receipt.state,'CLEANUP_CONFIRMED');assert.equal(receipt.inventoryComplete,true);assert.equal(h.calls,0);
 });

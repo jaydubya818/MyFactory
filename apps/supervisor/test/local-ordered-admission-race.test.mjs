@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {randomUUID,generateKeyPairSync,createHash} from 'node:crypto';
 import {mkdtempSync,mkdirSync,writeFileSync,rmSync,copyFileSync,existsSync,realpathSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {createServer} from 'node:http';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createLocalV4Supervisor} from '../src/server.ts';
@@ -21,6 +22,8 @@ import {digest} from '../../../packages/hosted-routing/src/result.ts';
 const policyKey=async keyId=>{const p=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);return {keyId,jwk:await crypto.subtle.exportKey('jwk',p.privateKey)};};
 const scope={ownerId:'owner:fixture',organizationId:'org',installationId:'install',backendId:'backend',incarnation:'epoch',enrollmentVersion:1};
 const token='a'.repeat(64),SIGNER='receiver';
+// Synthetic resource proof: the fixture worker and verifier hold no process or container, and no Docker daemon is consulted.
+const syntheticProbe={processAbsent:()=>true,verifierAbsent:async()=>true,readiness:async()=>({ready:true,reason:null})};
 
 function repoFixture(){
   const dir=mkdtempSync(join(realpathSync(tmpdir()),'ordered-local-')),repo=join(dir,'repo');mkdirSync(repo);
@@ -45,7 +48,7 @@ async function start(t,{ordered=true,dir,repo,base,keys,factory,spend,runner}={}
   const witness=new FileReceiverWitness(witnessPath,'epoch-1');
   const orderedAdmission=ordered?{enrollment:{scope,agentId:'agent',registryVersion:'r1',clientId:'myeve',sourceKeys:{myeve:ks.myeve,relay:ks.relay},signer:ks.signer,
     factory:factory??{factoryId:key.factoryId,factoryVersion:'a'.repeat(64),sourceDigest:'b'.repeat(64),configurationDigest:'c'.repeat(64)}},witness,witnessPath}:undefined;
-  const supervisor=createLocalV4Supervisor({dataDir,resultSigning,jobDependencies,localFactoryFixture:false,localSpendFixture:{upstreamOrigin:'http://127.0.0.1:1',price:reviewPrice,...(spend??{upstreamApiKey:'synthetic'})},orderedAdmission});
+  const supervisor=createLocalV4Supervisor({dataDir,resultSigning,jobDependencies,localFactoryFixture:false,localSpendFixture:{upstreamOrigin:'http://127.0.0.1:1',price:reviewPrice,...(spend??{upstreamApiKey:'synthetic'})},localV4ResourceProbe:syntheticProbe,orderedAdmission});
   await new Promise((resolve,reject)=>{supervisor.server.once('error',reject);supervisor.server.listen(0,'127.0.0.1',resolve)});
   const origin='http://127.0.0.1:'+supervisor.server.address().port;
   const post=async(path,body,auth=token)=>{const r=await fetch(origin+path,{method:'POST',headers:{authorization:'Bearer '+auth,'content-type':'application/json'},body:JSON.stringify(body)});return {status:r.status,body:await r.json()};};
@@ -116,7 +119,7 @@ ptest('race: an already-issued child token cannot send a provider request after 
  assert.throws(()=>binding.assertCurrentConnection(),e=>e.code==='capability_policy_restricted');   // the active connection check sees the pause too
  releaseAuth();const res=await child;
  assert.equal(res.status,409);assert.equal(upstream,0);                // denied before reserve: no provider request, no ledger exposure
- const spend=h.supervisor.spend?.read?.(request.workId);if(spend)assert.equal(spend.operations.length,0);
+ const spend=(await (await fetch(h.origin+'/api/connect/v1/dispatches/'+request.requestId,{headers:{authorization:'Bearer '+token}})).json()).spend;assert.equal(spend.operations.length,0);
  await binding.close();
 });
 
@@ -140,4 +143,30 @@ test('race: revocation after markDispatched sends nothing and retains unknown ex
  const trace=[],upstream={n:0};let revoked=false;
  const res=await gatewayCall(fakeLedger(trace,{onDispatched:()=>{revoked=true;}}),()=>{if(revoked)throw Error('revoked');},upstream);
  assert.equal(res.status,503);assert.equal(upstream.n,0);assert.deepEqual(trace,['reserve','markDispatched','release','unknown']);
+});
+
+
+// Real disposable HTTP endpoint behind the dispatch-built gateway (production gateway, ledger and ordered authority; only the worker process is
+// replaced). This is gateway/accounting evidence only: it does not qualify productive LOCAL_V4 execution, and the realProvider guards are unchanged.
+async function disposableUpstream(t){
+ const seen={calls:0,keys:[]};
+ const server=createServer((req,res)=>{seen.calls++;seen.keys.push(req.headers.authorization);req.resume();
+  res.writeHead(200,{'content-type':'application/json','x-request-id':'disposable-'+seen.calls});res.end(JSON.stringify({id:'r'+seen.calls,status:'completed',usage:{input_tokens:10,output_tokens:10}}));});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>server.close(r)));
+ return {seen,origin:'http://127.0.0.1:'+server.address().port};
+}
+ptest('gateway: an admitted dispatch settles one disposable-endpoint call with the host key only; a later acknowledged pause denies the next call before the endpoint',{timeout:30000},async t=>{
+ const up=await disposableUpstream(t);let binding;const original=LocalExecutionProvider.prototype.start;
+ LocalExecutionProvider.prototype.start=async function(work,run,claim,gateway){binding=gateway;return claim();};t.after(()=>{LocalExecutionProvider.prototype.start=original;});
+ const {h,request,s}=await prepared(t,{twoProductive:true,spend:{upstreamOrigin:up.origin,upstreamApiKey:'disposable-key'}});
+ const dispatch=await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,dispatchIdentity(request,s));assert.equal(dispatch.status,200,JSON.stringify(dispatch.body));
+ const call=()=>fetch(binding.baseUrl+'/responses',{method:'POST',headers:{authorization:'Bearer '+binding.childToken,'content-type':'application/json'},body:JSON.stringify({model:reviewPrice.model,input:'synthetic coding step'})});
+ const first=await call();assert.equal(first.status,200);assert.equal(up.seen.calls,1);
+ assert.deepEqual(up.seen.keys,['Bearer disposable-key']);assert.ok(!up.seen.keys.includes('Bearer '+binding.childToken));   // the child token never reaches the endpoint
+ const observe=async()=>(await (await fetch(h.origin+'/api/connect/v1/dispatches/'+request.requestId,{headers:{authorization:'Bearer '+token}})).json()).spend;
+ const ledger=await observe();assert.equal(ledger.operations.length,1);assert.equal(ledger.settledMicrousd,20);
+ assert.equal((await pauseMyfactory(h)).status,200);
+ const second=await call();assert.equal(second.status,409);assert.equal(up.seen.calls,1);                                      // denied before reserve
+ const after=await observe();assert.equal(after.operations.length,1);assert.equal(after.settledMicrousd,20);
+ await binding.close();
 });

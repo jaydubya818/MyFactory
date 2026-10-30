@@ -370,6 +370,11 @@ export class LocalOrderedAdmission {
     const outcome = ofKind(state, 'outcome').find(r => r.key === requestId);
     if (!ofKind(state, 'plan').some(r => r.key === requestId) || (outcome?.payload as any)?.outcome !== 'ADMITTED') deny('ordered_admission_required');
     if (this.restricted(state)) deny('capability_policy_restricted');
+    // Durable, witness-protected proof that dispatch authority was issued for this request. It is committed before the native claim and
+    // lives in the receiver lineage, so restoring native metadata cannot erase the fact that a worker may have been allocated.
+    if (!ofKind(state, 'dispatch').some(r => r.key === requestId)) {
+      try { this.commit([{ kind: 'dispatch', key: requestId, payload: { authorizedAt: this.now() } }]); } catch { deny('ordered_admission_unavailable'); }
+    }
   }
 
   /** Verifies a MyEve/Relay FENCE envelope against the enrolled keys and scope and builds its signed acknowledgement. */
@@ -425,7 +430,10 @@ export class LocalOrderedAdmission {
           let rb: any = await this.o.control.read(this.o.client(), requestId);
           if (m.operation === 'revoke' && !rb.quiescent && rb.identity && ['RUNNING', 'STOPPING', 'UNKNOWN'].includes(rb.state))
             rb = await this.o.control.stop(this.o.client(), rb.identity);
-          const unclaimed = rb.state === 'PREPARED';                       // never dispatched: dispatch is denied by the fence, nothing allocated
+          // Clean only with positive proof: a quiescent native terminal, or a PREPARED Work for which the receiver never issued dispatch
+          // authority (its own witness-protected log, which survives native metadata restore). A state label alone proves nothing.
+          const dispatchIssued = ofKind(this.state(), 'dispatch').some(r => r.key === requestId);
+          const unclaimed = rb.state === 'PREPARED' && !dispatchIssued && rb.quiescent !== true;
           const clean = rb.quiescent === true || unclaimed;
           item = { requestId, state: String(rb.state), quiescent: rb.quiescent === true, clean,
             active: !clean && ['RUNNING', 'STOPPING'].includes(rb.state), unknown: !clean && !['RUNNING', 'STOPPING'].includes(rb.state) };
