@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {profileTest} from './local-v4-profile.mjs';
+const ptest=profileTest(test);
 import {SpendGateway} from '../src/spend-gateway.ts';
 const reviewPrice={revision:'synthetic',model:'openai/gpt-5.5',validUntil:'2099-01-01T00:00:00Z',contextLimitTokens:1000,outputLimitTokens:100,inputMicrousdPerMillion:1000000,outputMicrousdPerMillion:1000000};
 import assert from 'node:assert/strict';
@@ -89,7 +91,7 @@ async function prepared(t,opts){
   return {h,request,s:response.body.snapshot};
 }
 
-test('race: an acknowledged pause while gateway setup is held cannot commit the native dispatch claim',{timeout:30000},async t=>{
+ptest('race: an acknowledged pause while gateway setup is held cannot commit the native dispatch claim',{timeout:30000},async t=>{
  const {h,request,s}=await prepared(t);
  let release,entered;const waiting=new Promise(r=>{entered=r}),gate=new Promise(r=>{release=r}),original=SpendGateway.prototype.listen;
  SpendGateway.prototype.listen=async function(){entered();await gate;return original.call(this)};t.after(()=>{SpendGateway.prototype.listen=original;release()});
@@ -100,7 +102,7 @@ test('race: an acknowledged pause while gateway setup is held cannot commit the 
  assert.equal(h.supervisor.storage.listEvents(s.workOrderId).filter(e=>e.type==='factory.dispatch_claimed').length,0);
  await new Promise(r=>setTimeout(r,200));assert.equal(h.calls,0);
 });
-test('race: an already-issued child token cannot send a provider request after an acknowledged pause (held pre-send authorization)',{timeout:30000},async t=>{
+ptest('race: an already-issued child token cannot send a provider request after an acknowledged pause (held pre-send authorization)',{timeout:30000},async t=>{
  let upstream=0,enteredAuth,releaseAuth;const authEntered=new Promise(r=>{enteredAuth=r}),authGate=new Promise(r=>{releaseAuth=r});t.after(()=>releaseAuth());
  // The gateway binding is the one the real FactoryDispatchControl builds; only the worker process is replaced (it is not needed to exercise the child-token boundary).
  let binding;const original=LocalExecutionProvider.prototype.start;

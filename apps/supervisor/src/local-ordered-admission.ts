@@ -7,6 +7,7 @@ import {
   admissionActionDigest, policyMessageHash, signPolicyMessage, verifyPolicyMessage,
   type PolicyKey, type SignedPolicyMessage,
 } from '../../../packages/capability-enforcement/src/ordering-wire.ts';
+import { signLifecycleReceipt } from '../../../packages/capability-enforcement/src/lifecycle-wire.ts';
 import { signFactoryPreparationTerminal } from '../../../packages/capability-enforcement/src/factory-preparation-terminal.ts';
 import { ActionError } from './actions.ts';
 import { issueOrderedAuthority, type OrderedAuthority } from './capability-admission.ts';
@@ -203,15 +204,17 @@ export class LocalOrderedAdmission {
   }
   /** pause/revoke controls on the capabilities this Factory executes under; any one blocks new admission and dispatch. */
   private restricted(state: State): boolean {
-    const fence = this.latestFence(state, 'myeve');
-    if (!fence) return false;
-    for (const row of ofKind(state, 'fence')) {
-      const m = (row.payload as any).message;
-      if (m.authority !== 'myeve') continue;
-      const controls = [...(m.controls ?? []), ...(['pause', 'revoke'].includes(m.operation) ? [{ capabilityId: m.capabilityId, operation: m.operation }] : [])];
-      if (controls.some((c: any) => ['work', 'myfactory'].includes(c.capabilityId) && ['pause', 'revoke'].includes(c.operation))) return true;
+    // The latest control per capability wins (a later enable resumes a pause); a revoke is sticky until re-enrollment.
+    const latest = new Map<string, string>();
+    const fences = ofKind(state, 'fence').map(r => (r.payload as any).message).filter((m: any) => m.authority === 'myeve').sort((a: any, b: any) => a.version - b.version);
+    for (const m of fences) {
+      for (const c of [...(m.controls ?? []), { capabilityId: m.capabilityId, operation: m.operation }]) {
+        if (!['work', 'myfactory'].includes(c.capabilityId) || !['pause', 'revoke', 'enable'].includes(c.operation)) continue;
+        if (latest.get(c.capabilityId) === 'revoke') continue;
+        latest.set(c.capabilityId, c.operation);
+      }
     }
-    return false;
+    return [...latest.values()].some(op => op === 'pause' || op === 'revoke');
   }
   private assertScope(message: Record<string, unknown>) {
     if (scopeKeys.some(k => message[k] !== this.enrollment.scope[k])) fail('FACTORY_POLICY_SCOPE');
@@ -369,7 +372,8 @@ export class LocalOrderedAdmission {
     if (this.restricted(state)) deny('capability_policy_restricted');
   }
 
-  async receiveFence(envelope: SignedPolicyMessage) {
+  /** Verifies a MyEve/Relay FENCE envelope against the enrolled keys and scope and builds its signed acknowledgement. */
+  private async verifyFence(envelope: SignedPolicyMessage) {
     const parsed = JSON.parse((envelope as any)?.message ?? 'null') as any;
     const key = this.enrollment.sourceKeys[parsed?.authority as 'myeve' | 'relay'];
     if (!key) fail('FACTORY_POLICY_SCOPE', 403);
@@ -379,15 +383,73 @@ export class LocalOrderedAdmission {
     const hash = await policyMessageHash(message);
     const ack = await signPolicyMessage({ ...Object.fromEntries(scopeKeys.map(k => [k, message[k]])), authority: message.authority,
       version: message.version, policyId: message.policyId, kind: 'FENCE_ACK', fenceHash: hash } as any, this.enrollment.signer);
+    return { message, envelope, hash, ack };
+  }
+  /** Must run inside `serial`. A repeated fence returns its stored acknowledgement; an unknown older version is stale. */
+  private admitFence(v: { message: any; envelope: SignedPolicyMessage; hash: string; ack: unknown }, allowSuperseded = false, state = this.state()) {
+    const { message, envelope, hash, ack } = v;
+    const stored = ofKind(state, 'fence').find(r => r.key === `${message.authority}:${message.version}`);
+    if (stored) {
+      if ((stored.payload as any).hash !== hash) fail('FACTORY_POLICY_CONFLICT', 409);
+      const newest = this.latestFence(state, message.authority);
+      if (!allowSuperseded && newest && message.version < newest.message.version) fail('FACTORY_POLICY_STALE', 409);
+      return { ack: (stored.payload as any).ack, state };
+    }
+    const latest = this.latestFence(state, message.authority);
+    if (latest && message.version < latest.message.version) fail('FACTORY_POLICY_STALE', 409);
+    return { ack, state: this.commit([{ kind: 'fence', key: `${message.authority}:${message.version}`, payload: { message, envelope, hash, ack } }]) };
+  }
+  async receiveFence(envelope: SignedPolicyMessage) {
+    const verified = await this.verifyFence(envelope);
+    return this.serial(async () => this.admitFence(verified).ack);
+  }
+
+  /**
+   * Signed lifecycle observation for a MyEve pause/revoke delivery (`POST {envelope}` -> SignedLifecycleReceipt). The delivery is
+   * authenticated by its own signature and exact enrolled scope; it commits the fence if new (an older, already-recorded control may
+   * be redelivered after a newer one), inventories every admitted Work through the existing native readback, and for revoke asks the
+   * existing control to stop active runs. It never marks anything clean it cannot prove: unreadable or UNKNOWN Work reports
+   * STOP_UNKNOWN with an incomplete inventory, and accounting is preserved by the existing ledger.
+   */
+  async lifecycle(envelope: SignedPolicyMessage) {
+    const verified = await this.verifyFence(envelope), m = verified.message;
+    if (m.authority !== 'myeve' || !['pause', 'revoke'].includes(m.operation)) fail('FACTORY_POLICY_KIND', 400);
     return this.serial(async () => {
-      const state = this.state(), latest = this.latestFence(state, message.authority);
-      if (latest && message.version < latest.message.version) fail('FACTORY_POLICY_STALE', 409);
-      if (latest && message.version === latest.message.version) {
-        if (latest.hash !== hash) fail('FACTORY_POLICY_CONFLICT', 409);
-        return latest.ack;
+      const { state } = this.admitFence(verified, true);
+      const admitted = ofKind(state, 'plan').filter(plan => (ofKind(state, 'outcome').find(r => r.key === plan.key)?.payload as any)?.outcome === 'ADMITTED')
+        .map(plan => plan.key).sort();
+      const items: { requestId: string; state: string; quiescent: boolean; clean: boolean; active: boolean; unknown: boolean }[] = [];
+      for (const requestId of admitted) {
+        let item = { requestId, state: 'UNREADABLE', quiescent: false, clean: false, active: false, unknown: true };
+        try {
+          let rb: any = await this.o.control.read(this.o.client(), requestId);
+          if (m.operation === 'revoke' && !rb.quiescent && rb.identity && ['RUNNING', 'STOPPING', 'UNKNOWN'].includes(rb.state))
+            rb = await this.o.control.stop(this.o.client(), rb.identity);
+          const unclaimed = rb.state === 'PREPARED';                       // never dispatched: dispatch is denied by the fence, nothing allocated
+          const clean = rb.quiescent === true || unclaimed;
+          item = { requestId, state: String(rb.state), quiescent: rb.quiescent === true, clean,
+            active: !clean && ['RUNNING', 'STOPPING'].includes(rb.state), unknown: !clean && !['RUNNING', 'STOPPING'].includes(rb.state) };
+        } catch { /* unreadable stays UNKNOWN */ }
+        items.push(item);
       }
-      this.commit([{ kind: 'fence', key: `${message.authority}:${message.version}`, payload: { message, envelope, hash, ack } }]);
-      return ack;
+      const inventory = items.map(i => ({ requestId: i.requestId, state: i.state, quiescent: i.quiescent }));
+      const complete = items.every(i => i.state !== 'UNREADABLE');
+      const lifecycleState = items.some(i => i.unknown) ? 'STOP_UNKNOWN'
+        : items.every(i => i.clean) ? (m.operation === 'pause' ? 'PAUSE_CONFIRMED' : 'CLEANUP_CONFIRMED')
+        : (m.operation === 'pause' ? 'PENDING_BACKEND' : 'AUTHORITY_FENCED');
+      const evidenceDigest = digest({ fence: verified.hash, inventory }), inventoryDigest = digest(inventory);
+      const prefix = `${m.authority}:${m.version}:`;
+      const prior = ofKind(state, 'lifecycle').filter(r => r.key.startsWith(prefix)).sort((a, b) => (a.payload as any).receipt.sequence - (b.payload as any).receipt.sequence).at(-1)?.payload as any;
+      const body = { schema: 'capability-control.lifecycle.v1', kind: 'CONTROL_ACK', authority: 'myeve', ...Object.fromEntries(scopeKeys.map(k => [k, m[k]])),
+        version: m.version, policyId: m.policyId, capabilityId: m.capabilityId, operation: m.operation, state: lifecycleState, evidenceDigest, inventoryDigest,
+        inventoryComplete: complete && !(lifecycleState === 'STOP_UNKNOWN') };
+      if (prior && prior.receipt.state === body.state && prior.receipt.evidenceDigest === evidenceDigest && prior.receipt.inventoryDigest === inventoryDigest) return prior.envelope;
+      const sequence = (prior?.receipt.sequence ?? 0) + 1, observedAt = Math.max(this.now(), prior?.receipt.observedAt ?? 0);
+      const receipt = { ...body, sequence, observedAt } as any;
+      // Field order is fixed by the wire parser; sign through the shared encoder.
+      const signed = await signLifecycleReceipt(receipt, this.enrollment.signer);
+      this.commit([{ kind: 'lifecycle', key: `${prefix}${sequence}`, payload: { receipt: JSON.parse(signed.message), envelope: signed } }]);
+      return signed;
     });
   }
 }

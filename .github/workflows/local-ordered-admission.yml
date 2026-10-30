@@ -1,7 +1,9 @@
 name: Local ordered-admission receiver source contracts
 
 # Source CI only: synthetic keys, a temporary git repository, fixture worker/verifier and loopback. No provider, deployment,
-# enrollment, custody or paid execution. The matrix reports where the local V4 profile is portable; neither leg grants authority.
+# enrollment, custody or paid execution. Hosted runners do not provide the pinned local V4 preparation profile (darwin/arm64, Node 24.18.1,
+# Homebrew git 2.48.1), so tests that drive real preparation are reported as explicit skips there and are exercised on the pinned profile
+# (recorded in the release manifest). The pin is not relaxed. Neither leg grants authority.
 on:
   push:
     branches: [codex/local-ordered-admission-receiver-20261030]
@@ -38,7 +40,7 @@ jobs:
         run: git fetch --no-tags origin 8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f || true
       - run: node scripts/check-producer-governance.mjs
       - run: npm run typecheck:producer
-      - name: Receiver, native revocation races and the unchanged spend boundary
+      - name: Portable receiver, revocation-race and spend-boundary contracts (preparation-driven tests skip off the pinned profile)
         run: node --test apps/supervisor/test/local-ordered-admission.test.mjs apps/supervisor/test/local-ordered-admission-race.test.mjs apps/supervisor/test/spend-gateway.test.mjs apps/supervisor/test/spend-review-regressions.test.mjs
       - name: Require unchanged tracked source
         run: git diff --exit-code HEAD

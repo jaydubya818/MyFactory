@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {profileTest} from './local-v4-profile.mjs';
+const ptest=profileTest(test);
 import assert from 'node:assert/strict';
 import {randomUUID,generateKeyPairSync,createHash} from 'node:crypto';
 import {mkdtempSync,mkdirSync,writeFileSync,rmSync,copyFileSync,existsSync,realpathSync} from 'node:fs';
@@ -11,6 +13,7 @@ import {FileReceiverWitness,assertWitnessOutsideData} from '../src/local-ordered
 import {admissionActionDigest,signPolicyMessage,verifyPolicyMessage,policyMessageHash} from '../../../packages/capability-enforcement/src/ordering-wire.ts';
 import {verifyFactoryPreparationTerminal} from '../../../packages/capability-enforcement/src/factory-preparation-terminal.ts';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
+import {verifyLifecycleReceipt} from '../../../packages/capability-enforcement/src/lifecycle-wire.ts';
 
 // Synthetic only: throwaway keys, a temporary git repository, fixture worker/verifier, loopback. No network, provider or spend.
 const policyKey=async keyId=>{const p=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);return {keyId,jwk:await crypto.subtle.exportKey('jwk',p.privateKey)};};
@@ -81,7 +84,7 @@ test('not enrolled: the receiver does not exist (unchanged 404), and ordinary pr
   assert.equal((await h.readback(requestFor(h.repo,h.base))).status,404);
   assert.equal((await h.challenge(requestFor(h.repo,h.base))).status,404);
 });
-test('enrolled: signed fences, challenge, pair, prepare and PREPARED readback; the pair is single use and replays never prepare twice',async t=>{
+ptest('enrolled: signed fences, challenge, pair, prepare and PREPARED readback; the pair is single use and replays never prepare twice',async t=>{
   const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
   assert.equal((await h.readback(request)).status,404);                                         // never seen
   assert.equal((await h.challenge(request)).status,503);                                        // no myeve policy fence yet: FACTORY_POLICY_UNAVAILABLE
@@ -102,7 +105,7 @@ test('enrolled: signed fences, challenge, pair, prepare and PREPARED readback; t
   const reuse=await h.prepare(second,await permits(h,ch2.body));assert.notEqual(reuse.status,200);
   assert.equal(h.supervisor.storage.listWorkOrders().length,1);
 });
-test('enrolled: ordinary preparation is refused, and dispatch requires an ADMITTED ordered outcome and then runs exactly once',async t=>{
+ptest('enrolled: ordinary preparation is refused, and dispatch requires an ADMITTED ordered outcome and then runs exactly once',async t=>{
   const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
   const direct=await h.post('/api/connect/v1/dispatches',request);assert.equal(direct.status,403);assert.equal(h.supervisor.storage.listWorkOrders().length,0);
   const {pair}=await admitted(t,h,request);const prepared=(await h.prepare(request,pair)).body;
@@ -112,7 +115,7 @@ test('enrolled: ordinary preparation is refused, and dispatch requires an ADMITT
   for(let i=0;i<200&&h.calls<1;i++)await new Promise(r=>setTimeout(r,25));
   assert.equal(h.calls,1);
 });
-test('enrolled: stale, foreign, mis-budgeted or mismatched pairs consume nothing and prepare nothing',async t=>{
+ptest('enrolled: stale, foreign, mis-budgeted or mismatched pairs consume nothing and prepare nothing',async t=>{
   const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
   const {ch}=await admitted(t,h,request);
   const wrong=await h.prepare(request,await permits(h,ch,{budget:2_000_000}));assert.notEqual(wrong.status,200);
@@ -124,7 +127,7 @@ test('enrolled: stale, foreign, mis-budgeted or mismatched pairs consume nothing
   assert.equal(h.supervisor.storage.listWorkOrders().length,0);
   assert.equal((await h.prepare(request,good)).status,200);                                      // none of the refusals consumed the pair
 });
-test('enrolled: a pause/revoke fence blocks new challenges and dispatch; stale and conflicting fences are refused',async t=>{
+ptest('enrolled: a pause/revoke fence blocks new challenges and dispatch; stale and conflicting fences are refused',async t=>{
   const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
   const {pair}=await admitted(t,h,request);const prepared=(await h.prepare(request,pair)).body,s=prepared.snapshot;
   const identity={runId:randomUUID(),writerGeneration:1,dispatchIdentity:randomUUID(),workId:request.workId,workGeneration:1,factoryId:s.factoryId,factoryVersion:s.factoryVersion,requestId:s.requestId,workOrderId:s.workOrderId,remoteRunId:s.runId,repository:request.repository,baseSha:s.inputCommit,allowedPaths:s.configuration.allowedPaths,deadline:request.deadline};
@@ -138,7 +141,7 @@ test('enrolled: a pause/revoke fence blocks new challenges and dispatch; stale a
   const foreign=await signPolicyMessage({kind:'FENCE',authority:'myeve',...scope,ownerId:'owner:other',version:3,policyId:'x',capabilityId:'work',operation:'enable'},h.keys.myeve);
   assert.notEqual((await h.cap('fence',{schema:'factory-capability-fence/v1',envelope:foreign})).status,200);
 });
-test('native failure before intake is DEFINITELY_NOT_ADMITTED; ambiguous failure is ADMISSION_UNCERTAIN; both are signed terminals, never retried, and never dispatchable',async t=>{
+ptest('native failure before intake is DEFINITELY_NOT_ADMITTED; ambiguous failure is ADMISSION_UNCERTAIN; both are signed terminals, never retried, and never dispatchable',async t=>{
   const id=await factoryIdentity(t),h=await start(t,{...id}),original=FactoryDispatchControl.prototype.prepareAdmitted;
   t.after(()=>{FactoryDispatchControl.prototype.prepareAdmitted=original;});
   for(const [name,error,expected,reason] of [['validation',Object.assign(new Error('x'),{code:'invalid_input',status:400,name:'ActionError'}),null,null],['ambiguous',new Error('socket reset'),'ADMISSION_UNCERTAIN','RESTORE_OR_COMMIT_AMBIGUITY']]){
@@ -157,7 +160,7 @@ test('native failure before intake is DEFINITELY_NOT_ADMITTED; ambiguous failure
     assert.notEqual((await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,identity)).status,200);
   }
 });
-test('restore fence: a restored receiver database or missing witness fails closed and cannot replay a consumed pair',async t=>{
+ptest('restore fence: a restored receiver database or missing witness fails closed and cannot replay a consumed pair',async t=>{
   const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
   assert.equal((await fence(h,'myeve',1)).status,200);assert.equal((await fence(h,'relay',1)).status,200);
   const dbPath=join(h.dataDir,'capability-receiver.sqlite');
@@ -176,7 +179,7 @@ test('restore fence: a restored receiver database or missing witness fails close
   assert.equal(await call('prepare',{schema:'factory-capability-admission-prepare/v1',request,missionId:'mission',capabilityPermits:pair}),503);
   assert.equal(restored.storage.listWorkOrders().length,1);                                       // nothing new was prepared
 });
-test('restart control: an unrestored receiver database keeps the admitted outcome and serves the same readback',async t=>{
+ptest('restart control: an unrestored receiver database keeps the admitted outcome and serves the same readback',async t=>{
   const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
   const {pair}=await admitted(t,h,request);const first=await h.prepare(request,pair);assert.equal(first.status,200);
   await h.supervisor.close();
@@ -185,6 +188,47 @@ test('restart control: an unrestored receiver database keeps the admitted outcom
   await new Promise(r=>again.server.listen(0,'127.0.0.1',r));t.after(async()=>{try{await again.close();}catch{}});
   const r=await fetch('http://127.0.0.1:'+again.server.address().port+'/api/capability-admission/readback',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({schema:'factory-capability-admission-readback/v1',request,missionId:'mission'})});
   assert.equal(r.status,200);assert.equal((await r.json()).runId,first.body.runId);
+});
+// MyEve's lifecycle delivery: unauthenticated transport, authenticated by the signed envelope; returns a signed lifecycle receipt.
+async function control(h,authority,version,{operation='pause',capabilityId='myfactory',key}={}){
+  const envelope=await signPolicyMessage({kind:'FENCE',authority,...scope,version,policyId:`${authority}-policy-${version}`,capabilityId,operation},key??h.keys[authority]);
+  const r=await fetch(h.origin+'/api/capability-admission/control',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({envelope})});
+  return {status:r.status,body:await r.json()};
+}
+ptest('lifecycle: pause delivery is authenticated by signature, inventories admitted Work and reports a signed, idempotent receipt',async t=>{
+  const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
+  const {pair}=await admitted(t,h,request);assert.equal((await h.prepare(request,pair)).status,200);
+  const forged=await control(h,'myeve',2,{key:await policyKey('myeve')});assert.notEqual(forged.status,200);            // wrong key
+  assert.equal((await control(h,'myeve',2,{operation:'enable'})).status,400);                                            // only pause/revoke are lifecycle controls
+  const first=await control(h,'myeve',2);assert.equal(first.status,200,JSON.stringify(first.body));
+  const receipt=await verifyLifecycleReceipt(first.body,h.keys.signer);
+  assert.equal(receipt.operation,'pause');assert.equal(receipt.state,'PAUSE_CONFIRMED');assert.equal(receipt.inventoryComplete,true);assert.equal(receipt.version,2);assert.equal(receipt.sequence,1);
+  assert.equal(receipt.backendId,scope.backendId);assert.equal(receipt.incarnation,scope.incarnation);
+  const again=await control(h,'myeve',2);assert.deepEqual(again.body,first.body);                                         // unchanged state: same sequence and bytes
+  assert.equal((await h.challenge(requestFor(h.repo,h.base))).status,503);                                              // the pause also restricts new admission
+});
+ptest('lifecycle: revoke of completed Work is cleanup-confirmed; an older control may be redelivered after a newer one; revoke is sticky',async t=>{
+  const id=await factoryIdentity(t),h=await start(t,{...id}),request=requestFor(h.repo,h.base);
+  const {pair}=await admitted(t,h,request);const prepared=(await h.prepare(request,pair)).body;
+  const s=prepared.snapshot,identity={runId:randomUUID(),writerGeneration:1,dispatchIdentity:randomUUID(),workId:request.workId,workGeneration:1,factoryId:s.factoryId,factoryVersion:s.factoryVersion,requestId:s.requestId,workOrderId:s.workOrderId,remoteRunId:s.runId,repository:request.repository,baseSha:s.inputCommit,allowedPaths:s.configuration.allowedPaths,deadline:request.deadline};
+  assert.equal((await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,identity)).status,200);
+  for(let i=0;i<200&&h.calls<1;i++)await new Promise(r=>setTimeout(r,25));
+  const pause=await control(h,'myeve',2);assert.equal(pause.status,200);
+  const revoke=await control(h,'myeve',3,{operation:'revoke',capabilityId:'work'});assert.equal(revoke.status,200,JSON.stringify(revoke.body));
+  const r=await verifyLifecycleReceipt(revoke.body,h.keys.signer);assert.equal(r.operation,'revoke');assert.ok(['CLEANUP_CONFIRMED','AUTHORITY_FENCED'].includes(r.state));
+  const old=await control(h,'myeve',2);assert.equal(old.status,200);                                                      // exact earlier control still resolvable
+  assert.equal((await verifyLifecycleReceipt(old.body,h.keys.signer)).version,2);
+  assert.equal((await control(h,'myeve',1)).status,409);                                                                  // never-recorded older version is stale
+  assert.equal((await fence(h,'myeve',4,{operation:'enable',capabilityId:'work'})).status,200);
+  assert.equal((await h.challenge(requestFor(h.repo,h.base))).status,503);                                                // revoke is sticky until re-enrollment
+});
+ptest('lifecycle: a later enable resumes a pause (latest control per capability wins)',async t=>{
+  const id=await factoryIdentity(t),h=await start(t,{...id});
+  assert.equal((await fence(h,'myeve',1)).status,200);assert.equal((await fence(h,'relay',1)).status,200);
+  assert.equal((await fence(h,'myeve',2,{operation:'pause',capabilityId:'myfactory'})).status,200);
+  assert.equal((await h.challenge(requestFor(h.repo,h.base))).status,503);
+  assert.equal((await fence(h,'myeve',3,{operation:'enable',capabilityId:'myfactory'})).status,200);
+  assert.equal((await h.challenge(requestFor(h.repo,h.base))).status,200);
 });
 test('witness must live outside the Factory data directory',()=>{
   assert.throws(()=>assertWitnessOutsideData('/tmp/x/data/witness.json','/tmp/x/data'),/outside/);

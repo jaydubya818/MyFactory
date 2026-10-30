@@ -460,6 +460,18 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
       if (pathname.startsWith("/api/capability-admission/")) {
         // Not enrolled == no receiver (unchanged 404). Enrolled: only the enrolled connection, only POST, exact bodies.
         if (!ordered) return json(response, 404, { error: 'Not found' });
+        if (pathname === '/api/capability-admission/control') {
+          // MyEve's lifecycle delivery carries no bearer token: it is authenticated by its own signature, exact scope and enrolled key.
+          if (request.method !== 'POST') return json(response, 405, { error: 'Method not allowed' });
+          try {
+            const input = await requestBody(request) as any;
+            if (Object.keys(input ?? {}).sort().join(',') !== 'envelope') return json(response, 400, { error: 'INVALID_REQUEST' });
+            return json(response, 200, await ordered.lifecycle(input.envelope));
+          } catch (error) {
+            const status = error instanceof ActionError ? error.status : 503;
+            return json(response, status >= 400 && status < 600 ? status : 503, { error: 'CAPABILITY_UNAVAILABLE' });
+          }
+        }
         const client = authenticateClient(request, readClients(connectionsPath));
         if (client.id !== ordered.clientId || request.method !== 'POST') return json(response, 403, { error: 'Enrolled connection required' });
         const fresh = currentConnection(client);
