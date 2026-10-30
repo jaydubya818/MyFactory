@@ -19,7 +19,10 @@ import { HostedIntake } from "./hosted-intake.ts";
 import { authenticateClient, authorizeClientAction, canAccessRepository, readClients, refreshClient, type FactoryClient } from "./connections.ts";
 import { LocalExecutionProvider, type LocalResourceProbe } from './local-execution-provider.ts';
 import { runCodex } from '../../../packages/agents/src/index.ts';
-import { verifyCandidate } from '../../../packages/verification/src/index.ts';
+import { verifyCandidate, verifyLeasedCandidate, verifyLeasedTree } from '../../../packages/verification/src/index.ts';
+import { createCodexAdapter } from '../../../packages/agents/src/index.ts';
+import { validatePrice } from './spend-gateway.ts';
+import type { ProviderConnection } from './provider-connection.ts';
 import { FactoryDispatchControl } from "./dispatch-control.ts";
 import { LocalOrderedAdmission, assertWitnessOutsideData, type LocalOrderedEnrollment, type ReceiverWitness } from "./local-ordered-admission.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
@@ -225,17 +228,42 @@ export interface LocalV4SupervisorOptions extends Omit<SupervisorOptions, 'resul
   dataDir: string;
   resultSigning: Omit<ProducerOptions, 'sessionMetadata'>;
   /** Explicit synthetic fixture resources only; never live or environment supplied. */
-  localV4ResourceProbe?: LocalResourceProbe;
+  localV4ResourceProbe?: LocalResourceProbe;  /**
+   * Host-only bounded productive binding for the ordered LOCAL_V4 supervisor: the real Codex worker (host-pinned absolute executable) is
+   * routed through the metered Work gateway to the host-held provider connection, and completion is verified by the leased real Docker
+   * verifier. Requires the ordered receiver and the real resource probe; refuses fixtures, overridden dependencies, parallelism and
+   * checkpoint retention. Never read from HTTP or the environment. `realProvider` remains refused in LOCAL_V4.
+   */
+  productiveBinding?: ProductiveBinding;
 }
+export interface ProductiveBinding { provider: ProviderConnection; codexExecutable: string; workerProfile?: 'mac' | 'container' }
+const PRODUCTIVE_ORIGINS = [/^http:\/\/127\.0\.0\.1:\d{1,5}$/, /^https:\/\/api\.openai\.com$/];
+function validateProductiveBinding(options: LocalV4SupervisorOptions): ProductiveBinding {
+  const p = options.productiveBinding as ProductiveBinding;
+  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['provider', 'codexExecutable', 'workerProfile'].includes(k)) ||
+      !p.provider || typeof p.codexExecutable !== 'string' || !isAbsolute(p.codexExecutable) || p.codexExecutable.includes('\0') ||
+      !PRODUCTIVE_ORIGINS.some(pattern => pattern.test(p.provider.upstreamOrigin)))
+    throw new Error('Productive binding is not qualified');
+  if (!options.orderedAdmission || options.localFactoryFixture || options.localSpendFixture || options.jobDependencies || options.localV4ResourceProbe ||
+      options.maxParallelRuns !== undefined && options.maxParallelRuns !== 1 || options.retainCheckpoints || options.startRun || options.cancelRun ||
+      options.publishDraft || options.confirmHumanPresence)
+    throw new Error('Productive binding requires the ordered receiver and cannot use fixtures or overridden authority');
+  validatePrice(p.provider.price);
+  if (typeof p.provider.upstreamApiKey !== 'string' && typeof p.provider.authorize !== 'function') throw new Error('Productive binding requires a host-held provider identity');
+  return p;
+}
+
 
 /** Trusted host composition only. No CLI, environment or HTTP protocol selector. */
 export function createLocalV4Supervisor(options: LocalV4SupervisorOptions) {
   if (!options?.resultSigning || typeof options.dataDir !== 'string' || !isAbsolute(options.dataDir) || resolve(options.dataDir) !== options.dataDir)
     throw new Error('Explicit local V4 data directory and signing options required');
-  return createSupervisorInternal(options, 'LOCAL_V4');
+  const productive = options.productiveBinding === undefined ? undefined : validateProductiveBinding(options);
+  return createSupervisorInternal({ ...options, productive } as SupervisorOptions & { localV4ResourceProbe?: LocalResourceProbe; productive?: ProductiveBinding }, 'LOCAL_V4');
 }
 
-function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceProbe?: LocalResourceProbe}, resultMode: 'LEGACY' | 'LOCAL_V4') {
+function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceProbe?: LocalResourceProbe; productive?: ProductiveBinding}, resultMode: 'LEGACY' | 'LOCAL_V4') {
+  if (options.productive && (resultMode !== 'LOCAL_V4' || options.realProvider)) throw new Error('Productive binding is not qualified');
   if (resultMode === 'LOCAL_V4' && options.realProvider)
     throw new Error('Local V4 service is not qualified for live provider execution');
   if (resultMode === 'LOCAL_V4' && options.jobDependencies &&
@@ -256,7 +284,8 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
       throw new Error('Factory model differs from the pinned private-alpha provider');
   }
   const dataDir = resolve(options.dataDir ?? process.env.FACTORY_DATA_DIR ?? defaultDataDir);
-  const localPreparation = resultMode === 'LOCAL_V4' ? createLocalV4Preparation(dataDir) : undefined;
+  // Productive verification consumes the owned read-only source artifact; fixture and ordinary modes keep in-memory leases only.
+  const localPreparation = resultMode === 'LOCAL_V4' ? createLocalV4Preparation(dataDir, { sourceArtifacts: !!options.productive }) : undefined;
   const signing = options.resultSigning ?? producerOptions(dataDir);
   if(options.realProvider&&!signing)throw new Error('Private-alpha result signing must be provisioned before activation');
   const realProvider=options.realProvider?loadRealProvider(options.realProvider):undefined;
@@ -303,17 +332,22 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
     throw new Error('Parallel execution is deferred until live Factory Version qualification');
   if(options.retainCheckpoints&&(!options.localFactoryFixture&&!options.localSpendFixture||realProvider))
     throw new Error('Checkpoint export is deferred outside explicit fixture qualification');
-  const jobDependencies = localPreparation ? { ...options.jobDependencies, ...localPreparation } : options.jobDependencies;
+  const productive = options.productive;
+  const codexAdapter = productive ? createCodexAdapter(productive.codexExecutable, productive.workerProfile ?? 'mac') : undefined;
+  const productiveDependencies = codexAdapter ? { runCodex: codexAdapter.runCodex, preflightCodex: codexAdapter.preflightCodex,
+    verifyCandidate: verifyLeasedCandidate, verifyWorkspaceTree: verifyLeasedTree } : undefined;
+  const jobDependencies = localPreparation ? { ...options.jobDependencies, ...productiveDependencies, ...localPreparation } : options.jobDependencies;
   const fixtureDependencies=!!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate;
   const trustedFixtureVerification=resultMode==='LOCAL_V4'&&!realProvider&&
     (options.localFactoryFixture===true||!!options.localSpendFixture)&&fixtureDependencies;
-  const jobs = new JobManager(storage, dataDir, notify, jobDependencies, producer,realProvider?.price.model,parallel,options.retainCheckpoints??false,trustedFixtureVerification);
+  const jobs = new JobManager(storage, dataDir, notify, jobDependencies, producer,realProvider?.price.model??productive?.provider.price.model,parallel,options.retainCheckpoints??false,trustedFixtureVerification,
+    codexAdapter ? { worker: codexAdapter.runCodex } : undefined);
   if(options.localFactoryFixture&&options.localSpendFixture)throw new Error('Fixture modes are mutually exclusive');
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
   if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
     throw new Error('Local spend fixture must target loopback only');
   const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer,options.localV4ResourceProbe),producer,spend,
-    options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture,!!realProvider,currentConnection):null;
+    options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture??productive?.provider,!!realProvider||!!productive,currentConnection):null;
   if (options.orderedAdmission && (resultMode !== 'LOCAL_V4' || !dispatchControl || options.realProvider))
     throw new Error('Local ordered admission requires the unqualified-for-live local V4 supervisor with producer signing');
   if (options.orderedAdmission?.witnessPath) assertWitnessOutsideData(options.orderedAdmission.witnessPath, dataDir);

@@ -40,7 +40,10 @@ jobs:
         run: git fetch --no-tags origin 8f5e3774129b5f9f4b1c9655ffbbb531cd20fa0f || true
       - run: node scripts/check-producer-governance.mjs
       - run: npm run typecheck:producer
+      - name: Pull the pinned verification image (Linux runners only; the leased-source Docker tests skip where it is absent)
+        if: runner.os == 'Linux'
+        run: docker pull node:22-bookworm
       - name: Portable receiver, revocation-race and spend-boundary contracts (preparation-driven tests skip off the pinned profile)
-        run: node --test apps/supervisor/test/local-ordered-admission.test.mjs apps/supervisor/test/local-ordered-admission-race.test.mjs apps/supervisor/test/spend-gateway.test.mjs apps/supervisor/test/spend-review-regressions.test.mjs
+        run: node --test apps/supervisor/test/local-ordered-admission.test.mjs apps/supervisor/test/local-ordered-admission-race.test.mjs apps/supervisor/test/local-ordered-admission-productive.test.mjs packages/verification/test/leased-source.test.mjs apps/supervisor/test/spend-gateway.test.mjs apps/supervisor/test/spend-review-regressions.test.mjs
       - name: Require unchanged tracked source
         run: git diff --exit-code HEAD

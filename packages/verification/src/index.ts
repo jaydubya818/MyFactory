@@ -7,6 +7,7 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   readlinkSync,
   readdirSync,
   realpathSync,
@@ -371,7 +372,48 @@ export async function verifyCandidate(input: VerificationInput): Promise<Verific
 export async function verifyWorkspaceTree(input: Omit<VerificationInput,'candidateSha'> & {tree:string}): Promise<VerificationResult> {
   return verifySource({...input,candidateSha:input.tree}, true);
 }
-async function verifySource(input: VerificationInput, treeOnly: boolean): Promise<VerificationResult> {
+/** Host-leased source (LOCAL_V4): owned read-only bytes produced by the producer, never the worker's repository. */
+export interface LeasedSourceInput {
+  sourceInput?: { schema: string; runId: string; workOrderId: string; kind: string; commit: string | null; tree: string; files: Readonly<Record<string, string>> };
+  sourceArtifact?: { schema: string; path: string; tree: string; manifestSha256: string };
+}
+type Lease = { tree: string; commit: string | null; path: string };
+function leaseFor(input: VerificationInput & LeasedSourceInput, treeOnly: boolean): Lease {
+  const source = input.sourceInput, artifact = input.sourceArtifact;
+  // No silent fallback to the repository: a leased verifier without a complete, matching lease refuses.
+  if (!source || !artifact || source.schema !== "local-v4-fixture-source/v1" || artifact.schema !== "local-v4-source-artifact/v1" ||
+    source.tree !== artifact.tree || !/^[0-9a-f]{40}$|^[0-9a-f]{64}$/.test(source.tree) || !isAbsolute(artifact.path) ||
+    artifact.path.includes(",") || input.commands.includes("git diff --check")) throw new TypeError("A complete leased source is required");
+  const wanted = input.candidateSha.toLowerCase();
+  if (treeOnly ? source.commit !== null || source.tree !== wanted : source.commit !== wanted) throw new TypeError("Leased source does not match the requested candidate");
+  const real = realpathSync(artifact.path), stat = lstatSync(real);
+  if (real !== artifact.path || !stat.isDirectory() || stat.isSymbolicLink() || (stat.mode & 0o222) !== 0 || stat.uid !== process.getuid!()) throw new TypeError("Leased source directory is not an owned read-only directory");
+  // Byte-exact comparison of the whole directory against the leased files before anything runs on it.
+  const seen = new Set<string>();
+  const walk = (dir: string, prefix: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = prefix ? `${prefix}/${entry.name}` : entry.name, absolute = join(dir, entry.name), entryStat = lstatSync(absolute);
+      if (entryStat.isSymbolicLink() || entryStat.uid !== process.getuid!() || (entryStat.mode & 0o222) !== 0) throw new TypeError("Leased source entry is not an owned read-only entry");
+      if (entryStat.isDirectory()) walk(absolute, path);
+      else if (entryStat.isFile() && entryStat.nlink === 1) {
+        if (!Object.hasOwn(source.files, path) || !readFileSync(absolute).equals(Buffer.from(source.files[path]))) throw new TypeError("Leased source bytes differ");
+        seen.add(path);
+      } else throw new TypeError("Leased source contains an unsupported entry");
+    }
+  };
+  walk(real, "");
+  if (seen.size !== Object.keys(source.files).length) throw new TypeError("Leased source file set differs");
+  return { tree: source.tree, commit: source.commit, path: real };
+}
+/** Real Docker verification of the host-leased source artifact (mounted read-only into the existing no-network container). */
+export async function verifyLeasedCandidate(input: VerificationInput & LeasedSourceInput): Promise<VerificationResult> {
+  return verifySource(input, false, leaseFor(input, false));
+}
+export async function verifyLeasedTree(input: Omit<VerificationInput, "candidateSha"> & LeasedSourceInput & { tree: string }): Promise<VerificationResult> {
+  const full = { ...input, candidateSha: input.tree };
+  return verifySource(full, true, leaseFor(full, true));
+}
+async function verifySource(input: VerificationInput, treeOnly: boolean, lease?: Lease): Promise<VerificationResult> {
   if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(input.candidateSha)) {
     throw new TypeError("candidateSha must be a full Git commit SHA");
   }
@@ -401,10 +443,12 @@ async function verifySource(input: VerificationInput, treeOnly: boolean): Promis
   }
   const evidenceDir = realpathSync(mkdtempSync(join(resolve(input.artifactDir), "verification-")));
   const temporaryDir = mkdtempSync(join(evidenceDir, ".candidate-"));
-  const exportDir = join(temporaryDir, "export");
+  const exportDir = lease ? lease.path : join(temporaryDir, "export");
   const archivePath = join(temporaryDir, "candidate.tar");
-  mkdirSync(exportDir, { mode: 0o755 });
-  chmodSync(exportDir, 0o755);
+  if (!lease) {
+    mkdirSync(exportDir, { mode: 0o755 });
+    chmodSync(exportDir, 0o755);
+  }
   const result: VerificationResult = {
     candidateCommit: input.candidateSha.toLowerCase(),
     candidateTree: null,
@@ -418,6 +462,12 @@ async function verifySource(input: VerificationInput, treeOnly: boolean): Promis
 
   try {
     try {
+      if (lease) {
+        result.candidateTree = lease.tree;
+        if (input.signal?.aborted) throw new Error("Verification cancelled");
+        result.exportStatus = "ready";
+        persistManifest(result);
+      } else {
       const repositoryPath = realpathSync(input.repositoryPath);
       const resolved = (await runTool("git", ["-C", repositoryPath, "rev-parse", "--verify", `${result.candidateCommit}^{${treeOnly ? "tree" : "commit"}}`], 30_000, input.signal))
         .toString("utf8").trim();
@@ -437,6 +487,7 @@ async function verifySource(input: VerificationInput, treeOnly: boolean): Promis
       if (exportDir.includes(",")) throw new Error("Export path contains a comma unsupported by Docker --mount");
       result.exportStatus = "ready";
       persistManifest(result);
+      }
     } catch (error) {
       result.reason = `Candidate export unavailable: ${error instanceof Error ? error.message : String(error)}`;
       input.commands.forEach((command, index) => {

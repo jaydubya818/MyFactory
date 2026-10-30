@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { preflightCodex, runCodex } from "../../../packages/agents/src/index.ts";
 import type { FactoryEvent, Run, RunState, WorkOrder, WorkOrderState } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
-import { verifyCandidate, verifyWorkspaceTree } from "../../../packages/verification/src/index.ts";
+import { verifyCandidate, verifyWorkspaceTree, verifyLeasedCandidate, verifyLeasedTree } from "../../../packages/verification/src/index.ts";
 import { evaluateEvidence, evidencePolicyFor, proofEvidenceReference, storeEvidence, type EvidenceBinding } from "../../../packages/verification/src/evidence.ts";
 import { collectBrowserEvidence } from "../../../packages/verification/src/browser-evidence.ts";
 import { isTrustedCandidatePreview, type CandidatePreview } from "../../../packages/verification/src/candidate-preview.ts";
@@ -106,6 +106,8 @@ export class JobManager {
   private readonly producer: ServiceProducer | undefined;
   private readonly pinnedModel: string | undefined;
   private readonly trustedFixtureVerification:boolean;
+  /** Host-qualified productive mode: exactly this worker with the leased real verifier. Fixture and real-function refusals elsewhere are unchanged. */
+  private readonly qualifiedProductive?: { worker: JobDependencies['runCodex'] };
 
   constructor(
     storage: FactoryStorage,
@@ -117,6 +119,7 @@ export class JobManager {
     maxParallelRuns = 1,
     retainCheckpoints = false,
     trustedFixtureVerification=false,
+    qualifiedProductive?: { worker: JobDependencies['runCodex'] },
   ) {
     if (!Number.isSafeInteger(maxParallelRuns) || maxParallelRuns < 1 || maxParallelRuns > 4)
       throw new Error("Parallel Run limit must be an integer from 1 to 4");
@@ -127,6 +130,7 @@ export class JobManager {
       throw new Error("Checkpoint continuation is currently synthetic-local qualified only");
     this.retainCheckpoints = retainCheckpoints;
     this.trustedFixtureVerification=trustedFixtureVerification===true;
+    this.qualifiedProductive=qualifiedProductive;
     this.storage = storage;
     this.dataDir = dataDir;
     this.notify = notify;
@@ -207,11 +211,19 @@ export class JobManager {
     } catch (error) { throw contextPolicyKind(error) ? error : finalizationPolicyFailure(error); }
   }
 
+  /** The real Codex worker: the default adapter or the single host-qualified productive adapter. Both emit native process events. */
+  #realWorker():boolean {return this.dependencies.runCodex===runCodex||(!!this.qualifiedProductive&&this.dependencies.runCodex===this.qualifiedProductive.worker);}
+
   #verificationControl(run:Run,active:ActiveJob,controller:AbortController,connected:(()=>void)|null):(()=>void)|null {
     if(!connected)return null;
     const producer=this.producer,authority=active.assertCurrentConnection,gateway=active.gateway;
     const worker=this.dependencies.runCodex,candidate=this.dependencies.verifyCandidate,tree=this.dependencies.verifyWorkspaceTree;
-    if(!this.trustedFixtureVerification||worker===runCodex||candidate===verifyCandidate||tree===verifyWorkspaceTree||
+    const qualified=this.qualifiedProductive,
+      qualifiedOk=!!qualified&&!this.trustedFixtureVerification&&typeof qualified.worker==='function'&&worker===qualified.worker&&worker!==runCodex&&
+        candidate===verifyLeasedCandidate&&tree===verifyLeasedTree,
+      fixtureOk=this.trustedFixtureVerification&&!qualified&&worker!==runCodex&&candidate!==verifyCandidate&&tree!==verifyWorkspaceTree&&
+        candidate!==verifyLeasedCandidate&&tree!==verifyLeasedTree;
+    if(!(qualifiedOk||fixtureOk)||
       typeof worker!=='function'||typeof candidate!=='function'||typeof tree!=='function'||!producer||
       typeof authority!=='function'||gateway?.assertCurrentConnection!==authority)verificationInputHold();
     const ready=producer.assertVerificationInputReady,prepare=producer.prepareVerificationInput,close=producer.closeVerificationInput;
@@ -700,7 +712,7 @@ export class JobManager {
         }
       }
 
-      if (!active.gateway && this.dependencies.runCodex === runCodex) {
+      if (!active.gateway && this.#realWorker()) {
         run = this.#transition(run, "failed", "awaiting_environment", "run.spend_unqualified", {
           reason: "Paid Codex execution requires an exact Work spend gateway; paid execution is disabled",
         }, { failure: "Paid execution is disabled until Work spend qualification" });
@@ -802,7 +814,7 @@ export class JobManager {
         if (strictCheckpoint) this.#checkpointActive(run, active, controller);
         // Model claims and tool stdout do not confer completion authority.
         const processEvent=this.storage.listEvents(workOrder.id).filter(event=>event.runId===run.id&&event.type==='agent.process_started').at(-1);
-        if(this.dependencies.runCodex===runCodex || productiveYield){
+        if(this.#realWorker() || productiveYield){
           const pid=processEvent?.payload.pid;
           if(typeof pid!=='number')throw Error('Productive process identity missing');
           for(let n=0;n<20&&!processGroupAbsent(pid);n++)await new Promise(resolve=>setTimeout(resolve,100));
@@ -816,7 +828,7 @@ export class JobManager {
               currentSnapshot.sourceDigest !== snapshot.sourceDigest || currentSnapshot.configurationDigest !== snapshot.configurationDigest) throw checkpointPolicyFailure(null);
           settlement = this.#event(workOrder.id, run.id, 'run.implementation_settled', {
             checkpointVersion: 1, productiveStep, agentResultEventId: agentResult.id,
-            ...checkpointIdentity(run, currentSnapshot), provenance: this.dependencies.runCodex === runCodex || productiveYield
+            ...checkpointIdentity(run, currentSnapshot), provenance: this.#realWorker() || productiveYield
               ? 'EXISTING_NATIVE_GUARD_RETURNED' : 'TRUSTED_IN_PROCESS_CALLBACK_RETURNED',
           });
         }
@@ -897,7 +909,7 @@ export class JobManager {
           currentConnection();
           this.#finalizationActive(run, active, controller);
           let completionProcessEventId: number | null = null;
-          if (this.dependencies.runCodex === runCodex) {
+          if (this.#realWorker()) {
             const processes = this.storage.listEvents(workOrder.id).filter(event => event.runId === run.id && event.type === 'agent.completion_process_started');
             const processEvent = processes[0], pid = processEvent?.payload.pid;
             if (processes.length !== 1 || !processEvent || !(completionStarted.id < processEvent.id && processEvent.id < completionResult.id) ||
@@ -919,7 +931,7 @@ export class JobManager {
           const finalized = this.#event(workOrder.id, run.id, 'run.finalization_settled', {
             finalizationVersion:1,...completionLinks,completionResultEventId:completionResult.id,expectedTree:checkedTree,
             ...checkpointIdentity(run,currentSnapshot),completionProcessEventId,
-            provenance:this.dependencies.runCodex===runCodex?'EXISTING_COMPLETION_NATIVE_GUARD_RETURNED':'TRUSTED_IN_PROCESS_COMPLETION_RETURNED',
+            provenance:this.#realWorker()?'EXISTING_COMPLETION_NATIVE_GUARD_RETURNED':'TRUSTED_IN_PROCESS_COMPLETION_RETURNED',
           });
           finalizationPhase = {kind:'FINALIZE',...completionLinks,completionResultEventId:completionResult.id,
             settlementEventId:finalized.id,expectedTree:checkedTree};
