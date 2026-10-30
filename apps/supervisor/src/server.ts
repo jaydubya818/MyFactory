@@ -236,12 +236,17 @@ export interface LocalV4SupervisorOptions extends Omit<SupervisorOptions, 'resul
    */
   productiveBinding?: ProductiveBinding;
 }
-export interface ProductiveBinding { provider: ProviderConnection; codexExecutable: string; workerProfile?: 'mac' | 'container' }
+export interface ProductiveBinding {
+  provider: ProviderConnection; codexExecutable: string; workerProfile?: 'mac' | 'container';
+  /** Immutable local image ID. Selects the source-bound finite browser resource profile; never supplied by HTTP or environment. */
+  verificationImage?: string;
+}
 const PRODUCTIVE_ORIGINS = [/^http:\/\/127\.0\.0\.1:\d{1,5}$/, /^https:\/\/api\.openai\.com$/];
 function validateProductiveBinding(options: LocalV4SupervisorOptions): ProductiveBinding {
   const p = options.productiveBinding as ProductiveBinding;
-  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['provider', 'codexExecutable', 'workerProfile'].includes(k)) ||
+  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['provider', 'codexExecutable', 'workerProfile', 'verificationImage'].includes(k)) ||
       !p.provider || typeof p.codexExecutable !== 'string' || !isAbsolute(p.codexExecutable) || p.codexExecutable.includes('\0') ||
+      p.verificationImage !== undefined && (typeof p.verificationImage !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(p.verificationImage)) ||
       !PRODUCTIVE_ORIGINS.some(pattern => pattern.test(p.provider.upstreamOrigin)))
     throw new Error('Productive binding is not qualified');
   if (!options.orderedAdmission || options.localFactoryFixture || options.localSpendFixture || options.jobDependencies || options.localV4ResourceProbe ||
@@ -326,7 +331,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   };
   const legacyProducer = resultMode === 'LEGACY' && signing ? new ProducerResults(storage, dataDir, signing) : undefined;
   const producer: ServiceProducer | undefined = resultMode === 'LOCAL_V4' && signing
-    ? bindLocalV4PreparationCapture(localPreparation!, new LocalV4ServiceProducer(storage, dataDir, signing)) : legacyProducer;
+    ? bindLocalV4PreparationCapture(localPreparation!, new LocalV4ServiceProducer(storage, dataDir, signing, options.productive?.verificationImage)) : legacyProducer;
   const parallel = options.maxParallelRuns ?? 1;
   if (parallel !== 1 && (!options.localFactoryFixture && !options.localSpendFixture || realProvider))
     throw new Error('Parallel execution is deferred until live Factory Version qualification');

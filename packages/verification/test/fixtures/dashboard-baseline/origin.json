@@ -1,0 +1,97 @@
+{
+  "repository": "jaydubya818/myeve-beta-dashboard",
+  "commit": "d1619cc870ad63e4442e078e73dad377dfb3ccf6",
+  "tree": "396f4b7240ef2aaccc79e73f1d2757f9d322f69f",
+  "files": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha": "b5fde7fa4ebb13da94129072f1b18d5e35932fa0",
+      "size": 944,
+      "mode": "100644"
+    },
+    {
+      "path": ".gitignore",
+      "sha": "803b1c9efd3c4eaee1e99854e3933df56bdda944",
+      "size": 123,
+      "mode": "100644"
+    },
+    {
+      "path": "README.md",
+      "sha": "f68593404842570f81bfabe2f554e33bd7ddf78e",
+      "size": 1143,
+      "mode": "100644"
+    },
+    {
+      "path": "docs/proposed-acceptance.md",
+      "sha": "230ba623aeab32b89cca1b57d16c5d632f37d81b",
+      "size": 4004,
+      "mode": "100644"
+    },
+    {
+      "path": "index.html",
+      "sha": "84f8d5d1cd77a82fa4b51c0ed2ea4e990288cd9b",
+      "size": 467,
+      "mode": "100644"
+    },
+    {
+      "path": "package-lock.json",
+      "sha": "7e8f059a3c0e15485cd52a881075f027ea2c96d0",
+      "size": 43172,
+      "mode": "100644"
+    },
+    {
+      "path": "package.json",
+      "sha": "7178056558774fca0c7826ae6e6bce263d3e9417",
+      "size": 755,
+      "mode": "100644"
+    },
+    {
+      "path": "playwright.config.ts",
+      "sha": "0251e38e6557dd7cfd4e03bbfc31d81c2ff6acc3",
+      "size": 644,
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/describe-build.mjs",
+      "sha": "7f39fc90bffe19c464cc70acfaeef0e190c01631",
+      "size": 1816,
+      "mode": "100644"
+    },
+    {
+      "path": "src/App.tsx",
+      "sha": "521a8fba9e3c4a117c0253fe7911f417aef689e8",
+      "size": 687,
+      "mode": "100644"
+    },
+    {
+      "path": "src/main.tsx",
+      "sha": "25c7a63079a208fd30c817f4f0912c90e0e7a385",
+      "size": 306,
+      "mode": "100644"
+    },
+    {
+      "path": "src/styles.css",
+      "sha": "d1f4feabfe360a78cbb5e23c8aa6f0718d4027c2",
+      "size": 978,
+      "mode": "100644"
+    },
+    {
+      "path": "test/baseline.spec.ts",
+      "sha": "860933be39f5c70e12ed3a7db21691c6224f2d69",
+      "size": 1239,
+      "mode": "100644"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha": "8ae5e900de01e5b2f68ff45d8d81aa88a23e02f9",
+      "size": 453,
+      "mode": "100644"
+    },
+    {
+      "path": "vite.config.ts",
+      "sha": "56f7628070385d4d234e42cf0ac9fe0f1fecc3ad",
+      "size": 133,
+      "mode": "100644"
+    }
+  ]
+}

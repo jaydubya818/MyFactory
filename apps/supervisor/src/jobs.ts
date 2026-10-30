@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { preflightCodex, runCodex } from "../../../packages/agents/src/index.ts";
 import type { FactoryEvent, Run, RunState, WorkOrder, WorkOrderState } from "../../../packages/contracts/src/index.ts";
 import type { FactoryStorage } from "../../../packages/storage/src/index.ts";
-import { verifyCandidate, verifyWorkspaceTree, verifyLeasedCandidate, verifyLeasedTree } from "../../../packages/verification/src/index.ts";
+import { verifyCandidate, verifyWorkspaceTree, verifyLeasedCandidate, verifyLeasedTree, PINNED_BROWSER_VERIFICATION_LIMITS } from "../../../packages/verification/src/index.ts";
 import { evaluateEvidence, evidencePolicyFor, proofEvidenceReference, storeEvidence, type EvidenceBinding } from "../../../packages/verification/src/evidence.ts";
 import { collectBrowserEvidence } from "../../../packages/verification/src/browser-evidence.ts";
 import { isTrustedCandidatePreview, type CandidatePreview } from "../../../packages/verification/src/candidate-preview.ts";
@@ -283,9 +283,13 @@ export class JobManager {
     input:Parameters<typeof verifyCandidate>[0]|Parameters<typeof verifyWorkspaceTree>[0],
     phaseFence:{assertCurrent:()=>void}):Promise<Awaited<ReturnType<typeof verifyCandidate>>> {
     const candidateConsumer=this.dependencies.verifyCandidate,treeConsumer=this.dependencies.verifyWorkspaceTree;
+    // An explicit immutable productive image selects the fixed browser profile. The image is in the signed configuration;
+    // this mapping and its finite limits are in the signed source digest. Legacy/default images retain their original limits.
+    const profile = this.qualifiedProductive && /^sha256:[a-f0-9]{64}$/.test(input.image ?? '')
+      ? { limits: PINNED_BROWSER_VERIFICATION_LIMITS } : {};
     const invoke=(sourceInput?:VerificationSourceData,sourceArtifact?:SourceArtifactDescriptor)=>kind==='tree'?
-      treeConsumer({...input as Parameters<typeof verifyWorkspaceTree>[0],...(sourceInput?{sourceInput,sourceArtifact}:{})}):
-      candidateConsumer({...input as Parameters<typeof verifyCandidate>[0],...(sourceInput?{sourceInput,sourceArtifact}:{})});
+      treeConsumer({...input as Parameters<typeof verifyWorkspaceTree>[0],...profile,...(sourceInput?{sourceInput,sourceArtifact}:{})}):
+      candidateConsumer({...input as Parameters<typeof verifyCandidate>[0],...profile,...(sourceInput?{sourceInput,sourceArtifact}:{})});
     if(!current){phaseFence.assertCurrent=()=>{};return invoke();}
     if(!phaseFence||typeof phaseFence.assertCurrent!=='function')verificationInputHold();
     const producer=this.producer!,prepare=producer.prepareVerificationInput!,close=producer.closeVerificationInput!;

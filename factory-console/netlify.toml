@@ -1,4 +1,6 @@
 [build]
+# Source qualification branch only. Netlify exit 0 cancels this branch's build.
+ignore = "test \"$BRANCH\" = codex/qdev-20261030-dashboard-profile"
 command = "export DATABASE_URL=\"${NETLIFY_DATABASE_URL:-$DATABASE_URL}\" && NITRO_PRESET=netlify pnpm build && if [ \"${CONTEXT:-}\" = \"production\" ]; then pnpm migrate:production; fi"
 publish = "dist"
 functions = ".netlify/functions-internal"

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+playwright-report/
+test-results/
+build-evidence.json
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+.DS_Store

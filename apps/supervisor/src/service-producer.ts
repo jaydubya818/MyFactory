@@ -34,8 +34,8 @@ export interface ServiceProducer {
 export class LocalV4ServiceProducer implements ServiceProducer {
   private readonly producer: LocalProducerResultsV4;
 
-  constructor(storage: FactoryStorage, dataDir: string, options: Omit<ProducerOptions, 'sessionMetadata'>) {
-    this.producer = new LocalProducerResultsV4(storage, dataDir, options);
+  constructor(storage: FactoryStorage, dataDir: string, options: Omit<ProducerOptions, 'sessionMetadata'>, verificationImage?: string) {
+    this.producer = new LocalProducerResultsV4(storage, dataDir, options, verificationImage);
   }
 
   capture(work: WorkOrder, run: Run, model: string, executorVersion: string): LocalExecutionSnapshotV4 {

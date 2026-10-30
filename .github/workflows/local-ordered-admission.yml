@@ -6,7 +6,7 @@ name: Local ordered-admission receiver source contracts
 # (recorded in the release manifest). The pin is not relaxed. Neither leg grants authority.
 on:
   push:
-    branches: [codex/local-ordered-admission-receiver-20261030]
+    branches: [codex/local-ordered-admission-receiver-20261030, codex/qdev-20261030-dashboard-profile]
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.18.1
+      - name: Build the pinned dashboard dependency image (public registries only)
+        run: node scripts/verification/dashboard/build.mjs
+      - name: Real baseline build/browser checks and failure injection under denied network and read-only source
+        run: |
+          export QDEV_DASHBOARD_VERIFICATION_IMAGE="$(docker image inspect qdev-dashboard-profile:20261030 --format '{{.Id}}')"
+          node --test packages/verification/test/dashboard-profile.test.mjs
+      - name: Require unchanged tracked source
+        run: git diff --exit-code HEAD
   receiver:
     strategy:
       fail-fast: false

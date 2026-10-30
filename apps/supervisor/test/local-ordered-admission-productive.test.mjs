@@ -107,9 +107,10 @@ async function startProductive(t,{factory,dir,repo,base,keys,up,provider,codex,e
 }
 // Discovery: an enrolled placeholder identity makes the native snapshot an ambiguous (never dispatchable) outcome, but the snapshot itself
 // is the real productive configuration identity the production enrollment must pin.
-async function productiveIdentity(t,up){
-  const h=await startProductive(t,{up}),request=requestFor(h.repo,h.base);
+async function productiveIdentity(t,up,extra,checkCommands){
+  const h=await startProductive(t,{up,extra}),request=requestFor(h.repo,h.base);
   request.spendContract={...request.spendContract,maxPaidOperations:3,plannedProductiveOperations:2};
+  if(checkCommands) request.input.checkCommands=checkCommands;
   const {pair}=await admitted(t,h,request);await h.prepare(request,pair);
   const snap=h.supervisor.storage.listEvents(h.supervisor.storage.listWorkOrders()[0].id).find(e=>e.type==='run.execution_snapshot').payload;
   const s=snap.snapshot??snap;
@@ -133,6 +134,8 @@ test('productive binding is host-only, ordered-only and refuses every unqualifie
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,codexExecutable:'codex'}}),/not qualified/);          // PATH lookup
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,provider:{...provider,upstreamOrigin:'https://example.com'}}}),/not qualified/);
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,extra:1}}),/not qualified/);
+  for (const verificationImage of ['node:24-bookworm', 'node@sha256:bad', 'sha256:'+'a'.repeat(63), null, 24])
+    assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,verificationImage}}),/not qualified/);
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:base,localFactoryFixture:true}),/cannot use fixtures/);
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:base,localSpendFixture:{upstreamOrigin:up.origin,upstreamApiKey:'k',price:reviewPrice}}),/cannot use fixtures/);
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:base,jobDependencies:{runCodex:async()=>({})}}),/cannot use fixtures/);
@@ -142,10 +145,17 @@ test('productive binding is host-only, ordered-only and refuses every unqualifie
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,provider:{...provider,price:{...reviewPrice,validUntil:'2001-01-01T00:00:00Z'}}}}),/./);
 });
 ptest('productive: admitted dispatch runs the host-pinned worker through the metered gateway, verifies the leased source in Docker and completes with exact accounting',{timeout:180000},async t=>{
-  const up=await disposableUpstream(t),id=await productiveIdentity(t,up),h=await startProductive(t,{...id,up}),request=requestFor(h.repo,h.base);
+  const image=execFileSync('docker',['image','inspect','node:22-bookworm','--format','{{.Id}}'],{encoding:'utf8'}).trim();
+  const extra={verificationImage:image};
+  const checkCommands=['node quantity.mjs', `node -e "const fs=require('node:fs');if(fs.readFileSync('/sys/fs/cgroup/pids.max','utf8').trim()!=='192'||fs.readFileSync('/sys/fs/cgroup/memory.max','utf8').trim()!=='1073741824')process.exit(9)"`];
+  const up=await disposableUpstream(t),id=await productiveIdentity(t,up,extra,checkCommands),h=await startProductive(t,{...id,up,extra}),request=requestFor(h.repo,h.base);
+  request.input.checkCommands=checkCommands;
   request.spendContract={...request.spendContract,maxPaidOperations:3,plannedProductiveOperations:2};   // the first request is outside the implementation-progress capacity gate
   const {pair}=await admitted(t,h,request),prep=await h.prepare(request,pair);assert.equal(prep.status,200,JSON.stringify(prep.body));
-  const s=prep.body.snapshot,dispatch=await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,dispatchIdentity(request,s));assert.equal(dispatch.status,200,JSON.stringify(dispatch.body));
+  const s=prep.body.snapshot;
+  assert.equal(s.configuration.verificationImage,image);
+  assert.equal(s.configurationDigest,digest(s.configuration));
+  const dispatch=await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,dispatchIdentity(request,s));assert.equal(dispatch.status,200,JSON.stringify(dispatch.body));
   const done=await quiescent(h,request);
   assert.equal(done.state,'COMPLETED',JSON.stringify({state:done.state,blocker:done.blocker,events:h.supervisor.storage.listEvents(s.workOrderId).filter(e=>/hold|decision|failed|stderr/.test(e.type)).map(e=>e.type+':'+JSON.stringify(e.payload).slice(0,400))}));
   assert.equal(done.spend.status,'KNOWN');assert.equal(done.spend.operations.length,2);assert.equal(done.spend.settledMicrousd,40);

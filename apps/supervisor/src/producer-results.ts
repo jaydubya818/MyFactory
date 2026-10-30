@@ -298,7 +298,10 @@ export class LocalProducerResultsV4 {
   private readonly options: Omit<ProducerOptions,'sessionMetadata'>;
   #candidatePolicy: LocalV4CandidatePolicy;
   #candidateQueue: Promise<void> = Promise.resolve();
-  constructor(storage: FactoryStorage,dataDir: string,options: Omit<ProducerOptions,'sessionMetadata'>) {
+  #verificationImage: string;
+  constructor(storage: FactoryStorage,dataDir: string,options: Omit<ProducerOptions,'sessionMetadata'>, verificationImage?: string) {
+    if (verificationImage !== undefined && !/^sha256:[a-f0-9]{64}$/.test(verificationImage)) throw new Error('Explicit verification image must be an immutable local image ID');
+    this.#verificationImage = verificationImage ?? DEFAULT_VERIFICATION_IMAGE;
     if (Object.keys(options).sort().join(',')!=='currentKeyId,factoryId,keys,privateKey') throw new Error('Invalid explicit V4 signing options');
     new ProducerResults(storage,dataDir,options); // Reuse the exact configured-key validation only.
     this.storage=storage;this.dataDir=dataDir;this.options=structuredClone(options);
@@ -466,7 +469,7 @@ export class LocalProducerResultsV4 {
     const requestId=this.requestId(admittedWork),eventsBefore=digest(this.storage.listEvents(work.id));
     const input=readLocalGitInputTreeV4(admittedWork.repositoryPath,admittedRun.inputCommit);
     const configuration={model,executor:'codex-cli' as const,executorVersion,skillRevision:'fd8f20a879b507cf09feba08663a1edf7a949353',
-      workerProfile:run.workerProfile,verificationImage:DEFAULT_VERIFICATION_IMAGE,nodeVersion:process.version,platform:process.platform,architecture:process.arch,
+      workerProfile:run.workerProfile,verificationImage:this.#verificationImage,nodeVersion:process.version,platform:process.platform,architecture:process.arch,
       commands:work.kind==='defect'&&work.reproductionCommand?[...new Set([work.reproductionCommand,...work.checkCommands])]:[...work.checkCommands],
       allowedPaths:[...work.allowedPaths],timeoutMs:30*60*1000};
     const configurationDigest=digest(configuration),snapshot:LocalExecutionSnapshotV4={version:4,...input,

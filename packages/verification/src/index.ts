@@ -21,6 +21,8 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 export const DEFAULT_VERIFICATION_IMAGE = "node:22-bookworm";
+/** Fixed browser profile for explicitly host-pinned productive images; below all existing maximums. */
+export const PINNED_BROWSER_VERIFICATION_LIMITS = Object.freeze({ cpus: 1, memoryMb: 1024, pids: 192, timeoutMs: 120_000 });
 
 export interface VerificationLimits {
   timeoutMs?: number;
