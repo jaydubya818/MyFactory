@@ -21,6 +21,7 @@ import { LocalExecutionProvider, type LocalResourceProbe } from './local-executi
 import { runCodex } from '../../../packages/agents/src/index.ts';
 import { verifyCandidate } from '../../../packages/verification/src/index.ts';
 import { FactoryDispatchControl } from "./dispatch-control.ts";
+import { LocalOrderedAdmission, assertWitnessOutsideData, type LocalOrderedEnrollment, type ReceiverWitness } from "./local-ordered-admission.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
 import { type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
@@ -165,6 +166,9 @@ export interface SupervisorOptions {
   confirmHumanPresence?: ActionContext["confirmHumanPresence"];
   publishDraft?: NonNullable<ActionContext["publishDraft"]>;
   jobDependencies?: Partial<JobDependencies>;
+  /** Host-only enrollment of the local ordered capability-admission receiver (LOCAL_V4 only). Never read from HTTP or the
+   *  environment. Once enrolled, ordinary preparation is refused and dispatch requires an ADMITTED ordered outcome. */
+  orderedAdmission?: { enrollment: LocalOrderedEnrollment; witness: ReceiverWitness; witnessPath?: string };
   /** Backend-only fixture authorization; never read from HTTP or environment. */
   localFactoryFixture?: boolean;
   /** Synthetic loopback provider only. Never sourced from public input or environment. */
@@ -310,6 +314,18 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
     throw new Error('Local spend fixture must target loopback only');
   const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer,options.localV4ResourceProbe),producer,spend,
     options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture,!!realProvider,currentConnection):null;
+  if (options.orderedAdmission && (resultMode !== 'LOCAL_V4' || !dispatchControl || options.realProvider))
+    throw new Error('Local ordered admission requires the unqualified-for-live local V4 supervisor with producer signing');
+  if (options.orderedAdmission?.witnessPath) assertWitnessOutsideData(options.orderedAdmission.witnessPath, dataDir);
+  const ordered = options.orderedAdmission && dispatchControl ? new LocalOrderedAdmission({
+    enrollment: options.orderedAdmission.enrollment, witness: options.orderedAdmission.witness, databasePath: resolve(dataDir, 'capability-receiver.sqlite'),
+    control: dispatchControl, storage,
+    client: () => {
+      const found = readClients(connectionsPath).find(c => c.id === options.orderedAdmission!.enrollment.clientId);
+      if (!found) throw new ActionError('Enrolled connection is unavailable', 'forbidden', 403);
+      return currentConnection(found);
+    },
+  }) : null;
   const linear = new LinearIntegration(storage, notify, options.linear ?? linearOptionsFromEnvironment());
   for (const order of storage.listWorkOrders()) {
     const link = storage.getLinearLink(order.id);
@@ -441,6 +457,31 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
       const url = new URL(request.url ?? "/", `http://${host}`);
       const pathname = url.pathname;
 
+      if (pathname.startsWith("/api/capability-admission/")) {
+        // Not enrolled == no receiver (unchanged 404). Enrolled: only the enrolled connection, only POST, exact bodies.
+        if (!ordered) return json(response, 404, { error: 'Not found' });
+        const client = authenticateClient(request, readClients(connectionsPath));
+        if (client.id !== ordered.clientId || request.method !== 'POST') return json(response, 403, { error: 'Enrolled connection required' });
+        const fresh = currentConnection(client);
+        if (!fresh.actions.includes('factory.prepare') || fresh.ownerScope !== options.orderedAdmission!.enrollment.scope.ownerId)
+          return json(response, 403, { error: 'Enrolled connection required' });
+        try {
+          const input = await requestBody(request) as any, keys = Object.keys(input ?? {}).sort().join(',');
+          if (pathname === '/api/capability-admission/challenge' && keys === 'missionId,request,schema' && input.schema === 'factory-capability-admission-challenge/v1')
+            return json(response, 200, await ordered.challenge(input.request, input.missionId));
+          if (pathname === '/api/capability-admission/prepare' && keys === 'capabilityPermits,missionId,request,schema' && input.schema === 'factory-capability-admission-prepare/v1')
+            return json(response, 200, await ordered.prepare(input.request, input.missionId, input.capabilityPermits));
+          if (pathname === '/api/capability-admission/readback' && keys === 'missionId,request,schema' && input.schema === 'factory-capability-admission-readback/v1')
+            return json(response, 200, await ordered.terminal(input.request, input.missionId));
+          if (pathname === '/api/capability-admission/fence' && keys === 'envelope,schema' && input.schema === 'factory-capability-fence/v1')
+            return json(response, 200, await ordered.receiveFence(input.envelope));
+          return json(response, 400, { error: 'INVALID_REQUEST' });
+        } catch (error) {
+          const status = error instanceof ActionError ? error.status : 503;
+          if (error instanceof Error && error.message === 'FACTORY_TERMINAL_UNAVAILABLE') return json(response, 404, { error: 'NOT_FOUND' });
+          return json(response, status >= 400 && status < 600 ? status : 503, { error: 'CAPABILITY_UNAVAILABLE' });
+        }
+      }
       if (pathname.startsWith("/api/connect/v1/")) {
         const client = authenticateClient(request, readClients(connectionsPath));
         if (resultMode === 'LOCAL_V4' && client.purpose !== 'myeve-proof' && Object.hasOwn(client, 'expiresAt') &&
@@ -758,6 +799,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
         if (!server.listening) return resolveClose();
         server.close((error) => error ? reject(error) : resolveClose());
       });
+      ordered?.close();
       storage.close();
       spend.close();
     },

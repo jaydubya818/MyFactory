@@ -39,6 +39,9 @@ export interface SpendGatewayOptions extends ProviderConnection {
   /** Absolute settled operation boundary for a host-owned implementation checkpoint. */
   productiveCheckpointAfter?: number;
   onDecision?: (evidence: {code:string;stage:string;status:number;upstreamStatus:number|null;operationId:string|null;elapsedMs:number;retryable:false}) => void;
+  /** Synchronous current-authority check (throws to deny). Called immediately before each ledger/provider boundary so a
+   *  later pause/revocation cannot use an already-issued child token. Absent = no extra authority (legacy gateways). */
+  authorizeDispatch?: () => void;
 }
 
 function positive(value: number): boolean { return Number.isSafeInteger(value) && value > 0; }
@@ -221,11 +224,14 @@ export class SpendGateway {
       validatePrice(price);
       stage='admission';
       const reservedId = this.#options.operationId ?? randomUUID();
+      this.#options.authorizeDispatch?.();                       // before any ledger exposure: nothing reserved, nothing to release
       await ledger.reserve({ ...binding, operationId:reservedId, model: price.model, pricingRevision: price.revision,
         reservedMicrousd: reserveMicrousd, phase: this.#options.phase });
       operationId=reservedId;
+      this.#options.authorizeDispatch?.();                       // reserved but undispatched: the catch releases the reservation
       await ledger.markDispatched(operationId);
       stage='upstream';
+      this.#options.authorizeDispatch?.();                       // already marked dispatched: denial keeps unknown exposure (never resent)
       const upstream = await (this.#options.upstreamFetch??fetch)(new URL('/v1/responses', this.#options.upstreamOrigin), {
         method: 'POST', headers: { authorization: `Bearer ${credential}`,
           'content-type': 'application/json' }, body: JSON.stringify(outgoing),redirect:'error',

@@ -1,4 +1,4 @@
-import { assertLocalCapabilityAdmission } from "./capability-admission.ts";
+import { assertLocalCapabilityAdmission, runWithOrderedAuthority, type OrderedAuthority } from "./capability-admission.ts";
 import { claimRepairPreparation } from "./review-repair.ts";
 import {assertImplementationProgress} from './execution-context.ts';
 import {contextPolicyFailure,requireStrictSourceOperations} from './local-v4-context-policy.ts';
@@ -47,6 +47,12 @@ export class FactoryDispatchControl {
   this.live=live;
   this.refreshConnection=refreshConnection??(()=>{throw new ActionError('Current connection authority is required','forbidden',403)});
  }
+ private orderedGate?:{authority:OrderedAuthority;assertDispatch(requestId:string):void};
+ /** Host composition only: once enrolled, ordinary preparation is refused and dispatch requires an ADMITTED ordered outcome. */
+ requireOrderedAdmission(gate:{authority:OrderedAuthority;assertDispatch(requestId:string):void}){
+  if(this.orderedGate)throw Error('Ordered admission is already enrolled');
+  this.orderedGate=gate;
+ }
  executionAvailability(){return {mode:this.live?'LIVE':this.localFixture?'LOCAL_FIXTURE':this.spendFixture?'LOCAL_SPEND_FIXTURE':'DISABLED',
   spendEnforced:this.localFixture||!!this.spendFixture,reason:this.localFixture?'Backend-injected zero-cost fixture':
    this.live?'Explicit private-alpha provider; every call requires bounded Work admission':this.spendFixture?'Loopback synthetic provider fixture; live paid execution remains disabled':'Paid Codex gateway routing is not live-qualified'};}
@@ -81,7 +87,13 @@ export class FactoryDispatchControl {
   const prepared=events.find(e=>e.type==='run.prepared'),run=prepared?.runId?this.storage.getRun(prepared.runId):null;
   return {order,events,request:request.payload as unknown as PrepareRequest,run,snapshot:run?this.producer.snapshot(run):null};
  }
- async prepare(client:FactoryClient,input:PrepareRequest){
+ async prepare(client:FactoryClient,input:PrepareRequest,authority?:OrderedAuthority){
+  if(this.orderedGate&&authority!==this.orderedGate.authority)
+   throw new ActionError('Ordered capability admission is required for preparation','ordered_admission_required',403);
+  if(authority)return runWithOrderedAuthority(authority,()=>this.prepareAdmitted(client,input));
+  return this.prepareAdmitted(client,input);
+ }
+ private async prepareAdmitted(client:FactoryClient,input:PrepareRequest){
   client=this.current(structuredClone(client),'factory.prepare');
   if(!input||!['deadline,input,maxSpendUsd,repository,requestId,workGeneration,workId',
     'deadline,input,maxSpendUsd,repository,requestId,spendContract,workGeneration,workId',
@@ -155,6 +167,7 @@ export class FactoryDispatchControl {
   // readback remains available even when another unrelated Run is active.
   if(data.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return this.read(client,identity.requestId);
   if(!this.localFixture&&!this.spendFixture)throw new ActionError('Paid execution disabled: actual paid boundary is not qualified','spend_unqualified',503);
+  this.orderedGate?.assertDispatch(identity.requestId);
   const admittedWork={...data.order,...data.request.input as object} as WorkOrder;
   let gateway:SpendGateway|undefined, gatewayBinding:{baseUrl:string;childToken:string;close:()=>Promise<void>;
    productiveEndSignal:AbortSignal;nextProductive:()=>Promise<{baseUrl:string;childToken:string;productiveEndSignal:AbortSignal}>;beginCompletion:()=>Promise<{baseUrl:string;childToken:string}>;assertCompleted:()=>void;fenceAuthority:()=>void;assertCurrentConnection:()=>void}|undefined;
@@ -172,13 +185,14 @@ export class FactoryDispatchControl {
     this.storage.appendEvent({workOrderId:identity.workOrderId,runId:identity.remoteRunId,type:'provider.operation_decision',payload:{...evidence}});
    };
    let productiveEnd=new AbortController();
+   const authorizeDispatch=()=>{this.orderedGate?.assertDispatch(identity.requestId);};
    gateway=new SpendGateway({ledger:this.spend,binding,phase:'productive',
-    ...this.spendFixture,childToken,onDecision,productiveCheckpointAfter:data.request.spendContract.plannedProductiveOperations===2?1:undefined,onProductiveBoundary:()=>productiveEnd.abort(),
+    ...this.spendFixture,childToken,onDecision,authorizeDispatch,productiveCheckpointAfter:data.request.spendContract.plannedProductiveOperations===2?1:undefined,onProductiveBoundary:()=>productiveEnd.abort(),
     assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
    let current=gateway;
    let repairIssued=false;
    gatewayBinding={baseUrl:await gateway.listen(),childToken,productiveEndSignal:productiveEnd.signal,close:()=>current.close(),
-    assertCurrentConnection:()=>{this.bind(connectionClient,connectionIdentity,'factory.dispatch');
+    assertCurrentConnection:()=>{this.bind(connectionClient,connectionIdentity,'factory.dispatch');authorizeDispatch();
      if(Date.parse(connectionIdentity.deadline)<=Date.now())throw new ActionError('Dispatch expired','dispatch_denied',409);},
     nextProductive:async()=>{
      this.spend.assertCompletionEligible(binding);
@@ -189,7 +203,7 @@ export class FactoryDispatchControl {
      productiveEnd=new AbortController();
      const repairToken=randomBytes(32).toString('hex');
      current=new SpendGateway({ledger:this.spend,binding,phase:'productive',...this.spendFixture!,childToken:repairToken,
-      onDecision,productiveCheckpointAfter:2,onProductiveBoundary:()=>productiveEnd.abort(),
+      onDecision,authorizeDispatch,productiveCheckpointAfter:2,onProductiveBoundary:()=>productiveEnd.abort(),
       assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
      return {baseUrl:await current.listen(),childToken:repairToken,productiveEndSignal:productiveEnd.signal};
     },
@@ -197,23 +211,25 @@ export class FactoryDispatchControl {
      await current.close();
      this.spend.beginCompletion(binding);
      const completionToken=randomBytes(32).toString('hex');
-     current=new SpendGateway({ledger:this.spend,binding,phase:'completion',...this.spendFixture!,childToken:completionToken,onDecision});
+     current=new SpendGateway({ledger:this.spend,binding,phase:'completion',...this.spendFixture!,childToken:completionToken,onDecision,authorizeDispatch});
      return {baseUrl:await current.listen(),childToken:completionToken};
     },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};
   }
   try{
-  const started=await this.execution.start(admittedWork,data.run,()=>this.storage.transaction(()=>{
+  const started=await this.withOrderedAuthority(()=>this.execution.start(admittedWork,data.run,()=>this.storage.transaction(()=>{
    const current=this.bind(client,identity,'factory.dispatch');
    if(current.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return false;
    if(Date.parse(identity.deadline)<=Date.now()||this.storage.getPolicy().dispatchPaused)throw new ActionError('Dispatch expired or paused','dispatch_denied',409);
+   this.orderedGate?.assertDispatch(identity.requestId);   // current receiver authority at the claim itself, not only before gateway setup
    if(!current.events.some(e=>e.type==='factory.writer_bound'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.writer_bound',payload:{...identity}});
    this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.dispatch_claimed',payload:{identity,supervisorPid:process.pid}});
    return true;
-  }),gatewayBinding);
+  }),gatewayBinding));
   if(!started)await gatewayBinding?.close();
   }catch(error){await gatewayBinding?.close();throw error;}
   return this.read(client,identity.requestId);
  }
+ private withOrderedAuthority<T>(operation:()=>T):T{return this.orderedGate?runWithOrderedAuthority(this.orderedGate.authority,operation):operation();}
  async stop(client:FactoryClient,identity:ExecutionIdentity){
   client=this.current(structuredClone(client),'factory.stop');
   const data=this.storage.transaction(()=>{
