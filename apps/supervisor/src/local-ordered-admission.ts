@@ -173,7 +173,7 @@ export class LocalOrderedAdmission {
 
   private serial<T>(work: () => Promise<T>): Promise<T> {
     const next = this.queue.then(work, work);
-    this.queue = next.catch(() => undefined);
+    this.queue = next.catch(error => { if (error) process.stderr.write('Ordered-admission queue: ' + (error instanceof Error ? error.message : String(error)) + '\n'); });
     return next;
   }
   /** Reads state and proves the database is the exact witnessed one; rolls forward a persisted plan after a crash. */
@@ -220,10 +220,12 @@ export class LocalOrderedAdmission {
     if (scopeKeys.some(k => message[k] !== this.enrollment.scope[k])) fail('FACTORY_POLICY_SCOPE');
   }
   private snapshot() { return { ...this.enrollment.factory, backendId: this.enrollment.scope.backendId, incarnation: this.enrollment.scope.incarnation, enrollmentVersion: this.enrollment.scope.enrollmentVersion }; }
-  private shape(input: any): PrepareRequest {
-    if (!input || typeof input !== 'object' || typeof input.requestId !== 'string' || typeof input.workId !== 'string'
-      || !Number.isSafeInteger(input.workGeneration) || input.workGeneration < 1 || !Number.isFinite(input.maxSpendUsd) || input.maxSpendUsd <= 0
-      || input.maxSpendUsd > 20 || typeof input.input !== 'object' || input.input === null) fail('FACTORY_REQUEST_INVALID', 400);
+  private shape(input: unknown): PrepareRequest {
+    if (input === null || input === undefined || typeof input !== 'object') fail('FACTORY_REQUEST_INVALID', 400);
+    const r = input as Record<string, unknown>;
+    if (typeof r.requestId !== 'string' || typeof r.workId !== 'string'
+      || !Number.isSafeInteger(r.workGeneration) || (r.workGeneration as number) < 1 || !Number.isFinite(r.maxSpendUsd) || (r.maxSpendUsd as number) <= 0
+      || (r.maxSpendUsd as number) > 20 || typeof r.input !== 'object' || r.input === null) fail('FACTORY_REQUEST_INVALID', 400);
     return input as PrepareRequest;
   }
   private action(request: PrepareRequest, missionId: string) {

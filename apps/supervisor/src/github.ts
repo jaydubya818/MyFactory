@@ -336,8 +336,9 @@ export async function publishDraftPullRequest(
   try {
     const confirmed = await inspectRemote(input, runner, branch);
     if (confirmed.state === "published") return resultFor(input, confirmed, created.exitCode !== 0);
-  } catch {
+  } catch (error) {
     // A failed or ambiguous create response cannot authorize a second create.
+    process.stderr.write('GitHub PR inspection after create: ' + (error instanceof Error ? error.message : String(error)) + '\n');
   }
   throw new PublicationAdapterError("uncertain", "Draft PR creation could not be confirmed on GitHub");
 }

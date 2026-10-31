@@ -196,7 +196,9 @@ export class FactoryDispatchControl {
      if(Date.parse(connectionIdentity.deadline)<=Date.now())throw new ActionError('Dispatch expired','dispatch_denied',409);},
     nextProductive:async()=>{
      this.spend.assertCompletionEligible(binding);
-     const used=this.spend.read(binding.workId)!.operations.filter(op=>op.phase==='productive').length;
+     const spendRecord=this.spend.read(binding.workId);
+     if(!spendRecord)throw new ActionError('Spend record not found for bound Work','spend_unqualified',409);
+     const used=spendRecord.operations.filter(op=>op.phase==='productive').length;
      if(repairIssued||used!==1||data.request.spendContract?.plannedProductiveOperations!==2)throw Error('Exactly one settled productive operation required before repair');
      repairIssued=true;
      await current.close();
