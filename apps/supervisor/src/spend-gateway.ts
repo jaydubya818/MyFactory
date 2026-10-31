@@ -268,7 +268,7 @@ export class SpendGateway {
           // A failed dispatch commit is ambiguous to this process. The ledger
           // releases only if its durable state proves the boundary was not crossed.
           await ledger.releaseUndispatched(operationId);
-        } catch { try { await ledger.markUnknown(operationId); } catch { /* Retain exposure. */ } }
+        } catch { try { await ledger.markUnknown(operationId); } catch (inner) { console.error("spend-gateway: markUnknown failed, exposure retained.", operationId, inner); } }
       }
       // Fixed codes only: never persist raw exceptions, provider bodies or headers.
       const code=stage==='admission'?'LOCAL_ADMISSION_DENIED':stage==='capacity'?'IMPLEMENTATION_CAPACITY_PROTECTED':
