@@ -5,15 +5,26 @@ import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { canonical, digest } from '../../../packages/hosted-routing/src/result.ts';
 import {
   admissionActionDigest, policyMessageHash, signPolicyMessage, verifyPolicyMessage,
-  type PolicyKey, type SignedPolicyMessage,
+  type AdmissionChallenge, type AdmissionPermit, type Fence, type FenceAck,
+  type PolicyKey, type PolicyMessage, type SignedPolicyMessage,
 } from '../../../packages/capability-enforcement/src/ordering-wire.ts';
-import { signLifecycleReceipt } from '../../../packages/capability-enforcement/src/lifecycle-wire.ts';
-import { signFactoryPreparationTerminal } from '../../../packages/capability-enforcement/src/factory-preparation-terminal.ts';
+import { signLifecycleReceipt, type LifecycleReceipt, type SignedLifecycleReceipt } from '../../../packages/capability-enforcement/src/lifecycle-wire.ts';
+import { signFactoryPreparationTerminal, type FactoryPreparationTerminal } from '../../../packages/capability-enforcement/src/factory-preparation-terminal.ts';
 import { ActionError } from './actions.ts';
 import { issueOrderedAuthority, type OrderedAuthority } from './capability-admission.ts';
+import type { ExecutionIdentity } from './dispatch-control.ts';
 import type { FactoryClient } from './connections.ts';
 import type { FactoryDispatchControl, PrepareRequest } from './dispatch-control.ts';
 import type { FactoryStorage } from '../../../packages/storage/src/index.ts';
+
+interface SqliteRecordRow { seq: number; kind: string; key: string; payload: string; digest: string }
+interface SqlitePendingRow { prev: string; next: string; records: string }
+interface FencePayload { message: Fence & Record<string, unknown>; envelope: SignedPolicyMessage; hash: string; ack: unknown }
+interface PlanPayload { requestId: string; workId: string; workGeneration: number; missionId: string; nativeRequestDigest: string; clientId: string; snapshot: Record<string, unknown> }
+interface OutcomePayload { outcome: string; reasonCode: string; native: { workOrderId: string; runId: string } | null }
+interface ReferencePayload extends Record<string, unknown> { workId: string; workGeneration: number }
+interface LifecyclePayload { receipt: LifecycleReceipt; envelope: SignedLifecycleReceipt }
+interface NativeReadback { requestId: string; workOrderId: string; runId: string | null; snapshot: Record<string, unknown> | null; identity: unknown; state: string; quiescent: boolean }
 
 /**
  * Local ordered capability-admission receiver for the V4 local Factory (topology B).
@@ -90,7 +101,7 @@ class ReceiverLog {
       CREATE TABLE IF NOT EXISTS receiver_records(seq INTEGER PRIMARY KEY, kind TEXT NOT NULL, key TEXT NOT NULL, payload TEXT NOT NULL, digest TEXT NOT NULL, UNIQUE(kind,key));
       CREATE TABLE IF NOT EXISTS receiver_pending(id INTEGER PRIMARY KEY CHECK(id=1), prev TEXT NOT NULL, next TEXT NOT NULL, records TEXT NOT NULL);`);
   }
-  rows(): Stored[] { return (this.db.prepare('SELECT seq,kind,key,payload,digest FROM receiver_records ORDER BY seq').all() as any[]).map(r => ({ ...r, payload: JSON.parse(r.payload) })); }
+  rows(): Stored[] { return (this.db.prepare('SELECT seq,kind,key,payload,digest FROM receiver_records ORDER BY seq').all() as unknown as SqliteRecordRow[]).map(r => ({ ...r, payload: JSON.parse(r.payload) })); }
   head(): ReceiverHead {
     let prev = GENESIS.digest, seq = 0;
     for (const r of this.rows()) {
@@ -100,7 +111,7 @@ class ReceiverLog {
     return { seq, digest: prev };
   }
   pending(): { prev: ReceiverHead; next: ReceiverHead; records: Rec[] } | null {
-    const row = this.db.prepare('SELECT prev,next,records FROM receiver_pending WHERE id=1').get() as any;
+    const row = this.db.prepare('SELECT prev,next,records FROM receiver_pending WHERE id=1').get() as SqlitePendingRow | undefined;
     return row ? { prev: JSON.parse(row.prev), next: JSON.parse(row.next), records: JSON.parse(row.records) } : null;
   }
   plan(head: ReceiverHead, records: Rec[]): { prev: ReceiverHead; next: ReceiverHead; records: Rec[] } {
@@ -173,7 +184,7 @@ export class LocalOrderedAdmission {
 
   private serial<T>(work: () => Promise<T>): Promise<T> {
     const next = this.queue.then(work, work);
-    this.queue = next.catch(() => undefined);
+    this.queue = next.catch(error => { if (error) process.stderr.write('Ordered-admission queue: ' + (error instanceof Error ? error.message : String(error)) + '\n'); });
     return next;
   }
   /** Reads state and proves the database is the exact witnessed one; rolls forward a persisted plan after a crash. */
@@ -199,14 +210,14 @@ export class LocalOrderedAdmission {
   }
 
   private latestFence(state: State, authority: 'myeve' | 'relay') {
-    return ofKind(state, 'fence').map(r => r.payload as any).filter(p => p.message.authority === authority)
+    return ofKind(state, 'fence').map(r => r.payload as FencePayload).filter(p => p.message.authority === authority)
       .sort((a, b) => a.message.version - b.message.version).at(-1);
   }
   /** pause/revoke controls on the capabilities this Factory executes under; any one blocks new admission and dispatch. */
   private restricted(state: State): boolean {
     // The latest control per capability wins (a later enable resumes a pause); a revoke is sticky until re-enrollment.
     const latest = new Map<string, string>();
-    const fences = ofKind(state, 'fence').map(r => (r.payload as any).message).filter((m: any) => m.authority === 'myeve').sort((a: any, b: any) => a.version - b.version);
+    const fences = ofKind(state, 'fence').map(r => (r.payload as FencePayload).message).filter(m => m.authority === 'myeve').sort((a, b) => a.version - b.version);
     for (const m of fences) {
       for (const c of [...(m.controls ?? []), { capabilityId: m.capabilityId, operation: m.operation }]) {
         if (!['work', 'myfactory'].includes(c.capabilityId) || !['pause', 'revoke', 'enable'].includes(c.operation)) continue;
@@ -220,10 +231,12 @@ export class LocalOrderedAdmission {
     if (scopeKeys.some(k => message[k] !== this.enrollment.scope[k])) fail('FACTORY_POLICY_SCOPE');
   }
   private snapshot() { return { ...this.enrollment.factory, backendId: this.enrollment.scope.backendId, incarnation: this.enrollment.scope.incarnation, enrollmentVersion: this.enrollment.scope.enrollmentVersion }; }
-  private shape(input: any): PrepareRequest {
-    if (!input || typeof input !== 'object' || typeof input.requestId !== 'string' || typeof input.workId !== 'string'
-      || !Number.isSafeInteger(input.workGeneration) || input.workGeneration < 1 || !Number.isFinite(input.maxSpendUsd) || input.maxSpendUsd <= 0
-      || input.maxSpendUsd > 20 || typeof input.input !== 'object' || input.input === null) fail('FACTORY_REQUEST_INVALID', 400);
+  private shape(input: unknown): PrepareRequest {
+    if (input === null || input === undefined || typeof input !== 'object') fail('FACTORY_REQUEST_INVALID', 400);
+    const r = input as Record<string, unknown>;
+    if (typeof r.requestId !== 'string' || typeof r.workId !== 'string'
+      || !Number.isSafeInteger(r.workGeneration) || (r.workGeneration as number) < 1 || !Number.isFinite(r.maxSpendUsd) || (r.maxSpendUsd as number) <= 0
+      || (r.maxSpendUsd as number) > 20 || typeof r.input !== 'object' || r.input === null) fail('FACTORY_REQUEST_INVALID', 400);
     return input as PrepareRequest;
   }
   private action(request: PrepareRequest, missionId: string) {
@@ -238,31 +251,34 @@ export class LocalOrderedAdmission {
     const request = this.shape(input), mission = this.mission(missionId);
     return this.serial(async () => {
       const state = this.state(), fence = this.latestFence(state, 'myeve');
-      if (!fence) fail('FACTORY_POLICY_UNAVAILABLE');
+      if (!fence) return fail('FACTORY_POLICY_UNAVAILABLE');
       if (this.restricted(state)) fail('FACTORY_POLICY_RESTRICTED');
-      if (ofKind(state, 'plan').some(r => (r.payload as any).requestId === request.requestId)) fail('FACTORY_PROOF_CONSUMED', 409);
+      if (ofKind(state, 'plan').some(r => (r.payload as PlanPayload).requestId === request.requestId)) fail('FACTORY_PROOF_CONSUMED', 409);
       const now = this.now(), identity = Object.fromEntries([...scopeKeys, 'authority', 'version', 'policyId'].map(k => [k, fence.message[k]]));
       return signPolicyMessage({ ...identity, kind: 'CHALLENGE', referenceId: randomUUID(), capabilityId: 'myfactory',
         registryVersion: this.enrollment.registryVersion, agentId: this.enrollment.agentId, workId: request.workId, missionId: mission,
         workGeneration: request.workGeneration, actionDigest: await this.action(request, mission),
-        budgetMicros: Math.ceil(request.maxSpendUsd * 1_000_000), issuedAt: now, expiresAt: now + 30_000 } as any, this.enrollment.signer);
+        budgetMicros: Math.ceil(request.maxSpendUsd * 1_000_000), issuedAt: now, expiresAt: now + 30_000 } as AdmissionChallenge, this.enrollment.signer);
     });
   }
 
-  private async pair(request: PrepareRequest, missionId: string, envelopes: any, state: State, now: number) {
-    const action = await this.action(request, missionId), pair: Record<string, any> = {};
-    if (!envelopes || Object.keys(envelopes).sort().join(',') !== 'myeve,relay') fail('FACTORY_POLICY_PAIR', 400);
+  private async pair(request: PrepareRequest, missionId: string, envelopes: unknown, state: State, now: number) {
+    const action = await this.action(request, missionId), pair = {} as Record<'myeve' | 'relay', AdmissionPermit>;
+    if (!envelopes || typeof envelopes !== 'object' || Object.keys(envelopes).sort().join(',') !== 'myeve,relay') fail('FACTORY_POLICY_PAIR', 400);
+    const envelopeMap = envelopes as Record<'myeve' | 'relay', SignedPolicyMessage>;
     for (const authority of ['myeve', 'relay'] as const) {
-      const message: any = await verifyPolicyMessage(envelopes[authority], this.enrollment.sourceKeys[authority]);
-      this.assertScope(message);
+      const verified = await verifyPolicyMessage(envelopeMap[authority], this.enrollment.sourceKeys[authority]);
+      this.assertScope(verified as unknown as Record<string, unknown>);
       const fence = this.latestFence(state, authority);
-      if (!fence || message.kind !== 'PERMIT' || message.authority !== authority || message.version !== fence.message.version
+      if (!fence || verified.kind !== 'PERMIT') return fail('FACTORY_POLICY_STALE_OR_FOREIGN', 403);
+      const message = verified as AdmissionPermit;
+      if (message.authority !== authority || message.version !== fence.message.version
         || message.policyId !== fence.message.policyId || message.agentId !== this.enrollment.agentId || message.capabilityId !== 'myfactory'
         || !message.requiredCapabilities.includes('work') || message.registryVersion !== this.enrollment.registryVersion
         || message.workId !== request.workId || message.workGeneration !== request.workGeneration || message.missionId !== missionId
         || message.actionDigest !== action || message.budgetMicros !== Math.ceil(request.maxSpendUsd * 1_000_000)
         || message.issuedAt > now || message.expiresAt <= now) fail('FACTORY_POLICY_STALE_OR_FOREIGN', 403);
-      if (ofKind(state, 'reference').some(r => (r.payload as any).workId === request.workId && (r.payload as any).workGeneration === request.workGeneration)) fail('FACTORY_PROOF_CONSUMED', 409);
+      if (ofKind(state, 'reference').some(r => (r.payload as ReferencePayload).workId === request.workId && (r.payload as ReferencePayload).workGeneration === request.workGeneration)) fail('FACTORY_PROOF_CONSUMED', 409);
       pair[authority] = message;
     }
     if (pair.relay.sourcePermitHash !== await policyMessageHash(pair.myeve)) fail('FACTORY_POLICY_PAIR', 403);
@@ -275,7 +291,7 @@ export class LocalOrderedAdmission {
     catch (error) { if (!['FACTORY_TERMINAL_UNAVAILABLE'].includes((error as Error).message)) throw error; }
     const admitted = await this.serial(async () => {
       const state = this.state(), now = this.now();
-      if (ofKind(state, 'plan').some(r => (r.payload as any).requestId === request.requestId)) return false;
+      if (ofKind(state, 'plan').some(r => (r.payload as PlanPayload).requestId === request.requestId)) return false;
       if (this.restricted(state)) fail('FACTORY_POLICY_RESTRICTED', 403);
       const pair = await this.pair(request, mission, envelopes, state, now);
       const identity = { requestId: request.requestId, workId: request.workId, workGeneration: request.workGeneration, missionId: mission,
@@ -283,7 +299,7 @@ export class LocalOrderedAdmission {
       // Both references and the plan are durable and witnessed BEFORE any native effect: a pair can never be replayed.
       this.commit([
         ...(['myeve', 'relay'] as const).map(a => ({ kind: 'reference', key: `${a}:${pair[a].referenceId}`,
-          payload: { ...pair[a], clientId: identity.clientId, requestId: request.requestId, nativeRequestDigest: identity.nativeRequestDigest, envelope: (envelopes as any)[a] } })),
+          payload: { ...pair[a], clientId: identity.clientId, requestId: request.requestId, nativeRequestDigest: identity.nativeRequestDigest, envelope: (envelopes as Record<'myeve' | 'relay', SignedPolicyMessage>)[a] } })),
         { kind: 'plan', key: request.requestId, payload: identity }]);
       this.inflight.add(request.requestId);
       return true;
@@ -299,7 +315,7 @@ export class LocalOrderedAdmission {
   private async nativeAdmission(request: PrepareRequest) {
     let outcome: Record<string, unknown>;
     try {
-      const readback: any = await this.o.control.prepare(this.o.client(), request, this.authority);
+      const readback: NativeReadback = await this.o.control.prepare(this.o.client(), request, this.authority) as NativeReadback;
       outcome = this.admittedOutcome(request, readback);
     } catch (error) {
       const intake = this.o.storage.getIntake('gateb:' + this.enrollment.clientId, request.requestId);
@@ -313,7 +329,7 @@ export class LocalOrderedAdmission {
       this.commit([{ kind: 'outcome', key: request.requestId, payload: outcome }]);
     });
   }
-  private admittedOutcome(request: PrepareRequest, readback: any): Record<string, unknown> {
+  private admittedOutcome(request: PrepareRequest, readback: NativeReadback | null): Record<string, unknown> {
     const s = readback?.snapshot, f = this.enrollment.factory;
     if (readback?.state !== 'PREPARED' || !s || s.requestId !== request.requestId || s.factoryId !== f.factoryId || s.factoryVersion !== f.factoryVersion
       || s.sourceDigest !== f.sourceDigest || s.configurationDigest !== f.configurationDigest || s.version !== 4)
@@ -322,9 +338,9 @@ export class LocalOrderedAdmission {
   }
 
   private plan(state: State, request: PrepareRequest, missionId: string) {
-    const plan = ofKind(state, 'plan').find(r => (r.payload as any).requestId === request.requestId);
+    const plan = ofKind(state, 'plan').find(r => (r.payload as PlanPayload).requestId === request.requestId);
     if (!plan) throw new ActionError('FACTORY_TERMINAL_UNAVAILABLE', 'not_found', 404);
-    const p = plan.payload as any;
+    const p = plan.payload as PlanPayload;
     if (p.workId !== request.workId || p.workGeneration !== request.workGeneration || p.missionId !== missionId
       || p.nativeRequestDigest !== digest(request) || !same(p.snapshot, this.snapshot())) fail('FACTORY_TERMINAL_BINDING', 409);
     return plan;
@@ -342,22 +358,23 @@ export class LocalOrderedAdmission {
         // Plan without outcome and nothing in flight == crash/restore between the witnessed plan and its outcome.
         // Never replay native admission: lineage can only confirm it, otherwise the result is uncertain.
         let record: Record<string, unknown> = { outcome: 'ADMISSION_UNCERTAIN', reasonCode: 'RESTORE_OR_COMMIT_AMBIGUITY', native: null };
-        try { record = this.admittedOutcome(request, await this.o.control.read(this.o.client(), request.requestId)); } catch { /* uncertain */ }
+        try { record = this.admittedOutcome(request, await this.o.control.read(this.o.client(), request.requestId) as NativeReadback); } catch { /* uncertain */ }
         state = this.commit([{ kind: 'outcome', key: request.requestId, payload: record }]);
         outcome = ofKind(state, 'outcome').find(r => r.key === request.requestId)!;
       }
-      const o = outcome.payload as any, p = plan.payload as any;
+      const o = outcome.payload as OutcomePayload, p = plan.payload as PlanPayload;
       if (o.outcome === 'ADMITTED') {
-        const readback: any = await this.o.control.read(this.o.client(), request.requestId);
+        const readback = await this.o.control.read(this.o.client(), request.requestId) as NativeReadback;
         const intake = this.o.storage.getIntake('gateb:' + this.enrollment.clientId, request.requestId);
-        if (!intake || readback.workOrderId !== o.native.workOrderId || readback.runId !== o.native.runId || intake.input_digest === undefined) fail('FACTORY_NATIVE_LINEAGE_MISSING');
+        // safe: ADMITTED outcome always has non-null native (set in admittedOutcome)
+        if (!intake || readback.workOrderId !== o.native!.workOrderId || readback.runId !== o.native!.runId || intake.input_digest === undefined) fail('FACTORY_NATIVE_LINEAGE_MISSING');
         return readback;
       }
       const now = this.now(), s = this.enrollment.scope;
       return signFactoryPreparationTerminal({ schema: 'factory-capability-preparation-terminal/v1', ...s, agentId: this.enrollment.agentId,
         clientId: p.clientId, requestId: p.requestId, workId: p.workId, generation: p.workGeneration, missionId: p.missionId, ...p.snapshot,
         nativeRequestDigest: p.nativeRequestDigest, planId: plan.key, planDigest: digest(plan.payload), receiverSequence: Math.max(1, outcome.seq),
-        receiverHeadDigest: outcome.digest, outcome: o.outcome, reasonCode: o.reasonCode, nativeOutcomeDigest: digest(o), issuedAt: now, expiresAt: now + 30_000 } as any,
+        receiverHeadDigest: outcome.digest, outcome: o.outcome, reasonCode: o.reasonCode, nativeOutcomeDigest: digest(o), issuedAt: now, expiresAt: now + 30_000 } as FactoryPreparationTerminal,
         this.enrollment.signer);
     });
   }
@@ -368,7 +385,7 @@ export class LocalOrderedAdmission {
     let state: State;
     try { state = this.state(); } catch { return deny('ordered_admission_unavailable'); }
     const outcome = ofKind(state, 'outcome').find(r => r.key === requestId);
-    if (!ofKind(state, 'plan').some(r => r.key === requestId) || (outcome?.payload as any)?.outcome !== 'ADMITTED') deny('ordered_admission_required');
+    if (!ofKind(state, 'plan').some(r => r.key === requestId) || (outcome?.payload as OutcomePayload | undefined)?.outcome !== 'ADMITTED') deny('ordered_admission_required');
     if (this.restricted(state)) deny('capability_policy_restricted');
     // Durable, witness-protected proof that dispatch authority was issued for this request. It is committed before the native claim and
     // lives in the receiver lineage, so restoring native metadata cannot erase the fact that a worker may have been allocated.
@@ -379,26 +396,27 @@ export class LocalOrderedAdmission {
 
   /** Verifies a MyEve/Relay FENCE envelope against the enrolled keys and scope and builds its signed acknowledgement. */
   private async verifyFence(envelope: SignedPolicyMessage) {
-    const parsed = JSON.parse((envelope as any)?.message ?? 'null') as any;
+    const parsed = JSON.parse(envelope.message ?? 'null') as Record<string, unknown> | null;
     const key = this.enrollment.sourceKeys[parsed?.authority as 'myeve' | 'relay'];
     if (!key) fail('FACTORY_POLICY_SCOPE', 403);
-    const message: any = await verifyPolicyMessage(envelope, key);
-    if (message.kind !== 'FENCE') fail('FACTORY_POLICY_KIND', 400);
-    this.assertScope(message);
+    const verified = await verifyPolicyMessage(envelope, key);
+    if (verified.kind !== 'FENCE') fail('FACTORY_POLICY_KIND', 400);
+    const message = verified as Fence;
+    this.assertScope(message as unknown as Record<string, unknown>);
     const hash = await policyMessageHash(message);
-    const ack = await signPolicyMessage({ ...Object.fromEntries(scopeKeys.map(k => [k, message[k]])), authority: message.authority,
-      version: message.version, policyId: message.policyId, kind: 'FENCE_ACK', fenceHash: hash } as any, this.enrollment.signer);
+    const ack = await signPolicyMessage({ ...Object.fromEntries(scopeKeys.map(k => [k, (message as Record<string, unknown>)[k]])), authority: message.authority,
+      version: message.version, policyId: message.policyId, kind: 'FENCE_ACK' as const, fenceHash: hash } as FenceAck, this.enrollment.signer);
     return { message, envelope, hash, ack };
   }
   /** Must run inside `serial`. A repeated fence returns its stored acknowledgement; an unknown older version is stale. */
-  private admitFence(v: { message: any; envelope: SignedPolicyMessage; hash: string; ack: unknown }, allowSuperseded = false, state = this.state()) {
+  private admitFence(v: { message: Fence; envelope: SignedPolicyMessage; hash: string; ack: unknown }, allowSuperseded = false, state = this.state()) {
     const { message, envelope, hash, ack } = v;
     const stored = ofKind(state, 'fence').find(r => r.key === `${message.authority}:${message.version}`);
     if (stored) {
-      if ((stored.payload as any).hash !== hash) fail('FACTORY_POLICY_CONFLICT', 409);
+      if ((stored.payload as FencePayload).hash !== hash) fail('FACTORY_POLICY_CONFLICT', 409);
       const newest = this.latestFence(state, message.authority);
       if (!allowSuperseded && newest && message.version < newest.message.version) fail('FACTORY_POLICY_STALE', 409);
-      return { ack: (stored.payload as any).ack, state };
+      return { ack: (stored.payload as FencePayload).ack, state };
     }
     const latest = this.latestFence(state, message.authority);
     if (latest && message.version < latest.message.version) fail('FACTORY_POLICY_STALE', 409);
@@ -421,15 +439,15 @@ export class LocalOrderedAdmission {
     if (m.authority !== 'myeve' || !['pause', 'revoke'].includes(m.operation)) fail('FACTORY_POLICY_KIND', 400);
     return this.serial(async () => {
       const { state } = this.admitFence(verified, true);
-      const admitted = ofKind(state, 'plan').filter(plan => (ofKind(state, 'outcome').find(r => r.key === plan.key)?.payload as any)?.outcome === 'ADMITTED')
+      const admitted = ofKind(state, 'plan').filter(plan => (ofKind(state, 'outcome').find(r => r.key === plan.key)?.payload as OutcomePayload | undefined)?.outcome === 'ADMITTED')
         .map(plan => plan.key).sort();
       const items: { requestId: string; state: string; quiescent: boolean; clean: boolean; active: boolean; unknown: boolean }[] = [];
       for (const requestId of admitted) {
         let item = { requestId, state: 'UNREADABLE', quiescent: false, clean: false, active: false, unknown: true };
         try {
-          let rb: any = await this.o.control.read(this.o.client(), requestId);
+          let rb = await this.o.control.read(this.o.client(), requestId) as NativeReadback;
           if (m.operation === 'revoke' && !rb.quiescent && rb.identity && ['RUNNING', 'STOPPING', 'UNKNOWN'].includes(rb.state))
-            rb = await this.o.control.stop(this.o.client(), rb.identity);
+            rb = await this.o.control.stop(this.o.client(), rb.identity as ExecutionIdentity) as NativeReadback;
           // Clean only with positive proof: a quiescent native terminal, or a PREPARED Work for which the receiver never issued dispatch
           // authority (its own witness-protected log, which survives native metadata restore). A state label alone proves nothing.
           const dispatchIssued = ofKind(this.state(), 'dispatch').some(r => r.key === requestId);
@@ -447,13 +465,13 @@ export class LocalOrderedAdmission {
         : (m.operation === 'pause' ? 'PENDING_BACKEND' : 'AUTHORITY_FENCED');
       const evidenceDigest = digest({ fence: verified.hash, inventory }), inventoryDigest = digest(inventory);
       const prefix = `${m.authority}:${m.version}:`;
-      const prior = ofKind(state, 'lifecycle').filter(r => r.key.startsWith(prefix)).sort((a, b) => (a.payload as any).receipt.sequence - (b.payload as any).receipt.sequence).at(-1)?.payload as any;
+      const prior = ofKind(state, 'lifecycle').filter(r => r.key.startsWith(prefix)).sort((a, b) => (a.payload as LifecyclePayload).receipt.sequence - (b.payload as LifecyclePayload).receipt.sequence).at(-1)?.payload as LifecyclePayload | undefined;
       const body = { schema: 'capability-control.lifecycle.v1', kind: 'CONTROL_ACK', authority: 'myeve', ...Object.fromEntries(scopeKeys.map(k => [k, m[k]])),
         version: m.version, policyId: m.policyId, capabilityId: m.capabilityId, operation: m.operation, state: lifecycleState, evidenceDigest, inventoryDigest,
         inventoryComplete: complete && !(lifecycleState === 'STOP_UNKNOWN') };
       if (prior && prior.receipt.state === body.state && prior.receipt.evidenceDigest === evidenceDigest && prior.receipt.inventoryDigest === inventoryDigest) return prior.envelope;
       const sequence = (prior?.receipt.sequence ?? 0) + 1, observedAt = Math.max(this.now(), prior?.receipt.observedAt ?? 0);
-      const receipt = { ...body, sequence, observedAt } as any;
+      const receipt = { ...body, sequence, observedAt } as LifecycleReceipt;
       // Field order is fixed by the wire parser; sign through the shared encoder.
       const signed = await signLifecycleReceipt(receipt, this.enrollment.signer);
       this.commit([{ kind: 'lifecycle', key: `${prefix}${sequence}`, payload: { receipt: JSON.parse(signed.message), envelope: signed } }]);
