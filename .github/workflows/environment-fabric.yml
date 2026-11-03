@@ -52,6 +52,7 @@ jobs:
           export PATH="$RUNNER_TEMP/factory-qualified-cli/node_modules/.bin:$PATH"
           node --test --test-concurrency=1 apps/supervisor/test/implementation-loop.test.mjs apps/supervisor/test/numeric-range-checkpoint.test.mjs apps/supervisor/test/productive-context.test.mjs apps/supervisor/test/spend-codex-cli.test.mjs
       - run: npm run check:producer-governance
+      - run: node scripts/check-capability-sources.mjs
       - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
       - run: npm run typecheck:producer
       - run: npm run typecheck
