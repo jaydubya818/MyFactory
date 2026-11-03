@@ -1,0 +1,159 @@
+# UNAPPLIED — do not git-apply without Jay West explicit price-card approval.
+#
+# One-step owner activation of the 20261102-v5 PRICE CARD only.
+# Does NOT authorize paid Work. Does NOT flip paidExecution, publication, merge,
+# deploy, spending limits, tester identities, execution-contract status, rates,
+# reserves, ceiling, validUntil, or any historical v4/v3/v2/v1 bytes.
+#
+# Apply from the repository root on this qualification stack (or the same files
+# on PR #26) with:
+#   git apply --check docs/capability-control/pricing-20261102/UNAPPLIED-OWNER-PRICE-CARD-ACTIVATION.patch
+#   git apply docs/capability-control/pricing-20261102/UNAPPLIED-OWNER-PRICE-CARD-ACTIVATION.patch
+#
+# If applied on a calendar day other than 2026-11-03, replace
+# OWNER_APPROVED_2026-11-03 and approvedAt 2026-11-03 first.
+#
+# After apply: paidExecution stays NOT_AUTHORIZED;
+# productionExecutionContract.status stays AWAITING_COMPOSED_QUALIFICATION;
+# authority stays PRICING_ONLY_NO_EXECUTION_GRANT.
+#
+diff --git a/README.md b/README.md
+index b17fa21..9b2714d 100644
+--- a/README.md
++++ b/README.md
+@@ -23,7 +23,7 @@ The repository contains both the original local Factory work desk and the hosted
+ 
+ ## Current status
+ 
+-> **PROPOSAL (not adopted): 20261102-v5 renews `gpt-5.4-mini` pricing through 2026-11-09T00:00:00Z at unchanged v4 rates.** Historical v4 (`production-openai-mini-20261022-v4`) expired 2026-10-29T00:00:00Z and remains byte-identical. This proposal does not activate paid Work. See [`docs/capability-control/pricing-20261102/README.md`](docs/capability-control/pricing-20261102/README.md). Owner (Jay West) approval required before merge. Never extend expiry silently.
++> **PRICE CARD APPROVED (paid Work still NOT authorized): 20261102-v5 renews `gpt-5.4-mini` pricing through 2026-11-09T00:00:00Z at unchanged v4 rates.** Historical v4 (`production-openai-mini-20261022-v4`) expired 2026-10-29T00:00:00Z and remains byte-identical. See [`docs/capability-control/pricing-20261102/README.md`](docs/capability-control/pricing-20261102/README.md). Never extend expiry silently.
+ 
+ **Documentation reconciled: October 6, 2026 (Pacific).** Canonical source baseline: [`1739204`](https://github.com/jaydubya818/MyFactory/commit/1739204f9d29240b47b12fcba8e9542af4add451). This identifies the source reviewed for this guide; an actual deployment must independently prove its source/configuration identity.
+ 
+diff --git a/apps/cloud-control/test/pricing-qualification.test.mjs b/apps/cloud-control/test/pricing-qualification.test.mjs
+index 2d0a4d4..0a6dbb3 100644
+--- a/apps/cloud-control/test/pricing-qualification.test.mjs
++++ b/apps/cloud-control/test/pricing-qualification.test.mjs
+@@ -80,9 +80,10 @@ test('successor changes approval contract identity without widening the approved
+   assert.equal(productionExecutionContract.merge,false);
+ });
+ 
+-test('proposal does not activate paid Work and does not claim owner approval', () => {
+-  assert.equal(current.status,'PROPOSED_AWAITING_OWNER_APPROVAL');
+-  assert.equal(current.approval.approvedBy,null);
++test('approved price card still does not activate paid Work', () => {
++  assert.equal(current.status,'OWNER_APPROVED_2026-11-03');
++  assert.equal(current.approval.approvedBy,'repository owner (jaydubya818)');
++  assert.equal(current.approval.approvedAt,'2026-11-03');
+   assert.equal(current.authority,'PRICING_ONLY_NO_EXECUTION_GRANT');
+   assert.equal(productionExecutionContract.status,'AWAITING_COMPOSED_QUALIFICATION');
+   assert.equal(productionExecutionContract.publication,false);
+diff --git a/apps/cloud-control/test/pricing-v5-contract.test.mjs b/apps/cloud-control/test/pricing-v5-contract.test.mjs
+index a0ee932..f0e5978 100644
+--- a/apps/cloud-control/test/pricing-v5-contract.test.mjs
++++ b/apps/cloud-control/test/pricing-v5-contract.test.mjs
+@@ -61,9 +61,9 @@ function reservation(over={}){
+ 
+ test('every v5 field matches the current qualified pricing and WORK_LEDGER_V2 contracts',()=>{
+  assert.equal(current.schema,'factory-pricing-qualification/v1');
+- assert.equal(current.status,'PROPOSED_AWAITING_OWNER_APPROVAL');
+- assert.equal(current.approval.approvedBy,null);
+- assert.equal(current.approval.approvedAt,null);
++ assert.equal(current.status,'OWNER_APPROVED_2026-11-03');
++ assert.equal(current.approval.approvedBy,'repository owner (jaydubya818)');
++ assert.equal(current.approval.approvedAt,'2026-11-03');
+  assert.equal(current.version,'openai-mini-20261102-v5');
+  assert.equal(current.ownerRepository,predecessorPrice.ownerRepository);
+  assert.equal(current.supersedes,'../pricing-20261022/20261022-v4.json');
+@@ -99,7 +99,7 @@ test('every v5 field matches the current qualified pricing and WORK_LEDGER_V2 co
+  assert.equal(productionExecutionContract.merge,false);
+  assert.equal(productionExecutionContract.deployGeneratedCandidate,false);
+  assert.equal(successor.paidExecution,'NOT_AUTHORIZED');
+- assert.equal(successor.pricingStatus,'PROPOSED_AWAITING_OWNER_APPROVAL');
++ assert.equal(successor.pricingStatus,'OWNER_APPROVED_2026-11-03');
+  assert.equal(successor.executionContractSha256,'54c57208b4cfcfa8c297123ef0e852967486cbe53f7fd45e21508fee1af7e522');
+ });
+ 
+@@ -174,7 +174,7 @@ test('v5 reservations, UNKNOWN exposure and ceiling match WORK_LEDGER_V2',()=>{
+ });
+ 
+ test('v5 productionSpendPlan admits before validUntil without OWNER_APPROVED; exact validUntil is refundable CANCELLED',async()=>{
+- assert.equal(current.status,'PROPOSED_AWAITING_OWNER_APPROVAL');
++ assert.equal(current.status,'OWNER_APPROVED_2026-11-03');
+  const live=runtime();live.calls.dbNow=V5_UNTIL-1;
+  const liveRes=await dispatch(world(),live,{now:()=>V5_UNTIL-1});
+  assert.equal(liveRes.status,200);
+diff --git a/apps/cloud-control/test/source-identity-qualification.test.mjs b/apps/cloud-control/test/source-identity-qualification.test.mjs
+index 7681b6c..0503769 100644
+--- a/apps/cloud-control/test/source-identity-qualification.test.mjs
++++ b/apps/cloud-control/test/source-identity-qualification.test.mjs
+@@ -134,7 +134,7 @@ test('inventoried source and configuration bind the exact unqualified source can
+  assert.equal(successor.installedAuthority,'NONE');
+  assert.equal(successor.paidExecution,'NOT_AUTHORIZED');
+  assert.equal(developerBeta.paidExecution,'NOT_AUTHORIZED');
+- assert.equal(successor.pricingStatus,'PROPOSED_AWAITING_OWNER_APPROVAL');
++ assert.equal(successor.pricingStatus,'OWNER_APPROVED_2026-11-03');
+  assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
+ });
+ 
+diff --git a/docs/capability-control/pricing-20261102/20261102-v5.json b/docs/capability-control/pricing-20261102/20261102-v5.json
+index 258a830..ceff7bd 100644
+--- a/docs/capability-control/pricing-20261102/20261102-v5.json
++++ b/docs/capability-control/pricing-20261102/20261102-v5.json
+@@ -1,10 +1,10 @@
+ {
+   "schema": "factory-pricing-qualification/v1",
+-  "status": "PROPOSED_AWAITING_OWNER_APPROVAL",
++  "status": "OWNER_APPROVED_2026-11-03",
+   "approval": {
+-    "approvedBy": null,
+-    "approvedAt": null,
+-    "scope": "PROPOSAL ONLY for owner Jay West (jaydubya818). Does not activate paid Work. Same rates, limits, reserves, ceiling and owner identities as 20261022-v4. Independently recaptured provider rates on 2026-11-02; not backdated; expiry 2026-11-09T00:00:00.000Z; never silently extended. Merge of this record is the owner approval."
++    "approvedBy": "repository owner (jaydubya818)",
++    "approvedAt": "2026-11-03",
++    "scope": "Owner approval of the 20261102-v5 price card only. Same rates, limits, reserves, ceiling and owner identities as 20261022-v4. Does not authorize paid Work, publication, merge, deploy, spending-limit changes, or tester identity changes. paidExecution remains NOT_AUTHORIZED. Execution contract remains AWAITING_COMPOSED_QUALIFICATION. Authority remains PRICING_ONLY_NO_EXECUTION_GRANT. Independently recaptured provider rates on 2026-11-02; not backdated; expiry 2026-11-09T00:00:00.000Z; never silently extended."
+   },
+   "version": "openai-mini-20261102-v5",
+   "ownerRepository": "jaydubya818/MyFactory",
+diff --git a/docs/capability-control/pricing-20261102/README.md b/docs/capability-control/pricing-20261102/README.md
+index c57f9b8..0249f15 100644
+--- a/docs/capability-control/pricing-20261102/README.md
++++ b/docs/capability-control/pricing-20261102/README.md
+@@ -1,12 +1,12 @@
+-# Pricing 20261102-v5 (PROPOSAL — Jay West approval required)
++# Pricing 20261102-v5 (OWNER-APPROVED PRICE CARD — paid Work still NOT authorized)
+ 
+ `openai/gpt-5.4-mini` via Vercel AI Gateway Responses, OpenAI only, default service tier.
+ 
+-**This record is a proposal. It is not owner-approved, does not activate paid Work, and must not be merged without Jay's explicit approval.**
++**This record is an owner-approved price card. It does not activate paid Work, publication, merge or deploy.**
+ 
+ Rates recaptured from primary sources on 2026-11-02T17:48:54Z and **unchanged from v4**: $0.75 input / $4.50 output per 1M tokens.
+ 
+-- Proposed revisions: `production-openai-mini-20261102-v5`, `cloud-codex-deterministic-20261102-v5`
++- Approved revisions: `production-openai-mini-20261102-v5`, `cloud-codex-deterministic-20261102-v5`
+ - Effective 2026-11-02T00:00:00Z, **expires 2026-11-09T00:00:00Z**. Re-qualify before then; never extend silently.
+ - Supersedes `../pricing-20261022/20261022-v4.json` (receiver/sofie line). v4 expired 2026-10-29T00:00:00Z and remains byte-identical.
+ - Gap: no valid price 2026-10-29..2026-11-02. This revision is not backdated.
+diff --git a/docs/capability-control/source-identity-20261102/pricing-v5-proposal-successor.json b/docs/capability-control/source-identity-20261102/pricing-v5-proposal-successor.json
+index 4347a8c..a774949 100644
+--- a/docs/capability-control/source-identity-20261102/pricing-v5-proposal-successor.json
++++ b/docs/capability-control/source-identity-20261102/pricing-v5-proposal-successor.json
+@@ -3,7 +3,7 @@
+   "authority": "ISOLATED_SOURCE_QUALIFICATION_ONLY",
+   "recordedAt": "2026-11-02",
+   "basisCommit": "ab221822f0ff58a91053c567b164f171bd88236d",
+-  "changes": "PROPOSAL ONLY. Additive gpt-5.4-mini pricing v5 (production-openai-mini-20261102-v5, cloud-codex-deterministic-20261102-v5). Rates, limits, reserves, ceiling and owner identities unchanged from 20261022-v4. Expiry 2026-11-09T00:00:00.000Z. Not backdated. Does not activate paid Work, flip billing flags, run migrations, or inherit qualification evidence.",
++  "changes": "Owner-approved gpt-5.4-mini pricing v5 price card only (production-openai-mini-20261102-v5, cloud-codex-deterministic-20261102-v5). Rates, limits, reserves, ceiling and owner identities unchanged from 20261022-v4. Expiry 2026-11-09T00:00:00.000Z. Not backdated. Does not activate paid Work, flip billing flags, run migrations, or inherit qualification evidence. paidExecution remains NOT_AUTHORIZED.",
+   "historicalSourceDigest": "1c69113378ed82428d13a2f89452708204e171ac9cb952b0a725acff83844548",
+   "predecessorSourceDigest": "3e0717468df0f1e9060166c41a7e01beada08ae6cfb466e5c8ae51ebc1293cde",
+   "predecessorFactoryVersion": "aa884d0e22ebceef5f24fa8c7ea52de495067d2e9557e4b93b50e82fbcaaba57",
+@@ -15,7 +15,7 @@
+   "predecessorExecutionContractSha256": "e0100d72075c2c0faec51de54527b0c0d00ce036691a358b647c35e9b0c30cd6",
+   "historicalExecutionContractSha256": "29ff7774ec7ac08a061f28fe2f81bff4a8f1124987f64a69a1b5cb8e21976b66",
+   "pricingRecord": "../pricing-20261102/20261102-v5.json",
+-  "pricingStatus": "PROPOSED_AWAITING_OWNER_APPROVAL",
++  "pricingStatus": "OWNER_APPROVED_2026-11-03",
+   "externalAlphaFactoryVersion": "Derive per approved installation: digest({sourceDigest, configurationDigest: digest(externalAlphaConfiguration(installation))}). Never reuse this production identity or silently replace an installed pin.",
+   "independentSourceQualification": "PENDING",
+   "releaseQualified": false,
