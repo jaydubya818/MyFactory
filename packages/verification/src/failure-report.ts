@@ -119,6 +119,8 @@ async function readWholeLog(path: string): Promise<string | null> {
   } finally { await file.close(); }
 }
 /** The verifier marks capture it could not retain; anything it dropped may have named a restricted path. */
+/** Only a bare build invocation is exempt from test-output proof; anything chained or named otherwise must prove its output. */
+const BUILD_ONLY_COMMAND = /^(?:npm|pnpm|yarn)\s+(?:run\s+)?build$|^npx\s+(?:tsc|vite\s+build)(?:\s+[^;&|]*)?$/i;
 const CAPTURE_TRUNCATED = "[verification log truncated]";
 
 async function readLog(path: string): Promise<string> {
@@ -237,7 +239,8 @@ export async function buildFailureReport(input: {
     checks.push({ index, command: sanitize(check.command, 200), status: check.status, exitCode: check.exitCode, reason: check.reason ? sanitize(check.reason, 200) : null });
     if (check.status === "passed") {
       const rawWhole = await readWholeLog(check.logPath).catch(() => null);
-      const isTestCommand = /\b(test|spec|playwright|vitest|jest|mocha|ava|tap)\b/i.test(check.command);
+      // Every passing check other than a pure build must prove its output; script names are not trusted to classify it.
+      const isTestCommand = !BUILD_ONLY_COMMAND.test(check.command.trim());
       // Completeness is judged on the RAW capture, before terminal normalization can consume the trusted marker.
       if (rawWhole === null || rawWhole.includes(CAPTURE_TRUNCATED)) {
         // A passing test command whose complete output could not be inspected cannot prove that tests ran: UNKNOWN, never PASS.
@@ -272,7 +275,8 @@ export async function buildFailureReport(input: {
     }
     // Withhold every detail unless the COMPLETE capture was scanned: an unreadable, short-read, oversized or verifier-truncated
     // log may hide a restricted path (the marker is checked on the RAW bytes). Any mention of a restricted path taints the log.
-    if (whole === null || wholeRaw === null || wholeRaw.includes(CAPTURE_TRUNCATED) || whole.includes(CAPTURE_TRUNCATED) || mentionsRestricted(whole, restricted) || mentionsRestricted(text, restricted) || mentionsRestricted(check.command, restricted)) {
+    if (whole === null || wholeRaw === null || wholeRaw.includes(CAPTURE_TRUNCATED) || whole.includes(CAPTURE_TRUNCATED) ||
+        mentionsRestricted(wholeRaw, restricted) || mentionsRestricted(wholeRaw.replace(/[\u0000-\u001f\u007f]/g, ""), restricted) || mentionsRestricted(whole, restricted) || mentionsRestricted(text, restricted) || mentionsRestricted(check.command, restricted)) {
       failures.push({ kind: BUILD_COMMAND.test(check.command) ? "BUILD_FAILED" : "TEST_FAILED", check: index, title: null, location: null,
         message: "A restricted check failed; details are withheld.", expected: null, received: null, detail: [] });
       continue;

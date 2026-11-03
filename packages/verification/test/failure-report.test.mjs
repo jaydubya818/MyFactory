@@ -246,3 +246,20 @@ test("a passing test command with a truncated capture is UNKNOWN, never PASS", a
   const report = await buildFailureReport({ identity, checks: logs(t, [["npx vitest run", "passed", 0, "ok\n[verification log truncated]\n\n[tail]\n 5 passed\n"]]) });
   assert.equal(report.outcome, "UNKNOWN");
 });
+
+test("an OSC-8 hyperlink target naming a restricted path withholds details", async t => {
+  const log = "Running 1 test\n  1) [desktop] › \u001b]8;;file:///w/protected/hidden.spec.ts\u0007hidden.spec.ts\u001b]8;;\u0007:4:1 › x ───\n\n    Error: expect(received).toBe(expected)\n    Expected: \"SECRET-ANSWER\"\n  1 failed\n";
+  const report = await buildFailureReport({ identity, checks: logs(t, [["npx playwright test", "failed", 1, log]]) });
+  assert(!JSON.stringify(report).includes("SECRET-ANSWER"));
+});
+
+test("test scripts with unusual names still must prove their output", async t => {
+  for (const cmd of ["npm run test_all", "npm run testUnit", "make check"]) {
+    const zero = await buildFailureReport({ identity, checks: logs(t, [[cmd, "passed", 0, "No test files found, exiting with code 0\n"]]) });
+    assert.equal(zero.outcome, "FAILED", cmd);
+    const trunc = await buildFailureReport({ identity, checks: logs(t, [[cmd, "passed", 0, "ok\n[verification log truncated]\n"]]) });
+    assert.equal(trunc.outcome, "UNKNOWN", cmd);
+  }
+  const build = await buildFailureReport({ identity, checks: logs(t, [["npm run build", "passed", 0, "built\n"]]) });
+  assert.equal(build.outcome, "PASSED");
+});
