@@ -1,0 +1,66 @@
+{
+  "schema": "myfactory-local-e2e-qualification/v1",
+  "date": "2026-11-02",
+  "timezone": "America/Los_Angeles",
+  "baseCommit": "57af52564908adf736e992a7220cfcbca9cfa3ae",
+  "defaultRepositorySuite": {
+    "tests": 633,
+    "pass": 605,
+    "fail": 0,
+    "skipped": 28
+  },
+  "connectedCloudSuite": {
+    "tests": 242,
+    "pass": 242,
+    "fail": 0,
+    "skipped": 0
+  },
+  "pinnedCliSuite": {
+    "tests": 18,
+    "pass": 18,
+    "fail": 0,
+    "skipped": 0
+  },
+  "feedbackHubSuite": {
+    "tests": 4,
+    "pass": 4,
+    "fail": 0,
+    "skipped": 0
+  },
+  "formerlySkippedTopLevelChecks": {
+    "total": 28,
+    "executed": 28,
+    "passed": 28
+  },
+  "setup": {
+    "database": "Disposable authenticated PostgreSQL 17 with TLS; server certificate trusted only for test subprocesses",
+    "provider": "Loopback simulated model Responses endpoint",
+    "codex": "0.157.0 installed only in a temporary directory",
+    "verification": "Real Git candidates and isolated offline Docker checks"
+  },
+  "fixtureRepairs": [
+    "Provision existing restricted capability-policy fixtures before admission",
+    "Do not mutate a shared store pool during the evidence-HTTP test",
+    "Use explicitly synthetic, short-lived spend plans for real-clock PostgreSQL tests",
+    "Use controlled Date clocks for historical provider/accounting contract tests"
+  ],
+  "productionSafety": {
+    "productionPricingOrAuthorityChanged": false,
+    "realModelCalls": 0,
+    "remoteDeployments": 0,
+    "executionRuntimeSourcesChanged": false
+  },
+  "remainingProductionPrerequisites": [
+    "Approve and activate the existing price-card proposal in PR #26; its v5 review deadline is 2026-11-09T00:00:00Z",
+    "Install and read back one exact approved Work grant on the qualified source/configuration/FactoryVersion before any paid run"
+  ],
+  "existingPricingWork": {
+    "proposal": "https://github.com/jaydubya818/MyFactory/pull/26",
+    "qualification": "https://github.com/jaydubya818/MyFactory/pull/29",
+    "verifiedQualificationHead": "c3f7f014b649073d2333aff3fd10dc3fab253170",
+    "workflowRun": "https://github.com/jaydubya818/MyFactory/actions/runs/41587311809",
+    "workflowConclusion": "success"
+  },
+  "compatibilityLimit": "System Codex 0.163.0 is not qualified by this run: its request tool format is denied by the spend gateway. Installed-CLI checks pass using the pinned 0.157.0 harness. No security checks were relaxed.",
+  "scope": "Three work-desk UI files; all other code changes are test fixtures. Existing unrelated local files excluded."
+}
