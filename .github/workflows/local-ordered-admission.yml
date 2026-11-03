@@ -63,7 +63,7 @@ jobs:
         if: runner.os == 'Linux'
         run: docker pull node:22-bookworm
       - name: Portable receiver, revocation-race and spend-boundary contracts (preparation-driven tests skip off the pinned profile)
-        run: node --test apps/supervisor/test/local-ordered-admission.test.mjs apps/supervisor/test/local-ordered-admission-race.test.mjs apps/supervisor/test/local-ordered-admission-productive.test.mjs packages/verification/test/leased-source.test.mjs apps/supervisor/test/spend-gateway.test.mjs apps/supervisor/test/spend-review-regressions.test.mjs
+        run: node --test apps/supervisor/test/local-ordered-admission.test.mjs apps/supervisor/test/local-ordered-admission-race.test.mjs apps/supervisor/test/local-ordered-admission-productive.test.mjs apps/supervisor/test/local-v4-host.test.mjs packages/verification/test/leased-source.test.mjs apps/supervisor/test/spend-gateway.test.mjs apps/supervisor/test/spend-review-regressions.test.mjs
       - name: Autonomous test-feedback loop, recovery reconcile and failure-report contracts (fixture agent, no provider)
         run: node --test apps/supervisor/test/feedback-loop.test.mjs apps/supervisor/test/execution-provider.test.mjs packages/verification/test/failure-report.test.mjs packages/agents/test/agents.test.mjs
       - name: Require unchanged tracked source
