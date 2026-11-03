@@ -26,7 +26,9 @@ try{
  assert.equal(version.stdout.trim(),'codex-cli 0.157.0');
  assert(!version.stderr.includes('Refusing to create helper binaries'));
  const cliEnv={PATH:process.env.PATH,HOME:home,CODEX_HOME:home,TMPDIR:process.env.RUNNER_TEMP??'/tmp',LANG:'C.UTF-8'};
- for(const command of [['/bin/echo','FACTORY_SANDBOX_MARKER'],[process.execPath,'-p','JSON.stringify({node:process.version})']]){
+ for(const command of [['/bin/echo','FACTORY_SANDBOX_MARKER'],[process.execPath,'--version'],
+  ['/bin/sh','-c',`'${process.execPath}' -p 'JSON.stringify({node:process.version})'; printf 'node-exit:%s\\n' "$?"`],
+  [process.execPath,'-e','require("node:fs").writeSync(1,"NODE_SYNC_MARKER\\n")']]){
   const observed=await exec('codex',['-c','sandbox_mode="workspace-write"','sandbox','--',...command],
    {cwd:workspace,env:cliEnv,timeout:15000,maxBuffer:32000});
   console.log('SANDBOX_COMMAND_DIAGNOSTIC',JSON.stringify({command,stdout:observed.stdout,stderr:observed.stderr}));
