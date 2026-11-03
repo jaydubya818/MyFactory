@@ -1,6 +1,6 @@
 import { isModelReference } from '../../contracts/src/model-reference.ts';
 import { spawn, type ChildProcess } from "node:child_process";
-import { lstat, mkdtemp, open, realpath } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, open, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
 
 const MAX_PROMPT_BYTES = 128 * 1024;
@@ -36,6 +36,13 @@ export interface CodexRunOptions {
   timeoutMs: number;
   artifactsDir: string;
   sandbox?: "workspace-write" | "read-only";
+  /** Resume exactly this prior coding session (UUID) instead of starting a new one. The resumed
+   * process must report the same thread identity or the run fails closed. */
+  resumeThreadId?: string;
+  /** Attempt-owned Codex home retained across productive invocations so `exec resume` can find the
+   * session saved by the first process. Only used with a spend gateway (whose child otherwise gets a
+   * throwaway home per invocation). Must be absolute and outside the task workspace. */
+  sessionHome?: string;
   onProcessStart?: (process: { pid: number; startedAt: string; workspacePath: string }) => void | Promise<void>;
   onEvent?: (event: CodexEvent) => void | Promise<void>;
   signal?: AbortSignal;
@@ -115,6 +122,14 @@ function validateRunOptions(options: CodexRunOptions): void {
       (options.boundedProductiveContext !== true || !options.gateway || !options.productiveEndSignal || options.sandbox === "read-only")) {
     throw new TypeError("Bounded productive context requires the metered host checkpoint and writable executor");
   }
+  if (options.resumeThreadId !== undefined &&
+      (typeof options.resumeThreadId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(options.resumeThreadId) || options.sandbox === "read-only")) {
+    throw new TypeError("resumeThreadId must be a session UUID for a writable executor");
+  }
+  if (options.sessionHome !== undefined &&
+      (typeof options.sessionHome !== "string" || !isAbsolute(options.sessionHome) || options.sessionHome.includes("\0") || options.sandbox === "read-only")) {
+    throw new TypeError("sessionHome must be an absolute directory for a writable executor");
+  }
   if (options.onEvent !== undefined && typeof options.onEvent !== "function") {
     throw new TypeError("onEvent must be a function");
   }
@@ -177,6 +192,14 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
     throw new TypeError("artifactsDir must be outside the task workspace");
   }
 
+  let codexHome: string | null = null;
+  if (options.sessionHome !== undefined) {
+    await mkdir(options.sessionHome, { recursive: true, mode: 0o700 });
+    codexHome = await checkedDirectory(options.sessionHome, "sessionHome");
+    if (isInside(codexHome, workspacePath) || isInside(workspacePath, codexHome)) {
+      throw new TypeError("sessionHome must be separate from the task workspace");
+    }
+  }
   const runDir = await mkdtemp(join(artifactsDir, "codex-run-"));
   const eventsPath = join(runDir, "events.jsonl");
   const stderrPath = join(runDir, "stderr.log");
@@ -202,22 +225,30 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
       '-c', 'model_providers.factory_spend.stream_max_retries=0',
       '-c', 'web_search="disabled"',
     ] : [];
-    child = spawn(executablePath, [
+    const developerArgs = options.boundedProductiveContext ? ["-c", `developer_instructions=${JSON.stringify(BOUNDED_PRODUCTIVE_INSTRUCTIONS)}`] : [];
+    // `exec resume` has no -C/--sandbox: the process cwd is the workspace and the sandbox is a config override.
+    const argv = options.resumeThreadId ? [
+      "exec", "resume", "-m", options.model,
+      ...gatewayArgs, ...developerArgs,
+      "-c", `sandbox_mode=${JSON.stringify(options.sandbox ?? "workspace-write")}`,
+      "--json", "-o", finalMessagePath,
+      options.resumeThreadId, options.prompt,
+    ] : [
       "exec", "-m", options.model,
-      ...gatewayArgs,
-      ...(options.boundedProductiveContext ? ["-c", `developer_instructions=${JSON.stringify(BOUNDED_PRODUCTIVE_INSTRUCTIONS)}`] : []),
+      ...gatewayArgs, ...developerArgs,
       "-C", workspacePath,
       "--sandbox", options.sandbox ?? "workspace-write",
       "--json", "-o", finalMessagePath,
       options.prompt,
-    ], {
+    ];
+    child = spawn(executablePath, argv, {
       cwd: workspacePath,
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
       ...(gateway ? { env: {
-        PATH: process.env.PATH ?? '', HOME: runDir, TMPDIR: process.env.TMPDIR ?? '/tmp',
-        LANG: process.env.LANG ?? 'en_US.UTF-8', CI: '1', CODEX_HOME: runDir,
+        PATH: process.env.PATH ?? '', HOME: codexHome ?? runDir, TMPDIR: process.env.TMPDIR ?? '/tmp',
+        LANG: process.env.LANG ?? 'en_US.UTF-8', CI: '1', CODEX_HOME: codexHome ?? runDir,
         FACTORY_GATEWAY_TOKEN: gateway.childToken,
       } } : {}),
     });
@@ -300,7 +331,8 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
     const parsed = event as CodexEvent;
     if (parsed.type === "thread.started") {
       if (typeof parsed.thread_id !== "string" || parsed.thread_id.length === 0 ||
-          (threadId !== null && threadId !== parsed.thread_id)) {
+          (threadId !== null && threadId !== parsed.thread_id) ||
+          (options.resumeThreadId !== undefined && parsed.thread_id !== options.resumeThreadId)) {
         outputError = "Codex emitted an invalid thread identity";
         stop("invalid_output");
         return;
@@ -397,7 +429,8 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
     termination === "productive_end" && !outputError && !spawnError ? "yielded" :
     termination === "timeout" ? "timed_out" :
     termination === "abort" ? "cancelled" :
-    exit.code === 0 && completionEventSeen && !turnFailed && !outputError && finalMessageAvailable ? "completed" : "failed";
+    exit.code === 0 && completionEventSeen && !turnFailed && !outputError && finalMessageAvailable &&
+      (options.resumeThreadId === undefined || threadId === options.resumeThreadId) ? "completed" : "failed";
   const error = status === "completed" || status === "yielded" ? null :
     processStartError ?? spawnError ?? outputError ??
     (termination === "timeout" ? "Codex run timed out" :
@@ -406,6 +439,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
       !completionEventSeen ? "Codex exited without a turn.completed event" :
       turnFailed ? "Codex reported turn.failed" :
       !finalMessageAvailable ? "Codex final message artifact is missing or invalid" :
+      options.resumeThreadId !== undefined && threadId !== options.resumeThreadId ? "Resumed process did not report the expected thread identity" :
       "Codex run failed");
 
   return {

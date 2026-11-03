@@ -1,6 +1,8 @@
 import { assertLocalCapabilityAdmission } from "./capability-admission.ts";
 import { repairLink, repairPrompt, ReviewRepair } from "./review-repair.ts";
-import { executionContext, implementationFeedback } from "./execution-context.ts";
+import { executionContext } from "./execution-context.ts";
+import { FEEDBACK_HARD_CAP, decideFeedback, pinnedSession, recoveredSession, resumePrompt, sessionConflict, terminalAmbiguity, usesBrowserProfile, type StopReason } from "./feedback-loop.ts";
+import { buildFailureReport } from "../../../packages/verification/src/failure-report.ts";
 import { mkdir, readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
@@ -770,11 +772,37 @@ export class JobManager {
       let productiveYield=false;
       let productiveConnection=active.gateway;
       let productivePrompt=prompt;
-      for(let productiveStep=1;productiveStep<=2;productiveStep++){
+      let pendingFeedbackKey:string|null=null;
+      // Re-entry after a crash between a finished agent response and the next decision: the response is already
+      // settled in the ledger, so only the deterministic checkpoint is repeated. Nothing paid is re-sent.
+      const priorResponses=this.storage.listEvents(workOrder.id).filter(e=>e.runId===run.id&&e.type==='run.agent_result').length;
+      let skipAgent=priorResponses>0;
+      if(priorResponses>0){
+        const known=this.storage.listEvents(workOrder.id).filter(e=>e.runId===run.id);
+        const settledKeys=new Set(known.filter(e=>e.type==='feedback.resume_settled').map(e=>String(e.payload.key)));
+        const alreadyStopped=known.some(e=>e.type==='feedback.stopped');
+        const unsettled=known.some(e=>e.type==='feedback.resume_requested'&&!settledKeys.has(String(e.payload.key)));
+        const ambiguity=terminalAmbiguity(known,run.id);
+        if(alreadyStopped||unsettled||ambiguity){
+          this.#event(workOrder.id,run.id,'feedback.stopped',{reason:(ambiguity??(alreadyStopped?'DUPLICATE_FEEDBACK':'UNSETTLED_PRIOR_RESUME')) satisfies StopReason,step:priorResponses,digest:null});
+          throw Error('Completion eligibility checks failed or unavailable');
+        }
+      }
+      // The ordered LOCAL_V4 path keeps its two-operation structure (one feedback round); development routes may use more.
+      const lastStep=strictFinalization?2:FEEDBACK_HARD_CAP+1;
+      for(let productiveStep=Math.max(1,priorResponses);productiveStep<=lastStep;productiveStep++){
       currentConnection();
+      // Feedback resumes the SAME coding session; the identity is pinned the first time the host sees it.
+      const resumeThreadId=productiveStep>1?pinnedSession(this.storage.listEvents(workOrder.id),run.id)??undefined:undefined;
+      const strictCheckpoint = strictFinalization;
+      let agentResult: FactoryEvent | undefined;
+      if(!skipAgent){
       const codex = await this.dependencies.runCodex({
         workspacePath: run.workspacePath,
         prompt:productivePrompt,
+        ...(resumeThreadId?{resumeThreadId}:{}),
+        // Gateway children get a throwaway home per invocation; a resume needs the first process's saved session.
+        ...(active.gateway?{sessionHome:join(artifactDir,'codex-session-home')}:{}),
         model: snapshot?.configuration.model ?? active.model,
         timeoutMs: snapshot?.configuration.timeoutMs ?? 30 * 60 * 1000,
         artifactsDir: artifactDir,
@@ -794,15 +822,26 @@ export class JobManager {
         },
       });
       currentConnection();
-      const strictCheckpoint = strictFinalization;
       const implementationEligible = codex.success || codex.status === 'yielded' && productiveConnection?.productiveEndSignal?.aborted === true;
-      const agentResult = this.#event(workOrder.id, run.id, "run.agent_result", {
+      agentResult = this.#event(workOrder.id, run.id, "run.agent_result", {
         status: codex.status,
         threadId: codex.threadId,
         usage: codex.usage,
         eventsPath: codex.eventsPath,
         ...(strictCheckpoint ? { checkpointVersion: 1, productiveStep, implementationEligible } : {}),
       });
+      if(pendingFeedbackKey){
+        this.#event(workOrder.id,run.id,'feedback.resume_settled',{key:pendingFeedbackKey,status:codex.status,success:codex.success,threadId:codex.threadId});
+        pendingFeedbackKey=null;
+      }
+      if(codex.threadId){
+        const known=this.storage.listEvents(workOrder.id);
+        if(!pinnedSession(known,run.id)&&!sessionConflict(known,run.id))this.#event(workOrder.id,run.id,'feedback.session_pinned',{threadId:codex.threadId,step:productiveStep});
+        else if(pinnedSession(known,run.id)!==codex.threadId){
+          this.#event(workOrder.id,run.id,'feedback.stopped',{reason:'SESSION_MISMATCH' satisfies StopReason,step:productiveStep});
+          throw new Error('Feedback session identity changed');
+        }
+      }
       if (signal.aborted) throw new Error("Run interrupted during agent execution");
       productiveYield = codex.status === "yielded" && productiveConnection?.productiveEndSignal?.aborted === true;
       if (!codex.success && !productiveYield) {
@@ -819,6 +858,12 @@ export class JobManager {
         }, { failure: codex.error ?? "Coding agent failed" });
         return;
       }
+      }
+      skipAgent=false;
+      // Re-entry after a crash: the settled response is already durable; the checkpoint binds to that exact row.
+      agentResult ??= this.storage.listEvents(workOrder.id).filter(e=>e.runId===run.id&&e.type==='run.agent_result').at(-1);
+      if(!agentResult)throw Error('Agent result missing');
+      const settledResult: FactoryEvent = agentResult;
 
       currentConnection();
       if (active.gateway?.beginCompletion) {
@@ -848,30 +893,66 @@ export class JobManager {
         checkedTree=(await this.#implementationCheckpoint(run,active,controller,{kind:'CAPTURE',...checkpointFrame},workOrder.allowedPaths,artifactDir)).tree;
         currentConnection();
         const implementationPhase={assertCurrent:()=>{if(verificationControl)verificationInputHold();}};
+        const requestedCommands=snapshot?.configuration.commands??workOrder.checkCommands;
         const checks=await this.#verifySource(run,verificationControl,{kind:'IMPLEMENTATION',...checkpointFrame},'tree',{repositoryPath:run.workspacePath,tree:checkedTree,
-          commands:snapshot?.configuration.commands??workOrder.checkCommands,artifactDir:join(artifactDir,'completion-eligibility'),
+          commands:requestedCommands,artifactDir:join(artifactDir,'completion-eligibility'),
+          ...(usesBrowserProfile(requestedCommands)?{profile:'browser' as const}:{}),
           resourceKey:run.id,signal,...(snapshot?{image:snapshot.configuration.verificationImage}:{})},implementationPhase);
         currentConnection();
-        const passed=checks.exportStatus==='ready'&&checks.checks.length>0&&checks.checks.every(c=>c.status==='passed');
+        // The result must describe exactly the tree and commands requested; anything else is stale and never feedback.
+        const staleResult=checks.candidateTree!==checkedTree||checks.checks.some(c=>c.candidateTree!==checkedTree)||
+          JSON.stringify(checks.checks.map(c=>c.command))!==JSON.stringify(requestedCommands);
+        const ran=!staleResult&&checks.exportStatus==='ready'&&checks.checks.length>0;
+        // Build the report on success too: a zero-test run exits 0 but is not a pass.
+        const report=ran?await buildFailureReport({identity:{workOrderId:workOrder.id,runId:run.id,step:productiveStep,candidateTree:checkedTree},
+          // Only the WorkOrder's own authorized checks run here; protected verification is a separate, later authority.
+          checks:checks.checks.map(c=>({command:c.command,status:c.status,exitCode:c.exitCode,reason:c.reason,logPath:c.logPath,
+            visibility:(c as {visibility?:'IMPLEMENTATION_VISIBLE'|'PROTECTED'}).visibility??'IMPLEMENTATION_VISIBLE'}))}):null;
+        const zeroTests=new Set((report?.failures??[]).filter(f=>f.kind==='NO_TESTS_RAN').map(f=>f.check));
+        const passed=ran&&checks.checks.every(c=>c.status==='passed')&&report?.outcome==='PASSED';
         const checkpoint = this.#verificationWriteFence(run,verificationControl,implementationPhase.assertCurrent).event('run.implementation_checkpoint',{productiveStep,tree:checkedTree,
-          passed,manifestPath:checks.manifestPath,checks:checks.checks.map(c=>({command:c.command,status:c.status})),
+          // A zero-test exit is recorded as a failed check so the strict checkpoint policy stays consistent with `passed:false`.
+          passed,manifestPath:checks.manifestPath,checks:checks.checks.map((c,i)=>({command:c.command,status:c.status==='passed'&&zeroTests.has(i)?'failed':c.status})),
           ...(this.producer?.context ? {contextVersion:1,exportStatus:checks.exportStatus} : {}),
           ...(strictCheckpoint ? {checkpointVersion:1,agentResultEventId:agentResult.id,settlementEventId:settlement!.id} : {})});
         currentConnection();
         if(signal.aborted)throw Error('Run interrupted during implementation checkpoint');
         if(!passed){
-          if(checks.exportStatus!=='ready'||!checks.checks.length||checks.checks.some(c=>c.status==='unavailable')||productiveStep===2||!active.gateway.nextProductive)
-            throw Error('Completion eligibility checks failed or unavailable');
-          const feedback=await implementationFeedback(checks.checks);
+          const stop=(reason:StopReason,digest:string|null)=>this.#event(workOrder.id,run.id,'feedback.stopped',{reason,step:productiveStep,digest});
+          if(staleResult){stop('STALE_RESULT',null);throw Error('Completion eligibility checks failed or unavailable');}
+          if(!report){stop('UNKNOWN_OUTCOME',null);throw Error('Completion eligibility checks failed or unavailable');}
+          this.#event(workOrder.id,run.id,'feedback.report_issued',{step:productiveStep,tree:checkedTree,digest:report.digest,outcome:report.outcome,report});
+          const decision=decideFeedback({events:this.storage.listEvents(workOrder.id),runId:run.id,step:productiveStep,currentTree:checkedTree,report,
+            policy:{authorized:!!active.gateway.nextProductive,maxRounds:strictFinalization?1:FEEDBACK_HARD_CAP}});
+          if(decision.action!=='RESUME'){stop(decision.action==='STOP'?decision.reason:'STALE_RESULT',report.digest);throw Error('Completion eligibility checks failed or unavailable');}
           currentConnection();
-          if((await this.#implementationCheckpoint(run,active,controller,{kind:'RECHECK',...checkpointFrame,checkpointEventId:checkpoint.id,expectedTree:checkedTree},workOrder.allowedPaths,artifactDir)).tree!==checkedTree)
-            throw Error('Workspace changed during implementation checkpoint');
+          const treeNow:string=checkedTree;
+          const recheck=async()=>(await this.#implementationCheckpoint(run,active,controller,{kind:'RECHECK',...checkpointFrame,checkpointEventId:checkpoint.id,expectedTree:treeNow},workOrder.allowedPaths,artifactDir)).tree;
+          if(await recheck()!==checkedTree)throw Error('Workspace changed during implementation checkpoint');
           currentConnection();
-          productivePrompt=prompt+'\n\nThis is the final productive response. Repair the implementation using the current source and implementation-visible failure feedback. The host will run tests after your edits. Do not request another model turn. No new scope or authority is granted.\nCURRENT_SOURCE_CONTEXT: '+await this.#sourceContext(run,workOrder.allowedPaths,{kind:'REPAIR',checkpointEventId:checkpoint.id,productiveStep:1,tree:checkedTree})+'\nHOST_IMPLEMENTATION_FEEDBACK: '+feedback;
+          // The same coding session must receive the feedback. Recover its identity from durable events if the pin was lost
+          // to a crash; with none (or conflicting ones) stop BEFORE admission rather than start a different session.
+          let sessionId=pinnedSession(this.storage.listEvents(workOrder.id),run.id);
+          if(!sessionId&&!sessionConflict(this.storage.listEvents(workOrder.id),run.id)){
+            const recovered=recoveredSession(this.storage.listEvents(workOrder.id),run.id);
+            if(recovered){this.#event(workOrder.id,run.id,'feedback.session_pinned',{threadId:recovered,step:productiveStep,recovered:true});sessionId=recovered;}
+          }
+          if(!sessionId){stop('SESSION_MISMATCH',report.digest);throw Error('Completion eligibility checks failed or unavailable');}
+          // Admission is the existing ledger-backed authority. A refusal happens before any send and is terminal here.
+          let admitted;
+          try{admitted=await active.gateway.nextProductive!();}
+          catch(error){stop('BUDGET_EXHAUSTED',report.digest);throw Error('Completion eligibility checks failed or unavailable: '+message(error));}
           currentConnection();
-          productiveConnection={...active.gateway,...await active.gateway.nextProductive()};
+          // Admission is async: nothing may have changed the tree between the check and the send.
+          if(await recheck()!==checkedTree){stop('STALE_RESULT',report.digest);throw Error('Workspace changed during feedback admission');}
           currentConnection();
-          this.#event(workOrder.id,run.id,'run.productive_repair_admitted',{productiveStep:2,checkedTree,feedback,
+          // Recorded BEFORE the send: a crash after this point is an unsettled paid outcome that is never resent.
+          this.#event(workOrder.id,run.id,'feedback.resume_requested',{key:decision.key,round:decision.round,step:productiveStep,tree:checkedTree,threadId:sessionId,mode:'RESUME_SAME_SESSION'});
+          pendingFeedbackKey=decision.key;
+          productivePrompt=resumePrompt(report,decision.round);
+          productiveConnection={...active.gateway,...admitted};
+          currentConnection();
+          this.#event(workOrder.id,run.id,'run.productive_repair_admitted',{productiveStep:productiveStep+1,checkedTree,feedback:JSON.stringify(report),
             ...(this.producer?.context ? {contextVersion:1,checkpointEventId:checkpoint.id} : {})});
           continue;
         }
@@ -982,6 +1063,7 @@ export class JobManager {
         candidateSha: candidate.commit,
         commands: verificationCommands,
         artifactDir: join(artifactDir, "verification"),
+        ...(usesBrowserProfile(verificationCommands) ? { profile: "browser" as const } : {}),
         signal,
         ...(snapshot ? { image: snapshot.configuration.verificationImage } : {}),
       },finalPhase);

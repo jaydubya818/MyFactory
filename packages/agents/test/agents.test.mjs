@@ -247,3 +247,54 @@ test('explicit container adapter reports its execution profile without changing 
  assert.equal(result.workerProfile,'container');assert.equal(result.status,'completed');
  assert.throws(()=>createCodexAdapter(binaryPath,'unqualified'),/Unsupported/);
 });
+
+const SESSION = "01a199df-cca4-7581-950f-74e365544d31";
+test("resume continues exactly the pinned session with literal prompt and reports the same thread", async t => {
+  const work = await fixture(t);
+  const result = await work.adapter.runCodex(options(work, "Fix $(echo literal)", { resumeThreadId: SESSION }));
+  assert.equal(result.success, true);
+  assert.equal(result.threadId, SESSION);
+  assert.equal(await readFile(result.finalMessagePath, "utf8"), `Resumed ${SESSION} with Fix $(echo literal)`);
+});
+
+test("a resumed process that reports a different session fails closed", async t => {
+  const work = await fixture(t);
+  const result = await work.adapter.runCodex(options(work, "resume-wrong-thread", { resumeThreadId: SESSION }));
+  assert.equal(result.success, false);
+  assert.match(result.error ?? "", /thread identity/i);
+});
+
+test("resume refuses non-UUID session ids and read-only completion processes", async t => {
+  const work = await fixture(t);
+  for (const bad of ["--last", "../x", "not-a-uuid", `${SESSION} extra`])
+    await assert.rejects(work.adapter.runCodex(options(work, "p", { resumeThreadId: bad })), /resumeThreadId/);
+  await assert.rejects(work.adapter.runCodex(options(work, "p", { resumeThreadId: SESSION, sandbox: "read-only" })), /resumeThreadId/);
+});
+
+test("a resumed process that never reports a thread identity cannot succeed", async t => {
+  const work = await fixture(t);
+  const result = await work.adapter.runCodex(options(work, "resume-no-thread", { resumeThreadId: SESSION }));
+  assert.equal(result.success, false);
+  assert.match(result.error ?? "", /thread identity/i);
+});
+
+test("gateway resume finds the first process's saved session only through the attempt-owned session home", async t => {
+  const work = await fixture(t);
+  const gateway = { baseUrl: "http://127.0.0.1:8123/v1", childToken: "a".repeat(64) };
+  const sessionHome = join(work.artifactsDir, "..", "attempt-session-home");
+  const first = await work.adapter.runCodex(options(work, "save-session", { gateway, sessionHome }));
+  assert.equal(first.success, true);
+  // Without a retained home the second invocation gets a throwaway home and cannot see the session.
+  const lost = await work.adapter.runCodex(options(work, "resume-needs-session-store", { gateway, resumeThreadId: SESSION }));
+  assert.equal(lost.success, false);
+  const found = await work.adapter.runCodex(options(work, "resume-needs-session-store", { gateway, sessionHome, resumeThreadId: SESSION }));
+  assert.equal(found.success, true, found.error ?? "");
+  assert.equal(found.threadId, SESSION);
+});
+
+test("sessionHome must be absolute, separate from the workspace, and writable-executor only", async t => {
+  const work = await fixture(t);
+  await assert.rejects(work.adapter.runCodex(options(work, "p", { sessionHome: "relative/home" })), /sessionHome/);
+  await assert.rejects(work.adapter.runCodex(options(work, "p", { sessionHome: join(work.workspacePath, "home") })), /sessionHome|workspace/);
+  await assert.rejects(work.adapter.runCodex(options(work, "p", { sessionHome: join(work.artifactsDir, "..", "h"), sandbox: "read-only" })), /sessionHome/);
+});

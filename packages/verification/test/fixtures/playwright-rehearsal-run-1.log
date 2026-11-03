@@ -1,0 +1,124 @@
+
+Running 3 tests using 1 worker
+
+  ✘  1 [desktop] › test/dashboard.spec.ts:36:1 › default shows failures, all distinct statuses, and safe GitHub anchors; filter is keyboard usable (30.0s)
+  ✘  2 [desktop] › test/dashboard.spec.ts:69:1 › filter with no matches has an explicit empty state (30.0s)
+  ✘  3 [desktop] › test/dashboard.spec.ts:95:1 › failed refresh retains observation time and marks old data stale (5.3s)
+
+
+  1) [desktop] › test/dashboard.spec.ts:36:1 › default shows failures, all distinct statuses, and safe GitHub anchors; filter is keyboard usable 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.focus: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Status', { exact: true })
+
+
+      50 |   }
+      51 |   const filter = page.getByLabel('Status', { exact: true });
+    > 52 |   await filter.focus();
+         |                ^
+      53 |   await expect(filter).toBeFocused();
+      54 |   expect(await filter.evaluate(element => getComputedStyle(element).outlineStyle)).not.toBe('none');
+      55 |   await filter.press('ArrowDown');
+        at /private/tmp/q1-rehearsal-20261101/work/test/dashboard.spec.ts:52:16
+
+    Error Context: test-results/dashboard-default-shows-fa-21be2-s-filter-is-keyboard-usable-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/dashboard-default-shows-fa-21be2-s-filter-is-keyboard-usable-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/dashboard-default-shows-fa-21be2-s-filter-is-keyboard-usable-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [desktop] › test/dashboard.spec.ts:69:1 › filter with no matches has an explicit empty state ──
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Status', { exact: true })
+
+
+      70 |   await page.goto('/?scenario=healthy');
+      71 |   await expect(page.getByTestId('health')).toHaveText('Passing');
+    > 72 |   await page.getByLabel('Status', { exact: true }).selectOption('failed');
+         |                                                    ^
+      73 |   await expect(page.getByText('No runs match this status.')).toBeVisible();
+      74 | });
+      75 |
+        at /private/tmp/q1-rehearsal-20261101/work/test/dashboard.spec.ts:72:52
+
+    Error Context: test-results/dashboard-filter-with-no-matches-has-an-explicit-empty-state-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/dashboard-filter-with-no-matches-has-an-explicit-empty-state-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/dashboard-filter-with-no-matches-has-an-explicit-empty-state-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [desktop] › test/dashboard.spec.ts:95:1 › failed refresh retains observation time and marks old data stale 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByTestId('recent-runs')
+    Timeout: 5000ms
+    - Expected  - 18
+    + Received  +  1
+
+    - Build & test
+    -
+    - main · a18c42e
+    -
+    - 2026-10-31 15:49:00 UTC
+    - Passed
+    - View run 
+    - 1: Build & test
+    - ↗
+    - Type checking
+    -
+    - main · a18c42e
+    -
+    - 2026-10-31 15:48:00 UTC
+    - Passed
+    - View run 
+    - 2: Type checking
+    - ↗
+    + Build & testmain · a18c42e2026-10-31 15:49:00 UTCPassedView run 1: Build & test ↗Type checkingmain · a18c42e2026-10-31 15:48:00 UTCPassedView run 2: Type checking ↗
+
+    Call log:
+      - Expect "toHaveText" getByTestId('recent-runs') with timeout 5000ms
+      - waiting for getByTestId('recent-runs')
+        14 × locator resolved to <ul class="runs" data-testid="recent-runs">…</ul>
+           - unexpected value "Build & testmain · a18c42e2026-10-31 15:49:00 UTCPassedView run 1: Build & test ↗Type checkingmain · a18c42e2026-10-31 15:48:00 UTCPassedView run 2: Type checking ↗"
+
+
+      100 |   await expect(page.getByRole('alert')).toContainText('Stale data — refresh failed');
+      101 |   await expect(page.getByRole('alert')).toContainText('2026-10-31 16:00:00 UTC');
+    > 102 |   await expect(page.getByTestId('recent-runs')).toHaveText(before);
+          |                                                 ^
+      103 |   await page.getByRole('button', { name: 'Retry read' }).click();
+      104 |   await expect(page.getByRole('alert')).toContainText('Stale data');
+      105 | });
+        at /private/tmp/q1-rehearsal-20261101/work/test/dashboard.spec.ts:102:49
+
+    Error Context: test-results/dashboard-failed-refresh-r-0f767-me-and-marks-old-data-stale-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/dashboard-failed-refresh-r-0f767-me-and-marks-old-data-stale-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/dashboard-failed-refresh-r-0f767-me-and-marks-old-data-stale-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [desktop] › test/dashboard.spec.ts:36:1 › default shows failures, all distinct statuses, and safe GitHub anchors; filter is keyboard usable 
+    [desktop] › test/dashboard.spec.ts:69:1 › filter with no matches has an explicit empty state ───
+    [desktop] › test/dashboard.spec.ts:95:1 › failed refresh retains observation time and marks old data stale 
+rc=1

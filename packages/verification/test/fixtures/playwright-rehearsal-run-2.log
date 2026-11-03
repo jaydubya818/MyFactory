@@ -1,0 +1,100 @@
+
+> myeve-beta-dashboard@0.0.0 test
+> playwright test
+
+
+Running 52 tests using 1 worker
+
+  ✓   1 [unit] › test/health.spec.ts:7:3 › classification: healthy is Passing (2ms)
+  ✓   2 [unit] › test/health.spec.ts:7:3 › classification: failing is Failing (0ms)
+  ✓   3 [unit] › test/health.spec.ts:7:3 › classification: pending is Pending (0ms)
+  ✓   4 [unit] › test/health.spec.ts:7:3 › classification: unknown is Unknown (0ms)
+  ✓   5 [unit] › test/health.spec.ts:7:3 › classification: empty is Unknown (0ms)
+  ✓   6 [unit] › test/health.spec.ts:7:3 › classification: partial is Failing (0ms)
+  ✓   7 [unit] › test/health.spec.ts:12:1 › incomplete evidence, old commits and non-default branches cannot establish passing health (0ms)
+  ✓   8 [unit] › test/health.spec.ts:26:3 › completed failure has explicit classification (0ms)
+  ✓   9 [unit] › test/health.spec.ts:26:3 › completed timed_out has explicit classification (0ms)
+  ✓  10 [unit] › test/health.spec.ts:26:3 › completed action_required has explicit classification (0ms)
+  ✓  11 [unit] › test/health.spec.ts:26:3 › completed cancelled has explicit classification (0ms)
+  ✓  12 [unit] › test/health.spec.ts:26:3 › completed skipped has explicit classification (0ms)
+  ✓  13 [unit] › test/health.spec.ts:26:3 › completed neutral has explicit classification (0ms)
+  ✓  14 [unit] › test/health.spec.ts:26:3 › completed null has explicit classification (0ms)
+  ✓  15 [unit] › test/health.spec.ts:36:1 › latest run per workflow wins regardless of input order; historical failures stay visible separately (0ms)
+  ✓  16 [unit] › test/health.spec.ts:46:1 › running and queued are pending, not completed failures (0ms)
+  ✓  17 [desktop] › test/dashboard.spec.ts:24:3 › healthy shows Passing with repository context (210ms)
+  ✓  18 [desktop] › test/dashboard.spec.ts:24:3 › failing shows Failing with repository context (893ms)
+  ✓  19 [desktop] › test/dashboard.spec.ts:24:3 › pending shows Pending with repository context (175ms)
+  ✓  20 [desktop] › test/dashboard.spec.ts:24:3 › unknown shows Unknown with repository context (176ms)
+  ✓  21 [desktop] › test/dashboard.spec.ts:24:3 › empty shows Unknown with repository context (171ms)
+  ✘  22 [desktop] › test/dashboard.spec.ts:36:1 › default shows failures, all distinct statuses, and safe GitHub anchors; filter is keyboard usable (6.0s)
+  ✓  23 [desktop] › test/dashboard.spec.ts:70:1 › filter with no matches has an explicit empty state (202ms)
+  ✓  24 [desktop] › test/dashboard.spec.ts:77:1 › partial failure preserves known CI evidence and reports deployment denial (167ms)
+  ✓  25 [desktop] › test/dashboard.spec.ts:86:3 › denied shows a retryable read error without a health claim (188ms)
+  ✓  26 [desktop] › test/dashboard.spec.ts:86:3 › rate-limited shows a retryable read error without a health claim (186ms)
+  ✓  27 [desktop] › test/dashboard.spec.ts:86:3 › offline shows a retryable read error without a health claim (201ms)
+  ✓  28 [desktop] › test/dashboard.spec.ts:86:3 › failure shows a retryable read error without a health claim (204ms)
+  ✓  29 [desktop] › test/dashboard.spec.ts:96:1 › failed refresh retains observation time and marks old data stale (301ms)
+  ✓  30 [desktop] › test/dashboard.spec.ts:109:1 › loading is explicit and a slow earlier response cannot overwrite a newer observation (1.1s)
+  ✓  31 [desktop] › test/dashboard.spec.ts:126:3 › deployment state: healthy (165ms)
+  ✓  32 [desktop] › test/dashboard.spec.ts:126:3 › deployment state: no-deployments (163ms)
+  ✓  33 [desktop] › test/dashboard.spec.ts:126:3 › deployment state: deployment-denied (161ms)
+  ✓  34 [desktop] › test/dashboard.spec.ts:126:3 › deployment state: unsupported (164ms)
+  ✓  35 [mobile] › test/dashboard.spec.ts:24:3 › healthy shows Passing with repository context (189ms)
+  ✓  36 [mobile] › test/dashboard.spec.ts:24:3 › failing shows Failing with repository context (892ms)
+  ✓  37 [mobile] › test/dashboard.spec.ts:24:3 › pending shows Pending with repository context (176ms)
+  ✓  38 [mobile] › test/dashboard.spec.ts:24:3 › unknown shows Unknown with repository context (169ms)
+  ✓  39 [mobile] › test/dashboard.spec.ts:24:3 › empty shows Unknown with repository context (168ms)
+  ✓  40 [mobile] › test/dashboard.spec.ts:36:1 › default shows failures, all distinct statuses, and safe GitHub anchors; filter is keyboard usable (1.1s)
+  ✓  41 [mobile] › test/dashboard.spec.ts:70:1 › filter with no matches has an explicit empty state (168ms)
+  ✓  42 [mobile] › test/dashboard.spec.ts:77:1 › partial failure preserves known CI evidence and reports deployment denial (169ms)
+  ✓  43 [mobile] › test/dashboard.spec.ts:86:3 › denied shows a retryable read error without a health claim (199ms)
+  ✓  44 [mobile] › test/dashboard.spec.ts:86:3 › rate-limited shows a retryable read error without a health claim (200ms)
+  ✓  45 [mobile] › test/dashboard.spec.ts:86:3 › offline shows a retryable read error without a health claim (202ms)
+  ✓  46 [mobile] › test/dashboard.spec.ts:86:3 › failure shows a retryable read error without a health claim (198ms)
+  ✓  47 [mobile] › test/dashboard.spec.ts:96:1 › failed refresh retains observation time and marks old data stale (278ms)
+  ✓  48 [mobile] › test/dashboard.spec.ts:109:1 › loading is explicit and a slow earlier response cannot overwrite a newer observation (1.1s)
+  ✓  49 [mobile] › test/dashboard.spec.ts:126:3 › deployment state: healthy (169ms)
+  ✓  50 [mobile] › test/dashboard.spec.ts:126:3 › deployment state: no-deployments (160ms)
+  ✓  51 [mobile] › test/dashboard.spec.ts:126:3 › deployment state: deployment-denied (161ms)
+  ✓  52 [mobile] › test/dashboard.spec.ts:126:3 › deployment state: unsupported (162ms)
+
+
+  1) [desktop] › test/dashboard.spec.ts:36:1 › default shows failures, all distinct statuses, and safe GitHub anchors; filter is keyboard usable 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByLabel('Status', { exact: true })
+    Expected: "failed"
+    Received: "all"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveValue" getByLabel('Status', { exact: true }) with timeout 5000ms
+      - waiting for getByLabel('Status', { exact: true })
+        14 × locator resolved to <select id="run-status">…</select>
+           - unexpected value "all"
+
+
+      56 |   await filter.press('ArrowDown');
+      57 |   await filter.press('Enter');
+    > 58 |   await expect(filter).toHaveValue('failed');
+         |                        ^
+      59 |   await expect(runs.getByRole('listitem')).toHaveCount(1);
+      60 |   for (const [value, label] of [['running', 'Running'], ['queued', 'Queued'], ['cancelled', 'Cancelled'], ['skipped', 'Skipped'], ['passed', 'Passed']]) {
+      61 |     await filter.selectOption(value);
+        at /private/tmp/q1-rehearsal-20261101/work/test/dashboard.spec.ts:58:24
+
+    Error Context: test-results/dashboard-default-shows-fa-21be2-s-filter-is-keyboard-usable-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/dashboard-default-shows-fa-21be2-s-filter-is-keyboard-usable-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/dashboard-default-shows-fa-21be2-s-filter-is-keyboard-usable-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop] › test/dashboard.spec.ts:36:1 › default shows failures, all distinct statuses, and safe GitHub anchors; filter is keyboard usable 
+  51 passed (18.7s)
+rc=1

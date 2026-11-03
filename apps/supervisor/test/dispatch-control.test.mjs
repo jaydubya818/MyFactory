@@ -125,7 +125,7 @@ for(const scenario of ['no changes','outside scope','failed checks','completion 
    const r=await fetch(input.gateway.baseUrl+'/responses',{method:'POST',headers:{authorization:'Bearer '+input.gateway.childToken,'content-type':'application/json'},body:JSON.stringify({model:input.model,input:'synthetic'})});assert.equal(r.status,200);
    if(!completion&&scenario!=='no changes')writeFileSync(join(input.workspacePath,scenario==='outside scope'?'outside.txt':'quantity.mjs'),scenario==='failed checks'?'throw Error("incomplete");\n':'console.log(2);\n');
    if(completion&&scenario==='completion mutation')writeFileSync(join(input.workspacePath,'quantity.mjs'),'console.log(3);\n');
-   return {success:!(completion&&scenario==='completion failure'),status:completion&&scenario==='completion failure'?'failed':'completed',eventsPath:'fixture',usage:null};
+   return {success:!(completion&&scenario==='completion failure'),status:completion&&scenario==='completion failure'?'failed':'completed',threadId:completion?null:'0198a1b2-c3d4-4e5f-8a6b-7c8d9e0f1a2b',eventsPath:'fixture',usage:null};
   },false,{upstreamOrigin:'http://127.0.0.1:'+provider.address().port,upstreamApiKey:'synthetic-only',price});
   f.input.spendContract={version:'WORK_LEDGER_V2',pricingRevision:price.revision,plannedProductiveOperations:2,plannedCompletionOperations:1,maxPaidOperations:3,completionReserveMicrousd:1200};
   const p=await f.request('dispatches',f.input);assert.equal(p.status,200);const id=f.identity(p.body);

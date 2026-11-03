@@ -40,6 +40,10 @@ export interface VerificationInput {
   artifactDir: string;
   image?: string;
   limits?: VerificationLimits;
+  /** "browser" runs the same network-less, read-only-image container with a writable
+   * disposable copy of the exact export, a larger memory/shm budget and no host mounts
+   * beyond the read-only export. Default "standard" is unchanged. */
+  profile?: "standard" | "browser";
   signal?: AbortSignal;
 }
 
@@ -79,6 +83,13 @@ interface TreeEntry {
   path: string;
 }
 
+/** Tool caches (for example Vite's `.vite-temp`) are written next to the nearest node_modules. The image's own
+ * /node_modules is read-only, so give the disposable copy a writable node_modules directory whose entries link to
+ * the image's installed packages. Nothing is installed and no network is used. */
+const BROWSER_NODE_MODULES_PRELUDE = 'if [ -d /node_modules ] && [ ! -e /work/node_modules ]; then mkdir /work/node_modules && for e in /node_modules/* /node_modules/.[!.]*; do [ -e "$e" ] && ln -s "$e" "/work/node_modules/${e##*/}"; done; fi';
+export const BROWSER_PROFILE_LIMITS: VerificationLimits = {
+  timeoutMs: 300_000, cpus: 2, memoryMb: 2_048, pids: 256, maxLogBytes: 4_000_000,
+};
 const DEFAULT_LIMITS: RequiredLimits = {
   timeoutMs: 120_000,
   cpus: 1,
@@ -422,7 +433,11 @@ async function verifySource(input: VerificationInput, treeOnly: boolean, lease?:
   if (input.commands.length === 0 || input.commands.some((command) => !command.trim())) {
     throw new TypeError("commands must contain at least one nonempty command");
   }
-  const limits = limitsFor(input.limits);
+  if (input.profile !== undefined && input.profile !== "standard" && input.profile !== "browser") {
+    throw new TypeError("profile must be standard or browser");
+  }
+  const browser = input.profile === "browser";
+  const limits = limitsFor({ ...(browser ? BROWSER_PROFILE_LIMITS : {}), ...input.limits });
   const image = input.image ?? DEFAULT_VERIFICATION_IMAGE;
   if (!/^[A-Za-z0-9][A-Za-z0-9_./:@-]*$/.test(image)) {
     throw new TypeError("image must be a local Docker image reference without whitespace or options");
@@ -526,10 +541,13 @@ async function verifySource(input: VerificationInput, treeOnly: boolean, lease?:
         "--security-opt=no-new-privileges", "--user=65534:65534",
         `--pids-limit=${limits.pids}`, `--cpus=${limits.cpus}`,
         `--memory=${limits.memoryMb}m`, `--memory-swap=${limits.memoryMb}m`,
+        ...(browser ? ["--shm-size=512m"] : []),
         "--mount", `type=bind,source=${exportDir},target=/src,readonly`,
-        "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m",
-        "--workdir=/src", "--env=HOME=/tmp", "--entrypoint=/bin/sh",
-        image, "-lc", command,
+        "--tmpfs", `/tmp:rw,nosuid,nodev,size=${browser ? 512 : 64}m`,
+        ...(browser ? ["--tmpfs", "/work:rw,nosuid,nodev,size=512m,uid=65534,gid=65534,mode=0755"] : []),
+        `--workdir=${browser ? "/work" : "/src"}`, "--env=HOME=/tmp", "--entrypoint=/bin/sh",
+        // Browser tests need writable output directories: run an isolated copy of the exact export, never the mount.
+        image, "-lc", browser ? `cp -R /src/. /work/ && ${BROWSER_NODE_MODULES_PRELUDE} && ${command}` : command,
       ];
       const outcome = await runDocker(args, name, limits, input.signal);
       const finishedAt = new Date().toISOString();
@@ -552,6 +570,10 @@ async function verifySource(input: VerificationInput, treeOnly: boolean, lease?:
       } else if (outcome.exitCode === 137) {
         status = "unavailable";
         reason = "Check was killed at the configured resource limit";
+      } else if (outcome.exitCode === null || outcome.exitCode === 143) {
+        // The Docker client died or was signalled without an exit status: the container's outcome is unknown.
+        status = "unavailable";
+        reason = "Docker client terminated without a reliable exit status; outcome is unknown";
       } else if (outcome.exitCode === 126 || outcome.exitCode === 127) {
         status = "unavailable";
         reason = "Required executable is unavailable in the verification image";

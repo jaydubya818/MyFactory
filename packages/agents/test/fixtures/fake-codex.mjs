@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
 
@@ -17,6 +17,20 @@ if (args[0] === "login" && args[1] === "status") {
 if (args[0] !== "exec") process.exit(64);
 
 const valueAfter = (flag) => args[args.indexOf(flag) + 1];
+
+if (args[1] === "resume") {
+  // `codex exec resume [OPTIONS] SESSION_ID PROMPT`: no -C and no --sandbox; sandbox is a config override.
+  const session = args.at(-2), resumePrompt = args.at(-1), configs = args.flatMap((arg, index) => arg === "-c" ? [args[index + 1]] : []);
+  if (args.includes("-C") || args.includes("--sandbox") || !args.includes("--json") || valueAfter("-m") !== "test-model" ||
+      !configs.includes('sandbox_mode="workspace-write"') || !valueAfter("-o")) process.exit(67);
+  // Gateway children keep sessions under CODEX_HOME: a resume can only find the saved session in the same home.
+  if (resumePrompt === "resume-needs-session-store" && !existsSync(`${process.env.CODEX_HOME}/saved-session`)) process.exit(68);
+  if (resumePrompt !== "resume-no-thread") console.log(JSON.stringify({ type: "thread.started", thread_id: resumePrompt === "resume-wrong-thread" ? "some-other-session" : session }));
+  console.log(JSON.stringify({ type: "turn.started" }));
+  writeFileSync(valueAfter("-o"), `Resumed ${session} with ${resumePrompt}`);
+  console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 3, output_tokens: 2 } }));
+  process.exit(0);
+}
 const finalMessagePath = valueAfter("-o");
 const prompt = args.at(-1);
 if (valueAfter("-m") !== (prompt === "namespaced-model" ? "openai/gpt-5.4-mini" : "test-model") || !valueAfter("-C") ||
@@ -37,6 +51,7 @@ if (prompt === 'gateway-config') {
       process.env.HOME !== process.env.CODEX_HOME) process.exit(66);
 }
 
+if (prompt === "save-session" && process.env.CODEX_HOME) writeFileSync(`${process.env.CODEX_HOME}/saved-session`, "1");
 console.log(JSON.stringify({ type: "thread.started", thread_id: "fixture-thread" }));
 console.log(JSON.stringify({ type: "turn.started" }));
 
