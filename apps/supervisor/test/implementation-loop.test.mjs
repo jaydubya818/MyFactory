@@ -57,7 +57,12 @@ for(const scenario of ['correct-first','repairable','still-bad','outside-scope']
      assert(input.prompt.includes('test/quantity.test.mjs'));assert(input.prompt.includes('node:test'));
      if(productive===1){assert(input.prompt.includes('HOST_IMPLEMENTATION_FEEDBACK'));assert(input.prompt.includes('stdout is not JSON'));assert(input.prompt.includes(captured.capturedImplementation.split('\n')[0]));feedbackSeen=true;}
     }
-    return runCodex(input);
+    const result=await runCodex(input);
+    if(process.env.CI==='true'){
+     const trace=readFileSync(result.eventsPath,'utf8').split('\n').filter(Boolean).map(line=>{try{return JSON.parse(line);}catch{return null;}}).filter(item=>item?.type==='item.completed'||item?.type==='error'||item?.type==='turn.failed');
+     console.log('SYNTHETIC_EXECUTOR_DIAGNOSTIC',JSON.stringify({scenario,status:result.status,error:result.error,stderr:readFileSync(result.stderrPath,'utf8').slice(-2000),events:trace}).slice(0,6000));
+    }
+    return result;
    }
   }});
   t.after(async()=>{await supervisor.close();rmSync(dir,{recursive:true,force:true});});
