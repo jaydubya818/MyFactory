@@ -109,10 +109,17 @@ async function readWholeLog(path: string): Promise<string | null> {
     const { size } = await file.stat();
     if (size > MAX_LOG_SCAN) return null;
     const buffer = Buffer.alloc(size);
-    await file.read(buffer, 0, size, 0);
+    let offset = 0;
+    while (offset < size) {
+      const { bytesRead } = await file.read(buffer, offset, size - offset, offset);
+      if (bytesRead <= 0) return null; // a short read is an incomplete scan: withhold
+      offset += bytesRead;
+    }
     return buffer.toString("utf8");
   } finally { await file.close(); }
 }
+/** The verifier marks capture it could not retain; anything it dropped may have named a restricted path. */
+const CAPTURE_TRUNCATED = "[verification log truncated]";
 
 async function readLog(path: string): Promise<string> {
   const file = await open(path, "r");
@@ -229,8 +236,8 @@ export async function buildFailureReport(input: {
   for (const [index, check] of input.checks.entries()) {
     checks.push({ index, command: sanitize(check.command, 200), status: check.status, exitCode: check.exitCode, reason: check.reason ? sanitize(check.reason, 200) : null });
     if (check.status === "passed") {
-      const text = stripTerminal(await readLog(check.logPath).catch(() => ""));
-      if (/No tests found|No test files found|No test suites found|Running 0 tests?\b|^\s*0 passed\b|^\s*1\.\.0\b|^\s*#\s*tests\s+0\b|^\s*ℹ\s+tests\s+0\b/im.test(text) && /\b(test|spec|playwright)\b/i.test(check.command))
+      const text = stripTerminal((await readWholeLog(check.logPath).catch(() => null)) ?? await readLog(check.logPath).catch(() => ""));
+      if (/No tests found|No test files found|No test suites found|Running 0 tests?\b|^\s*0 passed\b|^\s*1\.\.0\b|^\s*#\s*tests\s+0\b|^\s*ℹ\s+tests\s+0\b/im.test(text) && /\b(test|spec|playwright|vitest|jest|mocha|ava|tap)\b/i.test(check.command))
         failures.push({ kind: "NO_TESTS_RAN", check: index, title: null, location: null, message: "The test command exited successfully but ran no tests.", expected: null, received: null, detail: [] });
       continue;
     }
@@ -243,14 +250,17 @@ export async function buildFailureReport(input: {
     // Terminal control sequences are removed BEFORE any path or diagnostic detection (colour codes can split a restricted path).
     const text = stripTerminal(await readLog(check.logPath).catch(() => ""));
     // The restricted-path scan covers the COMPLETE captured log, not the sampled excerpt; a log too large to scan is withheld.
-    const whole = await readWholeLog(check.logPath).catch(() => "");
-    // Any mention of a restricted path taints the whole log: nothing else in it is described to the coding agent.
-    if (whole === null || mentionsRestricted(stripTerminal(whole), restricted) || mentionsRestricted(text, restricted) || mentionsRestricted(check.command, restricted)) {
+    const wholeRaw = await readWholeLog(check.logPath).catch(() => null);
+    const whole = wholeRaw === null ? null : stripTerminal(wholeRaw);
+    // Withhold every detail unless the COMPLETE capture was scanned: an unreadable, short-read, oversized or verifier-truncated
+    // log may hide a restricted path. Any mention of a restricted path taints the whole log.
+    if (whole === null || whole.includes(CAPTURE_TRUNCATED) || mentionsRestricted(whole, restricted) || mentionsRestricted(text, restricted) || mentionsRestricted(check.command, restricted)) {
       failures.push({ kind: BUILD_COMMAND.test(check.command) ? "BUILD_FAILED" : "TEST_FAILED", check: index, title: null, location: null,
         message: "A restricted check failed; details are withheld.", expected: null, received: null, detail: [] });
       continue;
     }
-    const environment = ENVIRONMENT_FAILURE.exec(text);
+    // Environment failures are classified from the complete log, never from the sample.
+    const environment = ENVIRONMENT_FAILURE.exec(whole);
     if (environment) {
       environmental = true;
       failures.push({ kind: "RUNNER_CRASHED", check: index, title: null, location: null,

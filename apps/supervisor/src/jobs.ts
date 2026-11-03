@@ -925,7 +925,9 @@ export class JobManager {
         // An UNKNOWN outcome is made durable BEFORE the checkpoint: a crash between the two must not let re-entry
         // mistake an environment failure for a repairable one.
         let unknownRecorded=false,reportRecorded=false;
-        if(!staleResult&&(!report||report.outcome==='UNKNOWN')){
+        // Strict LOCAL_V4 is excluded: its verification receipt requires the settlement to stay last until the checkpoint, and its
+        // re-entry is fenced by the canonical single-use dispatch claim instead.
+        if(!strictCheckpoint&&!staleResult&&(!report||report.outcome==='UNKNOWN')){
           if(report){this.#event(workOrder.id,run.id,'feedback.report_issued',{step:productiveStep,tree:checkedTree,digest:report.digest,outcome:report.outcome,report});reportRecorded=true;}
           else{this.#event(workOrder.id,run.id,'feedback.stopped',{reason:'UNKNOWN_OUTCOME' satisfies StopReason,step:productiveStep,digest:null});unknownRecorded=true;}
         }

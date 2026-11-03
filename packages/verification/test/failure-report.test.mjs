@@ -209,3 +209,22 @@ test("Vitest/Jest permissive zero-test messages are not passes", async t => {
     assert.equal(report.outcome, "FAILED", out);
   }
 });
+
+test("a verifier-truncated capture withholds every detail", async t => {
+  const log = "Running 1 test using 1 worker\n" + "a".repeat(1000) + "\n[verification log truncated]\n\n[tail]\n    Error: expect(received).toBe(expected)\n    Expected: \"SECRET-ANSWER\"\n";
+  const report = await buildFailureReport({ identity, checks: logs(t, [["npx playwright test", "failed", 1, log]]) });
+  assert(!JSON.stringify(report).includes("SECRET-ANSWER"));
+});
+
+test("an environment failure anywhere in the complete log is UNKNOWN, not repairable", async t => {
+  const log = "a".repeat(270 * 1024) + "\nENOENT: no such file or directory, mkdir '/node_modules/.vite-temp'\n" + "b".repeat(40 * 1024) + "\nError: build failed\n";
+  const report = await buildFailureReport({ identity, checks: logs(t, [["npm run build", "failed", 1, log]]) });
+  assert.equal(report.outcome, "UNKNOWN");
+});
+
+test("direct vitest/jest commands with permissive zero-test output are not passes", async t => {
+  for (const [cmd, out] of [["npx vitest run --passWithNoTests", "No test files found, exiting with code 0\n"], ["npx jest --passWithNoTests", "No tests found, exiting with code 0\n"]]) {
+    const report = await buildFailureReport({ identity, checks: logs(t, [[cmd, "passed", 0, out]]) });
+    assert.equal(report.outcome, "FAILED", cmd);
+  }
+});
