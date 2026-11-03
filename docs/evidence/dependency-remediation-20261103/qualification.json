@@ -61,7 +61,7 @@
         "verifiedAt": "58d74e781ed9a782ac56bdb068fa4a0d0c686dbe"
       }
     ],
-    "finalExactHeadReview": "Recorded in PR body after evidence commit; no inherited review claim"
+    "finalExactHeadReview": "No remaining actionable findings at3693977;12independent tests passed, all14hashes and result totals checked. CI/environment follow-up is independently reviewed before final acceptance."
   },
   "hostedCI": "Final evidence commit results recorded in PR body. Earlier819928a run41692324227 failed the half-open fixture; fixed deterministic socket closure in58d74e7. No threshold bypass/retry-only acceptance.",
   "separation": {
@@ -88,12 +88,13 @@
     "connected-tests.log": "fe2bdcd04bfd7a1ed9cbc04d119be5bc0b8888b70a757fae19f040661ce41c70",
     "dependency-regressions.log": "86c364b3df07ea3688ef14c571ae8844061f36e9681f26872308885affc38cbb",
     "governance.log": "919601057706e040f93bd4885306fbd567af09f53d345bb9af2fb93fbab2157f",
-    "installed-tree.log": "c5402e2dc7eefdb006bf8238bebe4e18f511264640b62d14c51f7356bf9312f1",
+    "installed-tree.log": "dccba0e171796246d97ba07ef5ffc3c1c865a76249fb99baa0a1011e0bc79555",
     "local-worker-runtime.json": "1d660233257cc1646378e021b5bf8e520d229491d619bcb7def64401860826b2",
     "qualified-cli-tests.log": "773c2fd5060864526ed54200bd625c630fb4e55b7f78d4e9a4c07d9b9600e434",
     "runtime-qualification.json": "787a809cde5fd041cc103ac08e18f62e76cbe6c812c93e8c83ad24f260d5c045",
     "security-audit.log": "e2ef58e096ea5680399fa4d0bdd51df0805e0b2aca467c912c14b305cda681d8",
-    "typecheck.log": "54d6866cc5b916178a564c4c77ad18a280c39c5edcac9bb618ee00c03b50131c",
+    "typecheck.log": "6d9bb18f2a99d43d9e8ca4ac7591b8d602bcc33779571a221f43b19c17ce96fe",
     "unit-integration.log": "4453bbea3cb66b427cc8cdeba77f1eb5966c07cd760ff2cfc9c9ccec74fd29a9"
-  }
+  },
+  "artifactFormatting": "Captured log text normalized to one final newline; no result lines removed."
 }

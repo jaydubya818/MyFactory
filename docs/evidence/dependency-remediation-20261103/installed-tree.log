@@ -219,4 +219,3 @@ sellerfi-local-factory@0.1.0 /Users/jaywest/.codex/worktrees/dependency-remediat
 └─┬ @myeve/capability-enforcement@0.1.0 -> ./packages/capability-enforcement
   ├── @mission-control/capability-control@0.1.0 deduped -> ./packages/capability-control
   └── zod@4.6.6
-
