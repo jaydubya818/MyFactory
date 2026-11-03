@@ -15,7 +15,7 @@ export async function installCloudHarness(sandbox){
  const installed=await root.runCommand({cmd:'node',args:['-e',cloudHarnessInstallScript],timeoutMs:60000,signal:AbortSignal.timeout(65000)});
  if(installed.exitCode!==0){
   const code=(await installed.stderr({signal:AbortSignal.timeout(10000)})).trim();
-  const allowed=['HARNESS_INSTALL_IDENTITY','HARNESS_PACKAGE_UNAVAILABLE','HARNESS_PACKAGE_BOUND','HARNESS_PACKAGE_INTEGRITY','HARNESS_PACKAGE_LAYOUT','HARNESS_BINARY_TYPE','HARNESS_VERSION_MISMATCH'];
+  const allowed=['PATCHED_NODE_RUNTIME_REQUIRED','HARNESS_INSTALL_IDENTITY','HARNESS_PACKAGE_UNAVAILABLE','HARNESS_PACKAGE_BOUND','HARNESS_PACKAGE_INTEGRITY','HARNESS_PACKAGE_LAYOUT','HARNESS_BINARY_TYPE','HARNESS_VERSION_MISMATCH'];
   throw Error(allowed.includes(code)?code:'HARNESS_INSTALL_FAILED');
  }
  const text=await installed.stdout({signal:AbortSignal.timeout(10000)});if(text.length>1000)throw Error('HARNESS_INSTALL_REPORT_BOUND');

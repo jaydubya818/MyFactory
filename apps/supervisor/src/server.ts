@@ -23,6 +23,7 @@ import type { SpendPrice } from "./spend-gateway.ts";
 import { type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
 import { ProducerResults, producerOptions, type ProducerOptions } from "./producer-results.ts";
 import { readBoundEvidence } from "./evidence-transport.ts";
+import { assertPatchedNodeRuntime } from "../../../packages/contracts/src/node-runtime.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
 const confirmApprovalScript = fileURLToPath(new URL("../native/confirm-approval.swift", import.meta.url));
@@ -176,6 +177,7 @@ async function confirmHumanPresence(request: Parameters<NonNullable<ActionContex
 }
 
 export function createSupervisor(options: SupervisorOptions = {}) {
+  assertPatchedNodeRuntime();
   if(options.realProvider){
     validateRealProvider(options.realProvider);
     if(options.localFactoryFixture||options.localSpendFixture||options.jobDependencies||options.startRun||options.cancelRun||options.publishDraft||options.confirmHumanPresence)

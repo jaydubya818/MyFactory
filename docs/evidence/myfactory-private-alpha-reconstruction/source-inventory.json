@@ -37,14 +37,14 @@
       "authorityBoundary": "Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Retain SQLite transactions and all historical V2 semantics while using shared pure validation/accounting functions. Fabric boundary: Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Consolidated boundary: Expose read-only completion eligibility using exact current binding and settled operations. Transactional beginCompletion rechecks; no reset, no additional slots or dollars. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion."
     },
     "apps/supervisor/src/server.ts": {
-      "sha256": "de4694096a42bd75a634c60db8d8bf81667638f6a17f0830346966fb376fa614",
+      "sha256": "2e8484f37f916e61f2c9dd59c22a46f4730b2dd8eceb59958cfaba5b432bac21",
       "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback. Fabric boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback. Consolidated boundary: Explicit validated provider config, no synthetic overrides; pinned configured model. Connected evidence POST is backend-authenticated, exact-reference only; Proof client Work details are owner-filtered and omit storage paths."
+      "authorityBoundary": "Explicit validated provider config, no synthetic overrides; pinned configured model Bounded review-repair: host-only exact-candidate evidence; owner-confirmed distinct repair Work, immutable provenance, aggregate allocation, one canonical V2 dispatch, full fresh verification. No model authority, automatic repair, merge, deployment or inherited publication approval. Consolidated boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback. Fabric boundary: Construct the local provider around the existing JobManager and producer. No cloud default, transport widening, model call, new identity, or fallback. Consolidated boundary: Explicit validated provider config, no synthetic overrides; pinned configured model. Connected evidence POST is backend-authenticated, exact-reference only; Proof client Work details are owner-filtered and omit storage paths. Dependency remediation: Require patched Node/bundled Undici before storage, recovery, credential loading or network bootstrap. No grant or runtime bypass."
     },
     "apps/supervisor/src/private-alpha.ts": {
-      "sha256": "446fbf9e0cf86c04055b6cf53b360755f15b2bc3ee080d074c00b1415e707eb0",
+      "sha256": "d16c106838eb71c2adcf388a412287b975ed6688f7726ae54974411e493187f9",
       "classification": "HOST_ACTIVATION",
-      "authorityBoundary": "Validate provider identity before listening; check mode reads no credentials; loopback only"
+      "authorityBoundary": "Validate provider identity before listening; check mode reads no credentials; loopback only Dependency remediation: Require patched Node/bundled Undici before private-alpha config, OIDC preflight or provider transport. No credential, spend or installation authority."
     },
     "apps/supervisor/src/oidc-provider.ts": {
       "sha256": "e4cd3de12a87e4d18c8be10ec0089ea746b25de2914d34fc9f3a88f11893ecec",
@@ -132,9 +132,9 @@
       "authorityBoundary": "Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
     },
     "apps/cloud-control/src/config.mjs": {
-      "sha256": "ee97f22cae6821e1b183b5919e3152d1b774b910e2ff2242e12488a9f898bfa8",
+      "sha256": "ee4dca649cd1fda7f091c96a97a6cd272d4cf5ecfcc8773e2684d5c868d68cdf",
       "classification": "STAGING_BOUNDARY",
-      "authorityBoundary": "Require exact dedicated staging preview identity and certificate-verified password-authenticated PostgreSQL. Bound database wake-up connection to 15 seconds and statements to 5 seconds. Fabric boundary: Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation"
+      "authorityBoundary": "Require exact dedicated staging preview identity and certificate-verified password-authenticated PostgreSQL. Bound database wake-up connection to 15 seconds and statements to 5 seconds. Fabric boundary: Dedicated staging only; authenticated operator readiness; no Work admission, model operation, publication or worker allocation Dependency remediation: Reject unpatched Node/bundled Undici during cloud bootstrap before SDK callbacks, network or admission writes. No environment bypass, grant, replay or cleanup success is inferred."
     },
     "apps/cloud-control/src/readiness.mjs": {
       "sha256": "d99426407f5870c06dd016ad4c161951a8094ef5b1c7af80d7e5b6f5d9f4ff2e",
@@ -297,14 +297,14 @@
       "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant."
     },
     "apps/cloud-control/src/cloud-harness-install.mjs": {
-      "sha256": "ecc49b5ff24c703487c9183de771a4c98e923386e711c37194d85efce8a30deb",
+      "sha256": "8f8689e0b93f32337927573af2cc75b4cef2c6e1a7a28d2345adba2d98efd1c4",
       "classification": "CLOUD_HARNESS_BOUNDARY",
-      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority."
+      "authorityBoundary": "Dedicated staging existing Codex adapter only. Pinned package/model, host PostgreSQL SpendGateway admission, bounded private SDK mailbox, one response per productive checkpoint, read-only completion, unprivileged producer, exact-tree custody and no paid upstream fallback. Producer observations grant no verification/publication authority. Dependency remediation: Require actual patched Node and bundled Undici before any worker registry fetch. Preserve immutable image pins, package integrity and sanitized failure reporting. Old image requires separate exact image qualification; no productive authority."
     },
     "apps/cloud-control/src/cloud-harness-phase.mjs": {
-      "sha256": "933af1d3a4850618e9500b3377599b7307527a924149c64b06c6d30146c339ba",
+      "sha256": "c2fb604806c09d3d9f24f94ae3ceeab66e1bbf4af6e508fd3c9d5b7c552be160",
       "classification": "CLOUD_HARNESS_BOUNDARY",
-      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure."
+      "authorityBoundary": "Independent release-gate review: exact production source/config/Work authority; separate operator zero-model validation client; canonical lifecycle, spend, custody, verifier, signed Result and scoped Proof transport. No general Work, model fallback or publication grant. Paid-canary review: exact envelope/grant binding; stable host phase identity; UNKNOWN retains exposure and fences paid authority/custody/completion. Producer startup repair review: common live-lease projection preserves failure, expiry, cancellation and paid UNKNOWN fencing; fixed diagnostic stages; operator-only zero-paid qualifier has no admission endpoint, Work grant, ledger or upstream dispatch and requires teardown even after audit failure. Dependency remediation: Propagate only the fixed PATCHED_NODE_RUNTIME_REQUIRED installer diagnostic. Existing failure fencing and cleanup semantics remain."
     },
     "apps/cloud-control/src/cloud-harness-relay.mjs": {
       "sha256": "85895fa20a88f464bca4139481359cec2bb48dcd571cb38734cb69382a5ca3a0",
@@ -362,9 +362,9 @@
       "authorityBoundary": "One exact Proof reference and expected owner/repository/Work/Run/candidate/FactoryVersion/kind/digest resolve one bounded artifact after signed Result readback. No path input, listing, publication or execution authority."
     },
     "packages/client/src/index.ts": {
-      "sha256": "f1bb64959c03e8d53b1723be45c438d7849afea84850587d24bb137690d4f17c",
+      "sha256": "e5d39371122e97970d9e441da22f063a73a085117d486a2e4a7c5fe7a86c19cc",
       "classification": "EVIDENCE_CONSUMER_CHECK",
-      "authorityBoundary": "MyEve backend client independently checks exact owner/Work/Run/candidate/FactoryVersion/kind/reference, byte count and SHA-256 before providing bytes to Proof. No browser exposure or PASS inference."
+      "authorityBoundary": "MyEve backend client independently checks exact owner/Work/Run/candidate/FactoryVersion/kind/reference, byte count and SHA-256 before providing bytes to Proof. No browser exposure or PASS inference. Dependency remediation: Require patched Node/bundled Undici before independent loopback HTTP client requests. Existing exact evidence/client authorization remains."
     },
     "packages/verification/src/browser-evidence.ts": {
       "sha256": "a0989391c4cc4d0be7f5bec0e22883d79d18bf0629156668dbd3ae767462e0ae",
@@ -570,6 +570,11 @@
       "sha256": "16f4e735167a3856fac968bda09b8da8050655bd89933252b80f0701e7804da9",
       "classification": "CREDENTIAL_LOADER",
       "authorityBoundary": "Hosted Linear queue intake polling only; poll interval default unchanged (15s), optional FACTORY_HOSTED_INTAKE_POLL_MS override (min 5s). Admission, client scopes, receipts and WorkOrder authority unchanged."
+    },
+    "packages/contracts/src/node-runtime.ts": {
+      "classification": "RUNTIME_TRANSPORT_GATE",
+      "authorityBoundary": "Dependency remediation: Pure fail-closed Node24>=24.22.1 and bundled Undici7>=7.30.1 prerequisite. No import side effects, environment bypass, execution grant, identity repin or cleanup inference.",
+      "sha256": "aee976048acf8536794ef84130f3d023032d93f105835d01a58cd2b3e8c65eb2"
     }
   }
 }

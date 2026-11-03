@@ -11,6 +11,8 @@ import {productionSpendPlan} from '../src/production-execution-plan.mjs';
 const installation={version:1,factoryId:'myfactory-cloud-production',environment:'production',projectId:'prj_4hfceCN8l6wN1gUyYOzZLQ7aJapK',callerProjectId:'prj_L6faw25wnFGUZtrLKBIccg8gIDLR',teamId:'team_p8z8exJRTGfOPk1GC9vUOpv3',ownerScope:'disposable-owner',custodyStoreId:'store_qBuivS8MmRxnBNnU',databaseResourceId:'dry-morning-22844424'};
 const env={VERCEL:'1',VERCEL_ENV:'production',VERCEL_PROJECT_ID:installation.projectId,VERCEL_ORG_ID:installation.teamId,FACTORY_PRODUCTION_INSTALLATION:JSON.stringify(installation)};
 function fixture(t){
+ // Keep simulated ledger operations inside the pinned price review window.
+ t.mock.timers.enable({apis:['Date'],now:Date.parse(productionModelPrice.validUntil)-86_400_000});
  const dir=mkdtempSync(join(tmpdir(),'production-ledger-local-')),path=join(dir,'ledger.sqlite'),storage=openStorage(path);
  const order=storage.createWorkOrder({title:'Local contract qualification',description:'No network model',kind:'feature',repositoryPath:dir,baseRef:'a'.repeat(40),acceptanceCriteria:['bounded'],reproductionCommand:null,expectedFailureText:null,checkCommands:[],allowedPaths:['normalize.mjs'],workerProfile:'container'});
  const run=storage.createRun({workOrderId:order.id,workerProfile:'container',inputCommit:'a'.repeat(40),workspacePath:dir});
@@ -31,6 +33,7 @@ function fixture(t){
 }
 test('LOCAL production adapter + canonical V2 gateway settles productive and completion with exact rates, fresh identity and no fallback',async t=>{
  const f=fixture(t);assert.equal((await f.gateway('productive').fetch(f.request())).status,200);
+ t.mock.timers.setTime(Date.now()+1000);
  f.ledger.assertCompletionEligible(f.binding);f.ledger.beginCompletion(f.binding);
  assert.equal((await f.gateway('completion').fetch(f.request())).status,200);f.ledger.assertCompleted(f.binding);
  const spend=f.ledger.read(f.binding.workId);assert.equal(spend.operations.length,2);assert(spend.operations.every(op=>op.state==='settled'&&op.reservedMicrousd===84864&&op.actualMicrousd===53));
