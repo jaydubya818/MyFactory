@@ -59,7 +59,7 @@ test('all fetch parsers survive excessive encodings with premature connection cl
   for(const [name,transport]of [['bundled',globalThis.fetch],['undici6',require('undici').fetch],['undici7',sandboxRequire('undici').fetch]]){
    const raw='HTTP/1.1 200 OK\\r\\nContent-Encoding: '+Array(6).fill('gzip').join(', ')+'\\r\\nContent-Length: 1\\r\\nConnection: close\\r\\n\\r\\n';
    let onClosed;const closed=new Promise(resolve=>onClosed=resolve);
-   const server=createServer(socket=>{socket.once('close',onClosed);socket.once('data',()=>socket.end(raw));});
+   const server=createServer(socket=>{socket.once('close',onClosed);socket.once('data',()=>socket.end(raw,()=>socket.destroy()));});
    await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
    try{await assert.rejects(transport('http://127.0.0.1:'+server.address().port,{signal:AbortSignal.timeout(3000)}),
     error=>/content-encoding/.test(String(error.cause?.message??error.message)));
