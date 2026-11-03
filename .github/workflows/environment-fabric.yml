@@ -53,12 +53,20 @@ jobs:
           sudo install -m 0644 /usr/share/apparmor/extra-profiles/bwrap-userns-restrict /etc/apparmor.d/bwrap-userns-restrict
           sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict
           /usr/bin/bwrap --version
+      - name: Prove CLI sandbox boundaries before integration tests
+        run: |
+          export PATH="$RUNNER_TEMP/factory-qualified-cli/node_modules/.bin:$PATH"
+          node scripts/qualify-cli-sandbox.mjs
       - name: All installed CLI integration gates
         env:
           FACTORY_INSTALLED_CLI: '1'
           FACTORY_TEST_CODEX_CLI: '1'
         run: |
           export PATH="$RUNNER_TEMP/factory-qualified-cli/node_modules/.bin:$PATH"
+          # Codex refuses helper aliases beneath the shared /tmp directory.
+          # Keep synthetic workspaces and isolated CLI homes in runner-owned temp.
+          export TMPDIR="$RUNNER_TEMP/factory-cli-fixtures"
+          mkdir -p "$TMPDIR"
           node --test --test-concurrency=1 apps/supervisor/test/implementation-loop.test.mjs apps/supervisor/test/numeric-range-checkpoint.test.mjs apps/supervisor/test/productive-context.test.mjs apps/supervisor/test/spend-codex-cli.test.mjs
       - run: npm run check:producer-governance
       - run: node scripts/check-capability-sources.mjs
