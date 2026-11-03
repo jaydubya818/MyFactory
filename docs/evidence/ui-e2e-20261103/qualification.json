@@ -3,7 +3,7 @@
   "application": "MyFactory local work desk and Feedback Hub starter",
   "result": "PASS for nondeploying local source qualification",
   "testedComposedSource": "6f43184a913b33ce0e1c088f58f97af60404325c",
-  "dependencyPrerequisite": "3693977c2e9fc2d095dd4ad7d5e872963800b0f9",
+  "dependencyPrerequisite": "c9472394e1cfe05f9510f506ec0ba8ee7f9530e8",
   "sourceDigest": "489fcc24c3abb2c837ce94e4edc7639d9f8e4b15d55c7b66559d73a4e948c247",
   "factoryVersion": "fb92c96b8f4ac2836097e6a18c5a5ba7941da18c100230fd1c0929ee5188aaf2",
   "originalPR30Head": "d24bd6f2735c4a43662d780de4e81d250e745480",
@@ -76,7 +76,8 @@
     "root production build",
     "root/template audit0findings",
     "Playwright EvidenceProvider tests in default suite",
-    "git diff --check"
+    "git diff --check",
+    "Feedback Hub standalone production build PASS"
   ],
   "independentReview": {
     "reviewer": "review_pr30",
@@ -88,7 +89,7 @@
       "identityTests": 2,
       "skips": 0
     },
-    "finalExactHeadReview": "Recorded in PR body after evidence commit; subsequent changes are reviewed dependency test/provenance/evidence and4line UI stale-error handling"
+    "finalExactHeadReview": "No code/security findings at5ee0e2d;7APIcases,2identitytests,webtypes,26artifacthashes verified. P3artifactEOFformatting fixed. Final inheritedCIenvironment changes reviewed separately."
   },
   "hostedCI": "Final exact evidence commit result recorded in PR body; prior5c8aee run41692479108 contained the dependency half-open fixture fixed in58d74e7.",
   "cleanup": "Preview stopped through UI; temporary tabs closed; viewport override reset; supervisor stopped; missing log restored; disposable clusters stopped/removed.",
@@ -106,11 +107,12 @@
     "current-candidate-desktop.png": "f422d67406aaf1eb3b4c900e1f9e30227527b395019bf7ff98fd0e3217e044dd",
     "docker-smoke.json": "3092d31ede58240c90efe75178351e7829bbb1ecef01515805530a527efacf57",
     "feedback-persistence-desktop.png": "4a3c6d3e3a14bf3ea48eb4f08181bd738f1d6a60b6b3e311738bb1e236de5395",
-    "feedback-tests.log": "4e97f61d86c13f29a478fec5098778cbb7919f306cec0efbd321e2c53965ce00",
+    "feedback-tests.log": "c10b2fe1d7f901c49ed2c066cd8fefc3ef04a31e12657face7599feea14ffc0e",
     "publication-review-desktop.png": "892d95144ae088fb5c5a70e0b314a5b51e42a4bc147d5e764e743e812273f848",
     "qualified-cli-tests.log": "5251f0bc8bf2b15f7358fc2bbd7458f3f5a6306869338df2c986930368d38d65",
     "stale-candidate-desktop.png": "b15f69a27f2417a1ab723e8b8da114e1aaa721f7088bcdba427c2d6a1665ab34",
-    "typecheck.log": "7d031f0dd2f2bf552ea594ec7256dd4827c104555b69a67ff6fcb9257fe3bcbf",
+    "typecheck.log": "ddb31083af1f4639c45816731ef89f2afe56514ec1e16425e76086386aa69329",
     "unit-integration.log": "4e575c4be045b2f59d18775cf10ea9f3494428a90496a86211eec49cf999f389"
-  }
+  },
+  "artifactFormatting": "Captured logs normalized to one final newline; no test result lines removed."
 }
