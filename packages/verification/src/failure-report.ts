@@ -236,8 +236,19 @@ export async function buildFailureReport(input: {
   for (const [index, check] of input.checks.entries()) {
     checks.push({ index, command: sanitize(check.command, 200), status: check.status, exitCode: check.exitCode, reason: check.reason ? sanitize(check.reason, 200) : null });
     if (check.status === "passed") {
-      const text = stripTerminal((await readWholeLog(check.logPath).catch(() => null)) ?? await readLog(check.logPath).catch(() => ""));
-      if (/No tests found|No test files found|No test suites found|Running 0 tests?\b|^\s*0 passed\b|^\s*1\.\.0\b|^\s*#\s*tests\s+0\b|^\s*ℹ\s+tests\s+0\b/im.test(text) && /\b(test|spec|playwright|vitest|jest|mocha|ava|tap)\b/i.test(check.command))
+      const rawWhole = await readWholeLog(check.logPath).catch(() => null);
+      const isTestCommand = /\b(test|spec|playwright|vitest|jest|mocha|ava|tap)\b/i.test(check.command);
+      // Completeness is judged on the RAW capture, before terminal normalization can consume the trusted marker.
+      if (rawWhole === null || rawWhole.includes(CAPTURE_TRUNCATED)) {
+        // A passing test command whose complete output could not be inspected cannot prove that tests ran: UNKNOWN, never PASS.
+        if (isTestCommand) {
+          environmental = true;
+          failures.push({ kind: "RUNNER_UNAVAILABLE", check: index, title: null, location: null, message: "The complete test output could not be inspected; the pass is unproven.", expected: null, received: null, detail: [] });
+        }
+        continue;
+      }
+      const text = stripTerminal(rawWhole);
+      if (/No tests found|No test files found|No test suites found|Running 0 tests?\b|^\s*0 passed\b|^\s*1\.\.0\b|^\s*#\s*tests\s+0\b|^\s*ℹ\s+tests\s+0\b/im.test(text) && isTestCommand)
         failures.push({ kind: "NO_TESTS_RAN", check: index, title: null, location: null, message: "The test command exited successfully but ran no tests.", expected: null, received: null, detail: [] });
       continue;
     }
@@ -252,9 +263,16 @@ export async function buildFailureReport(input: {
     // The restricted-path scan covers the COMPLETE captured log, not the sampled excerpt; a log too large to scan is withheld.
     const wholeRaw = await readWholeLog(check.logPath).catch(() => null);
     const whole = wholeRaw === null ? null : stripTerminal(wholeRaw);
+    // An environment failure is UNKNOWN whatever else the log contains (withholding below never downgrades it to repairable).
+    const environmentFirst = whole === null ? null : ENVIRONMENT_FAILURE.exec(whole);
+    if (environmentFirst) {
+      environmental = true;
+      failures.push({ kind: "RUNNER_CRASHED", check: index, title: null, location: null, message: "The test environment failed, not the candidate.", expected: null, received: null, detail: [] });
+      continue;
+    }
     // Withhold every detail unless the COMPLETE capture was scanned: an unreadable, short-read, oversized or verifier-truncated
-    // log may hide a restricted path. Any mention of a restricted path taints the whole log.
-    if (whole === null || whole.includes(CAPTURE_TRUNCATED) || mentionsRestricted(whole, restricted) || mentionsRestricted(text, restricted) || mentionsRestricted(check.command, restricted)) {
+    // log may hide a restricted path (the marker is checked on the RAW bytes). Any mention of a restricted path taints the log.
+    if (whole === null || wholeRaw === null || wholeRaw.includes(CAPTURE_TRUNCATED) || whole.includes(CAPTURE_TRUNCATED) || mentionsRestricted(whole, restricted) || mentionsRestricted(text, restricted) || mentionsRestricted(check.command, restricted)) {
       failures.push({ kind: BUILD_COMMAND.test(check.command) ? "BUILD_FAILED" : "TEST_FAILED", check: index, title: null, location: null,
         message: "A restricted check failed; details are withheld.", expected: null, received: null, detail: [] });
       continue;

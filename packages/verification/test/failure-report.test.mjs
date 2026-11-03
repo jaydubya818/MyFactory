@@ -228,3 +228,21 @@ test("direct vitest/jest commands with permissive zero-test output are not passe
     assert.equal(report.outcome, "FAILED", cmd);
   }
 });
+
+test("an OSC sequence cannot swallow the truncation marker", async t => {
+  const log = "Running 1 test\n\u001b]0;" + "\n[verification log truncated]\n\n[tail]\n\u0007    Error: expect(received).toBe(expected)\n    Expected: \"SECRET-ANSWER\"\n";
+  const report = await buildFailureReport({ identity, checks: logs(t, [["npx playwright test", "failed", 1, log]]) });
+  assert(!JSON.stringify(report).includes("SECRET-ANSWER"));
+});
+
+test("environment UNKNOWN survives a restricted-path mention in the same log", async t => {
+  const log = "ENOENT: no such file or directory, mkdir '/node_modules/.vite-temp'\n  at protected/hidden.spec.ts:1:1\n";
+  const report = await buildFailureReport({ identity, checks: logs(t, [["npm run build", "failed", 1, log]]) });
+  assert.equal(report.outcome, "UNKNOWN");
+  assert(!JSON.stringify(report).includes("hidden.spec"));
+});
+
+test("a passing test command with a truncated capture is UNKNOWN, never PASS", async t => {
+  const report = await buildFailureReport({ identity, checks: logs(t, [["npx vitest run", "passed", 0, "ok\n[verification log truncated]\n\n[tail]\n 5 passed\n"]]) });
+  assert.equal(report.outcome, "UNKNOWN");
+});

@@ -792,7 +792,7 @@
       "authorityBoundary": "Pure decision rules for returning bounded implementation-visible test failures to the already pinned coding session: stale, passed, UNKNOWN, unsettled-prior-resume, duplicate, unauthorized, rounds-exhausted all stop without sending. A resume is requested only after the host calls the existing gateway.nextProductive admission; the module itself admits and meters nothing. No execution lease, spend, dispatch, permission, writer, publication or completion authority. Protected verifier output is refused, never forwarded."
     },
     "packages/verification/src/failure-report.ts": {
-      "sha256": "df92bd56ce5ac9c4168391e9e97f1d06950bc9cbb91275449e29a09ca31fad05",
+      "sha256": "7e2299e1b52ee4219765df57085ed5a935c59b0d897795be9218b3c4efb2ca4d",
       "classification": "BOUNDED_FAILURE_REPORT",
       "authorityBoundary": "Converts check output into a size-bounded, redacted, digest-bound report carrying the exact WorkOrder, Run, step and candidate tree. Only IMPLEMENTATION_VISIBLE outcomes are accepted (anything else throws ProtectedFeedbackRefused); runner crashes, timeouts and environment failures yield UNKNOWN, never a repairable failure. No execution lease, spend, dispatch, permission, writer, publication or completion authority. Protected verifier output is refused, never forwarded."
     }
