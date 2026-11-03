@@ -3,7 +3,7 @@
   "application": "MyFactory local work desk and Feedback Hub starter",
   "result": "PASS for nondeploying local source qualification",
   "testedComposedSource": "6f43184a913b33ce0e1c088f58f97af60404325c",
-  "dependencyPrerequisite": "c9472394e1cfe05f9510f506ec0ba8ee7f9530e8",
+  "dependencyPrerequisite": "52b619715ac57f72f41fec1880a900eac367200b",
   "sourceDigest": "489fcc24c3abb2c837ce94e4edc7639d9f8e4b15d55c7b66559d73a4e948c247",
   "factoryVersion": "fb92c96b8f4ac2836097e6a18c5a5ba7941da18c100230fd1c0929ee5188aaf2",
   "originalPR30Head": "d24bd6f2735c4a43662d780de4e81d250e745480",
@@ -114,5 +114,6 @@
     "typecheck.log": "ddb31083af1f4639c45816731ef89f2afe56514ec1e16425e76086386aa69329",
     "unit-integration.log": "4e575c4be045b2f59d18775cf10ea9f3494428a90496a86211eec49cf999f389"
   },
-  "artifactFormatting": "Captured logs normalized to one final newline; no test result lines removed."
+  "artifactFormatting": "Captured logs normalized to one final newline; no test result lines removed.",
+  "inheritedCiQualification": "ExactUbuntu24.04; scoped distroBubblewrap/AppArmor prerequisite; retained fixture homes separated from CLI scratch; preflight verifies workspace/.git/outside/read-only/network boundaries. Proof uses synchronousfdreceipt because restrictedseccomp prevents Node from identifying socketpair-backed stdio. No sandboxpolicy/runtimecontract change. Final hosted result and finalsource review recorded in PR body."
 }
