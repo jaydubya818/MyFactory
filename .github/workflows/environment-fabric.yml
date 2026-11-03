@@ -31,17 +31,6 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm ls --all
       - run: npm audit --audit-level=low
-      # The generated preview deliberately installs offline; provision its own locked cache first.
-      - run: npm ci --prefix templates/feedback-hub --ignore-scripts --no-audit --no-fund
-      - run: npm audit --prefix templates/feedback-hub --audit-level=low
-      # Existing local verification deliberately uses --pull=never at execution.
-      # Provision its current image before tests; this is not the cloud runtime.
-      - run: docker pull node:22-bookworm
-      # EvidenceProvider static-preview tests require the locked Playwright browser.
-      - run: node node_modules/playwright/cli.js install --with-deps chromium
-      - run: npm test
-      - name: All connected PostgreSQL integration gates
-        run: CAPABILITY_TEST_POSTGRES_BIN="$(pg_config --bindir)" node scripts/qualify-connected-tests.mjs
       - name: Install the qualified CLI without changing application dependencies
         run: npm install --prefix "$RUNNER_TEMP/factory-qualified-cli" --ignore-scripts --no-audit --no-fund @openai/codex@0.157.0
       # Official Ubuntu24 prerequisite for sandboxed CLI tools. Keep the kernel
@@ -57,6 +46,17 @@ jobs:
         run: |
           export PATH="$RUNNER_TEMP/factory-qualified-cli/node_modules/.bin:$PATH"
           node scripts/qualify-cli-sandbox.mjs
+      # The generated preview deliberately installs offline; provision its own locked cache first.
+      - run: npm ci --prefix templates/feedback-hub --ignore-scripts --no-audit --no-fund
+      - run: npm audit --prefix templates/feedback-hub --audit-level=low
+      # Existing local verification deliberately uses --pull=never at execution.
+      # Provision its current image before tests; this is not the cloud runtime.
+      - run: docker pull node:22-bookworm
+      # EvidenceProvider static-preview tests require the locked Playwright browser.
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: npm test
+      - name: All connected PostgreSQL integration gates
+        run: CAPABILITY_TEST_POSTGRES_BIN="$(pg_config --bindir)" node scripts/qualify-connected-tests.mjs
       - name: All installed CLI integration gates
         env:
           FACTORY_INSTALLED_CLI: '1'

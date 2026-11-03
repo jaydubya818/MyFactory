@@ -25,6 +25,13 @@ try{
  const version=await exec('codex',['--version'],{env:{PATH:process.env.PATH,HOME:home,CODEX_HOME:home,TMPDIR:process.env.RUNNER_TEMP??'/tmp'}});
  assert.equal(version.stdout.trim(),'codex-cli 0.157.0');
  assert(!version.stderr.includes('Refusing to create helper binaries'));
+ const cliEnv={PATH:process.env.PATH,HOME:home,CODEX_HOME:home,TMPDIR:process.env.RUNNER_TEMP??'/tmp',LANG:'C.UTF-8'};
+ for(const command of [['/bin/echo','FACTORY_SANDBOX_MARKER'],[process.execPath,'-p','JSON.stringify({node:process.version})']]){
+  const observed=await exec('codex',['-c','sandbox_mode="workspace-write"','sandbox','--',...command],
+   {cwd:workspace,env:cliEnv,timeout:15000,maxBuffer:32000});
+  console.log('SANDBOX_COMMAND_DIAGNOSTIC',JSON.stringify({command,stdout:observed.stdout,stderr:observed.stderr}));
+  assert(observed.stdout.trim(),`Sandbox command returned no output: ${JSON.stringify(observed)}`);
+ }
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const origin=`http://127.0.0.1:${server.address().port}`;
  assert.equal(await (await fetch(origin)).text(),'synthetic-only');
