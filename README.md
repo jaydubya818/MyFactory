@@ -23,7 +23,7 @@ The repository contains both the original local Factory work desk and the hosted
 
 ## Current status
 
-> **Pricing review due: re-qualify `gpt-5.4-mini` pricing before 2026-10-29T00:00:00Z.** The pinned revisions (`production-openai-mini-20261022-v4`, `cloud-codex-deterministic-20261022-v4`) expire then and paid paths fail closed. See [`docs/capability-control/pricing-20261020/README.md`](docs/capability-control/pricing-20261020/README.md). Never extend expiry silently.
+> **PROPOSAL (not adopted): 20261102-v5 renews `gpt-5.4-mini` pricing through 2026-11-09T00:00:00Z at unchanged v4 rates.** Historical v4 (`production-openai-mini-20261022-v4`) expired 2026-10-29T00:00:00Z and remains byte-identical. This proposal does not activate paid Work. See [`docs/capability-control/pricing-20261102/README.md`](docs/capability-control/pricing-20261102/README.md). Owner (Jay West) approval required before merge. Never extend expiry silently.
 
 **Documentation reconciled: October 6, 2026 (Pacific).** Canonical source baseline: [`1739204`](https://github.com/jaydubya818/MyFactory/commit/1739204f9d29240b47b12fcba8e9542af4add451). This identifies the source reviewed for this guide; an actual deployment must independently prove its source/configuration identity.
 

@@ -57,8 +57,13 @@ test('a killed supervisor retains partial code but cannot resume until its survi
  assert.equal(storage.listEvents(work.id).some(e=>e.type==='run.recovery_checkpoint'),false);
  await assert.rejects(jobs.resumeRun(work,run.id),e=>e.code==='recovery_hold');
  process.kill(-workerPid,'SIGTERM');await until(()=>absent(workerPid));
- const observation=await provider.reconcile(run);assert.equal(observation.quiescent,true);assert.equal(observation.recoveryEligible,true);
+ const stale=await provider.reconcile(run);
+ assert.equal(stale.quiescent,false);assert.equal(stale.settled,false);
+ assert.equal(stale.recoveryEligible,false);assert.equal(stale.evidence.observationCurrent,false);
  const checkpoint=storage.listEvents(work.id).find(e=>e.type==='run.recovery_checkpoint');assert.ok(checkpoint);assert.equal(checkpoint.payload.verified,false);
+ const current=await provider.read(run);assert.equal(current.quiescent,true);assert.equal(current.recoveryEligible,true);
+ const reread=await provider.reconcile(run);assert.equal(reread.quiescent,true);assert.equal(reread.recoveryEligible,true);
+ assert.equal(storage.listEvents(work.id).filter(e=>e.type==='run.recovery_checkpoint').length,1);
  const next=await jobs.resumeRun(work,run.id);await until(()=>storage.getRun(next.id).state==='ready_for_review');
  assert.equal(next.inputCommit,checkpoint.payload.commit);assert.equal(calls,1);
  assert.equal((await jobs.resumeRun(work,run.id)).id,next.id);assert.equal(calls,1);assert.equal(storage.listRuns(work.id).length,2);
