@@ -57,7 +57,7 @@ if (!pf.binaryAvailable || !pf.authenticated) throw new Error("Codex CLI unavail
 
 const storage = openStorage(join(data, "factory.sqlite"));
 const producer = { capture: () => ({}), finalize: () => ({}),
-  snapshot: () => ({ configuration: { model: MODEL, executorVersion: pf.version, timeoutMs: 25 * 60 * 1000, commands: COMMANDS, verificationImage: IMAGE, allowedPaths: [] }, factoryVersion: "d".repeat(64) }) };
+  snapshot: () => ({ version: 3, configuration: { model: MODEL, executorVersion: pf.version, timeoutMs: 25 * 60 * 1000, commands: COMMANDS, verificationImage: IMAGE, allowedPaths: [] }, factoryVersion: "d".repeat(64) }) };
 const jobs = new JobManager(storage, data, event => {
   if (/^(run\.(prepared|implementing|agent_result|implementation_checkpoint|productive_closed|candidate_committed|ready_for_review|failed|check_completed)|feedback\.|agent\.thread)/.test(event.type))
     log(event.type, event.type === "feedback.report_issued" ? { step: event.payload.step, outcome: event.payload.outcome, failures: event.payload.report.failures.length, digest: event.payload.digest.slice(0, 12) }
