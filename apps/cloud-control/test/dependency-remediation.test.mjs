@@ -5,7 +5,6 @@ import {mkdtempSync,writeFileSync,rmSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {createServer} from 'node:http';
 import {assertPatchedNodeRuntime} from '../../../packages/contracts/src/node-runtime.ts';
 
 const require=createRequire(import.meta.url);
@@ -51,17 +50,26 @@ test('oversized constrained Zod collections reject within bounded memory',()=>{
   {cwd:new URL('../../../',import.meta.url),timeout:10000,stdio:'pipe'});
 });
 
-test('patched npm and bundled fetch reject excessive content encodings',async t=>{
- const server=createServer((_request,response)=>{
-  response.writeHead(200,{'content-encoding':Array(100).fill('gzip').join(',')});response.end('fixture');
- });
- await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- t.after(()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve);}));
- const origin=`http://127.0.0.1:${server.address().port}`;
- for(const transport of [globalThis.fetch,require('undici').fetch,sandboxRequire('undici').fetch]){
-  await assert.rejects(async()=>{const response=await transport(origin,{signal:AbortSignal.timeout(3000)});await response.text();},
-   error=>/too many content-encodings/.test(String(error.cause?.message??error.message)));
- }
+test('all fetch parsers survive excessive encodings with premature connection close',()=>{
+ // GHSA-xjj6-f33q-929c: an incomplete body used to crash after fetch rejected.
+ // Isolate the process and do not hide uncaught exceptions from orphan streams.
+ const program=`import assert from 'node:assert/strict';import {createServer} from 'node:net';
+  import {createRequire} from 'node:module';const require=createRequire(import.meta.url);
+  const sandboxRequire=createRequire(require.resolve('@vercel/sandbox'));
+  for(const [name,transport]of [['bundled',globalThis.fetch],['undici6',require('undici').fetch],['undici7',sandboxRequire('undici').fetch]]){
+   const raw='HTTP/1.1 200 OK\\r\\nContent-Encoding: '+Array(6).fill('gzip').join(', ')+'\\r\\nContent-Length: 1\\r\\nConnection: close\\r\\n\\r\\n';
+   let onClosed;const closed=new Promise(resolve=>onClosed=resolve);
+   const server=createServer(socket=>{socket.once('close',onClosed);socket.once('data',()=>socket.end(raw));});
+   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+   try{await assert.rejects(transport('http://127.0.0.1:'+server.address().port,{signal:AbortSignal.timeout(3000)}),
+    error=>/content-encoding/.test(String(error.cause?.message??error.message)));
+    await closed;await new Promise(resolve=>setImmediate(resolve));
+   }finally{await new Promise(resolve=>server.close(resolve));}
+   console.log(name+':survived');
+  }`;
+ const output=execFileSync(process.execPath,['--input-type=module','-e',program],
+  {cwd:new URL('../../../',import.meta.url),timeout:10000,encoding:'utf8',stdio:'pipe'});
+ assert.deepEqual(output.trim().split('\n'),['bundled:survived','undici6:survived','undici7:survived']);
 });
 
 test('old or malformed Node transports cannot pass the runtime prerequisite',()=>{
