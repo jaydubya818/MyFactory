@@ -1,0 +1,99 @@
+{
+  "date": "2026-11-03",
+  "candidateSourceCommit": "58d74e781ed9a782ac56bdb068fa4a0d0c686dbe",
+  "sourceDigest": "db5700c7618a7956d8d99e3a48580609ba520381a4cfb6d60d66a55aca3d8074",
+  "factoryVersion": "c558adbbe7e657a17becbffd4e18506cd4011f207eb0494962585298e43d1d47",
+  "runtime": {
+    "node": "24.22.1",
+    "undici": "7.30.1",
+    "codex": "0.157.0"
+  },
+  "defaultSuite": {
+    "tests": 640,
+    "pass": 612,
+    "fail": 0,
+    "skipped": 28
+  },
+  "connectedPostgresSuite": {
+    "tests": 249,
+    "pass": 249,
+    "fail": 0,
+    "skipped": 0
+  },
+  "installedCliSuite": {
+    "tests": 18,
+    "pass": 18,
+    "fail": 0,
+    "skipped": 0
+  },
+  "gatedCoverage": {
+    "postgresTopLevelCases": 11,
+    "installedCliCases": 17,
+    "allPreviouslyGated": 28,
+    "unexecuted": 0
+  },
+  "checks": {
+    "unitIntegration": "PASS",
+    "playwrightEvidenceProvider": "PASS in default suite",
+    "typescript": "PASS",
+    "producerTypescript": "PASS",
+    "producerGovernance": "PASS",
+    "capabilityProvenance": "PASS",
+    "sourceIdentityCompatibility": "PASS",
+    "productionBuild": "PASS",
+    "rootAudit": "PASS:0 findings",
+    "templateAudit": "PASS:0 findings"
+  },
+  "independentReview": {
+    "reviewer": "advisory_reachability",
+    "firstReviewedCommit": "ff8171e0d4eabba419131c7c606a44a8a759d9af",
+    "findings": [
+      {
+        "priority": "P1",
+        "finding": "Local consumer packaging hash stale; provenance gate absent from PR workflow",
+        "resolution": "Updated only reviewed Factory-local manifest hash; preserved upstream SHAs/source; enabled existing provenance command in PR CI",
+        "verifiedAt": "819928a19388f5091dcc08002f2002c9e890af2d"
+      },
+      {
+        "priority": "P2",
+        "finding": "Complete-response test did not reproduce premature-close process crash",
+        "resolution": "Raw TCP6gzip Content-Length1/no body subprocess; all3patched transports survive; explicit socket close removes half-open wait. Vulnerable Node negative control still crashes.",
+        "verifiedAt": "58d74e781ed9a782ac56bdb068fa4a0d0c686dbe"
+      }
+    ],
+    "finalExactHeadReview": "Recorded in PR body after evidence commit; no inherited review claim"
+  },
+  "hostedCI": "Final evidence commit results recorded in PR body. Earlier819928a run41692324227 failed the half-open fixture; fixed deterministic socket closure in58d74e7. No threshold bypass/retry-only acceptance.",
+  "separation": {
+    "dependencyPr": 31,
+    "uiPr": 30,
+    "mergeOrder": [
+      31,
+      30
+    ],
+    "originalUiHead": "d24bd6f2735c4a43662d780de4e81d250e745480",
+    "upstreamIntegrationTupleChanged": false
+  },
+  "limits": [
+    "Nondeploying source qualification only",
+    "Existing Vercel24.19 image requires separate patched immutable image qualification; installer rejects it before fetch",
+    "No paid Work or production pricing activation",
+    "No tester update, migration, custody investigation or inherited execution authority"
+  ],
+  "evidenceSha256": {
+    "advisory-assessment.md": "32398d2e5599cfb79c7d6b5ea15933832c6d726c34490788705f9d2b31ecf063",
+    "audit-after.json": "e35744f39b098195fe6e1297770e96c0876a73f8cf14b4b5b5d0dfe65ea7a521",
+    "audit-before.json": "4da1447025da9efcec0749b0ae665c35a4051d86f43bb848c74d61a140ea58d4",
+    "build.log": "93295f2bbaf0d76351e1aa527aee79100ec89618cf2172513a529d0102c324c5",
+    "connected-tests.log": "fe2bdcd04bfd7a1ed9cbc04d119be5bc0b8888b70a757fae19f040661ce41c70",
+    "dependency-regressions.log": "86c364b3df07ea3688ef14c571ae8844061f36e9681f26872308885affc38cbb",
+    "governance.log": "919601057706e040f93bd4885306fbd567af09f53d345bb9af2fb93fbab2157f",
+    "installed-tree.log": "c5402e2dc7eefdb006bf8238bebe4e18f511264640b62d14c51f7356bf9312f1",
+    "local-worker-runtime.json": "1d660233257cc1646378e021b5bf8e520d229491d619bcb7def64401860826b2",
+    "qualified-cli-tests.log": "773c2fd5060864526ed54200bd625c630fb4e55b7f78d4e9a4c07d9b9600e434",
+    "runtime-qualification.json": "787a809cde5fd041cc103ac08e18f62e76cbe6c812c93e8c83ad24f260d5c045",
+    "security-audit.log": "e2ef58e096ea5680399fa4d0bdd51df0805e0b2aca467c912c14b305cda681d8",
+    "typecheck.log": "54d6866cc5b916178a564c4c77ad18a280c39c5edcac9bb618ee00c03b50131c",
+    "unit-integration.log": "4453bbea3cb66b427cc8cdeba77f1eb5966c07cd760ff2cfc9c9ccec74fd29a9"
+  }
+}
