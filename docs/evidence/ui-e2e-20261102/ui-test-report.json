@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-02",
+  "timezone": "America/Los_Angeles",
+  "application": "MyFactory local work desk and Feedback Hub starter",
+  "result": "PASS for the local tested scope",
+  "repositoryTests": {
+    "tests": 633,
+    "pass": 605,
+    "fail": 0,
+    "skipped": 28
+  },
+  "feedbackHubTests": {
+    "tests": 4,
+    "pass": 4,
+    "fail": 0,
+    "skipped": 0
+  },
+  "otherChecks": [
+    "npm run typecheck",
+    "npm run build",
+    "npm run check:producer-governance",
+    "npm run smoke:docker",
+    "npm run typecheck --prefix templates/feedback-hub",
+    "git diff --check"
+  ],
+  "uiChecksPassed": [
+    "Empty work queue, required-field validation, creation, success notification, and persisted detail",
+    "Queue search and Active filter empty states",
+    "Full browser-created defect journey: baseline failure, simulated coding, real Git candidate, real Docker checks, ready for review",
+    "Candidate diff and check log access in Changes and Verification",
+    "Service outage produces an evidence error; Retry succeeds after host restart",
+    "Missing saved check log produces explicit unavailable state; fixture artifact restored",
+    "Simulated Linear response loss and reconciliation produce one linked issue",
+    "Dispatch pause and resume in disposable fixture state",
+    "Active-run cancellation dialog and persisted cancelled terminal state",
+    "Cancelled run shows empty candidate and verification states",
+    "App builder scaffold creation, local preview startup, logs, and shutdown",
+    "Generated preview feedback capture, status and priority updates, internal note, and persistence after reload",
+    "Mobile Connections button has accessible name; navigation and browser Back work",
+    "Desktop and mobile responsive inspection; mobile page has no horizontal overflow"
+  ],
+  "fixes": [
+    "Accessible name for Connections navigation at mobile widths",
+    "On-demand saved diff and check log panels with loading, error, Retry, unavailable, and empty-content states",
+    "Evidence response cleanup prevents updates after unmount or identity change; panels reuse loaded evidence while reopened",
+    "Cloud provider and ledger fixtures use a controlled clock inside the qualified review window and advance it between phases"
+  ],
+  "scopeLimits": [
+    "Coding and external Linear transport were simulated; verification used real isolated Docker containers",
+    "28 gated integration tests were skipped by their existing configuration",
+    "Production model pricing expired 2026-10-28T00:00:00Z; requalification is still required for paid execution",
+    "Production pricing, authorization, and publication gates were not changed",
+    "The standalone factory-console application was outside this local work-desk test scope"
+  ],
+  "cleanup": "Disposable servers and preview stopped; browser tabs closed; viewport override reset",
+  "screenshots": [
+    "review-desktop.png",
+    "connections-mobile.png"
+  ],
+  "filesChanged": [
+    "apps/web/src/App.tsx",
+    "apps/web/src/WorkOrderDetail.tsx",
+    "apps/web/src/SavedEvidence.tsx",
+    "apps/cloud-control/test/cloud-harness-ledger.test.mjs",
+    "apps/cloud-control/test/production-model-ledger.test.mjs",
+    "apps/cloud-control/test/production-model-provider.test.mjs"
+  ],
+  "references": [
+    "apps/web/src/api.ts",
+    "apps/web/src/PublicationReview.tsx",
+    "scripts/smoke-supervisor.mjs",
+    "docs/capability-control/pricing-20261020/20261020-v3.json",
+    "https://react.dev/learn/synchronizing-with-effects"
+  ]
+}
