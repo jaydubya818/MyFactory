@@ -173,3 +173,45 @@ test('post-checkpoint resource cut: final connection callback cannot hide new cu
   const pending=f.provider.reconcile(f.run,()=>{checks++;if(checks===3)f.row('agent.completion_process_started',{pid:12345})});await f.started;f.release();
   const result=await pending;assert.equal(checks,3);assert.equal(f.calls,1);assert.equal(result.quiescent,false);assert.equal(result.recoveryEligible,false);assert.equal(result.evidence.observationCurrent,false);
 });
+
+// DJR-03: reconcile's own checkpoint write must not invalidate its own recovery observation, while any OTHER
+// mutation during the checkpoint stays stale. Ownership comes from the receipt checkpointForRecovery returns.
+test('post-checkpoint resource cut: rows reported by the checkpoint receipt are accepted and re-proved', async () => {
+  const f = pureResourceFixture({ pause: false, recovery: true }); let calls = 0;
+  f.jobs.checkpointForRecovery = async () => {
+    calls++;
+    const a = f.row('run.candidate_committed', { checkpointOnly: true }), b = f.row('run.recovery_checkpoint', { verified: false });
+    f.run.candidateCommit = 'b'.repeat(40);
+    return { eventIds: [a, b], candidateCommit: 'b'.repeat(40) };
+  };
+  const result = await f.provider.reconcile(f.run);
+  assert.equal(calls, 1);
+  assert.equal(result.quiescent, true);
+  assert.equal(result.recoveryEligible, true);
+  assert.equal(result.evidence.observationCurrent, undefined);
+});
+test('post-checkpoint resource cut: a concurrent row beside the receipt rows is stale', async () => {
+  const f = pureResourceFixture({ pause: false, recovery: true });
+  f.jobs.checkpointForRecovery = async () => {
+    const own = f.row('run.recovery_checkpoint', { verified: false });
+    f.row('agent.completion_process_started', { pid: 12345 });
+    return { eventIds: [own], candidateCommit: null };
+  };
+  const result = await f.provider.reconcile(f.run);
+  assert.equal(result.quiescent, false);
+  assert.equal(result.recoveryEligible, false);
+  assert.equal(result.evidence.observationCurrent, false);
+});
+test('post-checkpoint resource cut: a receipt cannot launder a Run change it did not report', async () => {
+  const f = pureResourceFixture({ pause: false, recovery: true });
+  f.jobs.checkpointForRecovery = async () => { const own = f.row('run.recovery_checkpoint', {}); f.run.state = 'interrupted'; return { eventIds: [own], candidateCommit: null }; };
+  const result = await f.provider.reconcile(f.run);
+  assert.equal(result.quiescent, false);
+  assert.equal(result.evidence.observationCurrent, false);
+});
+test('post-checkpoint resource cut: an existing checkpoint makes the repeat reconcile a no-write success', async () => {
+  const f = pureResourceFixture({ pause: false, recovery: true }); f.row('run.recovery_checkpoint', { verified: false });
+  f.jobs.checkpointForRecovery = async () => ({ eventIds: [], candidateCommit: null });
+  const result = await f.provider.reconcile(f.run);
+  assert.equal(result.quiescent, true); assert.equal(result.recoveryEligible, true);
+});

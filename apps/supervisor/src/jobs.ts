@@ -95,6 +95,9 @@ function processGroupAbsent(pid: number): boolean {
   }
 }
 
+/** The durable rows (and optional candidate pointer) one recovery-checkpoint call wrote. */
+export interface CheckpointReceipt { eventIds: number[]; candidateCommit: string | null }
+
 export class JobManager {
   #active = new Map<string, ActiveJob>();
   private readonly maxParallelRuns: number;
@@ -508,32 +511,36 @@ export class JobManager {
     return run;
   }
 
-  async checkpointForRecovery(runId:string):Promise<void>{
+  /** Returns exactly what this call wrote so the caller can tell its own durable mutation from a concurrent one. */
+  async checkpointForRecovery(runId:string):Promise<CheckpointReceipt>{
     if(this.activeRun(runId))throw new ActionError('Active process cannot supply a recovery checkpoint','recovery_hold',409);
-    await this.#retainCheckpoint(runId,true);
+    return this.#retainCheckpoint(runId,true);
   }
 
-  async #retainCheckpoint(runId:string,beforeTerminal=false):Promise<void>{
-    if(!this.retainCheckpoints)return;
+  async #retainCheckpoint(runId:string,beforeTerminal=false):Promise<CheckpointReceipt>{
+    const receipt:CheckpointReceipt={eventIds:[],candidateCommit:null};
+    if(!this.retainCheckpoints)return receipt;
     const run=this.storage.getRun(runId);
-    if(!run||!['interrupted','cancelled',...(beforeTerminal?['implementing']:[])].includes(run.state)||run.candidateCommit)return;
+    if(!run||!['interrupted','cancelled',...(beforeTerminal?['implementing']:[])].includes(run.state)||run.candidateCommit)return receipt;
     const order=this.storage.getWorkOrder(run.workOrderId);
-    if(!order||this.storage.listEvents(order.id).some(e=>e.runId===runId&&['run.recovery_checkpoint','run.signed_result'].includes(e.type)))return;
+    if(!order||this.storage.listEvents(order.id).some(e=>e.runId===runId&&['run.recovery_checkpoint','run.signed_result'].includes(e.type)))return receipt;
     const processes=this.storage.listEvents(order.id).filter(e=>e.runId===runId&&['agent.process_started','agent.completion_process_started'].includes(e.type));
-    if(processes.some(e=>typeof e.payload.pid!=='number'||!processGroupAbsent(e.payload.pid)))return;
+    if(processes.some(e=>typeof e.payload.pid!=='number'||!processGroupAbsent(e.payload.pid)))return receipt;
     try{
       const candidate=await this.dependencies.commitCandidate(run.workspacePath,run.inputCommit,order.allowedPaths,join(this.dataDir,'artifacts',runId,'checkpoint'));
       if(this.producer){
         const diffSha256=createHash('sha256').update(await readFile(candidate.diffPath)).digest('hex');
         this.storage.transaction(()=>{
-          this.#event(order.id,runId,'run.candidate_committed',{candidateCommit:candidate.commit,candidateTree:candidate.tree,
-            diffPath:candidate.diffPath,diffSha256,changedPaths:candidate.changedPaths,checkpointOnly:true});
+          receipt.eventIds.push(this.#event(order.id,runId,'run.candidate_committed',{candidateCommit:candidate.commit,candidateTree:candidate.tree,
+            diffPath:candidate.diffPath,diffSha256,changedPaths:candidate.changedPaths,checkpointOnly:true}).id);
           this.storage.saveRun({...run,candidateCommit:candidate.commit});
+          receipt.candidateCommit=candidate.commit;
         });
       }
-      this.#event(order.id,runId,'run.recovery_checkpoint',{commit:candidate.commit,tree:candidate.tree,base:run.inputCommit,
-        diffPath:candidate.diffPath,changedPaths:candidate.changedPaths,verified:false,mode:this.producer?'MANAGED_FIXTURE_CHECKPOINT':'SYNTHETIC_LOCAL'});
-    }catch(error){this.#event(order.id,runId,'run.checkpoint_unavailable',{reason:message(error)});}
+      receipt.eventIds.push(this.#event(order.id,runId,'run.recovery_checkpoint',{commit:candidate.commit,tree:candidate.tree,base:run.inputCommit,
+        diffPath:candidate.diffPath,changedPaths:candidate.changedPaths,verified:false,mode:this.producer?'MANAGED_FIXTURE_CHECKPOINT':'SYNTHETIC_LOCAL'}).id);
+    }catch(error){receipt.eventIds.push(this.#event(order.id,runId,'run.checkpoint_unavailable',{reason:message(error)}).id);}
+    return receipt;
   }
 
   /** Called only after the connection service atomically claims this exact attempt. */

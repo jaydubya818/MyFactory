@@ -4,7 +4,7 @@ import { preflightCodex } from '../../../packages/agents/src/index.ts';
 import type { Run, WorkOrder } from '../../../packages/contracts/src/index.ts';
 import type { FactoryStorage } from '../../../packages/storage/src/index.ts';
 import { DEFAULT_VERIFICATION_IMAGE } from '../../../packages/verification/src/index.ts';
-import type { JobManager } from './jobs.ts';
+import type { CheckpointReceipt, JobManager } from './jobs.ts';
 import type { ServiceProducer } from './service-producer.ts';
 import type { ExecutionGateway, ExecutionObservation, ExecutionProvider } from './execution-provider.ts';
 import { assertImplementationProgress } from './execution-context.ts';
@@ -134,13 +134,35 @@ export class LocalExecutionProvider implements ExecutionProvider {
 
   async reconcile(run: Run, assertCurrentConnection?: () => void) {
     assertCurrentConnection?.();
-    const {current,binding}=this.resourceObservation(run);
+    const pre=this.resourceObservation(run);
+    const {current,binding}=pre;
     const observation=await this.read(current);
     assertCurrentConnection?.();
     if(!this.resourceCurrent(current,binding))return this.staleObservation(observation);
-    if(observation.quiescent&&observation.recoveryEligible)await this.jobs.checkpointForRecovery(run.id);
+    if(observation.quiescent&&observation.recoveryEligible){
+      const receipt=await this.jobs.checkpointForRecovery(run.id) as CheckpointReceipt|void;
+      assertCurrentConnection?.();
+      // The checkpoint is this method's OWN durable mutation, so the pre-checkpoint cut is expected to change. Accept only
+      // the rows the call itself reports (and its candidate pointer); anything else is a concurrent mutation and stays stale.
+      const post=this.resourceObservation(run);
+      if(!this.onlyOwnedDelta(pre,post,receipt))return this.staleObservation(observation);
+      // Re-prove quiescence and eligibility from the post-checkpoint state instead of reusing the pre-checkpoint reading.
+      const fresh=await this.read(post.current);
+      assertCurrentConnection?.();
+      return this.resourceCurrent(post.current,post.binding)?fresh:this.staleObservation(fresh);
+    }
     assertCurrentConnection?.();
     return this.resourceCurrent(current,binding)?observation:this.staleObservation(observation);
+  }
+
+  private onlyOwnedDelta(pre:{current:Run;events:unknown[]},post:{current:Run;events:unknown[]},receipt:CheckpointReceipt|void):boolean{
+    const ids=new Set(receipt&&Array.isArray(receipt.eventIds)?receipt.eventIds:[]);
+    const idOf=(event:unknown):unknown=>(event as {id?:unknown}).id;
+    if(!pre.events.every(event=>post.events.some(other=>digest(other)===digest(event))))return false;
+    const added=post.events.filter(event=>!pre.events.some(other=>digest(other)===digest(event)));
+    if(added.some(event=>!ids.has(idOf(event) as number)))return false;
+    const candidate=receipt&&receipt.candidateCommit?receipt.candidateCommit:pre.current.candidateCommit;
+    return digest({...post.current,candidateCommit:null})===digest({...pre.current,candidateCommit:null})&&post.current.candidateCommit===candidate;
   }
 
   async collect(run: Run): Promise<Awaited<ReturnType<ServiceProducer['read']>>> {

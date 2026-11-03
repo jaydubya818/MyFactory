@@ -6,7 +6,7 @@ name: Local ordered-admission receiver source contracts
 # (recorded in the release manifest). The pin is not relaxed. Neither leg grants authority.
 on:
   push:
-    branches: [codex/local-ordered-admission-receiver-20261030, codex/qdev-20261030-dashboard-profile]
+    branches: [codex/local-ordered-admission-receiver-20261030, codex/qdev-20261030-dashboard-profile, "factory/**"]
   workflow_dispatch:
 
 permissions:
