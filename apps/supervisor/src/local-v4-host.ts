@@ -10,6 +10,9 @@ import { validatePrice, type SpendPrice } from './spend-gateway.ts';
 import { createCodexAdapter } from '../../../packages/agents/src/index.ts';
 import { digest } from '../../../packages/hosted-routing/src/result.ts';
 import type { PolicyKey } from '../../../packages/capability-enforcement/src/ordering-wire.ts';
+import { ownerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
+import { OWNER_SUBSCRIPTION_PRICING_REVISION } from '../../../packages/storage/src/spend-policy.ts';
+import { ownerLoginStatus, parseOwnerSubscriptionRoute, subscriptionSpendContract, OwnerSubscriptionRefused, OWNER_SUBSCRIPTION_ROUTE, type OwnerSubscriptionRoute } from './owner-subscription-route.ts';
 
 /**
  * Trusted host composition of the ordered LOCAL_V4 supervisor (private beta: owner + named testers on one Mac).
@@ -41,8 +44,11 @@ export interface LocalV4HostConfig {
   profile: { checkCommands: string[]; allowedPaths: string[] };
   client: { id: string; name: string; ownerScope: string; repositoryPaths: string[] };
   enrollment: { scope: ReceiverScope; agentId: string; registryVersion: string; sourceKeyFiles: { myeve: string; relay: string } };
-  provider: { upstreamOrigin: string; credentialFile: string; price: SpendPrice };
+  /** Metered (default; unchanged) or the explicit opt-in owner-only OWNER_SUBSCRIPTION_LOCAL route (selected by `mode`). */
+  provider: MeteredProviderConfig | OwnerSubscriptionRoute;
 }
+export interface MeteredProviderConfig { upstreamOrigin: string; credentialFile: string; price: SpendPrice }
+export const isSubscriptionProvider = (p: LocalV4HostConfig['provider']): p is OwnerSubscriptionRoute => (p as OwnerSubscriptionRoute).mode === OWNER_SUBSCRIPTION_ROUTE;
 export class HostConfigRefused extends Error { readonly code: string; constructor(code: string) { super(code); this.code = code; } }
 const refuse = (code: string): never => { throw new HostConfigRefused(code); };
 const obj = (v: unknown, keys: string[], code: string): Record<string, unknown> => {
@@ -93,10 +99,20 @@ export function parseHostConfig(raw: unknown): LocalV4HostConfig {
   const kf = obj(en.sourceKeyFiles, ['myeve', 'relay'], 'HOST_CONFIG_SOURCE_KEYS');
   const enrollment = { scope, agentId: str(en.agentId, NAME, 'HOST_CONFIG_ENROLLMENT'), registryVersion: str(en.registryVersion, NAME, 'HOST_CONFIG_ENROLLMENT'),
     sourceKeyFiles: { myeve: abs(kf.myeve, 'HOST_CONFIG_SOURCE_KEYS'), relay: abs(kf.relay, 'HOST_CONFIG_SOURCE_KEYS') } };
+  if (c.provider && typeof c.provider === 'object' && 'mode' in (c.provider as object)) {
+    let route: OwnerSubscriptionRoute;
+    try { route = parseOwnerSubscriptionRoute(c.provider); } catch (error) { return refuse(error instanceof OwnerSubscriptionRefused ? 'HOST_CONFIG_' + error.code : 'HOST_CONFIG_PROVIDER'); }
+    const factoryId = str(c.factoryId, ID, 'HOST_CONFIG_FACTORY_ID');
+    if (route.clientId !== client.id || route.ownerScope !== client.ownerScope || route.ownerScope !== scope.ownerId) refuse('HOST_CONFIG_SUBSCRIPTION_OWNER_ONLY');
+    for (const p of [dataDir, materialDir, witness.path]) if (inside(p, repoRoot)) refuse('HOST_CONFIG_PATH_INSIDE_REPOSITORY');
+    if (inside(witness.path, dataDir) || inside(materialDir, dataDir) || inside(dataDir, materialDir)) refuse('HOST_CONFIG_PATH_OVERLAP');
+    return { schema: HOST_CONFIG_SCHEMA, factoryId, port, dataDir, materialDir, witness, worker, verificationImage, profile, client, enrollment, provider: { ...route } };
+  }
   const pv = obj(c.provider, ['upstreamOrigin', 'credentialFile', 'price'], 'HOST_CONFIG_PROVIDER');
   const upstreamOrigin = str(pv.upstreamOrigin, /^(?:http:\/\/127\.0\.0\.1:\d{1,5}|https:\/\/api\.openai\.com)$/, 'HOST_CONFIG_PROVIDER');
   const price = obj(pv.price, ['revision', 'model', 'validUntil', 'contextLimitTokens', 'outputLimitTokens', 'inputMicrousdPerMillion', 'outputMicrousdPerMillion'], 'HOST_CONFIG_PRICE') as unknown as SpendPrice;
   try { validatePrice(price); } catch { refuse('HOST_CONFIG_PRICE'); }
+  if (price.revision === OWNER_SUBSCRIPTION_PRICING_REVISION) refuse('HOST_CONFIG_PRICE');   // the operations-only revision is never a metered price card
   const provider = { upstreamOrigin, credentialFile: abs(pv.credentialFile, 'HOST_CONFIG_PROVIDER'), price: { ...price } };
   const factoryId = str(c.factoryId, ID, 'HOST_CONFIG_FACTORY_ID');
   for (const p of [dataDir, materialDir, witness.path, provider.credentialFile]) if (inside(p, repoRoot)) refuse('HOST_CONFIG_PATH_INSIDE_REPOSITORY');
@@ -154,6 +170,7 @@ function readMaterial(config: LocalV4HostConfig) {
   try { if (!createPublicKey(createPrivateKey(result.privateKey)).equals(createPublicKey(current!.publicKey))) throw Error(); } catch { refuse('HOST_MATERIAL_RESULT'); }
   const token = secretFile(join(config.materialDir, MATERIAL.token), 'HOST_MATERIAL_TOKEN').trim();
   if (!HEX64.test(token)) refuse('HOST_MATERIAL_TOKEN');
+  if (isSubscriptionProvider(config.provider)) return { signer, result, tokenSha256: createHash('sha256').update(token).digest('hex'), credential: null };
   const credential = secretFile(config.provider.credentialFile, 'HOST_PROVIDER_CREDENTIAL').trim();
   if (!credential || /[\r\n]/.test(credential)) refuse('HOST_PROVIDER_CREDENTIAL');
   return { signer, result, tokenSha256: createHash('sha256').update(token).digest('hex'), credential };
@@ -161,7 +178,10 @@ function readMaterial(config: LocalV4HostConfig) {
 
 /** The exact V4 execution configuration the producer captures for the pinned profile (kind `feature`, worker `mac`). */
 export function hostExecutionConfiguration(config: LocalV4HostConfig, executorVersion: string) {
-  return { model: config.provider.price.model, executor: 'codex-cli' as const, executorVersion, skillRevision: SKILL_REVISION,
+  // The subscription route is bound into the identity through the executor version, exactly as its preflight reports it.
+  const subscription = isSubscriptionProvider(config.provider);
+  return { model: subscription ? (config.provider as OwnerSubscriptionRoute).model : (config.provider as MeteredProviderConfig).price.model,
+    executor: 'codex-cli' as const, executorVersion: subscription ? ownerSubscriptionExecutorVersion(executorVersion) : executorVersion, skillRevision: SKILL_REVISION,
     workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage, nodeVersion: process.version,
     platform: process.platform, architecture: process.arch, commands: [...config.profile.checkCommands],
     allowedPaths: [...config.profile.allowedPaths], timeoutMs: 30 * 60 * 1000 };
@@ -191,6 +211,8 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
   if ((deps.inspectImage ?? dockerImageId)(config.verificationImage) !== config.verificationImage) refuse('HOST_VERIFICATION_IMAGE_UNAVAILABLE');
   const preflight = await createCodexAdapter(config.worker.codexExecutable, config.worker.workerProfile).preflightCodex();
   if (!preflight.binaryAvailable || !preflight.authenticated || !preflight.version) refuse('HOST_CODEX_UNAVAILABLE');
+  const subscription = isSubscriptionProvider(config.provider) ? config.provider : null;
+  if (subscription && !(await ownerLoginStatus(config.worker.codexExecutable))) refuse('HOST_CODEX_OWNER_LOGIN_REQUIRED');
   const identity = hostFactoryIdentity(config, preflight.version!);
 
   mkdirSync(config.dataDir, { recursive: true, mode: 0o700 }); chmodSync(config.dataDir, 0o700);
@@ -201,20 +223,24 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
     clientId: config.client.id, sourceKeys, signer: material.signer,
     factory: { factoryId: identity.factoryId, factoryVersion: identity.factoryVersion, sourceDigest: identity.sourceDigest, configurationDigest: identity.configurationDigest } };
   const credential = material.credential;
-  const productiveBinding: ProductiveBinding = {
-    provider: { upstreamOrigin: config.provider.upstreamOrigin, price: { ...config.provider.price }, authorize: async () => credential },
-    codexExecutable: config.worker.codexExecutable, workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage };
+  const metered = subscription ? null : config.provider as MeteredProviderConfig;
+  const productiveBinding: ProductiveBinding | undefined = metered ? {
+    provider: { upstreamOrigin: metered.upstreamOrigin, price: { ...metered.price }, authorize: async () => credential! },
+    codexExecutable: config.worker.codexExecutable, workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage } : undefined;
   const supervisor = createLocalV4Supervisor({ dataDir: config.dataDir, deskPort: config.port, resultSigning: material.result,
     orderedAdmission: { enrollment, witness: new FileReceiverWitness(config.witness.path, config.witness.epoch), witnessPath: config.witness.path },
-    productiveBinding });
+    ...(productiveBinding ? { productiveBinding } : { ownerSubscriptionBinding: { route: { ...subscription! }, codexExecutable: config.worker.codexExecutable,
+      workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage } }) });
   try {
     await new Promise<void>((ok, fail) => { supervisor.server.once('error', fail); supervisor.server.listen(config.port, '127.0.0.1', () => ok()); });
+    if (subscription && (supervisor.ownerSubscription?.disabled || !supervisor.server.listening)) refuse('HOST_SUBSCRIPTION_LOOPBACK');
   } catch (error) { await supervisor.close().catch(() => {}); throw error; }
   const address = supervisor.server.address();
   const origin = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : config.port}`;
   const facts = {
     schema: HOST_FACTS_SCHEMA, origin, connectPrefix: '/api/connect/v1', capabilityAdmissionPrefix: '/api/capability-admission',
-    readiness: { health: '/api/health', authenticated: '/api/connect/v1/actions', expectedExecution: { mode: 'LIVE', spendEnforced: true }, controls: CONTROL_ACTIONS },
+    readiness: { health: '/api/health', authenticated: '/api/connect/v1/actions',
+      expectedExecution: subscription ? { mode: OWNER_SUBSCRIPTION_ROUTE, spendEnforced: true, metering: 'SUBSCRIPTION_UNMETERED' } : { mode: 'LIVE', spendEnforced: true }, controls: CONTROL_ACTIONS },
     client: { id: config.client.id, ownerScope: config.client.ownerScope, repositoryPaths: config.client.repositoryPaths, tokenFile: join(config.materialDir, MATERIAL.token) },
     factory: { factoryId: identity.factoryId, factoryVersion: identity.factoryVersion, sourceDigest: identity.sourceDigest, configurationDigest: identity.configurationDigest },
     configuration: identity.configuration, profile: config.profile,
@@ -222,7 +248,13 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
       sourceKeyIds: { myeve: sourceKeys.myeve.keyId, relay: sourceKeys.relay.keyId } },
     receiverSigner: publicJwk(material.signer),
     resultKeys: material.result.keys.map(({ factoryId, keyId, publicKey, activeFrom, notAfter }) => ({ factoryId, keyId, publicKey, activeFrom, notAfter })),
-    provider: { upstreamOrigin: config.provider.upstreamOrigin, price: config.provider.price },
+    provider: metered ? { upstreamOrigin: metered.upstreamOrigin, price: metered.price } : {
+      mode: OWNER_SUBSCRIPTION_ROUTE, ownerOnly: true, bindHost: subscription!.bindHost, ownerScope: subscription!.ownerScope, clientId: subscription!.clientId,
+      model: subscription!.model, validUntil: subscription!.validUntil, metering: 'SUBSCRIPTION_UNMETERED', credential: 'OPERATOR_CODEX_CHATGPT_LOGIN',
+      limits: { maxProductiveOperations: subscription!.maxProductiveOperations, plannedCompletionOperations: 1,
+        maxOperationsPerWork: subscription!.maxProductiveOperations + 1, maxConcurrentRuns: subscription!.maxConcurrentRuns },
+      spendContract: subscriptionSpendContract(subscription!),
+      spendReadContract: 'spend.status is SUBSCRIPTION_UNMETERED (or UNKNOWN, fenced); metering=SUBSCRIPTION_UNMETERED, costKnown=false, currency=null, every *Microusd field null. Never settle as $0.' },
     feedback: { strictLocalV4MaxRounds: 1 }, pid: process.pid, startedAt: new Date().toISOString(),
   };
   atomicWrite(join(config.materialDir, MATERIAL.facts), JSON.stringify(facts, null, 2) + '\n', 0o644);

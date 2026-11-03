@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { nonempty, positive, map, sameAttempt, assertSpendBinding, assertReservation, assertCompletionOperations, validateBudget, assertBindAuthority, matchesCurrent, spendSummary, type OperationRow, type BudgetRow, type SpendPhase, type SpendPlan, type SpendBinding, type SpendReservation, type SpendOperation } from './spend-policy.ts';
+import { nonempty, positive, map, sameAttempt, assertSpendBinding, assertReservation, assertCompletionOperations, validateBudget, assertBindAuthority, matchesCurrent, spendSummary, subscriptionSummary, isOwnerSubscriptionRevision, SUBSCRIPTION_PROVIDER_REQUEST_PREFIX, type OperationRow, type BudgetRow, type SpendPhase, type SpendPlan, type SpendBinding, type SpendReservation, type SpendOperation } from './spend-policy.ts';
 export type { SpendPhase, SpendPlan, SpendBinding, SpendReservation, SpendOperation } from './spend-policy.ts';
 
 /** SQLite BEGIN IMMEDIATE serializes every Work paid admission across processes. */
@@ -169,10 +169,31 @@ export class SpendLedger {
     this.#write(() => {
       const op = this.getOperation(operationId);
       if (!op || !['dispatched', 'unknown'].includes(op.state)) throw new Error('Only dispatched or unknown operation can settle');
+      if (isOwnerSubscriptionRevision(op.pricingRevision)) throw new Error('Subscription operations are unmetered and never settle a cost');
       if (actualMicrousd > op.reservedMicrousd) throw new Error('Actual cost exceeded reservation; retain UNKNOWN exposure');
       this.#db.prepare(`UPDATE work_spend_operations SET actual_microusd = ?, provider_request_id = ?,
         usage_json = ?, state = 'settled', updated_at = ? WHERE operation_id = ?`)
         .run(actualMicrousd, providerRequestId, JSON.stringify(usage), new Date().toISOString(), operationId);
+    });
+  }
+  /**
+   * Owner-subscription route only: a dispatched operation whose Codex process ended is recorded as SUBSCRIPTION_UNMETERED.
+   * The row stores its one consumed OPERATION UNIT (not money; the read model reports no amount, never 0) and no usage.
+   * Refused for any metered budget, and for an UNKNOWN operation (a crash keeps its fence).
+   */
+  settleSubscriptionUnmetered(operationId: string, evidence: { outcome: string; threadId: string | null }): void {
+    nonempty(evidence?.outcome, 'outcome');
+    if (evidence.threadId !== null) nonempty(evidence.threadId, 'threadId');
+    this.#write(() => {
+      const op = this.getOperation(operationId);
+      if (!op || op.state !== 'dispatched') throw new Error('Only a dispatched subscription operation can be recorded');
+      const b = this.#budget(op.workId);
+      if (!b || !isOwnerSubscriptionRevision(b.pricing_revision) || !isOwnerSubscriptionRevision(op.pricingRevision))
+        throw new Error('Metered operations must settle authoritative provider usage');
+      this.#db.prepare(`UPDATE work_spend_operations SET actual_microusd = reserved_microusd, provider_request_id = ?,
+        usage_json = NULL, state = 'settled', updated_at = ? WHERE operation_id = ?`)
+        .run(`${SUBSCRIPTION_PROVIDER_REQUEST_PREFIX}${operationId}:${evidence.outcome}${evidence.threadId ? ':' + evidence.threadId : ''}`.slice(0, 256),
+          new Date().toISOString(), operationId);
     });
   }
   /** Only the durable pre-dispatch state proves zero provider exposure. */
@@ -211,7 +232,7 @@ export class SpendLedger {
     perOperationReserveMicrousd: number; contractVersion: string; pricingRevision: string | null;
     pricingQualified: boolean; authorityState: string; accountingComplete: boolean;
     phase: SpendPhase; cancelled: boolean; operations: SpendOperation[];
-  } | null {
+  } | ReturnType<typeof subscriptionSummary> | null {
     this.#db.exec('BEGIN');
     try {
       const budget = this.#budget(workId);

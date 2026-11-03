@@ -1,4 +1,4 @@
-import { nonempty, positive, map, sameAttempt, assertSpendBinding, assertReservation, assertCompletionOperations, validateBudget, assertBindAuthority, matchesCurrent, spendSummary } from '../../../packages/storage/src/spend-policy.ts';
+import { nonempty, positive, map, sameAttempt, assertSpendBinding, assertReservation, assertCompletionOperations, validateBudget, assertBindAuthority, matchesCurrent, spendSummary, assertNotOwnerSubscriptionPlan } from '../../../packages/storage/src/spend-policy.ts';
 
 // Same WORK_LEDGER_V2 policy as the qualified SQLite ledger. PostgreSQL owns all
 // durable state; neither the worker nor an in-memory cache can admit operations.
@@ -50,6 +50,7 @@ export class PostgresSpendLedger {
     },binding,ceiling,deadline,plan);
   }
   async createBudgetWithContext({client,now,timestamp,budget,operations},binding,ceiling,deadline,plan) {
+      assertNotOwnerSubscriptionPlan(plan);   // the owner-subscription operations ledger is local-only; hosted Work is always metered
       validateBudget(binding,ceiling,deadline,plan,now);
       const {workId,workGeneration,requestId,workOrderId}=binding;
       const previous=await budget(workId);

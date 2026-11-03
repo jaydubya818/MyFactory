@@ -14,6 +14,7 @@ import type {FactoryStorage} from '../../../packages/storage/src/index.ts';
 import {SpendLedger,type SpendPlan} from '../../../packages/storage/src/spend.ts';
 import {SpendGateway,type SpendPrice,validatePrice} from './spend-gateway.ts';
 import type {ProviderConnection} from './provider-connection.ts';
+import type {OwnerSubscriptionOperations} from './owner-subscription-route.ts';
 import type {WorkOrder,Run} from '../../../packages/contracts/src/index.ts';
 
 export interface ExecutionIdentity {
@@ -48,12 +49,19 @@ export class FactoryDispatchControl {
   this.refreshConnection=refreshConnection??(()=>{throw new ActionError('Current connection authority is required','forbidden',403)});
  }
  private orderedGate?:{authority:OrderedAuthority;assertDispatch(requestId:string):void};
+ private subscription?:OwnerSubscriptionOperations;
+ /** Host composition only (OWNER_SUBSCRIPTION_LOCAL): the operator-login worker under the same Work ledger admission. Exclusive with
+  *  every fixture and metered provider; never selectable by request fields or environment. */
+ useOwnerSubscription(operations:OwnerSubscriptionOperations){
+  if(this.subscription||this.spendFixture||this.localFixture||!this.live)throw Error('Owner subscription route is exclusive host composition');
+  this.subscription=operations;
+ }
  /** Host composition only: once enrolled, ordinary preparation is refused and dispatch requires an ADMITTED ordered outcome. */
  requireOrderedAdmission(gate:{authority:OrderedAuthority;assertDispatch(requestId:string):void}){
   if(this.orderedGate)throw Error('Ordered admission is already enrolled');
   this.orderedGate=gate;
  }
- executionAvailability(){return {mode:this.live?'LIVE':this.localFixture?'LOCAL_FIXTURE':this.spendFixture?'LOCAL_SPEND_FIXTURE':'DISABLED',
+ executionAvailability(){if(this.subscription)return this.subscription.availability();return {mode:this.live?'LIVE':this.localFixture?'LOCAL_FIXTURE':this.spendFixture?'LOCAL_SPEND_FIXTURE':'DISABLED',
   spendEnforced:this.localFixture||!!this.spendFixture,reason:this.localFixture?'Backend-injected zero-cost fixture':
    this.live?'Explicit private-alpha provider; every call requires bounded Work admission':this.spendFixture?'Loopback synthetic provider fixture; live paid execution remains disabled':'Paid Codex gateway routing is not live-qualified'};}
  private authorize(client:FactoryClient,action:string){if(!client.actions.includes(action))throw new ActionError('Factory control action is not granted','forbidden',403);}
@@ -103,12 +111,15 @@ export class FactoryDispatchControl {
    !Number.isFinite(input.maxSpendUsd)||input.maxSpendUsd<0.000001||input.maxSpendUsd>20||
    !(Date.parse(input.deadline)>Date.now()&&Date.parse(input.deadline)<=Date.now()+3600000))
    throw new ActionError('Bounded exact preparation required','invalid_input');
-  let plan:SpendPlan|undefined;
+  let plan:SpendPlan|undefined,subscriptionCeiling:number|undefined;
   if(this.live&&(!input.spendContract||input.maxSpendUsd>1.35||Date.parse(input.deadline)>Date.now()+600000||
     input.spendContract.maxPaidOperations>4||input.spendContract.plannedProductiveOperations>3||
     input.spendContract.plannedCompletionOperations!==1))
    throw new ActionError('Private-alpha Work requires at most $1.35, 600 seconds, three productive operations and one protected completion','alpha_limits',409);
-  if(input.spendContract){
+  if(this.subscription){
+   this.subscription.assertOwner(client);
+   ({plan,ceiling:subscriptionCeiling}=this.subscription.plan(input.spendContract));
+  }else if(input.spendContract){
    const c=input.spendContract;
    if(!this.spendFixture||Object.keys(c).sort().join(',')!=='completionReserveMicrousd,maxPaidOperations,plannedCompletionOperations,plannedProductiveOperations,pricingRevision,version'||
       c.version!=='WORK_LEDGER_V2'||c.pricingRevision!==this.spendFixture.price.revision)
@@ -144,7 +155,7 @@ export class FactoryDispatchControl {
   // order without this budget remains unable to cross any paid boundary.
   this.spend.createBudget({workId:input.workId,workGeneration:input.workGeneration,requestId:input.requestId,
     workOrderId:created?.id??this.record(client,input.requestId).order.id},
-    Math.floor(input.maxSpendUsd*1_000_000),input.deadline,plan);
+    subscriptionCeiling??Math.floor(input.maxSpendUsd*1_000_000),input.deadline,plan);
   if(created){try{await this.execution.prepare(created,()=>{this.record(client,input.requestId,'factory.prepare')});}catch(e){this.storage.appendEvent({workOrderId:created.id,runId:null,type:'factory.prepare_failed',payload:{reason:e instanceof Error?e.message:String(e)}});throw e;}}
   return this.read(client,input.requestId);
  }
@@ -166,7 +177,7 @@ export class FactoryDispatchControl {
   // A terminal tombstone/claim is checked before touching JobManager, so replay
   // readback remains available even when another unrelated Run is active.
   if(data.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return this.read(client,identity.requestId);
-  if(!this.localFixture&&!this.spendFixture)throw new ActionError('Paid execution disabled: actual paid boundary is not qualified','spend_unqualified',503);
+  if(!this.localFixture&&!this.spendFixture&&!this.subscription)throw new ActionError('Paid execution disabled: actual paid boundary is not qualified','spend_unqualified',503);
   this.orderedGate?.assertDispatch(identity.requestId);
   const admittedWork={...data.order,...data.request.input as object} as WorkOrder;
   let gateway:SpendGateway|undefined, gatewayBinding:{baseUrl:string;childToken:string;close:()=>Promise<void>;
@@ -215,6 +226,44 @@ export class FactoryDispatchControl {
      const completionToken=randomBytes(32).toString('hex');
      current=new SpendGateway({ledger:this.spend,binding,phase:'completion',...this.spendFixture!,childToken:completionToken,onDecision,authorizeDispatch});
      return {baseUrl:await current.listen(),childToken:completionToken};
+    },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};
+  }else if(this.subscription){
+   // OWNER_SUBSCRIPTION_LOCAL: same binding, same ledger admission and the same JobManager boundary methods; each lease admits one
+   // operator-login Codex process (the ledger operation is reserved/dispatched by the worker before the process exists).
+   const route=this.subscription;
+   route.assertOwner(client);
+   if(!data.request.spendContract)throw new ActionError('Operations plan required before dispatch','spend_unqualified',409);
+   const binding=spendBinding(identity);
+   this.spend.bindAuthority(binding);
+   const connectionClient=structuredClone(client),connectionIdentity=structuredClone(identity);
+   Object.freeze(connectionClient.actions);Object.freeze(connectionClient.repositoryPaths);Object.freeze(connectionClient);
+   Object.freeze(connectionIdentity.allowedPaths);Object.freeze(connectionIdentity);
+   const onDecision=(evidence:Record<string,unknown>)=>{
+    this.storage.appendEvent({workOrderId:identity.workOrderId,runId:identity.remoteRunId,type:'provider.operation_decision',payload:{...evidence}});
+   };
+   const authorizeDispatch=()=>{this.orderedGate?.assertDispatch(identity.requestId);route.assertOwner(this.current(connectionClient,'factory.dispatch'));};
+   const planned=data.request.spendContract.plannedProductiveOperations;
+   let lease=route.issue(binding,'productive',authorizeDispatch,onDecision),repairIssued=false;
+   const productiveEnd=new AbortController();   // the operator-login process ends on its own; one process is one operation
+   gatewayBinding={baseUrl:lease.baseUrl,childToken:lease.childToken,productiveEndSignal:productiveEnd.signal,close:async()=>{route.revoke(lease.childToken);},
+    assertCurrentConnection:()=>{this.bind(connectionClient,connectionIdentity,'factory.dispatch');authorizeDispatch();
+     if(Date.parse(connectionIdentity.deadline)<=Date.now())throw new ActionError('Dispatch expired','dispatch_denied',409);},
+    nextProductive:async()=>{
+     this.spend.assertCompletionEligible(binding);
+     const spendRecord=this.spend.read(binding.workId);
+     if(!spendRecord)throw new ActionError('Spend record not found for bound Work','spend_unqualified',409);
+     const used=spendRecord.operations.filter(op=>op.phase==='productive').length;
+     if(repairIssued||used!==1||planned!==2)throw Error('Exactly one recorded productive operation required before repair');
+     repairIssued=true;
+     route.revoke(lease.childToken);
+     lease=route.issue(binding,'productive',authorizeDispatch,onDecision);
+     return {baseUrl:lease.baseUrl,childToken:lease.childToken,productiveEndSignal:productiveEnd.signal};
+    },
+    beginCompletion:async()=>{
+     route.revoke(lease.childToken);
+     this.spend.beginCompletion(binding);
+     lease=route.issue(binding,'completion',authorizeDispatch,onDecision);
+     return {baseUrl:lease.baseUrl,childToken:lease.childToken};
     },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};
   }
   try{
@@ -287,7 +336,7 @@ export class FactoryDispatchControl {
   return {requestId,workOrderId:data.order.id,runId:run?.id??null,snapshot,identity:binding??null,state,quiescent,
    evidenceRef:quiescent?'factory-event:'+data.order.id+':terminal':null,
    spend:this.localFixture?{status:'KNOWN',ceilingUsd:0,reason:'Backend-injected local fixture; no paid provider'}:
-    {...this.spend.read(data.request.workId),reason:this.spendFixture?
+    {...this.spend.read(data.request.workId),reason:this.subscription?'Owner subscription route: operations-only Work ledger; usage is SUBSCRIPTION_UNMETERED, never $0':this.spendFixture?
      this.live?'Real provider through the bounded Work ledger':'Loopback synthetic provider only; live paid execution disabled':'Live paid execution disabled'},
    blocker:quiescent?null:state==='UNKNOWN'?'Exact process/verifier reconciliation required':null};
  }

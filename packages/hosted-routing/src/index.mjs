@@ -35,6 +35,8 @@ export function parseInput(input) {
   const allowedPaths = list(input.allowedPaths, "allowed paths");
   if (allowedPaths.some(path => path.startsWith("/") || path.includes("\\") || path.split("/").includes("..") || path.includes("\0"))) throw new Error("Invalid allowed path");
   if (JSON.stringify(input).includes("MYFACTORY_REQUEST_V1") || JSON.stringify(input).includes("MYFACTORY_RECEIPT_V1")) throw new Error("Reserved factory envelope marker");
+  // Execution routes are host configuration only. A hosted request can never name the local owner-subscription route.
+  if (/OWNER_SUBSCRIPTION_LOCAL|owner-subscription-local\.operations-v1/.test(JSON.stringify(input))) throw new Error("Owner subscription route is local only");
   return { idempotencyKey: text(input.idempotencyKey, "idempotencyKey", 160),
     title: text(input.title, "title", 200), description: text(input.description, "description", 12000), kind: input.kind,
     acceptanceCriteria: list(input.acceptanceCriteria, "acceptance criteria"), allowedPaths };

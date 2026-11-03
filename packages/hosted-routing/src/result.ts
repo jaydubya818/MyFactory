@@ -1,4 +1,5 @@
 import { isModelReference } from '../../contracts/src/model-reference.ts';
+import { isOwnerSubscriptionExecutorVersion } from '../../contracts/src/owner-subscription-route.ts';
 import { createHash, type KeyObject } from 'node:crypto';
 import { signProtocolPayload, verifyProtocolPayload } from './index.mjs';
 
@@ -130,6 +131,8 @@ export function validateManifest(value: unknown): asserts value is ResultManifes
   const c = e.configuration;
   exact(c, ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture','commands','allowedPaths','timeoutMs',...(e.version===2?['cloud']:[])]);
   if(e.version===2)validateCloudConfiguration(c);
+  // The owner-subscription route is local V4 only (operator login, unmetered): no V1/V2 or hosted Result may carry it.
+  requireValue(!isOwnerSubscriptionExecutorVersion(c.executorVersion), 'Owner subscription route is local only');
   for (const key of ['model','executor','executorVersion','skillRevision','workerProfile','verificationImage','nodeVersion','platform','architecture']) text(c[key]);
   requireValue(isModelReference(c.model), 'Invalid canonical model reference');
   for (const key of ['commands','allowedPaths']) {

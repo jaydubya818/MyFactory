@@ -24,6 +24,7 @@ import { createCodexAdapter } from '../../../packages/agents/src/index.ts';
 import { validatePrice } from './spend-gateway.ts';
 import type { ProviderConnection } from './provider-connection.ts';
 import { FactoryDispatchControl } from "./dispatch-control.ts";
+import { OwnerSubscriptionOperations, parseOwnerSubscriptionRoute, type OwnerSubscriptionRoute } from './owner-subscription-route.ts';
 import { LocalOrderedAdmission, assertWitnessOutsideData, type LocalOrderedEnrollment, type ReceiverWitness } from "./local-ordered-admission.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
 import { type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
@@ -235,6 +236,32 @@ export interface LocalV4SupervisorOptions extends Omit<SupervisorOptions, 'resul
    * checkpoint retention. Never read from HTTP or the environment. `realProvider` remains refused in LOCAL_V4.
    */
   productiveBinding?: ProductiveBinding;
+  /**
+   * Host-only OWNER_SUBSCRIPTION_LOCAL binding (exclusive with `productiveBinding`): the same host-pinned Codex executable runs with
+   * the operator's existing ChatGPT login, every operation admitted by the existing Work ledger and recorded SUBSCRIPTION_UNMETERED.
+   * Requires the ordered receiver enrolled for exactly the route's owner client and scope; refuses fixtures, overrides, parallelism,
+   * checkpoint retention and the hosted intake. Disabled permanently if the server listens anywhere but 127.0.0.1.
+   */
+  ownerSubscriptionBinding?: OwnerSubscriptionBinding;
+}
+export interface OwnerSubscriptionBinding { route: OwnerSubscriptionRoute; codexExecutable: string; workerProfile?: 'mac'; verificationImage?: string }
+function validateOwnerSubscriptionBinding(options: LocalV4SupervisorOptions): OwnerSubscriptionBinding {
+  const p = options.ownerSubscriptionBinding as OwnerSubscriptionBinding;
+  if (options.productiveBinding !== undefined) throw new Error('Owner subscription route excludes the metered productive binding');
+  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['route', 'codexExecutable', 'workerProfile', 'verificationImage'].includes(k)) ||
+      typeof p.codexExecutable !== 'string' || !isAbsolute(p.codexExecutable) || p.codexExecutable.includes('\0') ||
+      p.workerProfile !== undefined && p.workerProfile !== 'mac' ||
+      p.verificationImage !== undefined && (typeof p.verificationImage !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(p.verificationImage)))
+    throw new Error('Owner subscription binding is not qualified');
+  const route = parseOwnerSubscriptionRoute(p.route);
+  if (!options.orderedAdmission || options.localFactoryFixture || options.localSpendFixture || options.jobDependencies || options.localV4ResourceProbe ||
+      options.maxParallelRuns !== undefined && options.maxParallelRuns !== 1 || options.retainCheckpoints || options.startRun || options.cancelRun ||
+      options.publishDraft || options.confirmHumanPresence || (options as { realProvider?: unknown }).realProvider)
+    throw new Error('Owner subscription route requires the ordered receiver and cannot use fixtures or overridden authority');
+  if (options.orderedAdmission.enrollment.clientId !== route.clientId || options.orderedAdmission.enrollment.scope.ownerId !== route.ownerScope)
+    throw new Error('Owner subscription route is enrolled for exactly one owner client and scope');
+  if (process.env.FACTORY_HOSTED_INTAKE === 'true') throw new Error('Owner subscription route cannot run beside the hosted intake');
+  return { route, codexExecutable: p.codexExecutable, workerProfile: 'mac', ...(p.verificationImage ? { verificationImage: p.verificationImage } : {}) };
 }
 export interface ProductiveBinding {
   provider: ProviderConnection; codexExecutable: string; workerProfile?: 'mac' | 'container';
@@ -263,12 +290,17 @@ function validateProductiveBinding(options: LocalV4SupervisorOptions): Productiv
 export function createLocalV4Supervisor(options: LocalV4SupervisorOptions) {
   if (!options?.resultSigning || typeof options.dataDir !== 'string' || !isAbsolute(options.dataDir) || resolve(options.dataDir) !== options.dataDir)
     throw new Error('Explicit local V4 data directory and signing options required');
+  if (options.ownerSubscriptionBinding !== undefined) {
+    const subscription = validateOwnerSubscriptionBinding(options);
+    return createSupervisorInternal({ ...options, subscription } as SupervisorOptions & { localV4ResourceProbe?: LocalResourceProbe; subscription?: OwnerSubscriptionBinding }, 'LOCAL_V4');
+  }
   const productive = options.productiveBinding === undefined ? undefined : validateProductiveBinding(options);
   return createSupervisorInternal({ ...options, productive } as SupervisorOptions & { localV4ResourceProbe?: LocalResourceProbe; productive?: ProductiveBinding }, 'LOCAL_V4');
 }
 
-function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceProbe?: LocalResourceProbe; productive?: ProductiveBinding}, resultMode: 'LEGACY' | 'LOCAL_V4') {
+function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceProbe?: LocalResourceProbe; productive?: ProductiveBinding; subscription?: OwnerSubscriptionBinding}, resultMode: 'LEGACY' | 'LOCAL_V4') {
   if (options.productive && (resultMode !== 'LOCAL_V4' || options.realProvider)) throw new Error('Productive binding is not qualified');
+  if (options.subscription && (resultMode !== 'LOCAL_V4' || options.realProvider || options.productive)) throw new Error('Owner subscription binding is not qualified');
   if (resultMode === 'LOCAL_V4' && options.realProvider)
     throw new Error('Local V4 service is not qualified for live provider execution');
   if (resultMode === 'LOCAL_V4' && options.jobDependencies &&
@@ -290,7 +322,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   }
   const dataDir = resolve(options.dataDir ?? process.env.FACTORY_DATA_DIR ?? defaultDataDir);
   // Productive verification consumes the owned read-only source artifact; fixture and ordinary modes keep in-memory leases only.
-  const localPreparation = resultMode === 'LOCAL_V4' ? createLocalV4Preparation(dataDir, { sourceArtifacts: !!options.productive }) : undefined;
+  const localPreparation = resultMode === 'LOCAL_V4' ? createLocalV4Preparation(dataDir, { sourceArtifacts: !!options.productive || !!options.subscription }) : undefined;
   const signing = options.resultSigning ?? producerOptions(dataDir);
   if(options.realProvider&&!signing)throw new Error('Private-alpha result signing must be provisioned before activation');
   const realProvider=options.realProvider?loadRealProvider(options.realProvider):undefined;
@@ -331,7 +363,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   };
   const legacyProducer = resultMode === 'LEGACY' && signing ? new ProducerResults(storage, dataDir, signing) : undefined;
   const producer: ServiceProducer | undefined = resultMode === 'LOCAL_V4' && signing
-    ? bindLocalV4PreparationCapture(localPreparation!, new LocalV4ServiceProducer(storage, dataDir, signing, options.productive?.verificationImage)) : legacyProducer;
+    ? bindLocalV4PreparationCapture(localPreparation!, new LocalV4ServiceProducer(storage, dataDir, signing, options.productive?.verificationImage ?? options.subscription?.verificationImage)) : legacyProducer;
   const parallel = options.maxParallelRuns ?? 1;
   if (parallel !== 1 && (!options.localFactoryFixture && !options.localSpendFixture || realProvider))
     throw new Error('Parallel execution is deferred until live Factory Version qualification');
@@ -339,20 +371,27 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
     throw new Error('Checkpoint export is deferred outside explicit fixture qualification');
   const productive = options.productive;
   const codexAdapter = productive ? createCodexAdapter(productive.codexExecutable, productive.workerProfile ?? 'mac') : undefined;
+  const subscription = options.subscription ? new OwnerSubscriptionOperations(options.subscription.route, spend,
+    createCodexAdapter(options.subscription.codexExecutable, 'mac'), options.subscription.codexExecutable) : undefined;
   const productiveDependencies = codexAdapter ? { runCodex: codexAdapter.runCodex, preflightCodex: codexAdapter.preflightCodex,
-    verifyCandidate: verifyLeasedCandidate, verifyWorkspaceTree: verifyLeasedTree } : undefined;
+    verifyCandidate: verifyLeasedCandidate, verifyWorkspaceTree: verifyLeasedTree } : subscription ? { runCodex: subscription.runCodex,
+    preflightCodex: subscription.preflightCodex, verifyCandidate: verifyLeasedCandidate, verifyWorkspaceTree: verifyLeasedTree } : undefined;
   const jobDependencies = localPreparation ? { ...options.jobDependencies, ...productiveDependencies, ...localPreparation } : options.jobDependencies;
   const fixtureDependencies=!!options.jobDependencies?.runCodex && !!options.jobDependencies?.verifyCandidate;
   const trustedFixtureVerification=resultMode==='LOCAL_V4'&&!realProvider&&
     (options.localFactoryFixture===true||!!options.localSpendFixture)&&fixtureDependencies;
-  const jobs = new JobManager(storage, dataDir, notify, jobDependencies, producer,realProvider?.price.model??productive?.provider.price.model,parallel,options.retainCheckpoints??false,trustedFixtureVerification,
-    codexAdapter ? { worker: codexAdapter.runCodex } : undefined);
+  const jobs = new JobManager(storage, dataDir, notify, jobDependencies, producer,realProvider?.price.model??productive?.provider.price.model??subscription?.route.model,parallel,options.retainCheckpoints??false,trustedFixtureVerification,
+    codexAdapter ? { worker: codexAdapter.runCodex } : subscription ? { worker: subscription.runCodex } : undefined);
   if(options.localFactoryFixture&&options.localSpendFixture)throw new Error('Fixture modes are mutually exclusive');
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
   if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
     throw new Error('Local spend fixture must target loopback only');
   const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer,options.localV4ResourceProbe),producer,spend,
-    options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture??productive?.provider,!!realProvider||!!productive,currentConnection):null;
+    options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture??productive?.provider,!!realProvider||!!productive||!!subscription,currentConnection):null;
+  if (subscription) {
+    if (!dispatchControl) throw new Error('Owner subscription route requires producer signing');
+    dispatchControl.useOwnerSubscription(subscription);
+  }
   if (options.orderedAdmission && (resultMode !== 'LOCAL_V4' || !dispatchControl || options.realProvider))
     throw new Error('Local ordered admission requires the unqualified-for-live local V4 supervisor with producer signing');
   if (options.orderedAdmission?.witnessPath) assertWitnessOutsideData(options.orderedAdmission.witnessPath, dataDir);
@@ -414,6 +453,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
     cancelRun: options.cancelRun ?? ((workOrder) => jobs.cancelRun(workOrder)),
   };
   const deskPort = options.deskPort ?? Number(process.env.FACTORY_PORT ?? 8787);
+  if (subscription && process.env.FACTORY_HOSTED_INTAKE === "true") throw new Error('Owner subscription route cannot run beside the hosted intake');
   const hostedIntake = process.env.FACTORY_HOSTED_INTAKE === "true" ? new HostedIntake(context, linear, dataDir, deskPort) : null;
 
   function workOrderDetail(id: string, includeEvidenceRefs = false): WorkOrderDetail | null {
@@ -831,10 +871,16 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
     }
   });
 
+  // OWNER_SUBSCRIPTION_LOCAL is exact-loopback only: any other listener permanently disables the route and closes the server.
+  if (subscription) server.on('listening', () => {
+    const address = server.address();
+    if (!address || typeof address !== 'object' || address.address !== '127.0.0.1') { subscription.disable('non-loopback listener'); server.close(); }
+  });
   return {
     server,
     storage,
     context,
+    ownerSubscription: subscription,
     jobs,
     hostedIntake,
     reviewRepair,

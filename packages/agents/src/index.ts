@@ -52,6 +52,10 @@ export interface CodexRunOptions {
   boundedProductiveContext?: true;
   /** Connected paid runs must use a locally metered Responses gateway. */
   gateway?: { baseUrl: string; childToken: string };
+  /** Host-only OWNER_SUBSCRIPTION_LOCAL route: run with the operator's existing ChatGPT Codex login. The child gets an
+   * allowlisted environment (no API keys or provider overrides), `--ignore-user-config --ignore-rules`, a forced ChatGPT
+   * login method and web search disabled. Mutually exclusive with `gateway`, bounded context and `sessionHome`. */
+  ownerLogin?: true;
 }
 
 export type CodexRunStatus = "completed" | "yielded" | "failed" | "cancelled" | "timed_out";
@@ -130,6 +134,10 @@ function validateRunOptions(options: CodexRunOptions): void {
       (typeof options.sessionHome !== "string" || !isAbsolute(options.sessionHome) || options.sessionHome.includes("\0") || options.sandbox === "read-only")) {
     throw new TypeError("sessionHome must be an absolute directory for a writable executor");
   }
+  if (options.ownerLogin !== undefined &&
+      (options.ownerLogin !== true || options.gateway !== undefined || options.boundedProductiveContext !== undefined || options.sessionHome !== undefined)) {
+    throw new TypeError("Owner login excludes the metered gateway, bounded gateway context and an attempt-owned Codex home");
+  }
   if (options.onEvent !== undefined && typeof options.onEvent !== "function") {
     throw new TypeError("onEvent must be a function");
   }
@@ -184,6 +192,16 @@ function signalProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   }
 }
 
+/** Allowlisted child environment for the owner-login route: the operator's HOME/CODEX_HOME (where the ChatGPT login lives)
+ * and nothing that could redirect or meter the provider (no OPENAI_API_KEY, base URLs, proxies' credentials, NODE_ENV). */
+export function ownerLoginEnvironment(source: NodeJS.ProcessEnv = process.env): Record<string, string> {
+  const env: Record<string, string> = { PATH: source.PATH ?? '/usr/bin:/bin', TMPDIR: source.TMPDIR ?? '/tmp', LANG: source.LANG ?? 'en_US.UTF-8', CI: '1' };
+  if (source.HOME) env.HOME = source.HOME;
+  if (source.CODEX_HOME) env.CODEX_HOME = source.CODEX_HOME;
+  if (source.USER) env.USER = source.USER;
+  return env;
+}
+
 async function runCodexWith(executablePath: string, options: CodexRunOptions, workerProfile: "mac" | "container"): Promise<CodexRunResult> {
   validateRunOptions(options);
   const workspacePath = await checkedDirectory(options.workspacePath, "workspacePath");
@@ -225,17 +243,22 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
       '-c', 'model_providers.factory_spend.stream_max_retries=0',
       '-c', 'web_search="disabled"',
     ] : [];
+    const ownerArgs = options.ownerLogin ? [
+      '--ignore-user-config', '--ignore-rules',
+      '-c', 'forced_login_method="chatgpt"',
+      '-c', 'web_search="disabled"',
+    ] : [];
     const developerArgs = options.boundedProductiveContext ? ["-c", `developer_instructions=${JSON.stringify(BOUNDED_PRODUCTIVE_INSTRUCTIONS)}`] : [];
     // `exec resume` has no -C/--sandbox: the process cwd is the workspace and the sandbox is a config override.
     const argv = options.resumeThreadId ? [
       "exec", "resume", "-m", options.model,
-      ...gatewayArgs, ...developerArgs,
+      ...gatewayArgs, ...ownerArgs, ...developerArgs,
       "-c", `sandbox_mode=${JSON.stringify(options.sandbox ?? "workspace-write")}`,
       "--json", "-o", finalMessagePath,
       options.resumeThreadId, options.prompt,
     ] : [
       "exec", "-m", options.model,
-      ...gatewayArgs, ...developerArgs,
+      ...gatewayArgs, ...ownerArgs, ...developerArgs,
       "-C", workspacePath,
       "--sandbox", options.sandbox ?? "workspace-write",
       "--json", "-o", finalMessagePath,
@@ -251,6 +274,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
         LANG: process.env.LANG ?? 'en_US.UTF-8', CI: '1', CODEX_HOME: codexHome ?? runDir,
         FACTORY_GATEWAY_TOKEN: gateway.childToken,
       } } : {}),
+      ...(options.ownerLogin ? { env: ownerLoginEnvironment() } : {}),
     });
   } catch (error) {
     await Promise.all([eventsFile.close(), stderrFile.close()]);

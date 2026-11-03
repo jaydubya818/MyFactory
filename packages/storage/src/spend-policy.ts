@@ -60,6 +60,20 @@ export function map(row: OperationRow): SpendOperation {
     usage: row.usage_json ? JSON.parse(row.usage_json) as Record<string, number> : null,
     state: row.state, phase: row.phase };
 }
+/**
+ * Operations-only ledger contract for the host-only OWNER_SUBSCRIPTION_LOCAL route (operator's own ChatGPT/Codex login).
+ * A budget with this pricing revision counts OPERATION UNITS, not money: every *_microusd column of such a budget and its
+ * operations holds whole operation units (one per admitted Codex process; a recorded operation stores its one consumed unit so
+ * the existing settled-row invariants hold). The read model never exposes these as amounts: readers must surface
+ * SUBSCRIPTION_UNMETERED and never a USD figure; it is not $0. Cloud/hosted ledgers refuse this revision.
+ */
+export const OWNER_SUBSCRIPTION_PRICING_REVISION = 'owner-subscription-local.operations-v1';
+export const SUBSCRIPTION_UNMETERED = 'SUBSCRIPTION_UNMETERED';
+export const SUBSCRIPTION_PROVIDER_REQUEST_PREFIX = 'subscription-unmetered:';
+export function isOwnerSubscriptionRevision(revision: unknown): boolean { return revision === OWNER_SUBSCRIPTION_PRICING_REVISION; }
+export function assertNotOwnerSubscriptionPlan(plan: { pricingRevision?: unknown } | undefined | null): void {
+  if (plan && isOwnerSubscriptionRevision(plan.pricingRevision)) throw new Error('Owner subscription route is local and owner-only');
+}
 export function exposure(op: SpendOperation): number { return op.state === 'released' ? 0 : op.state === 'settled' ? op.actualMicrousd! : op.reservedMicrousd; }
 export function sameAttempt(op: SpendOperation, binding: SpendBinding): boolean {
   return op.workGeneration === binding.workGeneration && op.dispatchIdentity === binding.dispatchIdentity &&
@@ -139,7 +153,29 @@ export function matchesCurrent(b: BudgetRow, binding: SpendBinding): boolean {
       (!b.authority_dispatch_identity || (b.authority_dispatch_identity === binding.dispatchIdentity &&
         b.authority_factory_version === binding.factoryVersion && b.authority_run_id === binding.runId));
   }
+/** Operations-only summary: no currency, no cost figure, never KNOWN. UNKNOWN still fences (an unresolved process). */
+export function subscriptionSummary(workId: string, budget: BudgetRow, operations: SpendOperation[], now = Date.now()) {
+  const unknownOperations = operations.filter(op => op.state === 'unknown').length;
+  const inFlightOperations = operations.filter(op => op.state === 'reserved' || op.state === 'dispatched').length;
+  const completionOperations = operations.filter(op => op.phase === 'completion');
+  return { status: (unknownOperations > 0 ? 'UNKNOWN' : SUBSCRIPTION_UNMETERED) as 'UNKNOWN' | typeof SUBSCRIPTION_UNMETERED,
+    metering: SUBSCRIPTION_UNMETERED, costKnown: false as const, currency: null, unit: 'OPERATION' as const, workId,
+    workGeneration: budget.work_generation, requestId: budget.request_id, workOrderId: budget.work_order_id, deadline: budget.deadline,
+    ceilingMicrousd: null, settledMicrousd: null, retainedMicrousd: null, availableMicrousd: null, unknownExposureMicrousd: null,
+    unknownOperations, inFlightOperations, operationsUsed: operations.filter(op => op.state !== 'released').length, maxOperations: budget.max_paid_operations,
+    paidOperationsUsed: operations.length, maxPaidOperations: budget.max_paid_operations,
+    plannedProductiveOperations: budget.planned_productive_operations, plannedCompletionOperations: budget.planned_completion_operations,
+    completionOperationsUsed: completionOperations.length,
+    completionOperationSlotsRemaining: Math.max(0, budget.planned_completion_operations - completionOperations.length),
+    contractVersion: budget.contract_version, pricingRevision: budget.pricing_revision, pricingQualified: false,
+    routeQualified: !!budget.pricing_valid_until && Date.parse(budget.pricing_valid_until) > now,
+    authorityState: budget.authority_state, accountingComplete: operations.every(op => ['settled', 'released'].includes(op.state)),
+    phase: budget.phase, cancelled: budget.cancelled_at !== null,
+    operations: operations.map(op => ({ ...op, reservedMicrousd: null, actualMicrousd: null, metering: SUBSCRIPTION_UNMETERED,
+      spendStatus: op.state === 'settled' ? SUBSCRIPTION_UNMETERED : op.state === 'released' ? 'RELEASED' : 'UNKNOWN' })) };
+}
 export function spendSummary(workId: string, budget: BudgetRow, operations: SpendOperation[], now = Date.now()) {
+      if (isOwnerSubscriptionRevision(budget.pricing_revision)) return subscriptionSummary(workId, budget, operations, now);
       const settledMicrousd = operations.reduce((n, op) => n + (op.actualMicrousd ?? 0), 0);
       const retainedMicrousd = operations.reduce((n, op) => n + (['settled', 'released'].includes(op.state) ? 0 : op.reservedMicrousd), 0);
       const unknownExposureMicrousd = operations.reduce((n, op) => n + (op.state === 'unknown' ? op.reservedMicrousd : 0), 0);
