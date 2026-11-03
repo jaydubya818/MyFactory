@@ -80,6 +80,9 @@ export function recoveredSession(events: FactoryEvent[], runId: string): string 
 /** An ambiguity already recorded durably stays terminal even when the crash prevented `feedback.stopped` from being written. */
 export function terminalAmbiguity(events: FactoryEvent[], runId: string): StopReason | null {
   if (own(events, runId, "feedback.report_issued").some(event => event.payload.outcome === "UNKNOWN")) return "UNKNOWN_OUTCOME";
+  // A crash can land after the checkpoint holding an unavailable check but before the UNKNOWN report: that ambiguity is still terminal.
+  if (own(events, runId, "run.implementation_checkpoint").some(event => Array.isArray(event.payload.checks) &&
+      (event.payload.checks as { status?: unknown }[]).some(check => check.status === "unavailable"))) return "UNKNOWN_OUTCOME";
   if (own(events, runId, "run.agent_result").some(event => !["completed", "yielded"].includes(String(event.payload.status)))) return "AGENT_FAILURE";
   return null;
 }

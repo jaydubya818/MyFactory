@@ -138,7 +138,8 @@ async function run(t, scenario) {
       const checks = input.commands.map((c, i) => { const logPath = join(input.artifactDir, `final-${i}.log`); writeFileSync(logPath, "ok"); return { candidateCommit: input.candidateSha, candidateTree: null, command: c, status: "passed", exitCode: 0, startedAt: "2026-11-01T00:00:00Z", finishedAt: "2026-11-01T00:00:01Z", logPath, reason: null }; });
       return { candidateCommit: input.candidateSha, candidateTree: null, image: "fixture:image", checks, manifestPath: join(input.artifactDir, "m.json"), exportStatus: "ready", reason: null };
     },
-  }, producer);
+    ...(scenario.commitCandidate ? { commitCandidate: scenario.commitCandidate } : {}),
+  }, producer, undefined, 1, !!scenario.retainCheckpoints);
   const order = reuse?.order ?? storage.createWorkOrder({ title: "Dashboard", description: "Make src/state.txt say good.", kind: "feature", repositoryPath: repo, baseRef: "HEAD",
     acceptanceCriteria: ["state is good"], reproductionCommand: null, expectedFailureText: null, checkCommands: commands, allowedPaths: ["src/**"], workerProfile: "mac" });
   const prepared = reuse?.prepared ?? await jobs.prepareRun(order);
@@ -331,4 +332,43 @@ test("UNKNOWN outcome followed by a host restart stays stopped and sends nothing
   assert.equal(second.calls.productive.length, 0);
   assert.equal(second.calls.admit, 0);
   assert.notEqual(second.run.state, "ready_for_review");
+});
+
+test("checkpoint creation never overwrites a candidate assigned concurrently and reports only what it wrote", async t => {
+  let storageRef, runIdRef;
+  const diff = join(mkdtempSync(join(tmpdir(), "factory-ckpt-")), "d.patch"); writeFileSync(diff, "diff\n");
+  const r = await run(t, { edits: ["bad"], verify: browserFails, interrupt: n => n === 1, retainCheckpoints: true,
+    commitCandidate: async () => {
+      storageRef.saveRun({ ...storageRef.getRun(runIdRef), candidateCommit: "c".repeat(40) });
+      return { commit: "b".repeat(40), tree: "t".repeat(40), diffPath: diff, changedPaths: [] };
+    } });
+  storageRef = r.storage; runIdRef = r.run.id;
+  storageRef.saveRun({ ...r.storage.getRun(r.run.id), state: "interrupted", candidateCommit: null });
+  const receipt = await r.jobs.checkpointForRecovery(r.run.id);
+  assert.equal(storageRef.getRun(r.run.id).candidateCommit, "c".repeat(40), "the concurrent candidate survives");
+  assert.equal(receipt.candidateCommit, null);
+  assert.equal(receipt.events.length, 1);
+  const rows = storageRef.listEvents(r.order.id).filter(e => receipt.eventIds.includes(e.id));
+  assert.deepEqual(rows.map(e => e.type), ["run.checkpoint_unavailable"]);
+  assert.equal(rows[0] && receipt.events[0].digest.length, 64);
+  assert.equal(storageRef.listEvents(r.order.id).filter(e => e.type === "run.candidate_committed").length, 0, "the aborted write left no candidate event");
+});
+
+test("an unavailable checkpoint persisted before a crash stays UNKNOWN on re-entry even if the next check merely fails", async t => {
+  let crashed = false;
+  const first = await run(t, { edits: ["bad", "good"], verify: () => [{ status: "passed" }, { status: "unavailable", exitCode: 137, reason: "killed" }],
+    onEvent: event => { if (event.type === "run.implementation_checkpoint" && !crashed) { crashed = true; throw new Error("simulated host crash"); } } });
+  assert.equal(first.type("feedback.report_issued").length, 0, "crash landed before the UNKNOWN report");
+  const second = await run(t, { edits: ["good"], verify: browserFails, reuse: first.world });
+  assert.equal(second.calls.productive.length, 0);
+  assert.equal(second.calls.admit, 0);
+  assert.equal(second.type("feedback.stopped").at(-1).payload.reason, "UNKNOWN_OUTCOME");
+  assert.notEqual(second.run.state, "ready_for_review");
+});
+
+test("a resumed response that carries no session identity is a SESSION_MISMATCH, never accepted", async t => {
+  const r = await run(t, { edits: ["bad", "good"], verify: browserFails, threads: [THREAD, null] });
+  assert.equal(r.run.state, "failed");
+  assert.equal(r.type("feedback.stopped").at(-1).payload.reason, "SESSION_MISMATCH");
+  assert.equal(r.calls.completion, 0);
 });

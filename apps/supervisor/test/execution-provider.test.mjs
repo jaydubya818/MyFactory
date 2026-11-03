@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { digest as eventDigest } from '../../../packages/hosted-routing/src/result.ts';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -131,7 +132,8 @@ function pureResourceFixture({pause=true,recovery=false}={}){
  const producer={read(){collect++;throw Error('inert Result boundary')}};
  const probe={processAbsent(){return true},async verifierAbsent(){entered();if(pause)await held;return true},async readiness(){throw Error('No readiness operation')}};
  const provider=new LocalExecutionProvider(storage,jobs,producer,probe);
- return {provider,jobs,row,run,started,release:()=>release(),get collect(){return collect},get checkpoint(){return checkpoint}};
+ const receipt=(ids,candidateCommit=null)=>({eventIds:ids,events:ids.map(id=>({id,digest:eventDigest(events.find(e=>e.id===id))})),candidateCommit});
+ return {provider,jobs,row,run,events,receipt,started,release:()=>release(),get collect(){return collect},get checkpoint(){return checkpoint}};
 }
 for(const change of ['productive process','completion process','settlement','saved Run'])test('actual resource read refuses stale '+change+' during verifier await',async()=>{
  const f=pureResourceFixture(),p=f.provider.read(f.run);await f.started;
@@ -182,7 +184,7 @@ test('post-checkpoint resource cut: rows reported by the checkpoint receipt are 
     calls++;
     const a = f.row('run.candidate_committed', { checkpointOnly: true }), b = f.row('run.recovery_checkpoint', { verified: false });
     f.run.candidateCommit = 'b'.repeat(40);
-    return { eventIds: [a, b], candidateCommit: 'b'.repeat(40) };
+    return f.receipt([a, b], 'b'.repeat(40));
   };
   const result = await f.provider.reconcile(f.run);
   assert.equal(calls, 1);
@@ -195,7 +197,7 @@ test('post-checkpoint resource cut: a concurrent row beside the receipt rows is 
   f.jobs.checkpointForRecovery = async () => {
     const own = f.row('run.recovery_checkpoint', { verified: false });
     f.row('agent.completion_process_started', { pid: 12345 });
-    return { eventIds: [own], candidateCommit: null };
+    return f.receipt([own]);
   };
   const result = await f.provider.reconcile(f.run);
   assert.equal(result.quiescent, false);
@@ -204,14 +206,37 @@ test('post-checkpoint resource cut: a concurrent row beside the receipt rows is 
 });
 test('post-checkpoint resource cut: a receipt cannot launder a Run change it did not report', async () => {
   const f = pureResourceFixture({ pause: false, recovery: true });
-  f.jobs.checkpointForRecovery = async () => { const own = f.row('run.recovery_checkpoint', {}); f.run.state = 'interrupted'; return { eventIds: [own], candidateCommit: null }; };
+  f.jobs.checkpointForRecovery = async () => { const own = f.row('run.recovery_checkpoint', {}); f.run.state = 'interrupted'; return f.receipt([own]); };
   const result = await f.provider.reconcile(f.run);
   assert.equal(result.quiescent, false);
   assert.equal(result.evidence.observationCurrent, false);
 });
 test('post-checkpoint resource cut: an existing checkpoint makes the repeat reconcile a no-write success', async () => {
   const f = pureResourceFixture({ pause: false, recovery: true }); f.row('run.recovery_checkpoint', { verified: false });
-  f.jobs.checkpointForRecovery = async () => ({ eventIds: [], candidateCommit: null });
+  f.jobs.checkpointForRecovery = async () => f.receipt([]);
   const result = await f.provider.reconcile(f.run);
   assert.equal(result.quiescent, true); assert.equal(result.recoveryEligible, true);
+});
+
+test('post-checkpoint resource cut: an owned row rewritten after the write is stale (content, not just id, is bound)', async () => {
+  const f = pureResourceFixture({ pause: false, recovery: true });
+  f.jobs.checkpointForRecovery = async () => {
+    const own = f.row('run.recovery_checkpoint', { verified: false });
+    const receipt = f.receipt([own]);
+    const forged = f.events.find(e => e.id === own); forged.type = 'factory.execution_settled'; forged.payload = { runId: f.run.id };
+    return receipt;
+  };
+  const result = await f.provider.reconcile(f.run);
+  assert.equal(result.quiescent, false); assert.equal(result.settled, false); assert.equal(result.recoveryEligible, false);
+  assert.equal(result.evidence.observationCurrent, false);
+});
+test('post-checkpoint resource cut: a receipt claiming a row that is not present is stale (exact membership)', async () => {
+  const f = pureResourceFixture({ pause: false, recovery: true });
+  f.jobs.checkpointForRecovery = async () => {
+    const own = f.row('run.recovery_checkpoint', { verified: false });
+    return { ...f.receipt([own]), events: [...f.receipt([own]).events, { id: 999, digest: 'f'.repeat(64) }] };
+  };
+  const result = await f.provider.reconcile(f.run);
+  assert.equal(result.quiescent, false); assert.equal(result.recoveryEligible, false);
+  assert.equal(result.evidence.observationCurrent, false);
 });

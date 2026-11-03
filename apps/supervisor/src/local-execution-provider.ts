@@ -156,11 +156,13 @@ export class LocalExecutionProvider implements ExecutionProvider {
   }
 
   private onlyOwnedDelta(pre:{current:Run;events:unknown[]},post:{current:Run;events:unknown[]},receipt:CheckpointReceipt|void):boolean{
-    const ids=new Set(receipt&&Array.isArray(receipt.eventIds)?receipt.eventIds:[]);
-    const idOf=(event:unknown):unknown=>(event as {id?:unknown}).id;
+    const owned=new Map<number,string>();
+    if(receipt&&Array.isArray(receipt.events))for(const entry of receipt.events)owned.set(entry.id,entry.digest);
+    const idOf=(event:unknown):number=>(event as {id:number}).id;
     if(!pre.events.every(event=>post.events.some(other=>digest(other)===digest(event))))return false;
     const added=post.events.filter(event=>!pre.events.some(other=>digest(other)===digest(event)));
-    if(added.some(event=>!ids.has(idOf(event) as number)))return false;
+    // Exact membership AND content: every added row is one the call wrote, byte for byte, and every row it wrote is present.
+    if(added.length!==owned.size||added.some(event=>owned.get(idOf(event))!==digest(event)))return false;
     const candidate=receipt&&receipt.candidateCommit?receipt.candidateCommit:pre.current.candidateCommit;
     return digest({...post.current,candidateCommit:null})===digest({...pre.current,candidateCommit:null})&&post.current.candidateCommit===candidate;
   }

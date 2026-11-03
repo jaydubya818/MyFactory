@@ -98,7 +98,7 @@ function processGroupAbsent(pid: number): boolean {
 }
 
 /** The durable rows (and optional candidate pointer) one recovery-checkpoint call wrote. */
-export interface CheckpointReceipt { eventIds: number[]; candidateCommit: string | null }
+export interface CheckpointReceipt { eventIds: number[]; events: { id: number; digest: string }[]; candidateCommit: string | null }
 
 export class JobManager {
   #active = new Map<string, ActiveJob>();
@@ -520,7 +520,8 @@ export class JobManager {
   }
 
   async #retainCheckpoint(runId:string,beforeTerminal=false):Promise<CheckpointReceipt>{
-    const receipt:CheckpointReceipt={eventIds:[],candidateCommit:null};
+    const receipt:CheckpointReceipt={eventIds:[],events:[],candidateCommit:null};
+    const own=(event:FactoryEvent):void=>{receipt.eventIds.push(event.id);receipt.events.push({id:event.id,digest:digest(event)});};
     if(!this.retainCheckpoints)return receipt;
     const run=this.storage.getRun(runId);
     if(!run||!['interrupted','cancelled',...(beforeTerminal?['implementing']:[])].includes(run.state)||run.candidateCommit)return receipt;
@@ -533,15 +534,18 @@ export class JobManager {
       if(this.producer){
         const diffSha256=createHash('sha256').update(await readFile(candidate.diffPath)).digest('hex');
         this.storage.transaction(()=>{
-          receipt.eventIds.push(this.#event(order.id,runId,'run.candidate_committed',{candidateCommit:candidate.commit,candidateTree:candidate.tree,
-            diffPath:candidate.diffPath,diffSha256,changedPaths:candidate.changedPaths,checkpointOnly:true}).id);
-          this.storage.saveRun({...run,candidateCommit:candidate.commit});
+          // Revalidate the Run INSIDE the write: a concurrent candidate/state change must never be overwritten by this checkpoint.
+          const latest=this.storage.getRun(runId);
+          if(!latest||JSON.stringify(latest)!==JSON.stringify(run))throw new Error('Run changed during checkpoint creation');
+          own(this.#event(order.id,runId,'run.candidate_committed',{candidateCommit:candidate.commit,candidateTree:candidate.tree,
+            diffPath:candidate.diffPath,diffSha256,changedPaths:candidate.changedPaths,checkpointOnly:true}));
+          this.storage.saveRun({...latest,candidateCommit:candidate.commit});
           receipt.candidateCommit=candidate.commit;
         });
       }
-      receipt.eventIds.push(this.#event(order.id,runId,'run.recovery_checkpoint',{commit:candidate.commit,tree:candidate.tree,base:run.inputCommit,
-        diffPath:candidate.diffPath,changedPaths:candidate.changedPaths,verified:false,mode:this.producer?'MANAGED_FIXTURE_CHECKPOINT':'SYNTHETIC_LOCAL'}).id);
-    }catch(error){receipt.eventIds.push(this.#event(order.id,runId,'run.checkpoint_unavailable',{reason:message(error)}).id);}
+      own(this.#event(order.id,runId,'run.recovery_checkpoint',{commit:candidate.commit,tree:candidate.tree,base:run.inputCommit,
+        diffPath:candidate.diffPath,changedPaths:candidate.changedPaths,verified:false,mode:this.producer?'MANAGED_FIXTURE_CHECKPOINT':'SYNTHETIC_LOCAL'}));
+    }catch(error){receipt.eventIds.length=0;receipt.events.length=0;receipt.candidateCommit=null;own(this.#event(order.id,runId,'run.checkpoint_unavailable',{reason:message(error)}));}
     return receipt;
   }
 
@@ -834,10 +838,11 @@ export class JobManager {
         this.#event(workOrder.id,run.id,'feedback.resume_settled',{key:pendingFeedbackKey,status:codex.status,success:codex.success,threadId:codex.threadId});
         pendingFeedbackKey=null;
       }
-      if(codex.threadId){
-        const known=this.storage.listEvents(workOrder.id);
-        if(!pinnedSession(known,run.id)&&!sessionConflict(known,run.id))this.#event(workOrder.id,run.id,'feedback.session_pinned',{threadId:codex.threadId,step:productiveStep});
-        else if(pinnedSession(known,run.id)!==codex.threadId){
+      {
+        const known=this.storage.listEvents(workOrder.id),pinned=pinnedSession(known,run.id);
+        if(codex.threadId&&!pinned&&!sessionConflict(known,run.id))this.#event(workOrder.id,run.id,'feedback.session_pinned',{threadId:codex.threadId,step:productiveStep});
+        else if(pinned&&(codex.threadId?codex.threadId!==pinned:implementationEligible)){
+          // A pinned session must be proven by every implementation-eligible response, including a yielded one.
           this.#event(workOrder.id,run.id,'feedback.stopped',{reason:'SESSION_MISMATCH' satisfies StopReason,step:productiveStep});
           throw new Error('Feedback session identity changed');
         }

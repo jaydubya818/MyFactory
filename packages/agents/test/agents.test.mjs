@@ -298,3 +298,13 @@ test("sessionHome must be absolute, separate from the workspace, and writable-ex
   await assert.rejects(work.adapter.runCodex(options(work, "p", { sessionHome: join(work.workspacePath, "home") })), /sessionHome|workspace/);
   await assert.rejects(work.adapter.runCodex(options(work, "p", { sessionHome: join(work.artifactsDir, "..", "h"), sandbox: "read-only" })), /sessionHome/);
 });
+
+test("a yielded resume must still prove the pinned session identity", async t => {
+  for (const [prompt, status] of [["resume-hang-no-thread", "failed"], ["resume-hang", "yielded"]]) {
+    const work = await fixture(t), boundary = new AbortController();
+    const result = await work.adapter.runCodex(options(work, prompt, { resumeThreadId: SESSION, productiveEndSignal: boundary.signal,
+      onProcessStart: () => { setTimeout(() => boundary.abort(), 300); } }));
+    assert.equal(result.status, status, prompt);
+    if (status === "failed") assert.match(String(result.error), /expected thread identity/);
+  }
+});

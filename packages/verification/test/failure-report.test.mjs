@@ -180,3 +180,18 @@ test("a zero-test run that exits 0 is not a pass", async t => {
   assert.equal(report.outcome, "FAILED");
   assert.equal(report.failures[0].kind, "NO_TESTS_RAN");
 });
+
+test("colour codes around a restricted path never hide it", async t => {
+  const log = "Running 1 test using 1 worker\n\n  1) [desktop] › \x1b[2mprotected/hidden.spec.ts\x1b[22m:4:1 › hidden ─────\n\n    Error: expect(received).toBe(expected)\n    Expected: \"SECRET-ANSWER\"\n    Received: \"x\"\n\n  1 failed\n";
+  const report = await buildFailureReport({ identity, checks: logs(t, [["npx playwright test", "failed", 1, log]]) });
+  assert(!JSON.stringify(report).includes("SECRET-ANSWER"));
+  assert(!JSON.stringify(report).includes("hidden.spec"));
+});
+
+test("TAP and node:test zero-test passes are failures", async t => {
+  for (const out of ["TAP version 13\n1..0\n# tests 0\n# pass 0\n", "ℹ tests 0\nℹ pass 0\nℹ fail 0\n"]) {
+    const report = await buildFailureReport({ identity, checks: logs(t, [["node --test", "passed", 0, out]]) });
+    assert.equal(report.outcome, "FAILED");
+    assert.equal(report.failures[0].kind, "NO_TESTS_RAN");
+  }
+});

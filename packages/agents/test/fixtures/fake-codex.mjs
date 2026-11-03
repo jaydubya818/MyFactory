@@ -25,6 +25,11 @@ if (args[1] === "resume") {
       !configs.includes('sandbox_mode="workspace-write"') || !valueAfter("-o")) process.exit(67);
   // Gateway children keep sessions under CODEX_HOME: a resume can only find the saved session in the same home.
   if (resumePrompt === "resume-needs-session-store" && !existsSync(`${process.env.CODEX_HOME}/saved-session`)) process.exit(68);
+  if (resumePrompt === "resume-hang" || resumePrompt === "resume-hang-no-thread") {
+    if (resumePrompt === "resume-hang") console.log(JSON.stringify({ type: "thread.started", thread_id: session }));
+    setInterval(() => {}, 1000);
+    await new Promise(() => {});
+  }
   if (resumePrompt !== "resume-no-thread") console.log(JSON.stringify({ type: "thread.started", thread_id: resumePrompt === "resume-wrong-thread" ? "some-other-session" : session }));
   console.log(JSON.stringify({ type: "turn.started" }));
   writeFileSync(valueAfter("-o"), `Resumed ${session} with ${resumePrompt}`);

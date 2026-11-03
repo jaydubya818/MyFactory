@@ -426,14 +426,16 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
 
   const status: CodexRunStatus = processStartError ? "failed" :
     options.signal?.aborted ? "cancelled" :
-    termination === "productive_end" && !outputError && !spawnError ? "yielded" :
+    termination === "productive_end" && !outputError && !spawnError ?
+      (options.resumeThreadId !== undefined && threadId !== options.resumeThreadId ? "failed" : "yielded") :
     termination === "timeout" ? "timed_out" :
     termination === "abort" ? "cancelled" :
     exit.code === 0 && completionEventSeen && !turnFailed && !outputError && finalMessageAvailable &&
       (options.resumeThreadId === undefined || threadId === options.resumeThreadId) ? "completed" : "failed";
   const error = status === "completed" || status === "yielded" ? null :
     processStartError ?? spawnError ?? outputError ??
-    (termination === "timeout" ? "Codex run timed out" :
+    (termination === "productive_end" && options.resumeThreadId !== undefined && threadId !== options.resumeThreadId ? "Resumed process did not report the expected thread identity" :
+      termination === "timeout" ? "Codex run timed out" :
       termination === "abort" ? "Codex run was cancelled" :
       exit.code !== 0 ? `Codex exited with code ${exit.code ?? "unknown"}` :
       !completionEventSeen ? "Codex exited without a turn.completed event" :

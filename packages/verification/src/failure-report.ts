@@ -96,6 +96,8 @@ function canonical(value: unknown): string {
   }
   return JSON.stringify(value);
 }
+const stripTerminal = (value: string): string => value.replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "").replace(/\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)/g, "").replace(/\r(?!\n)/g, "\n");
+
 export const reportDigest = (report: Omit<StructuredFailureReport, "digest">): string =>
   createHash("sha256").update(canonical(report)).digest("hex");
 
@@ -214,8 +216,8 @@ export async function buildFailureReport(input: {
   for (const [index, check] of input.checks.entries()) {
     checks.push({ index, command: sanitize(check.command, 200), status: check.status, exitCode: check.exitCode, reason: check.reason ? sanitize(check.reason, 200) : null });
     if (check.status === "passed") {
-      const text = await readLog(check.logPath).catch(() => "");
-      if (/No tests found|Running 0 tests?\b|^\s*0 passed\b/im.test(text) && /\b(test|spec|playwright)\b/i.test(check.command))
+      const text = stripTerminal(await readLog(check.logPath).catch(() => ""));
+      if (/No tests found|Running 0 tests?\b|^\s*0 passed\b|^\s*1\.\.0\b|^\s*#\s*tests\s+0\b|^\s*ℹ\s+tests\s+0\b/im.test(text) && /\b(test|spec|playwright)\b/i.test(check.command))
         failures.push({ kind: "NO_TESTS_RAN", check: index, title: null, location: null, message: "The test command exited successfully but ran no tests.", expected: null, received: null, detail: [] });
       continue;
     }
@@ -225,7 +227,8 @@ export async function buildFailureReport(input: {
       failures.push({ kind, check: index, title: null, location: null, message: sanitize(reason, 300), expected: null, received: null, detail: [] });
       continue;
     }
-    const text = await readLog(check.logPath).catch(() => "");
+    // Terminal control sequences are removed BEFORE any path or diagnostic detection (colour codes can split a restricted path).
+    const text = stripTerminal(await readLog(check.logPath).catch(() => ""));
     // Any mention of a restricted path taints the whole log: nothing else in it is described to the coding agent.
     if (mentionsRestricted(text, restricted) || mentionsRestricted(check.command, restricted)) {
       failures.push({ kind: BUILD_COMMAND.test(check.command) ? "BUILD_FAILED" : "TEST_FAILED", check: index, title: null, location: null,
