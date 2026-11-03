@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -42,6 +43,48 @@ const validInput = {
   allowedPaths: ["src/"],
   workerProfile: "mac",
 };
+
+test("saved diffs reject stale candidate identities between detail refreshes", async (t) => {
+  const dataDir = mkdtempSync(join(tmpdir(), "factory-diff-identity-"));
+  t.after(() => rmSync(dataDir, { recursive: true, force: true }));
+  const supervisor = createSupervisor({ dataDir });
+  t.after(() => supervisor.close());
+  const origin = await listen(supervisor);
+  const storage = openStorage(join(dataDir, "factory.sqlite"));
+  t.after(() => storage.close());
+  const order = storage.createWorkOrder(validInput, "ready_for_review");
+  mkdirSync(join(dataDir, "artifacts"), { recursive: true });
+  function candidate(letter) {
+    const created = storage.createRun({ workOrderId: order.id, workerProfile: "mac",
+      inputCommit: "a".repeat(40), workspacePath: dataDir });
+    const run = storage.saveRun({ ...created, state: "ready_for_review",
+      candidateCommit: letter.repeat(40), finishedAt: new Date().toISOString() });
+    const diff = `diff --git a/value.mjs b/value.mjs\n+${letter}\n`;
+    const diffPath = join(dataDir, "artifacts", `${run.id}.patch`);
+    writeFileSync(diffPath, diff);
+    storage.appendEvent({ workOrderId: order.id, runId: run.id, type: "run.candidate_committed",
+      payload: { candidateCommit: run.candidateCommit, diffPath,
+        diffSha256: createHash("sha256").update(diff).digest("hex") } });
+    return { run, diff };
+  }
+  const first = candidate("b");
+  const path = `${origin}/api/work-orders/${order.id}/diff`;
+  const binding = (run) => new URLSearchParams({ runId: run.id, candidateCommit: run.candidateCommit });
+  assert.equal(await (await fetch(`${path}?${binding(first.run)}`)).text(), first.diff);
+  // The browser still displays the first detail when another attempt finishes.
+  const second = candidate("c");
+  for (const expected of [first.run, { ...second.run, candidateCommit: first.run.candidateCommit }]) {
+    const stale = await fetch(`${path}?${binding(expected)}`);
+    assert.equal(stale.status, 409);
+    assert.equal((await stale.json()).code, "evidence_stale");
+  }
+  const current = await fetch(`${path}?${binding(second.run)}`);
+  assert.equal(current.status, 200);
+  assert.equal(await current.text(), second.diff);
+  assert.equal((await fetch(`${path}?runId=${second.run.id}`)).status, 400);
+  assert.equal((await fetch(`${path}?candidateCommit=invalid`)).status, 400);
+  assert.equal(await (await fetch(path)).text(), second.diff); // Existing API clients retain latest semantics.
+});
 
 test("shared create action persists its WorkOrder and event across a restart", async (t) => {
   const dataDir = mkdtempSync(join(tmpdir(), "sellerfi-supervisor-"));

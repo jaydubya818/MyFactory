@@ -464,6 +464,16 @@ export function createSupervisor(options: SupervisorOptions = {}) {
         const workOrder = storage.getWorkOrder(diffMatch[1]);
         if (!workOrder) return json(response, 404, { error: "WorkOrder not found" });
         const run = storage.listRuns(workOrder.id).at(-1);
+        const expectedRun = url.searchParams.get("runId");
+        const expectedCommit = url.searchParams.get("candidateCommit");
+        if (expectedRun !== null || expectedCommit !== null) {
+          if (!/^[0-9a-f-]{36}$/.test(expectedRun ?? "") || !/^[0-9a-f]{40}$/.test(expectedCommit ?? "")) {
+            return json(response, 400, { error: "A valid run and candidate identity are required" });
+          }
+          if (run?.id !== expectedRun || run.candidateCommit !== expectedCommit) {
+            return json(response, 409, { error: "The candidate changed. Refresh the work order before reviewing its diff.", code: "evidence_stale" });
+          }
+        }
         const event = storage.listEvents(workOrder.id)
           .filter((item) => item.runId === run?.id && item.type === "run.candidate_committed" &&
             item.payload.candidateCommit === run?.candidateCommit).at(-1);

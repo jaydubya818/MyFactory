@@ -53,7 +53,7 @@ export default function PublicationReview({ detail, onRefresh }: Props) {
     setEvidence(null);
     void Promise.all([
       getPolicy(),
-      run?.candidateCommit ? getWorkOrderDiff(workOrder.id) : Promise.resolve<TextEvidence>({ available: false, text: null }),
+      run?.candidateCommit ? getWorkOrderDiff(workOrder.id, { runId: run.id, candidateCommit: run.candidateCommit }) : Promise.resolve<TextEvidence>({ available: false, text: null }),
       Promise.all(checks.map(async (check) => [check.id, await getCheckLog(workOrder.id, check.id)] as const)),
     ]).then(([policy, diff, entries]) => {
       if (!active) return;
@@ -62,7 +62,7 @@ export default function PublicationReview({ detail, onRefresh }: Props) {
       if (active) setLoadError(errorText(cause));
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [workOrder.id, run?.id, checkEvidenceVersion, revision]);
+  }, [workOrder.id, run?.id, run?.candidateCommit, checkEvidenceVersion, revision]);
 
   const requiredCommands = workOrder.kind === "defect" && workOrder.reproductionCommand
     ? [...new Set([workOrder.reproductionCommand, ...workOrder.checkCommands])]

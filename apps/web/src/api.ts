@@ -145,8 +145,9 @@ async function textEvidence(path: string): Promise<TextEvidence> {
   return { available: true, text: await response.text() };
 }
 
-export function getWorkOrderDiff(workOrderId: string): Promise<TextEvidence> {
-  return textEvidence(`/api/work-orders/${encodeURIComponent(workOrderId)}/diff`);
+export function getWorkOrderDiff(workOrderId: string, candidate: { runId: string; candidateCommit: string }): Promise<TextEvidence> {
+  const query = new URLSearchParams(candidate);
+  return textEvidence(`/api/work-orders/${encodeURIComponent(workOrderId)}/diff?${query}`);
 }
 
 export function getCheckLog(workOrderId: string, checkId: string): Promise<TextEvidence> {

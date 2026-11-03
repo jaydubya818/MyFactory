@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { getCheckLog, getWorkOrderDiff, type TextEvidence } from "./api";
 import { errorText } from "./domain";
 
-export default function SavedEvidence({ workOrderId, checkId, title, summary }: {
+export default function SavedEvidence({ workOrderId, checkId, runId, candidateCommit, title, summary }: {
   workOrderId: string;
   checkId?: string;
+  runId?: string;
+  candidateCommit?: string;
   title: string;
   summary: string;
 }) {
@@ -20,7 +22,9 @@ export default function SavedEvidence({ workOrderId, checkId, title, summary }: 
     setLoading(true);
     setError(null);
     setEvidence(null);
-    const request = checkId ? getCheckLog(workOrderId, checkId) : getWorkOrderDiff(workOrderId);
+    const request = checkId ? getCheckLog(workOrderId, checkId)
+      : runId && candidateCommit ? getWorkOrderDiff(workOrderId, { runId, candidateCommit })
+      : Promise.reject(new Error("Candidate identity is unavailable. Refresh the work order."));
     void request.then((next) => {
       if (active) setEvidence(next);
     }).catch((reason: unknown) => {
@@ -29,7 +33,7 @@ export default function SavedEvidence({ workOrderId, checkId, title, summary }: 
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [requested, workOrderId, checkId, revision]);
+  }, [requested, workOrderId, checkId, runId, candidateCommit, revision]);
 
   return <details className="review-evidence" onToggle={(event) => {
     if (event.currentTarget.open) setRequested(true);
