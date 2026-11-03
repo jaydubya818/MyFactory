@@ -120,7 +120,7 @@ function Changes({ workOrderId, latestRun, actions }: { workOrderId: string; lat
           <div className="card-heading"><p className="eyebrow">Recorded candidate</p><h2>Commit identity</h2></div>
           <p className="muted-copy">Review the saved diff for this candidate before approving any publication.</p>
           <dl className="stacked-values"><div><dt>Candidate commit</dt><dd><code>{latestRun.candidateCommit}</code></dd></div><div><dt>Compared with</dt><dd><code>{latestRun.inputCommit}</code></dd></div><div><dt>Workspace</dt><dd><code>{latestRun.workspacePath}</code></dd></div></dl>
-          <SavedEvidence key={latestRun.candidateCommit} workOrderId={workOrderId} title="Candidate diff" summary="Review candidate diff" />
+          <SavedEvidence key={`${latestRun.id}:${latestRun.candidateCommit}`} workOrderId={workOrderId} runId={latestRun.id} candidateCommit={latestRun.candidateCommit} title="Candidate diff" summary="Review candidate diff" />
         </section>
       ) : <EmptyMessage title="No candidate commit yet" description="A candidate identity will appear here after an implementation attempt produces one." />}
       <section className="paper-card">
