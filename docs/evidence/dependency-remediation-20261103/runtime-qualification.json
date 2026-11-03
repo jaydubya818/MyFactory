@@ -1,0 +1,14 @@
+{
+  "node": "24.22.1",
+  "bundledUndici": "7.30.1",
+  "archive": "https://nodejs.org/dist/v24.22.1/node-v24.22.1-darwin-arm64.tar.gz",
+  "archiveSha256": "89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc0a7",
+  "verifiedAgainst": "https://nodejs.org/dist/v24.22.1/SHASUMS256.txt",
+  "hostInstallationModified": false,
+  "workerImageIndex": "node:24.22.1-bookworm@sha256:d862bb5d082c5ae0210ac07e8c0344cb8cf7bef6d78e9b8c50c179da923108ea",
+  "localWorkerPlatform": "linux/arm64",
+  "vercelWorkerImageChanged": false,
+  "vercelWorkerQualification": "NOT_PERFORMED: existing immutable24.19 image fails runtime prerequisite; separately qualified patched image needed before live execution",
+  "deployed": false,
+  "paidExecution": false
+}

@@ -1,0 +1,18 @@
+✔ Attempt 2: exact Codex package bin layout and companions install together (1.949041ms)
+✔ old assumed layout, missing companion, traversal and wrong version fail closed (2.099334ms)
+✔ installer diagnostics never echo arbitrary provider data (0.347792ms)
+✔ unsafe worker runtime fails before registry fetch or installation (1.050042ms)
+✔ patched minimatch preserves Queue development route matching (8.14125ms)
+✔ both exact CLI-config parents retain auth and global config parsing (59.704375ms)
+✔ oversized constrained Zod collections reject within bounded memory (77.269083ms)
+✔ patched npm and bundled fetch reject excessive content encodings (88.160125ms)
+✔ old or malformed Node transports cannot pass the runtime prerequisite (0.217125ms)
+✔ unsafe host bootstraps reject before storage or network initialization (475.736167ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 817.83175
