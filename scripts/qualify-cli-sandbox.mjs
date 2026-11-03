@@ -22,6 +22,9 @@ try{
  await writeFile(outside,'unchanged');
  await writeFile(join(workspace,'.git','protected.txt'),'unchanged');
  await writeFile(join(workspace,'allowed.txt'),'unchanged');
+ const version=await exec('codex',['--version'],{env:{PATH:process.env.PATH,HOME:home,CODEX_HOME:home,TMPDIR:process.env.RUNNER_TEMP??'/tmp'}});
+ assert.equal(version.stdout.trim(),'codex-cli 0.157.0');
+ assert(!version.stderr.includes('Refusing to create helper binaries'));
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const origin=`http://127.0.0.1:${server.address().port}`;
  assert.equal(await (await fetch(origin)).text(),'synthetic-only');
@@ -48,6 +51,7 @@ try{
    env:{PATH:process.env.PATH,HOME:home,CODEX_HOME:home,TMPDIR:process.env.RUNNER_TEMP??'/tmp',LANG:'C.UTF-8'},
    timeout:15000,maxBuffer:32000});
   assert.equal(JSON.parse(result.stdout).mode,mode);
+  assert(!result.stderr.includes('Refusing to create helper binaries'));
   assert.equal(await readFile(outside,'utf8'),'unchanged');
   assert.equal(await readFile(join(workspace,'.git','protected.txt'),'utf8'),'unchanged');
   assert.equal(await readFile(join(workspace,'allowed.txt'),'utf8'),'allowed');
