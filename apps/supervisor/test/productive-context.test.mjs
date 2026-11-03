@@ -18,7 +18,7 @@ const installed=process.env.FACTORY_INSTALLED_CLI==='1';
 process.env.FACTORY_CODEX_MODEL='openai/gpt-5.4-mini';
 for(const scenario of ['context-contract','targeted-inspection','captured-no-edit','correct-first','repairable','still-bad','outside-scope','linked-repair']){
  test('Bounded productive semantics: '+scenario,{skip:!installed,timeout:90000},async t=>{
-  const dir=mkdtempSync(join(tmpdir(),'factory-checkpoint-')),repo=join(dir,'repo'),data=join(dir,'data');mkdirSync(repo);mkdirSync(data);
+  const dir=mkdtempSync(join(process.env.RUNNER_TEMP??tmpdir(),'factory-checkpoint-')),repo=join(dir,'repo'),data=join(dir,'data');mkdirSync(repo);mkdirSync(data);
   const git=(...args)=>execFileSync('git',['-C',repo,...args],{encoding:'utf8'}).trim();
   git('init','-q');git('config','user.name','Controlled fixture');git('config','user.email','fixture@example.invalid');
   for(const [p,s] of Object.entries(captured.files)){mkdirSync(join(repo,p,'..'),{recursive:true});writeFileSync(join(repo,p),s);}
