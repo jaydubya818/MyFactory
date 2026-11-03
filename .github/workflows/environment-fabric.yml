@@ -63,10 +63,8 @@ jobs:
           FACTORY_TEST_CODEX_CLI: '1'
         run: |
           export PATH="$RUNNER_TEMP/factory-qualified-cli/node_modules/.bin:$PATH"
-          # Codex refuses helper aliases beneath the shared /tmp directory.
-          # Keep synthetic workspaces and isolated CLI homes in runner-owned temp.
-          export TMPDIR="$RUNNER_TEMP/factory-cli-fixtures"
-          mkdir -p "$TMPDIR"
+          # Fixtures use RUNNER_TEMP for retained CLI homes, separately from the
+          # CLI scratch TMPDIR. Codex rejects homes inside its own scratch root.
           node --test --test-concurrency=1 apps/supervisor/test/implementation-loop.test.mjs apps/supervisor/test/numeric-range-checkpoint.test.mjs apps/supervisor/test/productive-context.test.mjs apps/supervisor/test/spend-codex-cli.test.mjs
       - run: npm run check:producer-governance
       - run: node scripts/check-capability-sources.mjs
