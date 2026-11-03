@@ -101,6 +101,19 @@ const stripTerminal = (value: string): string => value.replace(/\u001b\[[0-9;?]*
 export const reportDigest = (report: Omit<StructuredFailureReport, "digest">): string =>
   createHash("sha256").update(canonical(report)).digest("hex");
 
+const MAX_LOG_SCAN = 32 * 1024 * 1024;
+/** The complete log for restricted-path scanning, or null when it is too large to scan (then nothing is described). */
+async function readWholeLog(path: string): Promise<string | null> {
+  const file = await open(path, "r");
+  try {
+    const { size } = await file.stat();
+    if (size > MAX_LOG_SCAN) return null;
+    const buffer = Buffer.alloc(size);
+    await file.read(buffer, 0, size, 0);
+    return buffer.toString("utf8");
+  } finally { await file.close(); }
+}
+
 async function readLog(path: string): Promise<string> {
   const file = await open(path, "r");
   try {
@@ -217,7 +230,7 @@ export async function buildFailureReport(input: {
     checks.push({ index, command: sanitize(check.command, 200), status: check.status, exitCode: check.exitCode, reason: check.reason ? sanitize(check.reason, 200) : null });
     if (check.status === "passed") {
       const text = stripTerminal(await readLog(check.logPath).catch(() => ""));
-      if (/No tests found|Running 0 tests?\b|^\s*0 passed\b|^\s*1\.\.0\b|^\s*#\s*tests\s+0\b|^\s*ℹ\s+tests\s+0\b/im.test(text) && /\b(test|spec|playwright)\b/i.test(check.command))
+      if (/No tests found|No test files found|No test suites found|Running 0 tests?\b|^\s*0 passed\b|^\s*1\.\.0\b|^\s*#\s*tests\s+0\b|^\s*ℹ\s+tests\s+0\b/im.test(text) && /\b(test|spec|playwright)\b/i.test(check.command))
         failures.push({ kind: "NO_TESTS_RAN", check: index, title: null, location: null, message: "The test command exited successfully but ran no tests.", expected: null, received: null, detail: [] });
       continue;
     }
@@ -229,8 +242,10 @@ export async function buildFailureReport(input: {
     }
     // Terminal control sequences are removed BEFORE any path or diagnostic detection (colour codes can split a restricted path).
     const text = stripTerminal(await readLog(check.logPath).catch(() => ""));
+    // The restricted-path scan covers the COMPLETE captured log, not the sampled excerpt; a log too large to scan is withheld.
+    const whole = await readWholeLog(check.logPath).catch(() => "");
     // Any mention of a restricted path taints the whole log: nothing else in it is described to the coding agent.
-    if (mentionsRestricted(text, restricted) || mentionsRestricted(check.command, restricted)) {
+    if (whole === null || mentionsRestricted(stripTerminal(whole), restricted) || mentionsRestricted(text, restricted) || mentionsRestricted(check.command, restricted)) {
       failures.push({ kind: BUILD_COMMAND.test(check.command) ? "BUILD_FAILED" : "TEST_FAILED", check: index, title: null, location: null,
         message: "A restricted check failed; details are withheld.", expected: null, received: null, detail: [] });
       continue;

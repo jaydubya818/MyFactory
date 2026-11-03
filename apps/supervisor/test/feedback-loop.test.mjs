@@ -358,7 +358,7 @@ test("an unavailable checkpoint persisted before a crash stays UNKNOWN on re-ent
   let crashed = false;
   const first = await run(t, { edits: ["bad", "good"], verify: () => [{ status: "passed" }, { status: "unavailable", exitCode: 137, reason: "killed" }],
     onEvent: event => { if (event.type === "run.implementation_checkpoint" && !crashed) { crashed = true; throw new Error("simulated host crash"); } } });
-  assert.equal(first.type("feedback.report_issued").length, 0, "crash landed before the UNKNOWN report");
+  assert.equal(first.type("run.implementation_checkpoint").length, 1, "crash landed at the checkpoint");
   const second = await run(t, { edits: ["good"], verify: browserFails, reuse: first.world });
   assert.equal(second.calls.productive.length, 0);
   assert.equal(second.calls.admit, 0);
@@ -371,4 +371,29 @@ test("a resumed response that carries no session identity is a SESSION_MISMATCH,
   assert.equal(r.run.state, "failed");
   assert.equal(r.type("feedback.stopped").at(-1).payload.reason, "SESSION_MISMATCH");
   assert.equal(r.calls.completion, 0);
+});
+
+test("an environment-level UNKNOWN recorded before a crash stays terminal on re-entry", async t => {
+  let crashed = false;
+  const envFail = "ENOENT: no such file or directory, mkdir '/node_modules/.vite-temp'\n";
+  const first = await run(t, { edits: ["bad", "good"], verify: () => [{ status: "failed", log: envFail }, { status: "passed" }],
+    onEvent: event => { if (event.type === "run.implementation_checkpoint" && !crashed) { crashed = true; throw new Error("simulated host crash"); } } });
+  assert.equal(first.type("feedback.report_issued").filter(e => e.payload.outcome === "UNKNOWN").length, 1, "UNKNOWN made durable before the checkpoint");
+  const second = await run(t, { edits: ["good"], verify: browserFails, reuse: first.world });
+  assert.equal(second.calls.productive.length, 0);
+  assert.equal(second.calls.admit, 0);
+  assert.equal(second.type("feedback.stopped").at(-1).payload.reason, "UNKNOWN_OUTCOME");
+});
+
+test("re-entry after a process started but before its result never starts a fresh session", async t => {
+  const first = await run(t, { edits: ["bad", "good"], verify: browserFails, interrupt: n => n === 0 });
+  assert.equal(first.type("run.agent_result").length, 0);
+  // The real adapter writes this durable row when the coding process starts; the crash landed before its result.
+  first.storage.appendEvent({ workOrderId: first.order.id, runId: first.run.id, type: "agent.process_started", payload: { pid: 999999 } });
+  const second = await run(t, { edits: ["good"], verify: browserFails, reuse: first.world });
+  assert.equal(second.calls.productive.length, 0, "no fresh, unadmitted session");
+  assert.equal(second.calls.admit, 0);
+  const stop = second.type("feedback.stopped").at(-1);
+  assert.equal(stop.payload.reason, "UNSETTLED_PRIOR_RESUME");
+  assert.equal(stop.payload.unmatchedProcesses, 1);
 });

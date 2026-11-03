@@ -195,3 +195,17 @@ test("TAP and node:test zero-test passes are failures", async t => {
     assert.equal(report.failures[0].kind, "NO_TESTS_RAN");
   }
 });
+
+test("a restricted path anywhere in a large log withholds every detail, including the sampled tail", async t => {
+  const middle = "x".repeat(300 * 1024);
+  const log = "Running 1 test using 1 worker\n" + "a".repeat(260 * 1024) + "\n  at protected/hidden.spec.ts:4:1\n" + middle + "\n    Error: expect(received).toBe(expected)\n    Expected: \"SECRET-ANSWER\"\n    Received: \"x\"\n  1 failed\n";
+  const report = await buildFailureReport({ identity, checks: logs(t, [["npx playwright test", "failed", 1, log]]) });
+  assert(!JSON.stringify(report).includes("SECRET-ANSWER"));
+});
+
+test("Vitest/Jest permissive zero-test messages are not passes", async t => {
+  for (const out of ["No test files found, exiting with code 0\n", "No test suites found.\n"]) {
+    const report = await buildFailureReport({ identity, checks: logs(t, [["npm test", "passed", 0, out]]) });
+    assert.equal(report.outcome, "FAILED", out);
+  }
+});

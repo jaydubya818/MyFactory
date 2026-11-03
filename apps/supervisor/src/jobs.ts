@@ -781,6 +781,15 @@ export class JobManager {
       // settled in the ledger, so only the deterministic checkpoint is repeated. Nothing paid is re-sent.
       const priorResponses=this.storage.listEvents(workOrder.id).filter(e=>e.runId===run.id&&e.type==='run.agent_result').length;
       let skipAgent=priorResponses>0;
+      {
+        // A productive process that started but never produced a durable result is an unresolved paid operation: it may
+        // still be running and its spend is unknown. Re-entry must never start another session beside it.
+        const started=this.storage.listEvents(workOrder.id).filter(e=>e.runId===run.id&&e.type==='agent.process_started').length;
+        if(started>priorResponses){
+          this.#event(workOrder.id,run.id,'feedback.stopped',{reason:'UNSETTLED_PRIOR_RESUME' satisfies StopReason,step:priorResponses,digest:null,unmatchedProcesses:started-priorResponses});
+          throw Error('Completion eligibility checks failed or unavailable');
+        }
+      }
       if(priorResponses>0){
         const known=this.storage.listEvents(workOrder.id).filter(e=>e.runId===run.id);
         const settledKeys=new Set(known.filter(e=>e.type==='feedback.resume_settled').map(e=>String(e.payload.key)));
@@ -913,6 +922,13 @@ export class JobManager {
           // Only the WorkOrder's own authorized checks run here; protected verification is a separate, later authority.
           checks:checks.checks.map(c=>({command:c.command,status:c.status,exitCode:c.exitCode,reason:c.reason,logPath:c.logPath,
             visibility:(c as {visibility?:'IMPLEMENTATION_VISIBLE'|'PROTECTED'}).visibility??'IMPLEMENTATION_VISIBLE'}))}):null;
+        // An UNKNOWN outcome is made durable BEFORE the checkpoint: a crash between the two must not let re-entry
+        // mistake an environment failure for a repairable one.
+        let unknownRecorded=false,reportRecorded=false;
+        if(!staleResult&&(!report||report.outcome==='UNKNOWN')){
+          if(report){this.#event(workOrder.id,run.id,'feedback.report_issued',{step:productiveStep,tree:checkedTree,digest:report.digest,outcome:report.outcome,report});reportRecorded=true;}
+          else{this.#event(workOrder.id,run.id,'feedback.stopped',{reason:'UNKNOWN_OUTCOME' satisfies StopReason,step:productiveStep,digest:null});unknownRecorded=true;}
+        }
         const zeroTests=new Set((report?.failures??[]).filter(f=>f.kind==='NO_TESTS_RAN').map(f=>f.check));
         const passed=ran&&checks.checks.every(c=>c.status==='passed')&&report?.outcome==='PASSED';
         const checkpoint = this.#verificationWriteFence(run,verificationControl,implementationPhase.assertCurrent).event('run.implementation_checkpoint',{productiveStep,tree:checkedTree,
@@ -925,8 +941,8 @@ export class JobManager {
         if(!passed){
           const stop=(reason:StopReason,digest:string|null)=>this.#event(workOrder.id,run.id,'feedback.stopped',{reason,step:productiveStep,digest});
           if(staleResult){stop('STALE_RESULT',null);throw Error('Completion eligibility checks failed or unavailable');}
-          if(!report){stop('UNKNOWN_OUTCOME',null);throw Error('Completion eligibility checks failed or unavailable');}
-          this.#event(workOrder.id,run.id,'feedback.report_issued',{step:productiveStep,tree:checkedTree,digest:report.digest,outcome:report.outcome,report});
+          if(!report){if(!unknownRecorded)stop('UNKNOWN_OUTCOME',null);throw Error('Completion eligibility checks failed or unavailable');}
+          if(!reportRecorded)this.#event(workOrder.id,run.id,'feedback.report_issued',{step:productiveStep,tree:checkedTree,digest:report.digest,outcome:report.outcome,report});
           const decision=decideFeedback({events:this.storage.listEvents(workOrder.id),runId:run.id,step:productiveStep,currentTree:checkedTree,report,
             policy:{authorized:!!active.gateway.nextProductive,maxRounds:strictFinalization?1:FEEDBACK_HARD_CAP}});
           if(decision.action!=='RESUME'){stop(decision.action==='STOP'?decision.reason:'STALE_RESULT',report.digest);throw Error('Completion eligibility checks failed or unavailable');}
