@@ -1,0 +1,28 @@
+{
+  "evidenceRoot": "/var/folders/1h/qb01w7v52bb72nzk2dh3szbc0000gn/T/factory-supervisor-smoke-2lLknT",
+  "inputCommit": "3f54d9ccab9f84401f66b32584267c3631b539a4",
+  "runId": "09c86672-f063-4c38-b940-a1f9309954b5",
+  "runState": "ready_for_review",
+  "workOrderState": "ready_for_review",
+  "candidateCommit": "53819b0f1bc62bc6ba4eeb19b50dd81a8a4aa7af",
+  "checks": [
+    {
+      "command": "npm test",
+      "status": "passed",
+      "candidateCommit": "53819b0f1bc62bc6ba4eeb19b50dd81a8a4aa7af",
+      "logPath": "/private/var/folders/1h/qb01w7v52bb72nzk2dh3szbc0000gn/T/factory-supervisor-smoke-2lLknT/data/artifacts/09c86672-f063-4c38-b940-a1f9309954b5/verification/verification-9VofAr/check-001.log"
+    }
+  ],
+  "eventTypes": [
+    "run.started",
+    "run.reproduction_started",
+    "run.reproduction_result",
+    "run.implementing",
+    "run.agent_result",
+    "run.candidate_committed",
+    "run.check_completed",
+    "run.evidence_collected",
+    "run.evidence_evaluated",
+    "run.ready_for_review"
+  ]
+}

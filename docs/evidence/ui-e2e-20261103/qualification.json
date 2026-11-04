@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-03",
+  "application": "MyFactory local work desk and Feedback Hub starter",
+  "result": "PASS for nondeploying local source qualification",
+  "testedComposedSource": "6f43184a913b33ce0e1c088f58f97af60404325c",
+  "dependencyPrerequisite": "52b619715ac57f72f41fec1880a900eac367200b",
+  "sourceDigest": "489fcc24c3abb2c837ce94e4edc7639d9f8e4b15d55c7b66559d73a4e948c247",
+  "factoryVersion": "fb92c96b8f4ac2836097e6a18c5a5ba7941da18c100230fd1c0929ee5188aaf2",
+  "originalPR30Head": "d24bd6f2735c4a43662d780de4e81d250e745480",
+  "runtime": {
+    "node": "24.22.1",
+    "undici": "7.30.1",
+    "codex": "0.157.0"
+  },
+  "defaultSuite": {
+    "tests": 641,
+    "pass": 613,
+    "fail": 0,
+    "skipped": 28
+  },
+  "connectedPostgresSuite": {
+    "tests": 249,
+    "pass": 249,
+    "fail": 0,
+    "skipped": 0
+  },
+  "installedCliSuite": {
+    "tests": 18,
+    "pass": 18,
+    "fail": 0,
+    "skipped": 0
+  },
+  "allPreviouslyGatedCasesExecuted": 28,
+  "feedbackTests": {
+    "tests": 4,
+    "pass": 4,
+    "fail": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "driver": "CUA Playwright/native accessibility in in-app Chromium",
+    "viewports": [
+      [
+        1280,
+        900
+      ],
+      [
+        375,
+        812
+      ]
+    ],
+    "mobileOverflow": false,
+    "casesPassed": [
+      "Browser-created defect: queued, baseline failure, simulated coding, real Git candidate, real Docker checks, ready for review",
+      "Saved diff and check-log rendering",
+      "Two-attempt stale-detail race: A displayed while backend latestB;409rejects without showingB; refresh changes identity and showsB",
+      "Actionable stale-evidence error tells user to refresh",
+      "Service outage gives explicit error; same-host restart and Retry restores exact diff",
+      "Missing saved check log produces unavailable state; original fixture file restored",
+      "Publication review shows exact candidate+diff+checks, proposal disabled with no destination; no approval/publication invoked",
+      "375px Connections accessible name, navigation and no horizontal overflow",
+      "App-builder scaffold, preview preparing/live/stopped states",
+      "Feedback Hub empty state, capture success, status and priority changes, internal note, persistence after reload"
+    ],
+    "coding": "SIMULATED",
+    "externalLinear": "NOT_CALLED",
+    "publication": "DENIED by fixture",
+    "verification": "REAL disposable Git/Docker"
+  },
+  "otherChecks": [
+    "TypeScript",
+    "producer TypeScript",
+    "producer governance",
+    "capability source provenance",
+    "source identity and predecessor-authorization denial",
+    "root production build",
+    "root/template audit0findings",
+    "Playwright EvidenceProvider tests in default suite",
+    "git diff --check",
+    "Feedback Hub standalone production build PASS"
+  ],
+  "independentReview": {
+    "reviewer": "review_pr30",
+    "reviewedComposedHead": "e65114e3c3f1722f668b470310a8a81433da67b7",
+    "finding": "P2 candidate diff could be shown under previous candidate identity",
+    "resolution": "Both UI consumers send required run/candidate binding; server rejects mismatch before servingbytes. HTTPtwoattemptregression passed; freshbrowserraceverified.",
+    "validation": {
+      "supervisorServerTests": 9,
+      "identityTests": 2,
+      "skips": 0
+    },
+    "finalExactHeadReview": "No code/security findings at5ee0e2d;7APIcases,2identitytests,webtypes,26artifacthashes verified. P3artifactEOFformatting fixed. Final inheritedCIenvironment changes reviewed separately."
+  },
+  "hostedCI": "Final exact evidence commit result recorded in PR body; prior5c8aee run41692479108 contained the dependency half-open fixture fixed in58d74e7.",
+  "cleanup": "Preview stopped through UI; temporary tabs closed; viewport override reset; supervisor stopped; missing log restored; disposable clusters stopped/removed.",
+  "scopeLimits": [
+    "Source/local qualification only; no tester activation or live installation claim",
+    "No real model calls, paid Work, pricing activation, migration, deploy or merge",
+    "Existing Vercel24.19 image is unchanged and blocked by patched runtime prerequisite pending separately qualified image",
+    "No AWS custody investigation or external custody operation",
+    "Standalone factory-console application is outside work-desk scope"
+  ],
+  "evidenceSha256": {
+    "build.log": "e7cf641549394a221d6ecdf0b71d201ee0544e0b6e54bab7071b5abebff49a6a",
+    "connected-tests.log": "a1c7b6b919bf7e6fce27e3df26e84afe4153900a738303eb9aec8348d51a3385",
+    "connections-mobile.png": "deb5761aa165b16078acad2bb783fd4f400a6c515daa5e017a8ac9bae8a754cf",
+    "current-candidate-desktop.png": "f422d67406aaf1eb3b4c900e1f9e30227527b395019bf7ff98fd0e3217e044dd",
+    "docker-smoke.json": "3092d31ede58240c90efe75178351e7829bbb1ecef01515805530a527efacf57",
+    "feedback-persistence-desktop.png": "4a3c6d3e3a14bf3ea48eb4f08181bd738f1d6a60b6b3e311738bb1e236de5395",
+    "feedback-tests.log": "c10b2fe1d7f901c49ed2c066cd8fefc3ef04a31e12657face7599feea14ffc0e",
+    "publication-review-desktop.png": "892d95144ae088fb5c5a70e0b314a5b51e42a4bc147d5e764e743e812273f848",
+    "qualified-cli-tests.log": "5251f0bc8bf2b15f7358fc2bbd7458f3f5a6306869338df2c986930368d38d65",
+    "stale-candidate-desktop.png": "b15f69a27f2417a1ab723e8b8da114e1aaa721f7088bcdba427c2d6a1665ab34",
+    "typecheck.log": "ddb31083af1f4639c45816731ef89f2afe56514ec1e16425e76086386aa69329",
+    "unit-integration.log": "4e575c4be045b2f59d18775cf10ea9f3494428a90496a86211eec49cf999f389"
+  },
+  "artifactFormatting": "Captured logs normalized to one final newline; no test result lines removed.",
+  "inheritedCiQualification": "ExactUbuntu24.04; scoped distroBubblewrap/AppArmor prerequisite; retained fixture homes separated from CLI scratch; preflight verifies workspace/.git/outside/read-only/network boundaries. Proof uses synchronousfdreceipt because restrictedseccomp prevents Node from identifying socketpair-backed stdio. No sandboxpolicy/runtimecontract change. Final hosted result and finalsource review recorded in PR body."
+}
