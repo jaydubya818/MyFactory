@@ -11,6 +11,8 @@ import {deterministicHarnessResponse} from '../src/cloud-harness-fixture.mjs';
 import {relayHarnessRequests} from '../src/cloud-harness-relay.mjs';
 
 test('deterministic cloud transport retains canonical reservations, checkpoint and completion accounting',async t=>{
+ // This fixture tests accounting, while pricing-qualification.test.mjs tests expiry.
+ t.mock.timers.enable({apis:['Date'],now:Date.parse(cloudHarnessPrice.validUntil)-86_400_000});
  const dir=mkdtempSync(join(tmpdir(),'cloud-harness-ledger-')),path=join(dir,'test.sqlite'),storage=openStorage(path);
  const order=storage.createWorkOrder({title:'Harness boundary',description:'Deterministic transport',kind:'feature',repositoryPath:dir,baseRef:'a'.repeat(40),acceptanceCriteria:['Safe'],reproductionCommand:null,expectedFailureText:null,checkCommands:[],allowedPaths:['slug.mjs'],workerProfile:'container'});
  const run=storage.createRun({workOrderId:order.id,workerProfile:'container',inputCommit:'a'.repeat(40),workspacePath:dir});
@@ -25,6 +27,7 @@ test('deterministic cloud transport retains canonical reservations, checkpoint a
  assert.deepEqual(replies.map(x=>x.kind),['response','yield']);
  assert.match(Buffer.from(replies[0].bodyBase64,'base64').toString(),/custom_tool_call/);
  let spend=ledger.read(binding.workId);assert.equal(spend.operations.length,1);assert.equal(spend.operations[0].state,'settled');assert.equal(spend.operations[0].actualMicrousd,0);assert.equal(spend.operations[0].reservedMicrousd,186864);
+ t.mock.timers.setTime(Date.now()+1000);
  ledger.assertCompletionEligible(binding);ledger.beginCompletion(binding);
  const completion=new SpendGateway({ledger,binding,price:cloudHarnessPrice,childToken,phase:'completion',upstreamOrigin:'https://deterministic.factory.invalid',upstreamApiKey:'deterministic-only',upstreamFetch:deterministicHarnessResponse({phase:'completion',currentSource:''})});
  const response=await completion.fetch(new Request('https://factory.internal/v1/responses',{method:'POST',headers:{authorization:'Bearer '+childToken},body:JSON.stringify({model:cloudHarnessIdentity.model,input:'Read-only summary'})}));

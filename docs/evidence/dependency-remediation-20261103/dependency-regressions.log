@@ -1,0 +1,14 @@
+✔ patched minimatch preserves Queue development route matching (7.439125ms)
+✔ both exact CLI-config parents retain auth and global config parsing (44.655584ms)
+✔ oversized constrained Zod collections reject within bounded memory (78.040166ms)
+✔ all fetch parsers survive excessive encodings with premature connection close (97.799917ms)
+✔ old or malformed Node transports cannot pass the runtime prerequisite (0.295666ms)
+✔ unsafe host bootstraps reject before storage or network initialization (468.246292ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 767.5865

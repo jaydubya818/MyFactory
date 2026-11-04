@@ -14,6 +14,7 @@ import {productionConfiguration as configuration,productionSourceGrant,productio
 import {productionVerifierPolicy as policy,productionVerifierPolicySha256 as policySha256} from '../src/production-verifier-policy.mjs';
 import {digest} from '../../../packages/hosted-routing/src/result.ts';
 import {capabilityPolicyFixture} from './fixtures/capability-policy.mjs';
+import {localSpendPlan} from './fixtures/spend-plan.mjs';
 
 test('CONNECTED three-owner exact grants, single intake, cross-owner custody/Proof denials and revocation',{skip:process.env.FACTORY_POSTGRES_TEST!=='1'},async t=>{
  const url=new URL(process.env.DATABASE_URL_UNPOOLED);assert(['localhost','127.0.0.1'].includes(url.hostname),'Disposable localhost only');
@@ -34,7 +35,7 @@ test('CONNECTED three-owner exact grants, single intake, cross-owner custody/Pro
   await query("INSERT INTO factory.production_work_authority(request_id,work_id,client_id,manifest,manifest_sha256,state) VALUES($1,$2,$3,$4,$5,'AUTHORIZED')",[request.requestId,request.workId,o.clientId,manifest,digest(manifest)]);
   const assertAuthority=productionAuthority({installation:{ownerScope:o.ownerScope},sourceDigest,configuration,contractSha256,clientId:o.clientId,authorizationSha256:approvalDigest,ownerBinding:binding});
   const store=new PostgresDispatchStore(capability.pool,{capabilityBindings:capability.bindings,maxWorks:1,custodyPrefix:'factory/production',verificationPolicySha256:policySha256,assertAuthority,assertRecordScope:alphaRecordScope(binding)});
-  const control=new CloudWorkControl({store,spend:new PostgresSpendLedger(isolated),grant,configuration,sourceDigest,signing:{factoryId:'myfactory-cloud-production'},executionSpendPlan:productionSpendPlan,verificationPolicy:{policy,policySha256}});
+  const control=new CloudWorkControl({store,spend:new PostgresSpendLedger(isolated),grant,configuration,sourceDigest,signing:{factoryId:'myfactory-cloud-production'},executionSpendPlan:localSpendPlan(productionSpendPlan),verificationPolicy:{policy,policySha256}});
   const [a,b]=await Promise.all([control.prepare(request),control.prepare(request)]);assert.equal(a.runId,b.runId);
   owners.push({binding,grant,request,store,control,assertAuthority,prepared:a});
  }

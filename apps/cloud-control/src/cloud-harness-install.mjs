@@ -1,10 +1,12 @@
 import {cloudCodexPackage,cloudHarnessIdentity} from './cloud-harness-plan.mjs';
+import {assertPatchedNodeRuntime} from '../../../packages/contracts/src/node-runtime.ts';
 
 // Fixed, integrity-pinned installer. Runs as sandbox root before untrusted
 // repository execution; it receives no host credentials or user-authored code.
 export const cloudHarnessInstallScript=`
 const fs=require('node:fs'),cp=require('node:child_process'),crypto=require('node:crypto');
 (async()=>{
+ (${assertPatchedNodeRuntime.toString()})();
  if(process.getuid()!==0||process.arch!=='x64'||process.platform!=='linux')throw Error('HARNESS_INSTALL_IDENTITY');
  const spec=${JSON.stringify(cloudCodexPackage)};
  const response=await fetch(spec.url,{redirect:'error',signal:AbortSignal.timeout(30000)});
@@ -24,5 +26,5 @@ const fs=require('node:fs'),cp=require('node:child_process'),crypto=require('nod
  const version=cp.execFileSync(binary,['--version'],{encoding:'utf8',timeout:5000,maxBuffer:1000}).trim();
  if(version!==${JSON.stringify('codex-cli '+cloudHarnessIdentity.version)})throw Error('HARNESS_VERSION_MISMATCH');
  process.stdout.write(JSON.stringify({version,integrity:spec.integrity,bytes:stat.size,uid:process.getuid()}));
-})().catch(error=>{const allowed=['HARNESS_INSTALL_IDENTITY','HARNESS_PACKAGE_UNAVAILABLE','HARNESS_PACKAGE_BOUND','HARNESS_PACKAGE_INTEGRITY','HARNESS_PACKAGE_LAYOUT','HARNESS_BINARY_TYPE','HARNESS_VERSION_MISMATCH'];process.stderr.write(allowed.includes(error.message)?error.message:'HARNESS_INSTALL_FAILED');process.exitCode=1;});
+})().catch(error=>{const allowed=['PATCHED_NODE_RUNTIME_REQUIRED','HARNESS_INSTALL_IDENTITY','HARNESS_PACKAGE_UNAVAILABLE','HARNESS_PACKAGE_BOUND','HARNESS_PACKAGE_INTEGRITY','HARNESS_PACKAGE_LAYOUT','HARNESS_BINARY_TYPE','HARNESS_VERSION_MISMATCH'];process.stderr.write(allowed.includes(error.message)?error.message:'HARNESS_INSTALL_FAILED');process.exitCode=1;});
 `;
