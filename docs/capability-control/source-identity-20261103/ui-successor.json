@@ -1,0 +1,20 @@
+{
+  "schema": "factory-recovery-successor/v1",
+  "authority": "SOURCE_IDENTITY_RECORD_ONLY_NO_INHERITED_QUALIFICATION",
+  "recordedAt": "2026-11-03",
+  "changes": "PR30 UI improvements composed with the dependency prerequisite. Exact run/candidate diff binding fixes stale-detail evidence race. No execution contract/configuration, pricing or authorization change.",
+  "historicalSourceDigest": "1c69113378ed82428d13a2f89452708204e171ac9cb952b0a725acff83844548",
+  "predecessorSourceDigest": "db5700c7618a7956d8d99e3a48580609ba520381a4cfb6d60d66a55aca3d8074",
+  "predecessorFactoryVersion": "c558adbbe7e657a17becbffd4e18506cd4011f207eb0494962585298e43d1d47",
+  "predecessorRecord": "dependency-successor.json",
+  "sourceDigest": "489fcc24c3abb2c837ce94e4edc7639d9f8e4b15d55c7b66559d73a4e948c247",
+  "configurationDigest": "415f52a554e8dbdcc48019609e4611f07085622abf5c91cd67b516e978a593ae",
+  "factoryVersion": "fb92c96b8f4ac2836097e6a18c5a5ba7941da18c100230fd1c0929ee5188aaf2",
+  "executionContractSha256": "377cf5e6412003394805b3f1169d24cd7468c683c8f758999b32c3b5b5d20cf3",
+  "predecessorExecutionContractSha256": "377cf5e6412003394805b3f1169d24cd7468c683c8f758999b32c3b5b5d20cf3",
+  "historicalExecutionContractSha256": "29ff7774ec7ac08a061f28fe2f81bff4a8f1124987f64a69a1b5cb8e21976b66",
+  "pricingRecord": "openai-mini-20261020-v3",
+  "qualification": "SOURCE CANDIDATE ONLY. Fresh deterministic, PostgreSQL, CLI, UI and hosted CI qualification must be recorded for the exact final commit. No installed tester, provider image, custody, pricing, paid Work or deployment qualification inherited.",
+  "migration": "NONE. No approval, Work, installation, price or custody tuple is rebound. Existing worker image/runtime requires a separately qualified successor before live execution.",
+  "version": 1
+}

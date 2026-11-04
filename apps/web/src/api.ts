@@ -141,12 +141,17 @@ async function textEvidence(path: string): Promise<TextEvidence> {
     throw new Error("The local service is unavailable. Check that it is running, then retry.");
   }
   if (response.status === 404) return { available: false, text: null };
+  if (response.status === 409) {
+    const problem = await response.json().catch(() => null) as { code?: string; error?: string } | null;
+    if (problem?.code === "evidence_stale" && typeof problem.error === "string") throw new Error(problem.error);
+  }
   if (!response.ok) throw new Error(`Evidence request failed (${response.status}).`);
   return { available: true, text: await response.text() };
 }
 
-export function getWorkOrderDiff(workOrderId: string): Promise<TextEvidence> {
-  return textEvidence(`/api/work-orders/${encodeURIComponent(workOrderId)}/diff`);
+export function getWorkOrderDiff(workOrderId: string, candidate: { runId: string; candidateCommit: string }): Promise<TextEvidence> {
+  const query = new URLSearchParams(candidate);
+  return textEvidence(`/api/work-orders/${encodeURIComponent(workOrderId)}/diff?${query}`);
 }
 
 export function getCheckLog(workOrderId: string, checkId: string): Promise<TextEvidence> {

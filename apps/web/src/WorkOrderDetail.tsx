@@ -12,6 +12,7 @@ import { formatDate, shortId, workOrderStates, type Tone } from "./domain";
 import LocalPreviewPanel from "./LocalPreviewPanel";
 import PublicationReview from "./PublicationReview";
 import LinearPanel from "./LinearPanel";
+import SavedEvidence from "./SavedEvidence";
 
 type Tab = "overview" | "activity" | "changes" | "verification" | "decisions";
 
@@ -111,14 +112,15 @@ function Overview({ detail, latestRun, onRefresh }: { detail: Detail; latestRun:
   );
 }
 
-function Changes({ latestRun, actions }: { latestRun: Run | undefined; actions: ExternalAction[] }) {
+function Changes({ workOrderId, latestRun, actions }: { workOrderId: string; latestRun: Run | undefined; actions: ExternalAction[] }) {
   return (
     <div className="single-column">
       {latestRun?.candidateCommit ? (
         <section className="paper-card">
           <div className="card-heading"><p className="eyebrow">Recorded candidate</p><h2>Commit identity</h2></div>
-          <p className="muted-copy">The candidate commit is recorded for this attempt. Review the repository diff before approving any publication.</p>
+          <p className="muted-copy">Review the saved diff for this candidate before approving any publication.</p>
           <dl className="stacked-values"><div><dt>Candidate commit</dt><dd><code>{latestRun.candidateCommit}</code></dd></div><div><dt>Compared with</dt><dd><code>{latestRun.inputCommit}</code></dd></div><div><dt>Workspace</dt><dd><code>{latestRun.workspacePath}</code></dd></div></dl>
+          <SavedEvidence key={`${latestRun.id}:${latestRun.candidateCommit}`} workOrderId={workOrderId} runId={latestRun.id} candidateCommit={latestRun.candidateCommit} title="Candidate diff" summary="Review candidate diff" />
         </section>
       ) : <EmptyMessage title="No candidate commit yet" description="A candidate identity will appear here after an implementation attempt produces one." />}
       <section className="paper-card">
@@ -129,7 +131,7 @@ function Changes({ latestRun, actions }: { latestRun: Run | undefined; actions: 
   );
 }
 
-function Verification({ checks }: { checks: Check[] }) {
+function Verification({ workOrderId, checks }: { workOrderId: string; checks: Check[] }) {
   if (!checks.length) return <EmptyMessage title="No checks have run" description="Verification results will appear here after a candidate is checked." />;
   return (
     <div className="single-column">
@@ -139,6 +141,7 @@ function Verification({ checks }: { checks: Check[] }) {
           <h2><code>{check.command}</code></h2>
           <dl className="check-meta"><div><dt>Candidate</dt><dd><code title={check.candidateCommit}>{shortId(check.candidateCommit, 12)}</code></dd></div><div><dt>Exit code</dt><dd>{check.exitCode ?? "Unavailable"}</dd></div><div><dt>Run</dt><dd><code>{shortId(check.runId)}</code></dd></div></dl>
           <div className="log-location"><span>Log stored at</span><code>{check.logPath}</code></div>
+          <SavedEvidence key={`${check.id}:${check.logSha256 ?? ""}`} workOrderId={workOrderId} checkId={check.id} title={`Log for ${check.command}`} summary="View check log" />
         </section>
       ))}
     </div>
@@ -187,8 +190,8 @@ export default function WorkOrderDetail({ detail, onStart, onCancel, onRefresh, 
       <div className="detail-content" key={activeTab}>
         {activeTab === "overview" && <Overview detail={detail} latestRun={latestRun} onRefresh={onRefresh} />}
         {activeTab === "activity" && <EventList events={detail.events} />}
-        {activeTab === "changes" && <Changes latestRun={latestRun} actions={detail.externalActions} />}
-        {activeTab === "verification" && <Verification checks={detail.checks} />}
+        {activeTab === "changes" && <Changes workOrderId={order.id} latestRun={latestRun} actions={detail.externalActions} />}
+        {activeTab === "verification" && <Verification workOrderId={order.id} checks={detail.checks} />}
         {activeTab === "decisions" && <Decisions detail={detail} onRefresh={onRefresh} />}
       </div>
     </main>

@@ -1,0 +1,69 @@
+{
+  "status": "OBSERVED_NOT_ACTIVATED",
+  "proposal": "https://github.com/jaydubya818/MyFactory/pull/26",
+  "proposalHead": "3937e9d32bfd23fd4a94947bc28071ea92b6da4e",
+  "sources": [
+    {
+      "name": "openai",
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.4-mini.md",
+      "retrievedAt": "2026-11-03T06:48:26.620743+00:00",
+      "sha256": "83625d2f3548c29379b3b2a44b183a26d266d2f5c3ffda7161dd19c9213a9058",
+      "bytes": 3695
+    },
+    {
+      "name": "gateway-models-api",
+      "url": "https://ai-gateway.vercel.sh/v1/models",
+      "retrievedAt": "2026-11-03T06:48:26.841684+00:00",
+      "sha256": "556a37800c24ff195bbf6190113c64e1c89717eda8add571c661248f38f8b333",
+      "bytes": 563358
+    },
+    {
+      "name": "vercel",
+      "url": "https://vercel.com/ai-gateway/models/gpt-5.4-mini",
+      "retrievedAt": "2026-11-03T06:48:27.196153+00:00",
+      "sha256": "552727450418c02e9b91ebd4ee7b5fc24efc9fc6e7439afe1ba11ad78f664611",
+      "bytes": 1590600
+    }
+  ],
+  "gatewayModel": {
+    "id": "openai/gpt-5.4-mini",
+    "pricing": {
+      "input": "0.00000075",
+      "output": "0.0000045",
+      "input_cache_read": "0.000000075",
+      "web_search": "10",
+      "service_tiers": {
+        "priority": {
+          "input": "0.0000015",
+          "output": "0.000009",
+          "input_cache_read": "0.00000015"
+        },
+        "flex": {
+          "input": "0.000000375",
+          "output": "0.00000225",
+          "input_cache_read": "0.0000000375"
+        }
+      },
+      "fast": {
+        "input": "0.0000015",
+        "output": "0.000009",
+        "input_cache_read": "0.00000015"
+      },
+      "regional": {
+        "us": {
+          "input": "0.000000825",
+          "output": "0.00000495",
+          "input_cache_read": "0.0000000825",
+          "fast": {
+            "input": "0.00000165",
+            "output": "0.0000099",
+            "input_cache_read": "0.000000165"
+          }
+        }
+      }
+    },
+    "context_window": 400000,
+    "max_tokens": 128000
+  },
+  "productionRatesOrAuthorityChanged": false
+}

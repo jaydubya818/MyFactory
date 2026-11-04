@@ -1,0 +1,19 @@
+
+> test
+> node --test tests/*.test.ts
+
+✔ browser action path and agent CLI achieve the same feedback outcomes (6.160708ms)
+✔ feedback survives reopening and validates all write paths (3.305541ms)
+✔ every exposed UI capability has a CLI action and agent instructions (0.797583ms)
+✔ the local server accepts loopback Host and rejects DNS rebinding hosts on every route (1.554375ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 85.504167
+
+> typecheck
+> tsc --noEmit
