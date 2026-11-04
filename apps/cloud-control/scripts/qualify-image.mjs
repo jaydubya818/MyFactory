@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { Sandbox } from '@vercel/sandbox';
+import {assertPatchedNodeRuntime} from '../../../packages/contracts/src/node-runtime.ts';
 import { diagnosticCredentials } from './staging-diagnostic-credentials.mjs';
 const observed = JSON.parse(await readFile(new URL('../../../docs/cloud-execution/phase-2/provider-diagnosis/managed-node.json', import.meta.url)));
 const image = observed.resolvedImage;
@@ -33,8 +34,8 @@ const destroy = async name => {
 try {
   const first = await create('a'); assert.equal(first.image,image);
   const user = await first.createUser('factoryproducer');
-  const tools = await command(user, `const fs=require('node:fs'),cp=require('node:child_process');console.log(JSON.stringify({node:process.version,arch:process.arch,platform:process.platform,uid:process.getuid(),git:cp.execFileSync('git',['--version'],{encoding:'utf8'}).trim(),sudoExit:cp.spawnSync('sudo',['-n','true']).status,credentialNames:Object.keys(process.env).filter(k=>/TOKEN|SECRET|PASSWORD|DATABASE_URL|PRIVATE_KEY/.test(k)),ownerFilesystem:fs.existsSync('/Users/jaywest'),repoPresent:['/workspace/.git','/app/.git',process.env.HOME+'/.git'].some(p=>fs.existsSync(p)),credentialFiles:['.npmrc','.git-credentials','.ssh/id_rsa','.aws/credentials'].filter(p=>fs.existsSync(process.env.HOME+'/'+p))}));`);
-  assert.match(tools.node,/^v24\./);assert.equal(tools.arch,'x64');assert.equal(tools.platform,'linux');assert.ok(tools.uid>0);assert.notEqual(tools.sudoExit,0);assert.deepEqual(tools.credentialNames,[]);assert.deepEqual(tools.credentialFiles,[]);assert.equal(tools.ownerFilesystem,false);assert.equal(tools.repoPresent,false);result.observations.push({tools});await save();
+  const tools = await command(user, `const fs=require('node:fs'),cp=require('node:child_process');console.log(JSON.stringify({node:process.version,undici:process.versions.undici,arch:process.arch,platform:process.platform,uid:process.getuid(),git:cp.execFileSync('git',['--version'],{encoding:'utf8'}).trim(),sudoExit:cp.spawnSync('sudo',['-n','true']).status,credentialNames:Object.keys(process.env).filter(k=>/TOKEN|SECRET|PASSWORD|DATABASE_URL|PRIVATE_KEY/.test(k)),ownerFilesystem:fs.existsSync('/Users/jaywest'),repoPresent:['/workspace/.git','/app/.git',process.env.HOME+'/.git'].some(p=>fs.existsSync(p)),credentialFiles:['.npmrc','.git-credentials','.ssh/id_rsa','.aws/credentials'].filter(p=>fs.existsSync(process.env.HOME+'/'+p))}));`);
+  assertPatchedNodeRuntime(tools.node.slice(1),tools.undici);assert.equal(tools.arch,'x64');assert.equal(tools.platform,'linux');assert.ok(tools.uid>0);assert.notEqual(tools.sudoExit,0);assert.deepEqual(tools.credentialNames,[]);assert.deepEqual(tools.credentialFiles,[]);assert.equal(tools.ownerFilesystem,false);assert.equal(tools.repoPresent,false);result.observations.push({tools});await save();
   await first.updateNetworkPolicy({allow:['github.com']});
   const ca = await command(user, `require('node:https').get('https://github.com',{timeout:5000,rejectUnauthorized:true},r=>{console.log(JSON.stringify({status:r.statusCode,tlsAuthorized:r.socket.authorized}));r.resume();}).on('timeout',function(){this.destroy(Error('TIMEOUT'))}).on('error',()=>process.exit(1));`);
   assert.equal(ca.tlsAuthorized,true);assert.equal(ca.status,200);result.observations.push({ca});

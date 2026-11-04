@@ -12,7 +12,8 @@ import predecessor from '../../../docs/capability-control/source-identity-202610
 import lifecycle from '../../../docs/capability-control/source-identity-20261010/lifecycle-successor.json' with {type:'json'};
 import recovery from '../../../docs/capability-control/source-identity-20261010/recovery-successor.json' with {type:'json'};
 import pricing from '../../../docs/capability-control/source-identity-20261020/pricing-successor.json' with {type:'json'};
-import successor from '../../../docs/capability-control/source-identity-20261022/connect-token-successor.json' with {type:'json'};
+import connect from '../../../docs/capability-control/source-identity-20261022/connect-token-successor.json' with {type:'json'};
+import successor from '../../../docs/capability-control/source-identity-20261103/dependency-successor.json' with {type:'json'};
 
 test('inventoried source and configuration resolve to the exact qualified successor',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
@@ -24,9 +25,12 @@ test('inventoried source and configuration resolve to the exact qualified succes
  assert.equal(productionExecutionContractSha256,successor.executionContractSha256);
  assert.equal(historical.sourceDigest,successor.historicalSourceDigest);
  assert.notEqual(historical.sourceDigest,source.sourceDigest);
- assert.equal(pricing.factoryVersion,successor.predecessorFactoryVersion);
- assert.equal(pricing.sourceDigest,successor.predecessorSourceDigest);
- assert.equal(pricing.executionContractSha256,successor.predecessorExecutionContractSha256);
+ assert.equal(connect.factoryVersion,successor.predecessorFactoryVersion);
+ assert.equal(connect.sourceDigest,successor.predecessorSourceDigest);
+ assert.equal(connect.executionContractSha256,successor.predecessorExecutionContractSha256);
+ assert.equal(pricing.factoryVersion,connect.predecessorFactoryVersion);
+ assert.equal(pricing.sourceDigest,connect.predecessorSourceDigest);
+ assert.equal(pricing.executionContractSha256,connect.predecessorExecutionContractSha256);
  assert.notEqual(pricing.sourceDigest,source.sourceDigest);
  assert.equal(recovery.factoryVersion,pricing.predecessorFactoryVersion);
  assert.equal(recovery.sourceDigest,pricing.predecessorSourceDigest);
@@ -39,6 +43,7 @@ test('coherent historical source or contract grants cannot consume successor aut
  const now=Date.now(),clientId='sofie-production',ownerScope='synthetic-identity-owner';
  const request={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,deadline:new Date(now+60000).toISOString()};
  const combinations=[
+  [connect.sourceDigest,connect.executionContractSha256,false],
   [lifecycle.sourceDigest,lifecycle.executionContractSha256,false],
   [recovery.sourceDigest,recovery.executionContractSha256,false],
   [pricing.sourceDigest,pricing.executionContractSha256,false],

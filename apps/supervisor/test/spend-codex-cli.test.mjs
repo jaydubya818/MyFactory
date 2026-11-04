@@ -11,7 +11,7 @@ import { SpendGateway } from '../src/spend-gateway.ts';
 import { runCodex } from '../../../packages/agents/src/index.ts';
 
 test('installed Codex CLI reaches only the metered loopback Responses boundary', { skip: process.env.FACTORY_TEST_CODEX_CLI !== '1' }, async t => {
-  const dir = mkdtempSync(join(tmpdir(), 'factory-codex-spend-'));
+  const dir = mkdtempSync(join(process.env.RUNNER_TEMP ?? tmpdir(), 'factory-codex-spend-'));
   const workspacePath = join(dir, 'workspace'), artifactsDir = join(dir, 'artifacts');
   mkdirSync(workspacePath); mkdirSync(artifactsDir);
   execFileSync('git', ['init', '-q', workspacePath]);

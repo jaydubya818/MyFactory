@@ -4,6 +4,9 @@ import {createSupervisor} from './server.ts';
 import {loadRealProvider,validateRealProvider,type RealProviderConfig} from './real-provider.ts';
 import {providerAuthorization} from './provider-connection.ts';
 import {oidcPreflight} from './oidc-preflight.ts';
+import {assertPatchedNodeRuntime} from '../../../packages/contracts/src/node-runtime.ts';
+
+assertPatchedNodeRuntime();
 
 // Configuration contains a scoped identity or Keychain reference, never credentials.
 const file=process.env.FACTORY_REAL_PROVIDER_CONFIG;

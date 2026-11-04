@@ -18,7 +18,7 @@ const installed=process.env.FACTORY_INSTALLED_CLI==='1';
 process.env.FACTORY_CODEX_MODEL='openai/gpt-5.4-mini';
 for(const scenario of ['context-contract','targeted-inspection','captured-no-edit','correct-first','repairable','still-bad','outside-scope','linked-repair']){
  test('Bounded productive semantics: '+scenario,{skip:!installed,timeout:90000},async t=>{
-  const dir=mkdtempSync(join(tmpdir(),'factory-checkpoint-')),repo=join(dir,'repo'),data=join(dir,'data');mkdirSync(repo);mkdirSync(data);
+  const dir=mkdtempSync(join(process.env.RUNNER_TEMP??tmpdir(),'factory-checkpoint-')),repo=join(dir,'repo'),data=join(dir,'data');mkdirSync(repo);mkdirSync(data);
   const git=(...args)=>execFileSync('git',['-C',repo,...args],{encoding:'utf8'}).trim();
   git('init','-q');git('config','user.name','Controlled fixture');git('config','user.email','fixture@example.invalid');
   for(const [p,s] of Object.entries(captured.files)){mkdirSync(join(repo,p,'..'),{recursive:true});writeFileSync(join(repo,p),s);}
@@ -75,7 +75,12 @@ for(const scenario of ['context-contract','targeted-inspection','captured-no-edi
      assert(input.prompt.includes('test/quantity.test.mjs'));assert(input.prompt.includes('node:test'));
      if(productive===1){assert(input.prompt.includes('HOST_IMPLEMENTATION_FEEDBACK'));assert(input.prompt.includes('maximum-plus-one'));assert(input.prompt.includes(captured.capturedImplementation.split('\n')[0]));feedbackSeen=true;}
     }
-    return runCodex(input);
+    const result=await runCodex(input);
+    if(process.env.CI==='true'){
+     const trace=readFileSync(result.eventsPath,'utf8').split('\n').filter(Boolean).map(line=>{try{return JSON.parse(line);}catch{return null;}}).filter(item=>item?.type==='item.completed'||item?.type==='error'||item?.type==='turn.failed');
+     console.log('SYNTHETIC_EXECUTOR_DIAGNOSTIC',JSON.stringify({scenario,status:result.status,error:result.error,stderr:readFileSync(result.stderrPath,'utf8').slice(-2000),events:trace}).slice(0,6000));
+    }
+    return result;
    }
   }});
   t.after(async()=>{await supervisor.close();rmSync(dir,{recursive:true,force:true});});

@@ -3,6 +3,7 @@ import type { SignedResult } from "../../hosted-routing/src/result.ts";
 import { createHash } from "node:crypto";
 import { EVIDENCE_KINDS, EVIDENCE_LIMITS, proofEvidenceReference } from "../../verification/src/evidence.ts";
 import type { EvidenceReadRequest, EvidenceTransportScope, TransportEvidenceMetadata } from "../../../apps/supervisor/src/evidence-transport.ts";
+import { assertPatchedNodeRuntime } from "../../contracts/src/node-runtime.ts";
 
 export class FactoryClientHttpError extends Error {
   readonly status: number;
@@ -29,6 +30,7 @@ export class FactoryClient {
   }
 
   async #request<T>(path: string, body?: unknown): Promise<T> {
+    assertPatchedNodeRuntime();
     const response = await fetch(`${this.#origin}/api/connect/v1/${path}`, {
       method: body === undefined ? "GET" : "POST", redirect: "error",
       headers: { Authorization: `Bearer ${this.#token}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },

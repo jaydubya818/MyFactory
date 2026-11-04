@@ -1,0 +1,26 @@
+✔ Attempt 6 deterministic checkpoint: correct-first (2099.092041ms)
+✔ Attempt 6 deterministic checkpoint: repairable (2678.582292ms)
+✔ Attempt 6 deterministic checkpoint: still-bad (1546.643292ms)
+✔ Attempt 6 deterministic checkpoint: outside-scope (425.400917ms)
+✔ Safe-integer corpus checkpoint: correct-first (2047.343542ms)
+✔ Safe-integer corpus checkpoint: repairable (2863.315375ms)
+✔ Safe-integer corpus checkpoint: still-bad (1665.587542ms)
+✔ Safe-integer corpus checkpoint: outside-scope (404.39975ms)
+✔ Bounded productive semantics: context-contract (2120.701167ms)
+✔ Bounded productive semantics: targeted-inspection (2077.494416ms)
+✔ Bounded productive semantics: captured-no-edit (513.858916ms)
+✔ Bounded productive semantics: correct-first (2069.922875ms)
+✔ Bounded productive semantics: repairable (2703.861417ms)
+✔ Bounded productive semantics: still-bad (1996.058458ms)
+✔ Bounded productive semantics: outside-scope (515.744708ms)
+✔ Bounded productive semantics: linked-repair (2365.598042ms)
+✔ captured productive context contained all implementation facts and explicit first-response edit instructions (0.2215ms)
+✔ installed Codex CLI reaches only the metered loopback Responses boundary (205.593625ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29242.33025

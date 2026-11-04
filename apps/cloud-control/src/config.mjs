@@ -1,3 +1,6 @@
+import {assertPatchedNodeRuntime} from '../../../packages/contracts/src/node-runtime.ts';
+assertPatchedNodeRuntime();
+
 export const stagingProjectId = 'prj_IRXTY6HOzS2q9wRPdabsJnmddzl4';
 export const stagingTeamId = 'team_p8z8exJRTGfOPk1GC9vUOpv3';
 export const custodyStoreId = 'store_kZ9n2mzEmqmKX7bZ';
