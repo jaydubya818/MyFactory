@@ -57,8 +57,8 @@ export interface CodexRunOptions {
    * login method and web search disabled. Mutually exclusive with `gateway`, bounded context and `sessionHome`. */
   ownerLogin?: true;
   /** Owner-login only: start Codex through the host watchdog (machine-wide kernel lock + absolute Work deadline, enforced outside
-   * the supervisor). argv: python -I script run <lockFile> <owner> <deadlineMs> <nonce> <codex> <codex argv...>. */
-  ownerLoginWatchdog?: { python: string; script: string; lockFile: string; owner: string; deadlineMs: number; nonce: string };
+   * the supervisor). argv: python -I script run <lockFile> <owner> <remainingMs> <nonce> <codex> <codex argv...>. */
+  ownerLoginWatchdog?: { python: string; script: string; lockFile: string; owner: string; remainingMs: number; nonce: string };
 }
 
 export type CodexRunStatus = "completed" | "yielded" | "failed" | "cancelled" | "timed_out";
@@ -144,7 +144,7 @@ function validateRunOptions(options: CodexRunOptions): void {
   const w = options.ownerLoginWatchdog;
   if (w !== undefined && (options.ownerLogin !== true || !w || typeof w !== "object" ||
       ![w.python, w.script, w.lockFile, w.owner].every(v => typeof v === "string" && isAbsolute(v) && !v.includes("\0")) ||
-      !Number.isSafeInteger(w.deadlineMs) || w.deadlineMs <= 0 || typeof w.nonce !== "string" || !/^[0-9a-f-]{36}$/.test(w.nonce))) {
+      !Number.isSafeInteger(w.remainingMs) || w.remainingMs <= 0 || typeof w.nonce !== "string" || !/^[0-9a-f-]{36}$/.test(w.nonce))) {
     throw new TypeError("Owner-login watchdog requires absolute paths and an absolute deadline");
   }
   if (options.onEvent !== undefined && typeof options.onEvent !== "function") {
@@ -275,7 +275,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
     ];
     const watchdog = options.ownerLoginWatchdog;
     const command = watchdog ? watchdog.python : executablePath;
-    const commandArgs = watchdog ? ["-I", watchdog.script, "run", watchdog.lockFile, watchdog.owner, String(watchdog.deadlineMs), watchdog.nonce, executablePath, ...argv] : argv;
+    const commandArgs = watchdog ? ["-I", watchdog.script, "run", watchdog.lockFile, watchdog.owner, String(watchdog.remainingMs), watchdog.nonce, executablePath, ...argv] : argv;
     child = spawn(command, commandArgs, {
       cwd: workspacePath,
       detached: true,
@@ -308,7 +308,7 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
     if (termination || closed || !reason) return;
     termination = reason;
     signalProcessGroup(child, "SIGTERM");
-    hardKillTimer = setTimeout(() => signalProcessGroup(child, "SIGKILL"), TERMINATION_GRACE_MS);
+    hardKillTimer = setTimeout(() => { if (!(options.ownerLoginWatchdog && closed)) signalProcessGroup(child, "SIGKILL"); }, TERMINATION_GRACE_MS);
     hardKillTimer.unref();
   };
   const timeoutTimer = setTimeout(() => stop("timeout"), options.timeoutMs);
@@ -444,8 +444,9 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
     }
   } finally {
     clearTimeout(timeoutTimer);
-    // The CLI may exit before one of its descendants. Reap the remaining group.
-    signalProcessGroup(child, "SIGKILL");
+    // The CLI may exit before one of its descendants. Reap the remaining group. A watchdog run is different: the watchdog only exits
+    // once its whole group is gone, and after it is reaped its PGID may belong to another host's new group, so it is never signalled.
+    if (!options.ownerLoginWatchdog) signalProcessGroup(child, "SIGKILL");
     if (hardKillTimer) clearTimeout(hardKillTimer);
     options.signal?.removeEventListener("abort", abortHandler);
     options.productiveEndSignal?.removeEventListener("abort", productiveEndHandler);

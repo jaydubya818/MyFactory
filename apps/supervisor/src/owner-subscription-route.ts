@@ -80,7 +80,8 @@ export async function ownerLoginStatus(executablePath: string): Promise<boolean>
 }
 
 export { OWNER_SUBSCRIPTION_LOCK_DIRECTORY };
-interface WorkClock { controller: AbortController; expired: string | null; retired: boolean; deadlineMs: number; timer: ReturnType<typeof setTimeout>;
+const monotonicMs = () => Number(process.hrtime.bigint() / 1_000_000n);
+interface WorkClock { controller: AbortController; expired: string | null; retired: boolean; deadlineMono: number; timer: ReturnType<typeof setTimeout>;
   onExpire: (reason: string) => void; isTerminal: () => boolean }
 interface Lease { binding: SpendBinding; phase: SpendPhase; used: boolean; authorizeDispatch: () => void;
   onDecision: (evidence: Record<string, unknown>) => void }
@@ -126,12 +127,17 @@ export class OwnerSubscriptionOperations {
    * is handed to the watchdog, which enforces it even if this supervisor dies. Expiry of a non-terminal Work aborts the running process
    * group, revokes the Work's leases and calls `onExpire`; for a terminal Work it only retires the clock.
    */
-  startWork(workId: string, hooks: { onExpire: (reason: string) => void; isTerminal: () => boolean }) {
+  startWork(workId: string, hooks: { onExpire: (reason: string) => void; isTerminal: () => boolean; requestDeadline?: string }) {
     const existing = this.#works.get(workId);
     if (existing) { if (existing.expired || existing.retired) throw new ActionError('Owner subscription Work time limit reached', 'dispatch_denied', 409); return; }
-    const clock: WorkClock = { controller: new AbortController(), expired: null, retired: false, deadlineMs: Date.now() + this.route.maxWorkSeconds * 1000,
+    // Allowance = min(maxWorkSeconds, the authorized request deadline). The wall clock is read exactly once, here; the result is a
+    // monotonic deadline and every later operation (and its watchdog) receives only the remaining monotonic time.
+    const cap = this.route.maxWorkSeconds * 1000;
+    const requestLeft = hooks.requestDeadline === undefined ? cap : Date.parse(hooks.requestDeadline) - Date.now();
+    const allowance = Math.max(0, Math.min(cap, Number.isFinite(requestLeft) ? requestLeft : 0));
+    const clock: WorkClock = { controller: new AbortController(), expired: null, retired: false, deadlineMono: monotonicMs() + allowance,
       onExpire: hooks.onExpire, isTerminal: hooks.isTerminal,
-      timer: setTimeout(() => this.expireWork(workId, 'WORK_TIME_LIMIT'), this.route.maxWorkSeconds * 1000) };
+      timer: setTimeout(() => this.expireWork(workId, 'WORK_TIME_LIMIT'), allowance) };
     clock.timer.unref?.();
     this.#works.set(workId, clock);
   }
@@ -142,7 +148,8 @@ export class OwnerSubscriptionOperations {
     clock.retired = true; clearTimeout(clock.timer);
     for (const [token, lease] of this.#leases) if (lease.binding.workId === workId) this.#leases.delete(token);
   }
-  workDeadline(workId: string) { return this.#works.get(workId)?.deadlineMs ?? null; }
+  workDeadline(workId: string) { return this.#works.get(workId)?.deadlineMono ?? null; }
+  workRemainingMs(workId: string) { const c = this.#works.get(workId); return c ? Math.max(0, Math.floor(c.deadlineMono - monotonicMs())) : null; }
   expireWork(workId: string, reason: string) {
     const clock = this.#works.get(workId);
     if (!clock || clock.expired || clock.retired) return;
@@ -211,7 +218,7 @@ export class OwnerSubscriptionOperations {
     if (lease.used) throw new Error('Owner subscription lease is single-use');
     if ((lease.phase === 'completion') !== (options.sandbox === 'read-only')) throw new Error('Owner subscription phase mismatch');
     const clock = this.#works.get(lease.binding.workId);
-    if (!clock || clock.expired || clock.retired || Date.now() >= clock.deadlineMs) throw new Error('Owner subscription Work time limit reached');
+    if (!clock || clock.expired || clock.retired || monotonicMs() >= clock.deadlineMono) throw new Error('Owner subscription Work time limit reached');
     if (this.#active >= this.route.maxConcurrentRuns) throw new Error('Owner subscription concurrency limit reached');
     // Every execution entry re-checks trust; the machine-wide kernel lock is probed before any ledger exposure (the watchdog
     // takes it for real; a race lost after dispatch is recorded UNKNOWN, never retried).
@@ -244,7 +251,7 @@ export class OwnerSubscriptionOperations {
     let result: CodexRunResult | undefined;
     try {
       result = await this.#adapter.runCodex({ ...plain, ownerLogin: true,
-        ownerLoginWatchdog: { ...watchdog, owner: this.#owner, deadlineMs: clock.deadlineMs, nonce: randomUUID() },
+        ownerLoginWatchdog: { ...watchdog, owner: this.#owner, remainingMs: Math.max(1, Math.floor(clock.deadlineMono - monotonicMs())), nonce: randomUUID() },
         signal: plain.signal ? AbortSignal.any([plain.signal, clock.controller.signal]) : clock.controller.signal });
       return result;
     } finally {
@@ -253,7 +260,7 @@ export class OwnerSubscriptionOperations {
       const outcome = result?.status ?? null;
       // A watchdog refusal (lock race, exit 75) or deadline kill (124), or any end at/after the deadline, is unresolved too.
       const watchdogEnded = result && (result.exitCode === WATCHDOG_REFUSED_LOCKED || result.exitCode === WATCHDOG_DEADLINE ||
-        result.exitSignal !== null || (result.exitCode !== null && result.exitCode >= 128) || Date.now() >= clock.deadlineMs);
+        result.exitSignal !== null || (result.exitCode !== null && result.exitCode >= 128) || monotonicMs() >= clock.deadlineMono);
       if (result && !watchdogEnded && ['completed', 'failed', 'yielded'].includes(result.status)) {
         try { this.#ledger.settleSubscriptionUnmetered(operationId!, { outcome: result.status, threadId: result.threadId }); decision('SUBSCRIPTION_UNMETERED', { outcome }); }
         catch (error) { try { this.#ledger.markUnknown(operationId!); } catch {} decision('PROVIDER_OUTCOME_UNKNOWN', { outcome, recordError: String((error as Error)?.message ?? error).slice(0, 200) }); }

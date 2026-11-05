@@ -11,10 +11,10 @@ import { assertTrustedExecutablePath, assertTrustedFile } from './executable-tru
  * Every subscription Codex process is started through this watchdog (a fixed Python program from governed source, written
  * content-addressed into the owner-only lock directory and run with the system interpreter in isolated mode). The watchdog:
  *  - takes a KERNEL lock (flock LOCK_EX|LOCK_NB) on the one lock file; a second process anywhere on the machine exits 75 before Codex
- *    exists. The lock's open file description is inherited by Codex and its descendants, so it is held exactly as long as any of them
- *    lives: supervisor death does not release it, a crashed holder releases it automatically, and there is no takeover logic;
- *  - refuses (exit 124) at or after the absolute Work deadline, and at the deadline kills its whole process group (Codex included)
- *    independently of the supervisor;
+ *    exists. The lock descriptor is private to the watchdog (never inherited), and the watchdog stays until every member of its
+ *    group is gone (a failed process scan counts as survivors): supervisor death does not release it, and there is no takeover logic;
+ *  - receives the Work's REMAINING time (from the host's monotonic deadline), refuses (exit 124) when none is left, rechecks just
+ *    before spawning Codex, and at the deadline kills its whole process group independently of the supervisor;
  *  - records {pgid, owner, deadline} in the lock file so a restarting host can kill ITS OWN orphaned group before anything else.
  */
 export const WATCHDOG_REFUSED_LOCKED = 75;
@@ -35,12 +35,12 @@ for attempt in range(attempts):
         time.sleep(0.05)
 if mode == "probe":
     sys.exit(0)
-owner, deadline_ms, nonce, codex = sys.argv[3], int(sys.argv[4]), sys.argv[5], sys.argv[6]
-# The only wall-clock read: the absolute deadline is converted ONCE into a monotonic deadline (clock changes cannot extend it).
-remaining = deadline_ms / 1000.0 - time.time()
-if remaining <= 0:
+owner, remaining_ms, nonce, codex = sys.argv[3], int(sys.argv[4]), sys.argv[5], sys.argv[6]
+# The host passes the REMAINING milliseconds of the Work (computed from its own monotonic deadline, fixed once at the claim);
+# no wall clock is read here, so clock changes cannot extend it.
+deadline = time.monotonic() + remaining_ms / 1000.0
+if remaining_ms <= 0:
     sys.exit(124)
-deadline = time.monotonic() + remaining
 # The watchdog must lead its own process group: it waits for, and kills, exactly that group. A caller that did not start it
 # detached would otherwise make it wait on (or kill) the caller's own group.
 if os.getpgrp() != os.getpid():
@@ -52,6 +52,8 @@ PS_ENV = {"PATH": "/usr/bin:/bin", "LC_ALL": "C"}
 def ps(args):
     proc = subprocess.Popen(["/bin/ps"] + args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=PS_ENV, text=True)
     out, _ = proc.communicate(timeout=10)
+    if proc.returncode != 0 or not out.strip():
+        raise RuntimeError("ps failed")
     return proc.pid, out
 try:
     _, start = ps(["-o", "lstart=", "-p", str(me)])
@@ -59,7 +61,7 @@ except Exception:
     start = ""
 # Identity for startup recovery: pid == pgid, process start time and a per-launch nonce (also in this process's argv).
 os.ftruncate(fd, 0)
-os.pwrite(fd, json.dumps({"pid": me, "pgid": pgid, "owner": owner, "nonce": nonce, "start": start.strip(), "deadlineMs": deadline_ms}).encode(), 0)
+os.pwrite(fd, json.dumps({"pid": me, "pgid": pgid, "owner": owner, "nonce": nonce, "start": start.strip(), "remainingMs": remaining_ms}).encode(), 0)
 stopping = []
 def on_term(signum, frame):
     stopping.append(signum)
@@ -67,13 +69,20 @@ signal.signal(signal.SIGTERM, on_term)
 signal.signal(signal.SIGINT, on_term)
 # Same allowlist as the owner-login child environment (the system interpreter shim may add toolchain variables).
 allowed = ("PATH", "HOME", "CODEX_HOME", "TMPDIR", "LANG", "USER", "CI")
-child = subprocess.Popen([codex] + sys.argv[7:], pass_fds=(fd,), env={k: v for k, v in os.environ.items() if k in allowed})
+# Last deadline check immediately before Codex exists (identity probing above may have taken time).
+if time.monotonic() >= deadline:
+    sys.exit(124)
+# The lock descriptor is NOT inherited (non-inheritable, close_fds): only the watchdog can unlock it, and it holds it until the
+# whole group is gone.
+child = subprocess.Popen([codex] + sys.argv[7:], close_fds=True, env={k: v for k, v in os.environ.items() if k in allowed})
 def others():
     """True while any live member of this process group other than the watchdog (and its own ps probe) exists. Unknown = alive."""
     try:
         probe, out = ps(["-A", "-o", "pid=,pgid=,stat="])
     except Exception:
-        return True
+        return True                       # a failed or empty scan means members MAY survive: keep the lock and the deadline
+    if not any(line.split()[:1] == [str(me)] for line in out.splitlines()):
+        return True                       # a scan that does not even list the watchdog is not trusted
     for line in out.splitlines():
         f = line.split()
         if len(f) >= 3 and f[1] == str(pgid) and f[0] not in (str(me), str(probe)) and not f[2].startswith("Z"):
@@ -155,7 +164,7 @@ export function lockFree(directory: string): boolean {
   try { execFileSync(w.python, ['-I', w.script, 'probe', w.lockFile], { stdio: 'ignore', timeout: 10_000, env: { PATH: '/usr/bin:/bin' } }); return true; }
   catch { return false; }
 }
-export type LockHolder = { pid: number; pgid: number; owner: string; nonce: string; start: string; deadlineMs: number };
+export type LockHolder = { pid: number; pgid: number; owner: string; nonce: string; start: string; remainingMs: number };
 export function lockHolder(directory: string): LockHolder | null {
   try {
     const h = JSON.parse(readFileSync(join(directory, LOCK_FILE), 'utf8'));

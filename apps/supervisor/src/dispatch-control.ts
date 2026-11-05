@@ -180,7 +180,7 @@ export class FactoryDispatchControl {
   if(!this.localFixture&&!this.spendFixture&&!this.subscription)throw new ActionError('Paid execution disabled: actual paid boundary is not qualified','spend_unqualified',503);
   this.orderedGate?.assertDispatch(identity.requestId);
   const admittedWork={...data.order,...data.request.input as object} as WorkOrder;
-  let subscriptionHooks:{onExpire:(reason:string)=>void;isTerminal:()=>boolean}|undefined;
+  let subscriptionHooks:{onExpire:(reason:string)=>void;isTerminal:()=>boolean;requestDeadline:string}|undefined;
   let gateway:SpendGateway|undefined, gatewayBinding:{baseUrl:string;childToken:string;close:()=>Promise<void>;
    productiveEndSignal:AbortSignal;nextProductive:()=>Promise<{baseUrl:string;childToken:string;productiveEndSignal:AbortSignal}>;beginCompletion:()=>Promise<{baseUrl:string;childToken:string}>;assertCompleted:()=>void;fenceAuthority:()=>void;assertCurrentConnection:()=>void}|undefined;
   if(this.spendFixture){
@@ -252,7 +252,7 @@ export class FactoryDispatchControl {
     return events.some(e=>e.type==='factory.terminal')||!events.some(e=>e.type==='factory.dispatch_claimed')||
      !!run&&['ready_for_review','failed','cancelled'].includes(run.state);
    };
-   subscriptionHooks={isTerminal:terminalNow,onExpire:reason=>{
+   subscriptionHooks={isTerminal:terminalNow,requestDeadline:identity.deadline,onExpire:reason=>{
     if(terminalNow())return;
     try{this.storage.transaction(()=>{
      const events=this.storage.listEvents(data.order.id);
