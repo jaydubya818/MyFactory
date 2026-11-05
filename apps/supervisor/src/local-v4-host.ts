@@ -13,7 +13,9 @@ import { digest } from '../../../packages/hosted-routing/src/result.ts';
 import type { PolicyKey } from '../../../packages/capability-enforcement/src/ordering-wire.ts';
 import { ownerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
 import { OWNER_SUBSCRIPTION_PRICING_REVISION } from '../../../packages/storage/src/spend-policy.ts';
-import { parseOwnerSubscriptionRoute, subscriptionSpendContract, OwnerSubscriptionRefused, OWNER_SUBSCRIPTION_ROUTE, type OwnerSubscriptionRoute } from './owner-subscription-route.ts';
+import { parseOwnerSubscriptionRoute, subscriptionSpendContract, OwnerSubscriptionRefused, OWNER_SUBSCRIPTION_ROUTE, type OwnerSubscriptionRoute, type OwnerContainerProfile } from './owner-subscription-route.ts';
+import { parseOwnerContainerProfile, containerExecutorVersion } from './owner-container-profile.mjs';
+import { assertContainerAvailable } from './owner-container-worker.mjs';
 
 /**
  * Trusted host composition of the ordered LOCAL_V4 supervisor (private beta: owner + named testers on one Mac).
@@ -40,7 +42,7 @@ export interface LocalV4HostConfig {
   dataDir: string;
   materialDir: string;
   witness: { path: string; epoch: string };
-  worker: { codexExecutable: string; workerProfile: 'mac' };
+  worker: { codexExecutable: string; workerProfile: 'mac'; ownerContainer?: OwnerContainerProfile };
   verificationImage: string;
   profile: { checkCommands: string[]; allowedPaths: string[] };
   client: { id: string; name: string; ownerScope: string; repositoryPaths: string[] };
@@ -87,6 +89,7 @@ export function assertTrustedExecutable(path: string) {
 /** The preflight the route actually uses; the subscription route's children get the allowlisted environment. */
 export async function hostPreflight(config: LocalV4HostConfig) {
   assertTrustedExecutable(config.worker.codexExecutable);
+  if (config.worker.ownerContainer) { assertTrustedExecutable(config.worker.ownerContainer.dockerExecutable); assertContainerAvailable(config.worker.ownerContainer); }
   return isSubscriptionProvider(config.provider) ? preflightOwnerLoginCodex(config.worker.codexExecutable, config.worker.workerProfile)
     : createCodexAdapter(config.worker.codexExecutable, config.worker.workerProfile).preflightCodex();
 }
@@ -100,9 +103,10 @@ export function parseHostConfig(raw: unknown): LocalV4HostConfig {
   const dataDir = abs(c.dataDir, 'HOST_CONFIG_DATA_DIR'), materialDir = abs(c.materialDir, 'HOST_CONFIG_MATERIAL_DIR');
   const w = obj(c.witness, ['path', 'epoch'], 'HOST_CONFIG_WITNESS');
   const witness = { path: abs(w.path, 'HOST_CONFIG_WITNESS'), epoch: str(w.epoch, NAME, 'HOST_CONFIG_WITNESS') };
-  const wk = obj(c.worker, ['codexExecutable', 'workerProfile'], 'HOST_CONFIG_WORKER');
+  const wk = obj(c.worker, c.worker && Object.hasOwn(c.worker as object, 'ownerContainer') ? ['codexExecutable', 'workerProfile', 'ownerContainer'] : ['codexExecutable', 'workerProfile'], 'HOST_CONFIG_WORKER');
   if (wk.workerProfile !== 'mac') refuse('HOST_CONFIG_WORKER');
-  const worker = { codexExecutable: abs(wk.codexExecutable, 'HOST_CONFIG_WORKER'), workerProfile: 'mac' as const };
+  const worker = { codexExecutable: abs(wk.codexExecutable, 'HOST_CONFIG_WORKER'), workerProfile: 'mac' as const,
+    ...(Object.hasOwn(wk, 'ownerContainer') ? { ownerContainer: parseOwnerContainerProfile(wk.ownerContainer) } : {}) };
   const verificationImage = str(c.verificationImage, /^sha256:[a-f0-9]{64}$/, 'HOST_CONFIG_IMAGE');
   const pr = obj(c.profile, ['checkCommands', 'allowedPaths'], 'HOST_CONFIG_PROFILE');
   const profile = { checkCommands: strings(pr.checkCommands, 16, 'HOST_CONFIG_PROFILE'),
@@ -130,6 +134,7 @@ export function parseHostConfig(raw: unknown): LocalV4HostConfig {
     return { schema: HOST_CONFIG_SCHEMA, factoryId, port, dataDir, materialDir, witness, worker, verificationImage, profile, client, enrollment, provider: { ...route } };
   }
   const pv = obj(c.provider, ['upstreamOrigin', 'credentialFile', 'price'], 'HOST_CONFIG_PROVIDER');
+  if (worker.ownerContainer) refuse('HOST_CONFIG_CONTAINER_REQUIRES_OWNER_ROUTE');
   const upstreamOrigin = str(pv.upstreamOrigin, /^(?:http:\/\/127\.0\.0\.1:\d{1,5}|https:\/\/api\.openai\.com)$/, 'HOST_CONFIG_PROVIDER');
   const price = obj(pv.price, ['revision', 'model', 'validUntil', 'contextLimitTokens', 'outputLimitTokens', 'inputMicrousdPerMillion', 'outputMicrousdPerMillion'], 'HOST_CONFIG_PRICE') as unknown as SpendPrice;
   try { validatePrice(price); } catch { refuse('HOST_CONFIG_PRICE'); }
@@ -202,7 +207,7 @@ export function hostExecutionConfiguration(config: LocalV4HostConfig, executorVe
   // The subscription route is bound into the identity through the executor version, exactly as its preflight reports it.
   const subscription = isSubscriptionProvider(config.provider);
   return { model: subscription ? (config.provider as OwnerSubscriptionRoute).model : (config.provider as MeteredProviderConfig).price.model,
-    executor: 'codex-cli' as const, executorVersion: subscription ? ownerSubscriptionExecutorVersion(executorVersion) : executorVersion, skillRevision: SKILL_REVISION,
+    executor: 'codex-cli' as const, executorVersion: subscription ? (config.worker.ownerContainer ? containerExecutorVersion(executorVersion, config.worker.ownerContainer) : ownerSubscriptionExecutorVersion(executorVersion)) : executorVersion, skillRevision: SKILL_REVISION,
     workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage, nodeVersion: process.version,
     platform: process.platform, architecture: process.arch, commands: [...config.profile.checkCommands],
     allowedPaths: [...config.profile.allowedPaths], timeoutMs: 30 * 60 * 1000 };
@@ -251,7 +256,8 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
   const supervisor = createLocalV4Supervisor({ dataDir: config.dataDir, deskPort: config.port, resultSigning: material.result,
     orderedAdmission: { enrollment, witness: new FileReceiverWitness(config.witness.path, config.witness.epoch), witnessPath: config.witness.path },
     ...(productiveBinding ? { productiveBinding } : { ownerSubscriptionBinding: { route: { ...subscription! }, codexExecutable: config.worker.codexExecutable,
-      workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage } }) });
+      workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage,
+      ...(config.worker.ownerContainer ? { container: config.worker.ownerContainer } : {}) } }) });
   try {
     await new Promise<void>((ok, fail) => { supervisor.server.once('error', fail); supervisor.server.listen(config.port, '127.0.0.1', () => ok()); });
     if (subscription && (supervisor.ownerSubscription?.disabled || !supervisor.server.listening)) refuse('HOST_SUBSCRIPTION_LOOPBACK');

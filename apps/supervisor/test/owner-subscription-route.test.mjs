@@ -75,6 +75,7 @@ test('host config: the subscription provider is opt-in by mode, bound to the sin
     profile:{checkCommands:['node q.mjs'],allowedPaths:['q.mjs']},client:{id:'myeve',name:'MyEve owner',ownerScope:scope.ownerId,repositoryPaths:[dir]},
     enrollment:{scope,agentId:'agent',registryVersion:'r1',sourceKeyFiles:{myeve:keys,relay:keys}},provider:routeFor()};
   const config=parseHostConfig(raw);
+  for (const invalid of [null, false, 0, '', undefined]) assert.throws(() => parseHostConfig({ ...raw, worker: { ...raw.worker, ownerContainer: invalid } }));
   assert.equal(config.provider.mode,'OWNER_SUBSCRIPTION_LOCAL');
   const refused=(over,code)=>assert.throws(()=>parseHostConfig({...raw,...over}),e=>e instanceof HostConfigRefused&&e.code===code,code);
   refused({provider:routeFor({clientId:'tester'})},'HOST_CONFIG_SUBSCRIPTION_OWNER_ONLY');

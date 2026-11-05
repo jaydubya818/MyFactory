@@ -59,6 +59,8 @@ export interface CodexRunOptions {
   /** Owner-login only: start Codex through the host watchdog (machine-wide kernel lock + absolute Work deadline, enforced outside
    * the supervisor). argv: python -I script run-deadline <lockFile> <owner> <remainingMs> <nonce> <deadlineMonoMs> <codex> <codex argv...>. */
   ownerLoginWatchdog?: { python: string; script: string; lockFile: string; owner: string; remainingMs: number; deadlineMonoMs: number; nonce: string };
+  /** Trusted host-only container invocation, admitted by OwnerSubscriptionOperations; never model/request configuration. */
+  ownerLoginContainer?: { script: string; invocation: Record<string, unknown> };
 }
 
 export type CodexRunStatus = "completed" | "yielded" | "failed" | "cancelled" | "timed_out";
@@ -142,6 +144,7 @@ function validateRunOptions(options: CodexRunOptions): void {
     throw new TypeError("Owner login excludes the metered gateway, bounded gateway context and an attempt-owned Codex home");
   }
   const w = options.ownerLoginWatchdog;
+  if (options.ownerLoginContainer && (!w || options.ownerLogin !== true || !isAbsolute(options.ownerLoginContainer.script))) throw new TypeError('Container requires the owner watchdog');
   if (w !== undefined && (options.ownerLogin !== true || !w || typeof w !== "object" ||
       ![w.python, w.script, w.lockFile, w.owner].every(v => typeof v === "string" && isAbsolute(v) && !v.includes("\0")) ||
       !Number.isSafeInteger(w.remainingMs) || w.remainingMs <= 0 || !Number.isSafeInteger(w.deadlineMonoMs) || w.deadlineMonoMs <= 0 || typeof w.nonce !== "string" || !/^[0-9a-f-]{36}$/.test(w.nonce))) {
@@ -278,7 +281,11 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
     // Filesystem preparation above consumes the SAME Work allowance. Never give it back at the process boundary.
     const remainingMs = watchdog ? Math.min(watchdog.remainingMs, Math.floor(watchdog.deadlineMonoMs - Number(process.hrtime.bigint() / 1_000_000n))) : null;
     if (remainingMs !== null && remainingMs <= 0) throw new Error("Owner subscription Work time limit reached before spawn");
-    const commandArgs = watchdog ? ["-I", watchdog.script, "run-deadline", watchdog.lockFile, watchdog.owner, String(remainingMs), watchdog.nonce, String(watchdog.deadlineMonoMs), executablePath, ...argv] : argv;
+    const container = options.ownerLoginContainer;
+    if (container && (!watchdog || !isAbsolute(container.script))) throw new Error('Container requires the owner watchdog');
+    const target = container ? process.execPath : executablePath;
+    const targetArgs = container ? [container.script, JSON.stringify(container.invocation), ...argv] : argv;
+    const commandArgs = watchdog ? ["-I", watchdog.script, "run-deadline", watchdog.lockFile, watchdog.owner, String(remainingMs), watchdog.nonce, String(watchdog.deadlineMonoMs), target, ...targetArgs] : targetArgs;
     child = spawn(command, commandArgs, {
       cwd: workspacePath,
       detached: true,
