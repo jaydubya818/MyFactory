@@ -31,14 +31,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: jaydubya818/MyEveBot
-          # Historical composed pairing fb6b052d failed AUTHORITY_CAPABILITY
-          # (run 40013249375 on ca71959). c8eec458 composed negatives failed
-          # FACTORY_DENIED:AUTHORITY_CAPABILITY after Factory mapped missing
-          # pins to 503 UNKNOWN (runs 40019095666, 40021338438, 40022314404).
-          # Live testers stay on #99/5895b129. Published consumer 503-contract
-          # source 2c8b92a6 (chain 5895→931→ea7093→00a206d4→59596b67→2c8b92a6)
-          # is an interim composed peer, not an installed pin.
-          ref: 2c8b92a62b98bf52a8af1e7131ade6ec27701949
+          # Nondeploying, independently reviewed owner-local consumer source (MyEve PR114). Its offline productive fixture
+          # narrows pricing through test-only synthetic runtime closures, including canonical-expiry denial coverage.
+          # Historical peer2c8b92a6 expired with canonical pricing on Nov5 (run42094396669); do not extend real pricing to green CI.
+          # This CI peer pin changes no installed beta tuple, tester source, pricing, custody or execution authority.
+          ref: c418629b4b103994ad71c22b84764e1c156e33e5
           path: .qualification/myeve
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -51,6 +48,8 @@ jobs:
       - run: npm ci --prefix templates/feedback-hub --ignore-scripts --no-audit --no-fund
       - run: npm audit --prefix templates/feedback-hub --audit-level=low
       - run: npm ci --prefix .qualification/myeve --ignore-scripts --no-audit --no-fund
+      - name: Apply and verify the reviewed peer dependency mitigation (test checkout only)
+        run: npm --prefix .qualification/myeve run postinstall && npm --prefix .qualification/myeve run security:patches
       # Existing local verification deliberately uses --pull=never at execution.
       # Provision its current image before tests; this is not the cloud runtime.
       - run: docker pull node:22-bookworm
@@ -83,7 +82,7 @@ jobs:
           MYEVE_EXTERNAL_ALPHA_TEST_DATABASE: postgres://postgres@127.0.0.1:5432/postgres
           MYFACTORY_SOURCE_ROOT: ${{ github.workspace }}
           MYEVE_EXTERNAL_ALPHA_PRODUCTIVE_FIXTURE: '1'
-        run: npm exec --prefix .qualification/myeve --workspace apps/eve -- vitest run --fileParallelism=false lib/external-alpha/productive-journey-postgres.test.ts
+        run: npm exec --prefix .qualification/myeve --workspace apps/eve -- vitest run --fileParallelism=false lib/external-alpha/productive-pricing-test-fixture.test.ts lib/external-alpha/productive-journey-postgres.test.ts
       - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
       - run: npm run check:producer-governance
       - run: node apps/cloud-control/scripts/cloud-source-identity.mjs
