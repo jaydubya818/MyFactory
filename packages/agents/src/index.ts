@@ -57,8 +57,8 @@ export interface CodexRunOptions {
    * login method and web search disabled. Mutually exclusive with `gateway`, bounded context and `sessionHome`. */
   ownerLogin?: true;
   /** Owner-login only: start Codex through the host watchdog (machine-wide kernel lock + absolute Work deadline, enforced outside
-   * the supervisor). argv: python -I script run <lockFile> <owner> <remainingMs> <nonce> <codex> <codex argv...>. */
-  ownerLoginWatchdog?: { python: string; script: string; lockFile: string; owner: string; remainingMs: number; nonce: string };
+   * the supervisor). argv: python -I script run-deadline <lockFile> <owner> <remainingMs> <nonce> <deadlineMonoMs> <codex> <codex argv...>. */
+  ownerLoginWatchdog?: { python: string; script: string; lockFile: string; owner: string; remainingMs: number; deadlineMonoMs: number; nonce: string };
 }
 
 export type CodexRunStatus = "completed" | "yielded" | "failed" | "cancelled" | "timed_out";
@@ -144,7 +144,7 @@ function validateRunOptions(options: CodexRunOptions): void {
   const w = options.ownerLoginWatchdog;
   if (w !== undefined && (options.ownerLogin !== true || !w || typeof w !== "object" ||
       ![w.python, w.script, w.lockFile, w.owner].every(v => typeof v === "string" && isAbsolute(v) && !v.includes("\0")) ||
-      !Number.isSafeInteger(w.remainingMs) || w.remainingMs <= 0 || typeof w.nonce !== "string" || !/^[0-9a-f-]{36}$/.test(w.nonce))) {
+      !Number.isSafeInteger(w.remainingMs) || w.remainingMs <= 0 || !Number.isSafeInteger(w.deadlineMonoMs) || w.deadlineMonoMs <= 0 || typeof w.nonce !== "string" || !/^[0-9a-f-]{36}$/.test(w.nonce))) {
     throw new TypeError("Owner-login watchdog requires absolute paths and an absolute deadline");
   }
   if (options.onEvent !== undefined && typeof options.onEvent !== "function") {
@@ -275,7 +275,10 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
     ];
     const watchdog = options.ownerLoginWatchdog;
     const command = watchdog ? watchdog.python : executablePath;
-    const commandArgs = watchdog ? ["-I", watchdog.script, "run", watchdog.lockFile, watchdog.owner, String(watchdog.remainingMs), watchdog.nonce, executablePath, ...argv] : argv;
+    // Filesystem preparation above consumes the SAME Work allowance. Never give it back at the process boundary.
+    const remainingMs = watchdog ? Math.min(watchdog.remainingMs, Math.floor(watchdog.deadlineMonoMs - Number(process.hrtime.bigint() / 1_000_000n))) : null;
+    if (remainingMs !== null && remainingMs <= 0) throw new Error("Owner subscription Work time limit reached before spawn");
+    const commandArgs = watchdog ? ["-I", watchdog.script, "run-deadline", watchdog.lockFile, watchdog.owner, String(remainingMs), watchdog.nonce, String(watchdog.deadlineMonoMs), executablePath, ...argv] : argv;
     child = spawn(command, commandArgs, {
       cwd: workspacePath,
       detached: true,
