@@ -23,7 +23,7 @@ export const WATCHDOG_SOURCE = `import fcntl, json, os, signal, subprocess, sys,
 mode = sys.argv[1]
 lock_path = sys.argv[2]
 fd = os.open(lock_path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
-# A momentary probe by another host must not refuse a launch; a real holder keeps the lock for the whole process lifetime.
+# A momentary probe by another host must not refuse a launch; a real holder keeps the lock for the whole group lifetime.
 attempts = 1 if mode == "probe" else 20
 for attempt in range(attempts):
     try:
@@ -35,12 +35,31 @@ for attempt in range(attempts):
         time.sleep(0.05)
 if mode == "probe":
     sys.exit(0)
-owner, deadline_ms, codex = sys.argv[3], int(sys.argv[4]), sys.argv[5]
-deadline = deadline_ms / 1000.0
-if time.time() >= deadline:
+owner, deadline_ms, nonce, codex = sys.argv[3], int(sys.argv[4]), sys.argv[5], sys.argv[6]
+# The only wall-clock read: the absolute deadline is converted ONCE into a monotonic deadline (clock changes cannot extend it).
+remaining = deadline_ms / 1000.0 - time.time()
+if remaining <= 0:
     sys.exit(124)
+deadline = time.monotonic() + remaining
+# The watchdog must lead its own process group: it waits for, and kills, exactly that group. A caller that did not start it
+# detached would otherwise make it wait on (or kill) the caller's own group.
+if os.getpgrp() != os.getpid():
+    os.setpgid(0, 0)
+me, pgid = os.getpid(), os.getpgrp()
+if pgid != me:
+    sys.exit(70)
+PS_ENV = {"PATH": "/usr/bin:/bin", "LC_ALL": "C"}
+def ps(args):
+    proc = subprocess.Popen(["/bin/ps"] + args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=PS_ENV, text=True)
+    out, _ = proc.communicate(timeout=10)
+    return proc.pid, out
+try:
+    _, start = ps(["-o", "lstart=", "-p", str(me)])
+except Exception:
+    start = ""
+# Identity for startup recovery: pid == pgid, process start time and a per-launch nonce (also in this process's argv).
 os.ftruncate(fd, 0)
-os.pwrite(fd, json.dumps({"pgid": os.getpgrp(), "pid": os.getpid(), "owner": owner, "deadlineMs": deadline_ms}).encode(), 0)
+os.pwrite(fd, json.dumps({"pid": me, "pgid": pgid, "owner": owner, "nonce": nonce, "start": start.strip(), "deadlineMs": deadline_ms}).encode(), 0)
 stopping = []
 def on_term(signum, frame):
     stopping.append(signum)
@@ -48,32 +67,63 @@ signal.signal(signal.SIGTERM, on_term)
 signal.signal(signal.SIGINT, on_term)
 # Same allowlist as the owner-login child environment (the system interpreter shim may add toolchain variables).
 allowed = ("PATH", "HOME", "CODEX_HOME", "TMPDIR", "LANG", "USER", "CI")
-child = subprocess.Popen([codex] + sys.argv[6:], pass_fds=(fd,), env={k: v for k, v in os.environ.items() if k in allowed})
+child = subprocess.Popen([codex] + sys.argv[7:], pass_fds=(fd,), env={k: v for k, v in os.environ.items() if k in allowed})
+def others():
+    """True while any live member of this process group other than the watchdog (and its own ps probe) exists. Unknown = alive."""
+    try:
+        probe, out = ps(["-A", "-o", "pid=,pgid=,stat="])
+    except Exception:
+        return True
+    for line in out.splitlines():
+        f = line.split()
+        if len(f) >= 3 and f[1] == str(pgid) and f[0] not in (str(me), str(probe)) and not f[2].startswith("Z"):
+            return True
+    return False
 def kill_group(sig):
     try:
-        os.killpg(os.getpgrp(), sig)
+        os.killpg(pgid, sig)
     except OSError:
         pass
+def expire():
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    kill_group(signal.SIGTERM)
+    grace = time.monotonic() + 5
+    while time.monotonic() < grace:
+        child.poll()
+        if not others():
+            break
+        time.sleep(0.1)
+    kill_group(signal.SIGKILL)
+    sys.exit(124)
+status = None
 while True:
-    rc = child.poll()
-    if rc is not None:
-        sys.exit(rc if rc >= 0 else 128 - rc)
-    if time.time() >= deadline:
+    if status is None:
+        rc = child.poll()
+        if rc is not None:
+            status = rc
+    # The lock and the deadline cover the WHOLE group: the watchdog stays until every descendant is gone.
+    if status is not None and not others():
         break
+    if time.monotonic() >= deadline:
+        expire()
     if stopping:
         stopping.clear()
-        try:
-            child.terminate()
-        except OSError:
-            pass
-    time.sleep(0.05)
-signal.signal(signal.SIGTERM, signal.SIG_IGN)
-kill_group(signal.SIGTERM)
-grace = time.time() + 5
-while time.time() < grace and child.poll() is None:
-    time.sleep(0.05)
-kill_group(signal.SIGKILL)
-sys.exit(124)
+        if status is None:
+            try:
+                child.terminate()
+            except OSError:
+                pass
+    time.sleep(0.2)
+if status < 0:
+    # A signal death is reported as the same signal, never as an ordinary exit code.
+    try:
+        signal.signal(-status, signal.SIG_DFL)   # SIGKILL/SIGSTOP cannot be (and need not be) reset
+    except (OSError, ValueError):
+        pass
+    os.kill(me, -status)
+    time.sleep(1)
+    sys.exit(128 - status)
+sys.exit(status)
 `;
 export const WATCHDOG_SHA256 = createHash('sha256').update(WATCHDOG_SOURCE).digest('hex');
 export const PYTHON = '/usr/bin/python3';
@@ -105,28 +155,56 @@ export function lockFree(directory: string): boolean {
   try { execFileSync(w.python, ['-I', w.script, 'probe', w.lockFile], { stdio: 'ignore', timeout: 10_000, env: { PATH: '/usr/bin:/bin' } }); return true; }
   catch { return false; }
 }
-export function lockHolder(directory: string): { pgid: number; owner: string; deadlineMs: number } | null {
-  try { const h = JSON.parse(readFileSync(join(directory, LOCK_FILE), 'utf8')); return Number.isSafeInteger(h?.pgid) && typeof h?.owner === 'string' ? h : null; }
-  catch { return null; }
+export type LockHolder = { pid: number; pgid: number; owner: string; nonce: string; start: string; deadlineMs: number };
+export function lockHolder(directory: string): LockHolder | null {
+  try {
+    const h = JSON.parse(readFileSync(join(directory, LOCK_FILE), 'utf8'));
+    return Number.isSafeInteger(h?.pid) && h.pid > 1 && h.pgid === h.pid && typeof h.owner === 'string' && typeof h.nonce === 'string' &&
+      /^[0-9a-f-]{36}$/.test(h.nonce) && typeof h.start === 'string' && h.start.length > 0 ? h : null;
+  } catch { return null; }
+}
+/** Start time and argv of a live process, or null. */
+function processIdentity(pid: number): { start: string; command: string } | null {
+  try {
+    const env = { PATH: '/usr/bin:/bin', LC_ALL: 'C' };
+    const start = execFileSync('/bin/ps', ['-o', 'lstart=', '-p', String(pid)], { encoding: 'utf8', env, timeout: 10_000 }).trim();
+    const command = execFileSync('/bin/ps', ['-o', 'command=', '-p', String(pid)], { encoding: 'utf8', env, timeout: 10_000 }).trim();
+    return start && command ? { start, command } : null;
+  } catch { return null; }
 }
 const groupAlive = (pgid: number) => { try { process.kill(-pgid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === 'EPERM'; } };
 const sleep = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 /**
- * Startup recovery, before anything else: if the lock is held by a watchdog group that THIS host (owner = its data directory)
- * started and the host died, kill that whole group (TERM, then KILL) and wait for the kernel lock to be released. A lock held by
- * another host is left alone. Throws if the orphan cannot be removed (the host must not start).
+ * The lock is held, its metadata names this host as owner, and the named watchdog is provably the same launch: alive, pid == pgid,
+ * the same process start time, and the per-launch nonce in its argv. Anything else is not ours to signal.
  */
-export function killOwnOrphan(directory: string, owner: string): { killedPgid: number | null } {
-  if (lockFree(directory)) return { killedPgid: null };
+function verifiedOwnHolder(directory: string, owner: string): LockHolder | 'FREE' | 'OTHER' | 'DOUBT' {
+  if (lockFree(directory)) return 'FREE';
   const holder = lockHolder(directory);
-  if (!holder || holder.owner !== owner || holder.pgid <= 1) return { killedPgid: null };
-  let command = '';
-  try { command = execFileSync('/bin/ps', ['-o', 'command=', '-p', String(holder.pgid)], { encoding: 'utf8', env: { PATH: '/usr/bin:/bin' } }); } catch { /* group leader gone */ }
-  if (command && !command.includes('watchdog-')) return { killedPgid: null };
-  for (const [signal, wait] of [['SIGTERM', 5000], ['SIGKILL', 5000]] as const) {
-    try { process.kill(-holder.pgid, signal); } catch { /* gone */ }
-    for (let waited = 0; waited < wait && (groupAlive(holder.pgid) || !lockFree(directory)); waited += 100) sleep(100);
-    if (!groupAlive(holder.pgid) && lockFree(directory)) return { killedPgid: holder.pgid };
+  if (!holder) return 'DOUBT';
+  if (holder.owner !== owner) return 'OTHER';
+  const id = processIdentity(holder.pid);
+  if (!id || id.start !== holder.start || !id.command.includes(` run ${join(directory, LOCK_FILE)} `) || !id.command.includes(` ${holder.nonce} `)) return 'DOUBT';
+  return holder;
+}
+export type OrphanRecovery = { status: 'NONE' } | { status: 'OTHER_HOST' } | { status: 'KILLED'; pgid: number } | { status: 'UNVERIFIED' };
+/**
+ * Startup recovery, before anything else: kill THIS host's orphaned watchdog group only after its identity is proven, re-proving it
+ * immediately before every signal. A lock held by another host is left alone. When in doubt nothing is signalled and the caller
+ * refuses new work (UNVERIFIED). Throws if a verified orphan cannot be stopped.
+ */
+export function killOwnOrphan(directory: string, owner: string): OrphanRecovery {
+  const first = verifiedOwnHolder(directory, owner);
+  if (first === 'FREE') return { status: 'NONE' };
+  if (first === 'OTHER') return { status: 'OTHER_HOST' };
+  if (first === 'DOUBT') return { status: 'UNVERIFIED' };
+  for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
+    const again = verifiedOwnHolder(directory, owner);
+    if (again === 'FREE') return { status: 'KILLED', pgid: first.pgid };
+    if (typeof again !== 'object' || again.nonce !== first.nonce || again.pid !== first.pid) return { status: 'UNVERIFIED' };
+    try { process.kill(-first.pgid, signal); } catch { /* gone */ }
+    for (let waited = 0; waited < 6000 && (groupAlive(first.pgid) || !lockFree(directory)); waited += 100) sleep(100);
+    if (!groupAlive(first.pgid) && lockFree(directory)) return { status: 'KILLED', pgid: first.pgid };
   }
   throw new Error('Orphaned owner-subscription Codex group could not be stopped');
 }

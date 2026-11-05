@@ -286,16 +286,19 @@ export class FactoryDispatchControl {
     },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};
   }
   try{
-  const started=await this.withOrderedAuthority(()=>this.execution.start(admittedWork,data.run,()=>this.storage.transaction(()=>{
+  const started=await this.withOrderedAuthority(()=>this.execution.start(admittedWork,data.run,()=>{const claimed=this.storage.transaction(()=>{
    const current=this.bind(client,identity,'factory.dispatch');
    if(current.events.some(e=>['factory.dispatch_claimed','factory.stop_requested','factory.terminal'].includes(e.type)))return false;
    if(Date.parse(identity.deadline)<=Date.now()||this.storage.getPolicy().dispatchPaused)throw new ActionError('Dispatch expired or paused','dispatch_denied',409);
    this.orderedGate?.assertDispatch(identity.requestId);   // current receiver authority at the claim itself, not only before gateway setup
    if(!current.events.some(e=>e.type==='factory.writer_bound'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.writer_bound',payload:{...identity}});
    this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.dispatch_claimed',payload:{identity,supervisorPid:process.pid}});
-   if(this.subscription&&subscriptionHooks)this.subscription.startWork(identity.workId,subscriptionHooks);   // the clock starts at acceptance
    return true;
-  }),gatewayBinding));
+  });
+  // The Work clock starts only after the claim transaction COMMITTED (a rolled-back claim leaves no clock behind).
+  if(claimed&&this.subscription&&subscriptionHooks)this.subscription.startWork(identity.workId,subscriptionHooks);
+  return claimed;
+  },gatewayBinding));
   if(!started)await gatewayBinding?.close();
   }catch(error){await gatewayBinding?.close();throw error;}
   return this.read(client,identity.requestId);

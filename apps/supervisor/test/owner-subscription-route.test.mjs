@@ -102,13 +102,13 @@ function ledgerFixture(t,{planned=2,lockDir,route:routeOver}={}){
   const dir=tmp(t,'sub-ledger-'),path=join(dir,'factory.sqlite');const {workOrderId,runId}=orderIn(path,dir);
   const ledger=new SpendLedger(path);t.after(()=>{try{ledger.close();}catch{}});
   const route=parseOwnerSubscriptionRoute(routeFor(routeOver));
-  const calls=[];let hold=null,outcome='completed';
+  const calls=[];let hold=null,outcome='completed',ending={};
   const adapter={preflightCodex:async()=>({workerProfile:'mac',binaryAvailable:true,version:'codex-cli 9.9.9',authenticated:true,error:null}),
     runCodex:async options=>{calls.push(options);let aborted=false;
       if(hold)await Promise.race([hold,new Promise(r=>options.signal?.addEventListener('abort',()=>{aborted=true;r();},{once:true}))]);
       if(aborted)return {workerProfile:'mac',status:'cancelled',success:false,exitCode:null,exitSignal:'SIGTERM',startedAt:'',finishedAt:'',eventsPath:'/dev/null',stderrPath:'',finalMessagePath:'',finalMessageAvailable:false,threadId:null,usage:null,completionEventSeen:false,error:'aborted'};
       if(outcome==='throw')throw Error('adapter crashed');
-      return {workerProfile:'mac',status:outcome,success:outcome==='completed',exitCode:0,exitSignal:null,startedAt:'',finishedAt:'',eventsPath:'/dev/null',stderrPath:'',finalMessagePath:'',finalMessageAvailable:false,threadId:'11111111-2222-4333-8444-555555555555',usage:null,completionEventSeen:true,error:null};}};
+      return {workerProfile:'mac',status:outcome,success:outcome==='completed',exitCode:0,exitSignal:null,startedAt:'',finishedAt:'',eventsPath:'/dev/null',stderrPath:'',finalMessagePath:'',finalMessageAvailable:false,threadId:'11111111-2222-4333-8444-555555555555',usage:null,completionEventSeen:true,error:null,...ending};}};
   const lockDirectory=lockDir??join(dir,'locks');
   const exe=join(dir,'codex-trusted');writeFileSync(exe,'#!/bin/sh\nexit 0\n',{mode:0o755});
   const ops=new OwnerSubscriptionOperations(route,ledger,adapter,exe,join(dir,'state'),{lockDirectory,preflight:adapter.preflightCodex});
@@ -119,7 +119,7 @@ function ledgerFixture(t,{planned=2,lockDir,route:routeOver}={}){
   const decisions=[];
   const run=(phase,opts={})=>{const lease=ops.issue(binding,phase,()=>{},e=>decisions.push(e));
     return ops.runCodex({workspacePath:'/tmp',prompt:'p',model:'gpt-5.5',timeoutMs:1000,artifactsDir:'/tmp',...(phase==='completion'?{sandbox:'read-only'}:{}),gateway:lease,...opts});};
-  return {dir,path,ledger,ops,route,binding,calls,run,decisions,expired,terminal,exe,lockDirectory,set:{hold:p=>{hold=p;},outcome:o=>{outcome=o;}}};
+  return {dir,path,ledger,ops,route,binding,calls,run,decisions,expired,terminal,exe,lockDirectory,set:{hold:p=>{hold=p;},outcome:o=>{outcome=o;},ending:e=>{ending=e;}}};
 }
 
 test('ledger admits each subscription process, records SUBSCRIPTION_UNMETERED (never $0) and enforces the operation ceiling',async t=>{
@@ -322,6 +322,16 @@ ptest('end to end: the ordered receiver dispatches the operator-login worker onc
   assert.notEqual((await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,identity)).status,200);
   assert.equal(h.supervisor.ownerSubscription.workDeadline(request.workId),null);
   h.supervisor.storage.setDispatchPaused(false,h.supervisor.storage.getPolicy().revision,'test');
+  // A claim whose transaction rolls back (failed COMMIT) leaves neither a durable claim nor a clock.
+  {
+    const storage=h.supervisor.storage,orig=storage.transaction;let armed=true;
+    storage.transaction=function(fn){return orig.call(this,()=>{const r=fn();
+      if(r===true&&armed&&this.listEvents(s.workOrderId).some(e=>e.type==='factory.dispatch_claimed')){armed=false;throw Error('COMMIT failed');}return r;});};
+    try{assert.notEqual((await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,identity)).status,200);}finally{storage.transaction=orig;}
+    assert.equal(armed,false);
+    assert.equal(storage.listEvents(s.workOrderId).filter(e=>e.type==='factory.dispatch_claimed').length,0);
+    assert.equal(h.supervisor.ownerSubscription.workDeadline(request.workId),null);
+  }
   const dispatch=await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,identity);assert.equal(dispatch.status,200,JSON.stringify(dispatch.body));
   let done;for(let i=0;i<1200;i++){done=(await h.get('/api/connect/v1/dispatches/'+request.requestId)).body;if(done.quiescent)break;await new Promise(r=>setTimeout(r,50));}
   assert.equal(done.state,'COMPLETED',JSON.stringify({state:done.state,blocker:done.blocker,events:h.supervisor.storage.listEvents(s.workOrderId).filter(e=>/hold|decision|failed|stderr|stopped/.test(e.type)).map(e=>e.type+':'+JSON.stringify(e.payload).slice(0,300))}));
@@ -421,8 +431,8 @@ test('a process needs an accepted (running) Work clock; startWork is idempotent;
 
 // Kernel-lock helpers: a real watchdog holding the lock around a long-running stand-in Codex.
 function sleeper(dir,name='codex-sleeper'){const p=join(dir,name);writeFileSync(p,'#!/bin/sh\nsleep 60\n',{mode:0o755});return p;}
-function launchDetached(dir,lockDirectory,{owner='/owner/state',deadlineMs=Date.now()+60_000,orphan=false}={}){
-  const w=watchdogFor(lockDirectory),args=['-I',w.script,'run',w.lockFile,owner,String(deadlineMs),sleeper(dir)];
+function launchDetached(dir,lockDirectory,{owner='/owner/state',deadlineMs=Date.now()+60_000,orphan=false,codex}={}){
+  const w=watchdogFor(lockDirectory),args=['-I',w.script,'run',w.lockFile,owner,String(deadlineMs),randomUUID(),codex??sleeper(dir)];
   if(!orphan){const c=spawn(w.python,args,{detached:true,stdio:'ignore'});c.unref();return c.pid;}
   // Supervisor death: an intermediate process starts the watchdog and exits immediately.
   const r=spawnSync(process.execPath,['-e',`const c=require('node:child_process').spawn(${JSON.stringify(w.python)},${JSON.stringify(args)},{detached:true,stdio:'ignore'});c.unref();console.log(c.pid);`],{encoding:'utf8'});
@@ -438,17 +448,17 @@ test('machine-wide concurrency is a kernel lock: a second host refuses before an
   await assert.rejects(b.run('productive'),/machine-wide concurrency/);
   assert.equal(b.calls.length,0);assert.equal(b.ledger.read(b.binding.workId).operations.length,0);
   const w=watchdogFor(a.lockDirectory);
-  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x',String(Date.now()+60_000),sleeper(a.dir,'other')]).status,75);   // another watchdog refuses
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x',String(Date.now()+60_000),randomUUID(),sleeper(a.dir,'other')]).status,75);   // another watchdog refuses
   assert.equal(statSync(a.lockDirectory).mode&0o777,0o700);
   killGroup(pid);                                                         // holder crash: the kernel releases the lock, no takeover logic
   assert.ok(await waitFor(()=>lockFree(a.lockDirectory)));
   await b.run('productive');assert.equal(b.calls.length,1);
   // A momentary probe (another host checking) never refuses a launch: the watchdog retries briefly.
-  const holdFor=spawn(w.python,['-I','-c',`import fcntl,os,time\nfd=os.open(${JSON.stringify(w.lockFile)},os.O_RDWR)\nfcntl.flock(fd,fcntl.LOCK_EX)\ntime.sleep(0.3)`]);
+  const holdFor=spawn(w.python,['-I','-c',`import fcntl,os,time\nfd=os.open(${JSON.stringify(w.lockFile)},os.O_RDWR)\nfcntl.flock(fd,fcntl.LOCK_EX)\ntime.sleep(0.3)`]);const holdClosed=new Promise(r=>holdFor.once('close',r));
   await new Promise(r=>setTimeout(r,100));
   const quick=join(a.dir,'codex-quick');writeFileSync(quick,'#!/bin/sh\nexit 0\n',{mode:0o755});
-  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x',String(Date.now()+60_000),quick]).status,0);
-  await new Promise(r=>holdFor.once('close',r));
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x',String(Date.now()+60_000),randomUUID(),quick]).status,0);
+  await holdClosed;
   const c=await compose(t),s=c.make();t.after(()=>s.close().catch(()=>{}));
   assert.equal(s.ownerSubscription.lockDirectory,OWNER_SUBSCRIPTION_LOCK_DIRECTORY);
   assert.match(OWNER_SUBSCRIPTION_LOCK_DIRECTORY,/\/\.myfactory\/owner-subscription$/);
@@ -465,15 +475,30 @@ test('supervisor death keeps exclusivity and the wall clock: the watchdog holds 
   let alive=true;try{process.kill(-pid,0);}catch{alive=false;}
   assert.equal(alive,false);
   const w=watchdogFor(lockDirectory);                                    // at or after the deadline nothing starts
-  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x',String(Date.now()-1),sleeper(dir,'late')]).status,124);
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x',String(Date.now()-1),randomUUID(),sleeper(dir,'late')]).status,124);
 });
 
 test('startup recovery kills only this host\'s orphaned group, before anything else',async t=>{
   const dir=tmp(t,'sub-recover-'),lockDirectory=join(dir,'locks');
   const pid=launchDetached(dir,lockDirectory,{orphan:true,owner:'/host/a/data'});t.after(()=>killGroup(pid));
   assert.ok(await waitFor(()=>!lockFree(lockDirectory)));
-  assert.deepEqual(killOwnOrphan(lockDirectory,'/host/b/data'),{killedPgid:null});assert.equal(lockFree(lockDirectory),false);   // another host's process is left alone
-  assert.deepEqual(killOwnOrphan(lockDirectory,'/host/a/data'),{killedPgid:pid});assert.equal(lockFree(lockDirectory),true);
+  assert.deepEqual(killOwnOrphan(lockDirectory,'/host/b/data'),{status:'OTHER_HOST'});assert.equal(lockFree(lockDirectory),false);   // another host's process is left alone
+  const h=lockHolder(lockDirectory);assert.equal(h.pid,pid);assert.match(h.nonce,/^[0-9a-f-]{36}$/);assert.ok(h.start.length>0);
+  // Identity doubt is never signalled: a forged start time or nonce (PID reuse) makes recovery refuse instead.
+  const lockFile=join(lockDirectory,'execution.lock');
+  for(const forged of [{...h,start:'Thu Jan  1 00:00:00 1970'},{...h,nonce:randomUUID()}]){
+    writeFileSync(lockFile,JSON.stringify(forged));
+    assert.deepEqual(killOwnOrphan(lockDirectory,'/host/a/data'),{status:'UNVERIFIED'});
+    let alive=true;try{process.kill(-pid,0);}catch{alive=false;}assert.equal(alive,true);assert.equal(lockFree(lockDirectory),false);
+  }
+  // A different, live, unrelated process named by the metadata (PID reuse) is not signalled either.
+  const bystander=spawn('/bin/sleep',['30'],{detached:true,stdio:'ignore'});bystander.unref();t.after(()=>killGroup(bystander.pid));
+  const start=execFileSync('/bin/ps',['-o','lstart=','-p',String(bystander.pid)],{encoding:'utf8',env:{LC_ALL:'C',PATH:'/usr/bin:/bin'}}).trim();
+  writeFileSync(lockFile,JSON.stringify({...h,pid:bystander.pid,pgid:bystander.pid,start}));
+  assert.deepEqual(killOwnOrphan(lockDirectory,'/host/a/data'),{status:'UNVERIFIED'});
+  let bystanderAlive=true;try{process.kill(bystander.pid,0);}catch{bystanderAlive=false;}assert.equal(bystanderAlive,true);
+  writeFileSync(lockFile,JSON.stringify(h));
+  assert.deepEqual(killOwnOrphan(lockDirectory,'/host/a/data'),{status:'KILLED',pgid:pid});assert.equal(lockFree(lockDirectory),true);
 });
 
 test('executable trust is re-checked at every execution entry and in direct composition',async t=>{
@@ -532,4 +557,46 @@ test('host config and Codex executable trust is checked before any execution; `.
   // Containment: `<repo>/..material` is inside the repository, `<repo>/../x` is not.
   assert.equal(isInsideForTest(join(dir,'..material'),dir),true);
   assert.equal(isInsideForTest(join(dir,'..','x'),dir),false);
+});
+
+test('the watchdog holds the lock and the deadline over the WHOLE group, reports signal deaths as signals, and uses a monotonic clock',async t=>{
+  const dir=tmp(t,'sub-group-'),lockDirectory=join(dir,'locks'),w=watchdogFor(lockDirectory);
+  // Codex exits at once but leaves a descendant: the watchdog (and so the lock) stays until the descendant is gone.
+  const leaves=join(dir,'codex-leaves');writeFileSync(leaves,'#!/bin/sh\n(sleep 2) &\nexit 0\n',{mode:0o755});
+  const run=spawn(w.python,['-I',w.script,'run',w.lockFile,'/o',String(Date.now()+60_000),randomUUID(),leaves],{detached:true,stdio:'ignore'});t.after(()=>killGroup(run.pid));
+  const exited=new Promise(r=>run.once('exit',(code,signal)=>r({code,signal,at:Date.now()})));const t0=Date.now();
+  await new Promise(r=>setTimeout(r,800));assert.equal(lockFree(lockDirectory),false);
+  const e=await exited;assert.equal(e.code,0);assert.ok(e.at-t0>=1800,'watchdog must outlive the descendant');
+  assert.ok(await waitFor(()=>lockFree(lockDirectory)));
+  // Deadline against the group: a descendant that outlives Codex is killed at the deadline.
+  const lingers=join(dir,'codex-lingers');writeFileSync(lingers,'#!/bin/sh\n(sleep 60) &\nexit 0\n',{mode:0o755});
+  const run2=spawn(w.python,['-I',w.script,'run',w.lockFile,'/o',String(Date.now()+1500),randomUUID(),lingers],{detached:true,stdio:'ignore'});t.after(()=>killGroup(run2.pid));
+  const e2=await new Promise(r=>run2.once('exit',(code,signal)=>r({code,signal})));
+  assert.equal(e2.signal,'SIGKILL');                                            // the group (watchdog included) was killed at the deadline
+  let alive=true;try{process.kill(-run2.pid,0);}catch{alive=false;}assert.equal(alive,false);
+  assert.ok(await waitFor(()=>lockFree(lockDirectory)));
+  // A signal-killed Codex is reported as that signal, never as an ordinary exit code.
+  const killed=join(dir,'codex-killed');writeFileSync(killed,'#!/bin/sh\nkill -KILL $$\n',{mode:0o755});
+  const r3=spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/o',String(Date.now()+60_000),randomUUID(),killed]);
+  assert.equal(r3.status,null);assert.equal(r3.signal,'SIGKILL');
+  // Deadline and grace are monotonic; the wall clock is read once, at launch.
+  const src=readFileSync(w.script,'utf8');
+  assert.equal((src.match(/time\.time\(\)/g)??[]).length,1);assert.match(src,/deadline = time\.monotonic\(\) \+ remaining/);assert.match(src,/grace = time\.monotonic\(\) \+ 5/);
+});
+
+test('signalled or >=128 exits are UNKNOWN, never settled as unmetered success',async t=>{
+  for(const ending of [{exitCode:137,exitSignal:null},{exitCode:null,exitSignal:'SIGTERM'},{exitCode:143,exitSignal:null}]){
+    const f=ledgerFixture(t);f.set.ending(ending);
+    await f.run('productive');
+    const spend=f.ledger.read(f.binding.workId);
+    assert.equal(spend.status,'UNKNOWN',JSON.stringify(ending));assert.equal(spend.unknownOperations,1);assert.equal(spend.authorityState,'fenced');
+  }
+});
+
+test('a watchdog started without its own process group becomes its group leader (never waits on or kills the caller group)',async t=>{
+  const dir=tmp(t,'sub-leader-'),lockDirectory=join(dir,'locks'),w=watchdogFor(lockDirectory);
+  const quick=join(dir,'codex-quick');writeFileSync(quick,'#!/bin/sh\nexit 0\n',{mode:0o755});
+  const r=spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/o',String(Date.now()+60_000),randomUUID(),quick],{timeout:20000});   // not detached
+  assert.equal(r.status,0);assert.equal(r.error,undefined);
+  const h=lockHolder(lockDirectory);assert.equal(h.pgid,h.pid);assert.notEqual(h.pgid,process.pid);
 });

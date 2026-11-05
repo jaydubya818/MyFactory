@@ -115,7 +115,12 @@ export class OwnerSubscriptionOperations {
   disable(reason: string) { this.#disabled ??= reason; this.#leases.clear(); for (const id of [...this.#works.keys()]) this.expireWork(id, 'ROUTE_DISABLED'); }
   get lockDirectory() { return this.#lockDirectory; }
   /** Startup recovery, before the host listens: kill this host's own orphaned watchdog/Codex group (never another host's). */
-  recoverOrphans() { return killOwnOrphan(this.#lockDirectory, this.#owner); }
+  recoverOrphans() {
+    const outcome = killOwnOrphan(this.#lockDirectory, this.#owner);
+    // When the holder's identity cannot be proven nothing is signalled; this host refuses new work instead (fail closed).
+    if (outcome.status === 'UNVERIFIED') this.disable('unverified execution lock holder');
+    return outcome;
+  }
   /**
    * Starts the Work's wall-clock cap when execution ACCEPTED the dispatch claim (idempotent, never reset). The same absolute deadline
    * is handed to the watchdog, which enforces it even if this supervisor dies. Expiry of a non-terminal Work aborts the running process
@@ -239,7 +244,7 @@ export class OwnerSubscriptionOperations {
     let result: CodexRunResult | undefined;
     try {
       result = await this.#adapter.runCodex({ ...plain, ownerLogin: true,
-        ownerLoginWatchdog: { ...watchdog, owner: this.#owner, deadlineMs: clock.deadlineMs },
+        ownerLoginWatchdog: { ...watchdog, owner: this.#owner, deadlineMs: clock.deadlineMs, nonce: randomUUID() },
         signal: plain.signal ? AbortSignal.any([plain.signal, clock.controller.signal]) : clock.controller.signal });
       return result;
     } finally {
@@ -248,7 +253,7 @@ export class OwnerSubscriptionOperations {
       const outcome = result?.status ?? null;
       // A watchdog refusal (lock race, exit 75) or deadline kill (124), or any end at/after the deadline, is unresolved too.
       const watchdogEnded = result && (result.exitCode === WATCHDOG_REFUSED_LOCKED || result.exitCode === WATCHDOG_DEADLINE ||
-        result.exitSignal === 'SIGKILL' || Date.now() >= clock.deadlineMs);
+        result.exitSignal !== null || (result.exitCode !== null && result.exitCode >= 128) || Date.now() >= clock.deadlineMs);
       if (result && !watchdogEnded && ['completed', 'failed', 'yielded'].includes(result.status)) {
         try { this.#ledger.settleSubscriptionUnmetered(operationId!, { outcome: result.status, threadId: result.threadId }); decision('SUBSCRIPTION_UNMETERED', { outcome }); }
         catch (error) { try { this.#ledger.markUnknown(operationId!); } catch {} decision('PROVIDER_OUTCOME_UNKNOWN', { outcome, recordError: String((error as Error)?.message ?? error).slice(0, 200) }); }
