@@ -244,6 +244,19 @@ export class FactoryDispatchControl {
   await this.execution.cancel(data.order,data.run);
   return this.read(client,identity.requestId);
  }
+ /** A preview is a read of a terminal, fully passed, signed candidate; it grants no execution. */
+ async previewTarget(client:FactoryClient,requestId:string){
+  client=this.current(structuredClone(client),'factory.preview');
+  const data=this.record(client,requestId,'factory.preview'),run=data.run;
+  const terminal=data.events.find(e=>e.type==='factory.terminal');
+  if(!terminal||terminal.payload.state!=='COMPLETED'||!run?.candidateCommit||!data.snapshot)
+   throw new ActionError('Only a completed candidate can be previewed','not_previewable',409);
+  const {result}=await this.producer.read(run),checks=this.storage.listChecks(run.id);
+  if(!result||!checks.length||checks.some(c=>c.status!=='passed'||c.candidateCommit!==run.candidateCommit))
+   throw new ActionError('Only a signed candidate whose every check passed can be previewed','not_previewable',409);
+  return {requestId,workOrderId:data.order.id,runId:run.id,repositoryPath:data.order.repositoryPath,
+   candidateCommit:run.candidateCommit,image:data.snapshot.configuration.verificationImage};
+ }
  async read(client:FactoryClient,requestId:string){
   client=this.current(structuredClone(client),'factory.observe');
   const data=this.record(client,requestId),{run,snapshot,events}=data;

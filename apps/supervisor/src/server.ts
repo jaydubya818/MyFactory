@@ -31,6 +31,7 @@ import { ProducerResults, producerOptions, type ProducerOptions } from "./produc
 import { LocalV4ServiceProducer, type ServiceProducer } from "./service-producer.ts";
 import { createLocalV4Preparation, bindLocalV4PreparationCapture } from './local-v4-preparation.ts';
 import { readBoundEvidence } from "./evidence-transport.ts";
+import { CandidatePreviewHost } from "./candidate-preview-host.ts";
 
 const defaultWebDist = resolve(fileURLToPath(new URL("../../web/dist", import.meta.url)));
 const confirmApprovalScript = fileURLToPath(new URL("../native/confirm-approval.swift", import.meta.url));
@@ -158,6 +159,10 @@ export interface SupervisorOptions {
   reviewObservers?: {reviewers:string[];verifiers:string[]};
   /** Explicit trusted-host activation; never accepted from an HTTP request. */
   realProvider?: RealProviderConfig;
+  /** Host-pinned immutable local verification image ID for LEGACY attempts; never read from HTTP. */
+  verificationImage?: string;
+  /** Host-configured offline build of a completed, fully passed candidate into a private static preview. */
+  candidatePreview?: { command: string };
   resultSigning?: ProducerOptions;
   dataDir?: string;
   webDist?: string;
@@ -269,6 +274,8 @@ export function createLocalV4Supervisor(options: LocalV4SupervisorOptions) {
 
 function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceProbe?: LocalResourceProbe; productive?: ProductiveBinding}, resultMode: 'LEGACY' | 'LOCAL_V4') {
   if (options.productive && (resultMode !== 'LOCAL_V4' || options.realProvider)) throw new Error('Productive binding is not qualified');
+  if (resultMode !== 'LEGACY' && (options.verificationImage !== undefined || options.candidatePreview))
+    throw new Error('Pinned LEGACY verification image and candidate preview are not qualified for this mode');
   if (resultMode === 'LOCAL_V4' && options.realProvider)
     throw new Error('Local V4 service is not qualified for live provider execution');
   if (resultMode === 'LOCAL_V4' && options.jobDependencies &&
@@ -329,7 +336,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
     }
     if (listeners.size === 0) subscribers.delete(event.workOrderId);
   };
-  const legacyProducer = resultMode === 'LEGACY' && signing ? new ProducerResults(storage, dataDir, signing) : undefined;
+  const legacyProducer = resultMode === 'LEGACY' && signing ? new ProducerResults(storage, dataDir, signing, options.verificationImage) : undefined;
   const producer: ServiceProducer | undefined = resultMode === 'LOCAL_V4' && signing
     ? bindLocalV4PreparationCapture(localPreparation!, new LocalV4ServiceProducer(storage, dataDir, signing, options.productive?.verificationImage)) : legacyProducer;
   const parallel = options.maxParallelRuns ?? 1;
@@ -400,6 +407,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
       notify(event);
     },
   });
+  const candidatePreviews = options.candidatePreview ? new CandidatePreviewHost(storage, dataDir, options.candidatePreview.command) : null;
   const reviewRepair = new ReviewRepair(storage,options.reviewObservers);
   const context: ActionContext = {
     reviewRepair,
@@ -496,6 +504,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
       const url = new URL(request.url ?? "/", `http://${host}`);
       const pathname = url.pathname;
 
+      if (candidatePreviews && candidatePreviews.serve(pathname, request.method, response)) return;
       if (pathname.startsWith("/api/capability-admission/")) {
         // Not enrolled == no receiver (unchanged 404). Enrolled: only the enrolled connection, only POST, exact bodies.
         if (!ordered) return json(response, 404, { error: 'Not found' });
@@ -555,7 +564,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
               if (!proofClientOwnsWork(current, String(scoped.workOrderId))) throw new ActionError('Evidence not found for this binding', 'not_found', 404);
             }));
         }
-        const controlRoute=/^\/api\/connect\/v1\/dispatches(?:\/([a-f0-9-]{36})(?:\/(dispatch|stop))?)?$/.exec(pathname);
+        const controlRoute=/^\/api\/connect\/v1\/dispatches(?:\/([a-f0-9-]{36})(?:\/(dispatch|stop|preview))?)?$/.exec(pathname);
         if(controlRoute){
           if(resultMode==='LOCAL_V4'&&client.purpose==='myeve-proof')return json(response,403,{error:'Proof connection is read-only'});
           if(!dispatchControl)return json(response,503,{error:'Producer result signing is required'});
@@ -571,6 +580,11 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
             return json(response,200,await currentOutcome(()=>dispatchControl.prepare(fresh,input),()=>{assertControlReadback(client,input?.requestId,'factory.prepare')}));
           }
           if(request.method==='GET'&&id&&!action)return json(response,200,await currentOutcome(()=>dispatchControl.read(client,id),()=>{assertControlReadback(client,id,'factory.observe')}));
+          if(request.method==='POST'&&id&&action==='preview'){
+            if(!candidatePreviews)return json(response,503,{error:'Candidate preview is not configured'});
+            const fresh=currentConnection(client);
+            return json(response,200,await candidatePreviews.start(await dispatchControl.previewTarget(fresh,id)));
+          }
           if(request.method==='POST'&&id&&action){
             const identity=await requestBody(request) as import('./dispatch-control.ts').ExecutionIdentity;
             const fresh=currentConnection(client);

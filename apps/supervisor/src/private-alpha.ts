@@ -1,4 +1,5 @@
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {isAbsolute} from 'node:path';
 import {createSupervisor} from './server.ts';
 import {loadRealProvider,validateRealProvider,type RealProviderConfig} from './real-provider.ts';
@@ -19,8 +20,14 @@ if(process.argv.includes('--check')){
  if(!process.env.FACTORY_DATA_DIR||!isAbsolute(process.env.FACTORY_DATA_DIR))throw Error('An explicit private-alpha FACTORY_DATA_DIR is required');
  const port=Number(process.env.FACTORY_PORT??8789);
  if(!Number.isSafeInteger(port)||port<1024||port>65535)throw Error('A valid private-alpha loopback port is required');
+ const verificationImage=process.env.FACTORY_VERIFICATION_IMAGE;
+ if(verificationImage!==undefined&&(!/^sha256:[a-f0-9]{64}$/.test(verificationImage)||
+   execFileSync('docker',['image','inspect','--format','{{.Id}}',verificationImage],{encoding:'utf8',timeout:10000}).trim()!==verificationImage))
+  throw Error('FACTORY_VERIFICATION_IMAGE must be an immutable local image ID present on this host');
+ const previewCommand=process.env.FACTORY_PREVIEW_BUILD_COMMAND;
+ if(previewCommand!==undefined&&!verificationImage)throw Error('Candidate preview requires the pinned FACTORY_VERIFICATION_IMAGE');
  await providerAuthorization(loadRealProvider(config));
- const supervisor=createSupervisor({realProvider:config});
+ const supervisor=createSupervisor({realProvider:config,...(verificationImage?{verificationImage}:{}),...(previewCommand?{candidatePreview:{command:previewCommand}}:{})});
  supervisor.server.listen(port,'127.0.0.1',()=>console.log(`Private-alpha Factory listening at http://127.0.0.1:${port}; live qualification pending`));
  const shutdown=()=>{void supervisor.close().then(()=>process.exit(0));};
  process.once('SIGINT',shutdown);process.once('SIGTERM',shutdown);
