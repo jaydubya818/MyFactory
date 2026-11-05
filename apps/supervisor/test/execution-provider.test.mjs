@@ -7,7 +7,7 @@ import test from 'node:test';
 import { openStorage } from '../../../packages/storage/src/index.ts';
 import { LocalExecutionProvider } from '../src/local-execution-provider.ts';
 
-function fixture(t, { active = false, absent = () => true, verifier = async () => true,
+function fixture(t, { active = false, absent = () => true, verifier = async () => true, allRunContainers = false,
   readiness = async () => ({ ready: true, reason: null }) } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'factory-provider-'));
   const storage = openStorage(join(dir, 'factory.sqlite'));
@@ -21,7 +21,7 @@ function fixture(t, { active = false, absent = () => true, verifier = async () =
     executePrepared: (order, attempt, claim, gateway) => { calls.push(['start', order.id, attempt.id, gateway]); return claim(); },
     cancelRun: async order => { calls.push(['cancel', order.id]); } };
   const producer = { read: value => { calls.push(['collect', value.id]); return { state: 'COMPLETED', result: null }; } };
-  const provider = new LocalExecutionProvider(storage, jobs, producer, { processAbsent: absent, verifierAbsent: verifier, readiness });
+  const provider = new LocalExecutionProvider(storage, jobs, producer, { processAbsent: absent, verifierAbsent: verifier, readiness }, allRunContainers);
   const event = (type, payload = {}, attempt = run) => storage.appendEvent({ workOrderId: work.id, runId: attempt.id, type, payload });
   t.after(() => { storage.close(); rmSync(dir, { recursive: true, force: true }); });
   return { storage, work, run, calls, provider, event };
@@ -60,6 +60,20 @@ test('unavailable verifier stays unresolved; read never changes business state',
   assert.equal(observation.evidence.verifierGone, false);
   assert.deepEqual(f.storage.listEvents(f.work.id), before);
   assert.equal(f.storage.getRun(f.run.id).state, 'planning');
+});
+
+test('container-backed runs require Docker absence before any candidate exists', async t => {
+  for (const verifier of [async () => false, async () => { throw Error('daemon unavailable'); }]) {
+    const f = fixture(t, { allRunContainers: true, verifier });
+    f.event('factory.dispatch_claimed', { supervisorPid: 99999 });
+    f.event('factory.execution_settled');
+    const observed = await f.provider.read(f.run);
+    assert.equal(observed.quiescent, false);
+    assert.equal(observed.evidence.verifierGone, false);
+    await assert.rejects(f.provider.collect(f.run), /not quiescent/);
+  }
+  const f = fixture(t, { allRunContainers: true });
+  assert.equal((await f.provider.read(f.run)).quiescent, true);
 });
 
 test('malformed PID and foreign live supervisor never establish absence', async t => {

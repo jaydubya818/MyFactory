@@ -34,6 +34,11 @@ export function sourceIdentity(): string {
     }
   }
   scan(join(root,'apps/supervisor/src'));
+  for (const name of ['Dockerfile','broker.mjs','worker-init.mjs','seccomp.json']) {
+    const path=join(root,'apps/supervisor/container',name);
+    if (!lstatSync(path).isFile() || lstatSync(path).isSymbolicLink()) throw new Error('Container policy source is not attestable');
+    files[relative(root,path)]=sha256(readFileSync(path));
+  }
   for (const name of readdirSync(join(root,'packages')).sort()) {
     const src = join(root,'packages',name,'src'); if (existsSync(src)) scan(src);
   }

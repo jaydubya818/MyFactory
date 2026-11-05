@@ -1,10 +1,15 @@
-import {readdirSync,readFileSync,writeFileSync} from 'node:fs';
+import {readdirSync,readFileSync,writeFileSync,lstatSync} from 'node:fs';
 import {join,relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {digest,sha256} from '../../../packages/hosted-routing/src/result.ts';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),files={};
 function scan(dir){for(const e of readdirSync(dir,{withFileTypes:true})){const path=join(dir,e.name);if(e.isSymbolicLink())throw Error('SOURCE_SYMLINK');if(e.isDirectory())scan(path);else if(/\.(?:ts|mjs|js|sql)$/.test(e.name))files[relative(root,path)]=sha256(readFileSync(path));}}
 for(const dir of ['apps/cloud-control/src','apps/cloud-control/api','apps/cloud-control/migrations','apps/supervisor/src'])scan(join(root,dir));
+for(const name of ['Dockerfile','broker.mjs','worker-init.mjs','seccomp.json']){
+ const path='apps/supervisor/container/'+name;
+ if(!lstatSync(join(root,path)).isFile()||lstatSync(join(root,path)).isSymbolicLink())throw Error('SOURCE_SYMLINK');
+ files[path]=sha256(readFileSync(join(root,path)));
+}
 for(const p of readdirSync(join(root,'packages'),{withFileTypes:true}).filter(p=>p.isDirectory())){try{scan(join(root,'packages',p.name,'src'));}catch(e){if(e.code!=='ENOENT')throw e;}}
 for(const path of ['apps/cloud-control/scripts/cloud-source-identity.mjs','docs/capability-control/receiver-witness.sql','tsconfig.json','tsconfig.producer.json','package.json','package-lock.json','apps/cloud-control/package.json','apps/cloud-control/vercel.json','apps/cloud-control/tsconfig.json'])files[path]=sha256(readFileSync(join(root,path)));
 const record={version:1,sourceDigest:digest(files)},destination=join(root,'apps/cloud-control/src/source-identity.json');

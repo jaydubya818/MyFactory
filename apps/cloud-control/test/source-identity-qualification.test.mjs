@@ -38,16 +38,19 @@ import sofieIntegration from '../../../docs/capability-control/source-identity-2
 
 import successor from '../../../docs/capability-control/source-identity-20261029/developer-beta-candidate.json' with {type:'json'};
 import localSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-local-successor.json' with {type:'json'};
+import containerSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-container-successor.json' with {type:'json'};
 
 test('inventoried source and configuration bind the exact unqualified source candidate',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
  const computed=JSON.parse(execFileSync(process.execPath,['apps/cloud-control/scripts/cloud-source-identity.mjs'],{cwd:root,encoding:'utf8'}));
  assert.deepEqual(computed,source);
- assert.equal(source.sourceDigest,localSuccessor.sourceDigest);
+ assert.equal(source.sourceDigest,containerSuccessor.sourceDigest);
+ assert.equal(containerSuccessor.predecessorSourceDigest,localSuccessor.sourceDigest);
  assert.equal(localSuccessor.predecessorSourceDigest,successor.sourceDigest);
  assert.equal(localSuccessor.releaseQualified,false);
- assert.equal(digest(productionConfiguration),localSuccessor.configurationDigest);
- assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:localSuccessor.configurationDigest}),localSuccessor.factoryVersion);
+ assert.equal(containerSuccessor.releaseQualified,false);
+ assert.equal(digest(productionConfiguration),containerSuccessor.configurationDigest);
+ assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:containerSuccessor.configurationDigest}),containerSuccessor.factoryVersion);
  assert.equal(productionExecutionContractSha256,successor.executionContractSha256);
  assert.equal(historical.sourceDigest,successor.historicalSourceDigest);
  assert.notEqual(historical.sourceDigest,source.sourceDigest);
@@ -196,6 +199,7 @@ test('successor inventory binds every receiving schema and the independent witne
   assert.match(files[path],/^[a-f0-9]{64}$/);
   assert.notEqual(digest({...files,[path]:'0'.repeat(64)}),source.sourceDigest);
  }
+ for(const path of ['apps/supervisor/container/Dockerfile','apps/supervisor/container/broker.mjs','apps/supervisor/container/worker-init.mjs','apps/supervisor/container/seccomp.json'])assert.match(files[path],/^[a-f0-9]{64}$/);
  assert.equal(retained.sourceDigest,'14e9984eb50322e79103424bbcf135ea4dfe955f25ec545d0e7996c5ed62f684');
  assert.equal(predecessor.factoryVersion,'fed1724f60a7783a2dc5155928bd7f4df5a34970d9de3be53cdacc4dd0a9c30b');
 });

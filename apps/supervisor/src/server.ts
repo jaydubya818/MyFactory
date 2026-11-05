@@ -25,7 +25,9 @@ import { validatePrice } from './spend-gateway.ts';
 import type { ProviderConnection } from './provider-connection.ts';
 import { FactoryDispatchControl } from "./dispatch-control.ts";
 import { assertTrustedExecutablePath } from './executable-trust.ts';
-import { OwnerSubscriptionOperations, parseOwnerSubscriptionRoute, type OwnerSubscriptionRoute } from './owner-subscription-route.ts';
+import { OwnerSubscriptionOperations, parseOwnerSubscriptionRoute, type OwnerSubscriptionRoute, type OwnerContainerProfile } from './owner-subscription-route.ts';
+import { parseOwnerContainerProfile } from './owner-container-profile.mjs';
+import { dockerCommand } from './owner-container-worker.mjs';
 import { LocalOrderedAdmission, assertWitnessOutsideData, type LocalOrderedEnrollment, type ReceiverWitness } from "./local-ordered-admission.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
 import { type RealProviderConfig, loadRealProvider, validateRealProvider } from "./real-provider.ts";
@@ -245,11 +247,11 @@ export interface LocalV4SupervisorOptions extends Omit<SupervisorOptions, 'resul
    */
   ownerSubscriptionBinding?: OwnerSubscriptionBinding;
 }
-export interface OwnerSubscriptionBinding { route: OwnerSubscriptionRoute; codexExecutable: string; workerProfile?: 'mac'; verificationImage?: string }
+export interface OwnerSubscriptionBinding { route: OwnerSubscriptionRoute; codexExecutable: string; workerProfile?: 'mac'; verificationImage?: string; container?: OwnerContainerProfile }
 function validateOwnerSubscriptionBinding(options: LocalV4SupervisorOptions): OwnerSubscriptionBinding {
   const p = options.ownerSubscriptionBinding as OwnerSubscriptionBinding;
   if (options.productiveBinding !== undefined) throw new Error('Owner subscription route excludes the metered productive binding');
-  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['route', 'codexExecutable', 'workerProfile', 'verificationImage'].includes(k)) ||
+  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['route', 'codexExecutable', 'workerProfile', 'verificationImage', 'container'].includes(k)) ||
       typeof p.codexExecutable !== 'string' || !isAbsolute(p.codexExecutable) || p.codexExecutable.includes('\0') ||
       p.workerProfile !== undefined && p.workerProfile !== 'mac' ||
       p.verificationImage !== undefined && (typeof p.verificationImage !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(p.verificationImage)))
@@ -263,7 +265,7 @@ function validateOwnerSubscriptionBinding(options: LocalV4SupervisorOptions): Ow
   if (options.orderedAdmission.enrollment.clientId !== route.clientId || options.orderedAdmission.enrollment.scope.ownerId !== route.ownerScope)
     throw new Error('Owner subscription route is enrolled for exactly one owner client and scope');
   if (process.env.FACTORY_HOSTED_INTAKE === 'true') throw new Error('Owner subscription route cannot run beside the hosted intake');
-  return { route, codexExecutable: p.codexExecutable, workerProfile: 'mac', ...(p.verificationImage ? { verificationImage: p.verificationImage } : {}) };
+  return { route, codexExecutable: p.codexExecutable, workerProfile: 'mac', ...(p.verificationImage ? { verificationImage: p.verificationImage } : {}), ...(Object.hasOwn(p, 'container') ? { container: parseOwnerContainerProfile(p.container) } : {}) };
 }
 export interface ProductiveBinding {
   provider: ProviderConnection; codexExecutable: string; workerProfile?: 'mac' | 'container';
@@ -374,7 +376,8 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   const productive = options.productive;
   const codexAdapter = productive ? createCodexAdapter(productive.codexExecutable, productive.workerProfile ?? 'mac') : undefined;
   const subscription = options.subscription ? new OwnerSubscriptionOperations(options.subscription.route, spend,
-    createCodexAdapter(options.subscription.codexExecutable, 'mac'), options.subscription.codexExecutable, dataDir) : undefined;
+    createCodexAdapter(options.subscription.codexExecutable, 'mac'), options.subscription.codexExecutable, dataDir,
+    options.subscription.container ? { container: options.subscription.container } : {}) : undefined;
   // Before anything else is served: this host's own orphaned watchdog/Codex group (from a crashed supervisor) is killed.
   subscription?.recoverOrphans();
   const productiveDependencies = codexAdapter ? { runCodex: codexAdapter.runCodex, preflightCodex: codexAdapter.preflightCodex,
@@ -390,7 +393,19 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
   if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
     throw new Error('Local spend fixture must target loopback only');
-  const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer,options.localV4ResourceProbe),producer,spend,
+  const containerProbe = options.subscription?.container ? {
+    processAbsent(pid: unknown, group: boolean) {
+      if (typeof pid !== 'number' || !Number.isSafeInteger(pid) || pid <= 0) return false;
+      try { process.kill(group ? -pid : pid, 0); return false; } catch (e) { return (e as NodeJS.ErrnoException).code === 'ESRCH'; }
+    },
+    async verifierAbsent(runId: string) {
+      try { return dockerCommand(options.subscription!.container!, ['ps','-aq','--filter',`label=factory.run=${runId}`]) === ''; }
+      catch { return false; }
+    },
+    async readiness() { try { const pre = await subscription!.preflightCodex(); return { ready: pre.authenticated, reason: pre.error }; }
+      catch { return { ready: false, reason: 'Qualified owner container unavailable' }; } },
+  } : options.localV4ResourceProbe;
+  const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer,containerProbe,!!options.subscription?.container),producer,spend,
     options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture??productive?.provider,!!realProvider||!!productive||!!subscription,currentConnection):null;
   if (subscription) {
     if (!dispatchControl) throw new Error('Owner subscription route requires producer signing');

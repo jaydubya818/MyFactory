@@ -55,12 +55,14 @@ export class LocalExecutionProvider implements ExecutionProvider {
   private readonly jobs: JobManager;
   private readonly producer: ServiceProducer;
   private readonly probe: LocalResourceProbe;
+  private readonly allRunContainers: boolean;
 
-  constructor(storage: FactoryStorage, jobs: JobManager, producer: ServiceProducer, probe = defaultProbe) {
+  constructor(storage: FactoryStorage, jobs: JobManager, producer: ServiceProducer, probe = defaultProbe, allRunContainers = false) {
     this.storage = storage;
     this.jobs = jobs;
     this.producer = producer;
     this.probe = probe;
+    this.allRunContainers = allRunContainers;
   }
 
   private current(run: Run): Run {
@@ -113,8 +115,8 @@ export class LocalExecutionProvider implements ExecutionProvider {
     const verifierStarted = events.some(event => event.runId === current.id &&
       ['run.candidate_committed', 'run.reproduction_started'].includes(event.type));
     // Unknown probe outcomes are fail-closed even for an injected implementation.
-    let verifierGone = !verifierStarted;
-    if (verifierStarted) {
+    let verifierGone = !verifierStarted && !this.allRunContainers;
+    if (verifierStarted || this.allRunContainers) {
       try { verifierGone = await this.probe.verifierAbsent(current.id) === true; }
       catch { verifierGone = false; }
     }

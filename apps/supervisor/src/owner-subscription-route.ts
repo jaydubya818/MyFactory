@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { assertTrustedExecutablePath } from './executable-trust.ts';
+import { assertTrustedExecutablePath, assertTrustedFile, trustedAncestors } from './executable-trust.ts';
 import { killOwnOrphan, lockFree, watchdogFor, OWNER_SUBSCRIPTION_LOCK_DIRECTORY, WATCHDOG_DEADLINE, WATCHDOG_REFUSED_LOCKED } from './owner-subscription-watchdog.ts';
 import { isModelReference } from '../../../packages/contracts/src/model-reference.ts';
 import { OWNER_SUBSCRIPTION_ROUTE, ownerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
@@ -8,6 +8,11 @@ import { OWNER_SUBSCRIPTION_PRICING_REVISION, type SpendBinding, type SpendPhase
 import type { SpendLedger } from '../../../packages/storage/src/spend.ts';
 import { ActionError } from './actions.ts';
 import type { FactoryClient } from './connections.ts';
+import { fileURLToPath } from 'node:url';
+import { assertContainerAvailable, recoverOwnerContainers } from './owner-container-worker.mjs';
+import { containerExecutorVersion, parseOwnerContainerProfile } from './owner-container-profile.mjs';
+
+export interface OwnerContainerProfile { imageId: string; dockerExecutable: string; authFile: string; stateDirectory: string }
 
 export { OWNER_SUBSCRIPTION_ROUTE, OWNER_SUBSCRIPTION_PRICING_REVISION };
 
@@ -97,11 +102,12 @@ export class OwnerSubscriptionOperations {
   readonly #lockDirectory: string;
   readonly #preflight: () => Promise<CodexPreflight>;
   readonly #owner: string;
+  readonly #container: OwnerContainerProfile | undefined;
   #active = 0;
   #disabled: string | null = null;
   /** `seams` are test-only (never reachable from host configuration): the default lock directory is fixed. */
   constructor(route: OwnerSubscriptionRoute, ledger: SpendLedger, adapter: CodexAdapter, executablePath: string,
-    stateDirectory: string, seams: { lockDirectory?: string; preflight?: () => Promise<CodexPreflight> } = {}) {
+    stateDirectory: string, seams: { lockDirectory?: string; preflight?: () => Promise<CodexPreflight>; container?: OwnerContainerProfile } = {}) {
     this.route = parseOwnerSubscriptionRoute(route);
     if (typeof executablePath !== 'string' || !executablePath.startsWith('/')) throw new OwnerSubscriptionRefused('SUBSCRIPTION_ROUTE_EXECUTABLE');
     if (typeof stateDirectory !== 'string' || !stateDirectory.startsWith('/')) throw new OwnerSubscriptionRefused('SUBSCRIPTION_ROUTE_STATE');
@@ -110,6 +116,14 @@ export class OwnerSubscriptionOperations {
     this.#ledger = ledger; this.#adapter = adapter; this.#executable = executablePath;
     this.#lockDirectory = seams.lockDirectory ?? OWNER_SUBSCRIPTION_LOCK_DIRECTORY;
     this.#preflight = seams.preflight ?? (() => preflightOwnerLoginCodex(this.#executable));
+    this.#container = Object.hasOwn(seams, 'container') ? parseOwnerContainerProfile(seams.container) : undefined;
+    if (this.#container) {
+      assertTrustedExecutablePath(this.#container.dockerExecutable);
+      assertTrustedFile(this.#container.authFile);
+      if (!trustedAncestors(this.#container.stateDirectory)) throw new OwnerSubscriptionRefused('SUBSCRIPTION_CONTAINER_STATE_UNTRUSTED');
+      for (const name of ['./owner-container-worker.mjs', './owner-container-profile.mjs', '../container/seccomp.json', '../container/worker-init.mjs', '../container/broker.mjs', '../container/Dockerfile'])
+        assertTrustedFile(fileURLToPath(new URL(name, import.meta.url)));
+    }
     Object.freeze(this.route);
   }
   /** Permanently disables the route in this process (e.g. a non-loopback listener). Nothing further is admitted. */
@@ -117,6 +131,10 @@ export class OwnerSubscriptionOperations {
   get lockDirectory() { return this.#lockDirectory; }
   /** Startup recovery, before the host listens: kill this host's own orphaned watchdog/Codex group (never another host's). */
   recoverOrphans() {
+    if (this.#container) {
+      const containers = recoverOwnerContainers(this.#container, this.#owner);
+      if (containers.status === 'UNVERIFIED') { this.disable('unverified container resources or live prior owner'); return containers; }
+    }
     const outcome = killOwnOrphan(this.#lockDirectory, this.#owner);
     // When the holder's identity cannot be proven nothing is signalled; this host refuses new work instead (fail closed).
     if (outcome.status === 'UNVERIFIED') this.disable('unverified execution lock holder');
@@ -206,7 +224,8 @@ export class OwnerSubscriptionOperations {
     assertTrustedExecutablePath(this.#executable);   // every execution entry, including preparation and dispatch preflights
     const base = await this.#preflight();
     if (!base.binaryAvailable || !base.version || !/^codex-cli \S+$/.test(base.version)) return { ...base, authenticated: false };
-    return { ...base, version: ownerSubscriptionExecutorVersion(base.version), authenticated: base.authenticated,
+    if (this.#container) assertContainerAvailable(this.#container);
+    return { ...base, version: this.#container ? containerExecutorVersion(base.version, this.#container) : ownerSubscriptionExecutorVersion(base.version), authenticated: base.authenticated,
       error: base.authenticated ? base.error : base.error ?? 'Owner ChatGPT Codex login required' };
   };
 
@@ -225,6 +244,7 @@ export class OwnerSubscriptionOperations {
     assertTrustedExecutablePath(this.#executable);
     const watchdog = watchdogFor(this.#lockDirectory);
     if (!lockFree(this.#lockDirectory)) throw new Error('Owner subscription machine-wide concurrency limit reached');
+    if (this.#container) assertContainerAvailable(this.#container);
     lease.used = true; this.#active += 1;
     let operationId: string | null = null, dispatched = false;
     const decision = (code: string, extra: Record<string, unknown> = {}) => {
@@ -251,6 +271,9 @@ export class OwnerSubscriptionOperations {
     let result: CodexRunResult | undefined;
     try {
       result = await this.#adapter.runCodex({ ...plain, ownerLogin: true,
+        ...(this.#container ? { ownerLoginContainer: { script: fileURLToPath(new URL('./owner-container-worker.mjs', import.meta.url)),
+          invocation: { profile: this.#container, workId: lease.binding.workId, runId: lease.binding.runId,
+            operationId: operationId!, owner: this.#owner, supervisorPid: process.pid, model: this.route.model, deadlineMonoMs: clock.deadlineMono } } } : {}),
         ownerLoginWatchdog: { ...watchdog, owner: this.#owner, remainingMs: Math.max(0, Math.floor(clock.deadlineMono - monotonicMs())), deadlineMonoMs: clock.deadlineMono, nonce: randomUUID() },
         signal: plain.signal ? AbortSignal.any([plain.signal, clock.controller.signal]) : clock.controller.signal });
       return result;
@@ -259,7 +282,7 @@ export class OwnerSubscriptionOperations {
       // A process that ended on its own is recorded unmetered. A timeout, abort or adapter exception is unresolved: UNKNOWN + fence.
       const outcome = result?.status ?? null;
       // A watchdog refusal (lock race, exit 75) or deadline kill (124), or any end at/after the deadline, is unresolved too.
-      const watchdogEnded = result && (result.exitCode === WATCHDOG_REFUSED_LOCKED || result.exitCode === WATCHDOG_DEADLINE ||
+      const watchdogEnded = result && (result.exitCode === WATCHDOG_REFUSED_LOCKED || result.exitCode === WATCHDOG_DEADLINE || (this.#container && result.exitCode === 125) ||
         result.exitSignal !== null || (result.exitCode !== null && result.exitCode >= 128) || monotonicMs() >= clock.deadlineMono);
       if (result && !watchdogEnded && ['completed', 'failed', 'yielded'].includes(result.status)) {
         try { this.#ledger.settleSubscriptionUnmetered(operationId!, { outcome: result.status, threadId: result.threadId }); decision('SUBSCRIPTION_UNMETERED', { outcome }); }
