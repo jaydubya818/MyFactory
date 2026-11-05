@@ -143,7 +143,11 @@ export class ProducerResults {
   private readonly storage: FactoryStorage;
   private readonly dataDir: string;
   private readonly options: ProducerOptions;
-  constructor(storage: FactoryStorage, dataDir: string, options: ProducerOptions) {
+  readonly #verificationImage: string;
+  /** `verificationImage` is a host-pinned immutable local image ID; it is signed into every execution configuration. */
+  constructor(storage: FactoryStorage, dataDir: string, options: ProducerOptions, verificationImage?: string) {
+    if (verificationImage !== undefined && !/^sha256:[a-f0-9]{64}$/.test(verificationImage)) throw new Error('Explicit verification image must be an immutable local image ID');
+    this.#verificationImage = verificationImage ?? DEFAULT_VERIFICATION_IMAGE;
     this.storage=storage; this.dataDir=dataDir; this.options=structuredClone(options);
     if (!/^[a-zA-Z0-9_-]{1,100}$/.test(options.factoryId)) throw new Error('Invalid Factory identity');
     const keys=options.keys.filter(k => k.factoryId === options.factoryId && k.keyId === options.currentKeyId);
@@ -169,7 +173,7 @@ export class ProducerResults {
     if (typeof requestId !== 'string' || !requestId) throw new Error('Request identity missing');
     const configuration: ExecutionConfiguration = {
       model, executor:'codex-cli', executorVersion, skillRevision:'fd8f20a879b507cf09feba08663a1edf7a949353',
-      workerProfile:run.workerProfile, verificationImage:DEFAULT_VERIFICATION_IMAGE,
+      workerProfile:run.workerProfile, verificationImage:this.#verificationImage,
       nodeVersion:process.version, platform:process.platform, architecture:process.arch,
       commands:work.kind === 'defect' && work.reproductionCommand ? [...new Set([work.reproductionCommand,...work.checkCommands])] : [...work.checkCommands],
       allowedPaths:[...work.allowedPaths], timeoutMs:30*60*1000,

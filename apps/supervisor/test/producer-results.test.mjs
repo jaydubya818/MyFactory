@@ -21,13 +21,13 @@ function signer(keyId='key-1') {
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function deferred(){let resolve; const promise=new Promise(r=>resolve=r);return {promise,resolve};}
 async function finished(storage,id){for(let i=0;i<500;i++){const r=storage.getRun(id);if(r.finishedAt)return r;await sleep(10);}throw new Error('Attempt did not finish');}
-async function fixture(t,{worker,verifier,notify=()=>{},signing=signer(),retainCheckpoints=false}={}) {
+async function fixture(t,{worker,verifier,notify=()=>{},signing=signer(),retainCheckpoints=false,verificationImage}={}) {
   const dir=mkdtempSync(join(tmpdir(),'q37-producer-')), repo=join(dir,'repo');mkdirSync(repo);
   const git=(...args)=>execFileSync('git',['-C',repo,...args],{encoding:'utf8'}).trim();
   git('init','-q');git('config','user.name','Synthetic Q37');git('config','user.email','synthetic@example.invalid');
   writeFileSync(join(repo,'sample.txt'),'before\n');git('add','sample.txt');git('commit','-qm','Synthetic input');
   const storage=openStorage(join(dir,'factory.sqlite'));
-  const producer=new ProducerResults(storage,dir,signing);
+  const producer=new ProducerResults(storage,dir,signing,verificationImage);
   const observed=[];
   const jobs=new JobManager(storage,dir,e=>notify(e,{storage,dir}),{
     preflightCodex:async()=>({binaryAvailable:true,authenticated:true,version:'synthetic-codex-1',workerProfile:'mac',error:null}),
@@ -70,6 +70,19 @@ test('cancelled managed fixture retains a signed unverified checkpoint before te
  assert.ok(manifest.artifacts.every(a=>Date.parse(a.createdAt)<=Date.parse(manifest.completedAt)));
  const checkpoint=f.storage.listEvents(f.order.id).find(e=>e.type==='run.recovery_checkpoint');assert.equal(checkpoint.payload.verified,false);
  const reopened=openStorage(join(f.dir,'factory.sqlite'));try{assert.deepEqual(new ProducerResults(reopened,f.dir,f.signing).read(run).result,result);}finally{reopened.close();}
+});
+
+test('a host-pinned immutable verification image is signed into the configuration and used by every check',async t=>{
+  const image='sha256:'+'b'.repeat(64),images=[];
+  const f=await golden(t,{verificationImage:image,verifier:input=>{images.push(input.image);mkdirSync(input.artifactDir,{recursive:true});
+    return {checks:input.commands.map((command,i)=>{const logPath=join(input.artifactDir,`v-${i}.log`);writeFileSync(logPath,'ok\n');const at=new Date().toISOString();
+      return {candidateCommit:input.candidateSha,candidateTree:execFileSync('git',['-C',input.repositoryPath,'rev-parse',`${input.candidateSha}^{tree}`],{encoding:'utf8'}).trim(),command,status:'passed',exitCode:0,startedAt:at,finishedAt:at,logPath,reason:null};}),reason:null};}});
+  const {manifest}=verifyResult(f.result,f.expected);
+  assert.equal(manifest.execution.configuration.verificationImage,image);
+  assert.deepEqual([...new Set(images)],[image]);
+});
+test('a mutable verification image tag is refused at producer construction',()=>{
+  assert.throws(()=>new ProducerResults(null,'/tmp',signer(),'node:22-bookworm'),/immutable/);
 });
 
 test('Gateway model identity survives signed candidate provenance without normalization',async t=>{
