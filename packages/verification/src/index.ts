@@ -577,3 +577,110 @@ async function verifySource(input: VerificationInput, treeOnly: boolean, lease?:
     rmSync(temporaryDir, { recursive: true, force: true });
   }
 }
+
+export interface StaticBuildInput {
+  repositoryPath: string;
+  candidateSha: string;
+  /** Immutable local image ID (`sha256:<64 hex>`); a mutable tag could change what built the preview. */
+  image: string;
+  command: string;
+  /** Fresh absolute directory outside the repository; it becomes the only writable mount (`/out`). */
+  outputDir: string;
+  artifactDir: string;
+  limits?: VerificationLimits;
+  signal?: AbortSignal;
+}
+export interface StaticBuildFile { path: string; sha256: string; size: number }
+export interface StaticBuildResult {
+  status: "built" | "failed" | "unavailable";
+  candidateCommit: string;
+  candidateTree: string | null;
+  outputDir: string;
+  logPath: string;
+  files: StaticBuildFile[];
+  reason: string | null;
+}
+const STATIC_OUTPUT_LIMITS = { files: 512, bytes: 20 * 1024 * 1024 };
+
+function staticOutputFiles(root: string): StaticBuildFile[] {
+  const files: StaticBuildFile[] = [];
+  let bytes = 0;
+  const walk = (dir: string, prefix: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = prefix ? `${prefix}/${entry.name}` : entry.name, absolute = join(dir, entry.name), stat = lstatSync(absolute);
+      if (stat.isSymbolicLink()) throw new Error(`Build output contains a symlink: ${path}`);
+      if (stat.isDirectory()) { walk(absolute, path); continue; }
+      if (!stat.isFile() || stat.nlink !== 1) throw new Error(`Build output entry is not a regular file: ${path}`);
+      bytes += stat.size;
+      if (files.length >= STATIC_OUTPUT_LIMITS.files || bytes > STATIC_OUTPUT_LIMITS.bytes) throw new Error("Build output exceeds the static preview limit");
+      files.push({ path, size: stat.size, sha256: createHash("sha256").update(readFileSync(absolute)).digest("hex") });
+    }
+  };
+  walk(root, "");
+  if (!files.some(file => file.path === "index.html")) throw new Error("Build output has no regular file index.html");
+  return files.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+}
+
+/** Builds the exact candidate commit into a static root with the verifier's offline, read-only hardening.
+ * The candidate tree stays read-only; `/out` is the single writable mount and is re-inspected after the run. */
+export async function buildCandidateStatic(input: StaticBuildInput): Promise<StaticBuildResult> {
+  if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(input.candidateSha)) throw new TypeError("candidateSha must be a full Git commit SHA");
+  if (!/^sha256:[a-f0-9]{64}$/.test(input.image)) throw new TypeError("Static builds require an immutable local image ID");
+  if (!input.command.trim()) throw new TypeError("A build command is required");
+  if (!isAbsolute(input.outputDir) || existsSync(input.outputDir) || input.outputDir.includes(",")) throw new Error("Static build requires a fresh absolute output directory");
+  const repositoryPath = realpathSync(input.repositoryPath);
+  const outside = (path: string) => { const r = relative(repositoryPath, path); return r.startsWith("..") || isAbsolute(r); };
+  if (!outside(resolve(input.outputDir)) || !outside(resolve(input.artifactDir))) throw new Error("Static build directories must be outside the repository");
+  const limits = limitsFor(input.limits);
+  mkdirSync(input.artifactDir, { recursive: true });
+  const workDir = realpathSync(mkdtempSync(join(resolve(input.artifactDir), "static-build-")));
+  const exportDir = join(workDir, "export"), archivePath = join(workDir, "candidate.tar"), logPath = join(workDir, "build.log");
+  mkdirSync(exportDir, { mode: 0o755 });
+  mkdirSync(input.outputDir, { recursive: true, mode: 0o755 });
+  chmodSync(input.outputDir, 0o777);
+  const result: StaticBuildResult = { status: "unavailable", candidateCommit: input.candidateSha, candidateTree: null,
+    outputDir: realpathSync(input.outputDir), logPath, files: [], reason: null };
+  writeFileSync(logPath, "", { mode: 0o600 });
+  try {
+    const resolved = (await runTool("git", ["-C", repositoryPath, "rev-parse", "--verify", `${input.candidateSha}^{commit}`], 30_000, input.signal)).toString("utf8").trim();
+    if (resolved !== input.candidateSha) throw new Error("Candidate did not resolve to the requested commit");
+    result.candidateTree = (await runTool("git", ["-C", repositoryPath, "rev-parse", `${resolved}^{tree}`], 30_000, input.signal)).toString("utf8").trim();
+    const format = (await runTool("git", ["-C", repositoryPath, "rev-parse", "--show-object-format"], 30_000, input.signal)).toString("utf8").trim();
+    if (format !== "sha1" && format !== "sha256") throw new Error(`Unsupported Git object format: ${format}`);
+    const entries = parseTree(await runTool("git", ["-C", repositoryPath, "ls-tree", "-r", "-z", "--full-tree", resolved], 30_000, input.signal));
+    await runTool("git", ["-C", repositoryPath, "archive", "--format=tar", `--output=${archivePath}`, resolved], 30_000, input.signal);
+    await runTool("tar", ["-xf", archivePath, "-C", exportDir], 30_000, input.signal);
+    await assertExactExport(exportDir, entries, format, input.signal);
+  } catch (error) {
+    result.reason = `Candidate export unavailable: ${error instanceof Error ? error.message : String(error)}`;
+    rmSync(input.outputDir, { recursive: true, force: true });
+    return result;
+  }
+  const name = `factory-static-build-${randomUUID()}`;
+  const outcome = await runDocker([
+    "run", "--rm", "--pull=never", "--name", name,
+    "--network=none", "--read-only", "--cap-drop=ALL",
+    "--security-opt=no-new-privileges", "--user=65534:65534",
+    `--pids-limit=${limits.pids}`, `--cpus=${limits.cpus}`,
+    `--memory=${limits.memoryMb}m`, `--memory-swap=${limits.memoryMb}m`,
+    "--mount", `type=bind,source=${exportDir},target=/src,readonly`,
+    "--mount", `type=bind,source=${result.outputDir},target=/out`,
+    "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m",
+    "--workdir=/src", "--env=HOME=/tmp", "--entrypoint=/bin/sh",
+    input.image, "-lc", input.command,
+  ], name, limits, input.signal);
+  writeFileSync(logPath, outcome.output, { mode: 0o600 });
+  rmSync(workDir + "/export", { recursive: true, force: true });
+  rmSync(archivePath, { force: true });
+  if (outcome.launchError || outcome.aborted || outcome.timedOut || outcome.exitCode === 125) {
+    result.reason = outcome.launchError ?? (outcome.aborted ? "Build cancelled" : outcome.timedOut ? "Build timed out" : "Docker unavailable");
+  } else if (outcome.exitCode !== 0) {
+    result.status = "failed"; result.reason = `Build exited ${outcome.exitCode}`;
+  } else {
+    try { result.files = staticOutputFiles(result.outputDir); result.status = "built"; }
+    catch (error) { result.status = "failed"; result.reason = error instanceof Error ? error.message : String(error); }
+  }
+  if (result.status !== "built") { result.files = []; rmSync(result.outputDir, { recursive: true, force: true }); }
+  else chmodSync(result.outputDir, 0o755);
+  return result;
+}
