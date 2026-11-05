@@ -73,11 +73,42 @@ const inside = (child: string, parent: string) => { const r = relative(real(pare
 export const isInsideForTest = inside;
 
 const uid = () => process.getuid!();
-/** Not replaceable by another local user: owned by the operator (or root), never group/world-writable, unless a sticky root-owned dir. */
+const groupVerdicts = new Map<number, boolean>();
+/**
+ * A group-writable node is acceptable only when that group cannot contain another local user: every direct member and every user
+ * whose primary group it is must be the operator or root, with no nested groups (e.g. Homebrew's `admin` group on a single-user Mac).
+ * Any lookup failure refuses.
+ */
+function groupOnlyOperator(gid: number): boolean {
+  if (groupVerdicts.has(gid)) return groupVerdicts.get(gid)!;
+  let ok = false;
+  try {
+    const me = execFileSync('/usr/bin/id', ['-un'], { encoding: 'utf8', timeout: 5000, env: { PATH: '/usr/bin:/bin' } }).trim();
+    const allowed = (name: string) => name === me || name === 'root';
+    if (process.platform === 'darwin') {
+      const dscl = (...a: string[]) => execFileSync('/usr/bin/dscl', ['.', ...a], { encoding: 'utf8', timeout: 5000, env: { PATH: '/usr/bin:/bin' } });
+      const name = dscl('-search', '/Groups', 'PrimaryGroupID', String(gid)).split(/\s+/)[0];
+      if (name) {
+        const record = dscl('-read', `/Groups/${name}`);
+        const members = /^GroupMembership:(.*)$/m.exec(record)?.[1].trim().split(/\s+/).filter(Boolean) ?? [];
+        const primary = dscl('-list', '/Users', 'PrimaryGroupID').split('\n').map(l => l.trim().split(/\s+/)).filter(([, g]) => g === String(gid)).map(([u]) => u);
+        ok = !/^NestedGroups:/m.test(record) && members.every(allowed) && primary.every(allowed);
+      }
+    } else {
+      const group = readFileSync('/etc/group', 'utf8').split('\n').map(l => l.split(':')).find(f => f[2] === String(gid));
+      const primary = readFileSync('/etc/passwd', 'utf8').split('\n').map(l => l.split(':')).filter(f => f[3] === String(gid)).map(f => f[0]);
+      ok = !!group && (group[3] ?? '').split(',').filter(Boolean).every(allowed) && primary.every(allowed);
+    }
+  } catch { ok = false; }
+  groupVerdicts.set(gid, ok);
+  return ok;
+}
+/** Not replaceable by another local user: owned by the operator (or root); not world-writable (unless a sticky root-owned dir);
+ *  group-writable only for a group that contains no other user. */
 function trustedNode(path: string, st: import('node:fs').Stats, allowSticky: boolean): boolean {
   if (st.uid !== uid() && st.uid !== 0) return false;
-  if ((st.mode & 0o022) === 0) return true;
-  return allowSticky && st.isDirectory() && (st.mode & 0o1000) !== 0 && st.uid === 0;
+  if ((st.mode & 0o002) !== 0) return allowSticky && st.isDirectory() && (st.mode & 0o1000) !== 0 && st.uid === 0;
+  return (st.mode & 0o020) === 0 || groupOnlyOperator(st.gid);
 }
 function trustedAncestors(path: string): boolean {
   for (let dir = dirname(path); ; dir = dirname(dir)) {
