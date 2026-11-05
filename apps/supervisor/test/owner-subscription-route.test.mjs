@@ -27,7 +27,7 @@ const scope={ownerId:'owner:fixture',organizationId:'org',installationId:'instal
 const token='a'.repeat(64);
 const until=()=>new Date(Date.now()+7*86400_000).toISOString();
 const routeFor=(over={})=>({mode:'OWNER_SUBSCRIPTION_LOCAL',ownerOnly:true,bindHost:'127.0.0.1',ownerScope:scope.ownerId,clientId:'myeve',model:'gpt-5.5',
-  validUntil:until(),maxProductiveOperations:2,maxConcurrentRuns:1,...over});
+  validUntil:until(),maxProductiveOperations:2,maxConcurrentRuns:1,maxWorkSeconds:600,...over});
 const routeRefused=(raw,code)=>assert.throws(()=>parseOwnerSubscriptionRoute(raw),e=>e instanceof OwnerSubscriptionRefused&&e.code===code,code);
 const tmp=(t,prefix)=>{const d=realpathSync(mkdtempSync(join(tmpdir(),prefix)));t.after(()=>{try{execFileSync('chmod',['-R','u+w',d]);}catch{}rmSync(d,{recursive:true,force:true});});return d;};
 
@@ -98,22 +98,27 @@ function orderIn(path,dir){const storage=openStorage(path);const order=storage.c
   repositoryPath:dir,baseRef:'a'.repeat(40),acceptanceCriteria:['Safe'],reproductionCommand:null,expectedFailureText:null,checkCommands:[],allowedPaths:['t.txt'],workerProfile:'mac'});
   const run=storage.createRun({workOrderId:order.id,workerProfile:'mac',inputCommit:'a'.repeat(40),workspacePath:dir});
   storage.close();return {workOrderId:order.id,runId:run.id};}
-function ledgerFixture(t,{planned=2}={}){
+function ledgerFixture(t,{planned=2,lockDir,route:routeOver}={}){
   const dir=tmp(t,'sub-ledger-'),path=join(dir,'factory.sqlite');const {workOrderId,runId}=orderIn(path,dir);
   const ledger=new SpendLedger(path);t.after(()=>{try{ledger.close();}catch{}});
-  const route=parseOwnerSubscriptionRoute(routeFor());
+  const route=parseOwnerSubscriptionRoute(routeFor(routeOver));
   const calls=[];let hold=null,outcome='completed';
   const adapter={preflightCodex:async()=>({workerProfile:'mac',binaryAvailable:true,version:'codex-cli 9.9.9',authenticated:true,error:null}),
-    runCodex:async options=>{calls.push(options);if(hold)await hold;if(outcome==='throw')throw Error('adapter crashed');
+    runCodex:async options=>{calls.push(options);let aborted=false;
+      if(hold)await Promise.race([hold,new Promise(r=>options.signal?.addEventListener('abort',()=>{aborted=true;r();},{once:true}))]);
+      if(aborted)return {workerProfile:'mac',status:'cancelled',success:false,exitCode:null,exitSignal:'SIGTERM',startedAt:'',finishedAt:'',eventsPath:'/dev/null',stderrPath:'',finalMessagePath:'',finalMessageAvailable:false,threadId:null,usage:null,completionEventSeen:false,error:'aborted'};
+      if(outcome==='throw')throw Error('adapter crashed');
       return {workerProfile:'mac',status:outcome,success:outcome==='completed',exitCode:0,exitSignal:null,startedAt:'',finishedAt:'',eventsPath:'/dev/null',stderrPath:'',finalMessagePath:'',finalMessageAvailable:false,threadId:'11111111-2222-4333-8444-555555555555',usage:null,completionEventSeen:true,error:null};}};
-  const ops=new OwnerSubscriptionOperations(route,ledger,adapter,'/opt/homebrew/bin/codex');
+  const lockDirectory=lockDir??join(dir,'locks');
+  const ops=new OwnerSubscriptionOperations(route,ledger,adapter,'/opt/homebrew/bin/codex',{lockDirectory});
   const workId=randomUUID(),binding={workId,workGeneration:1,dispatchIdentity:randomUUID(),requestId:randomUUID(),workOrderId,factoryVersion:'f'.repeat(64),runId};
   const {plan,ceiling}=ops.plan(subscriptionSpendContract(route,planned));
   ledger.createBudget(binding,ceiling,new Date(Date.now()+600_000).toISOString(),plan);ledger.bindAuthority(binding);
+  const expired=[];ops.startWork(workId,reason=>{expired.push(reason);try{ledger.cancelBound(binding);}catch{}});
   const decisions=[];
   const run=(phase,opts={})=>{const lease=ops.issue(binding,phase,()=>{},e=>decisions.push(e));
     return ops.runCodex({workspacePath:'/tmp',prompt:'p',model:'gpt-5.5',timeoutMs:1000,artifactsDir:'/tmp',...(phase==='completion'?{sandbox:'read-only'}:{}),gateway:lease,...opts});};
-  return {dir,path,ledger,ops,route,binding,calls,run,decisions,set:{hold:p=>{hold=p;},outcome:o=>{outcome=o;}}};
+  return {dir,path,ledger,ops,route,binding,calls,run,decisions,expired,lockDirectory,set:{hold:p=>{hold=p;},outcome:o=>{outcome=o;}}};
 }
 
 test('ledger admits each subscription process, records SUBSCRIPTION_UNMETERED (never $0) and enforces the operation ceiling',async t=>{
@@ -307,7 +312,7 @@ ptest('end to end: the ordered receiver dispatches the operator-login worker onc
     factory:{factoryId:sn.factoryId,factoryVersion:sn.factoryVersion,sourceDigest:sn.sourceDigest,configurationDigest:sn.configurationDigest}}));
   const actions=await h.get('/api/connect/v1/actions');
   assert.equal(actions.body.execution.mode,'OWNER_SUBSCRIPTION_LOCAL');assert.equal(actions.body.execution.metering,'SUBSCRIPTION_UNMETERED');
-  assert.deepEqual(actions.body.execution.limits,{maxProductiveOperations:2,plannedCompletionOperations:1,maxOperationsPerWork:3,maxConcurrentRuns:1});
+  assert.deepEqual(actions.body.execution.limits,{maxProductiveOperations:2,plannedCompletionOperations:1,maxOperationsPerWork:3,maxConcurrentRuns:1,concurrencyScope:'MACHINE',maxWorkSeconds:600});
   const request=requestFor(h.repo,h.base,routeFor());
   const prep=await prepared(h,request);assert.equal(prep.status,200,JSON.stringify(prep.body));
   const s=prep.body.snapshot,identity=identityFor(request,s);
@@ -359,4 +364,107 @@ test('host launcher: subscription route listens on loopback, advertises the rout
 test('host launcher refuses the subscription route without the operator ChatGPT login',async t=>{
   const f=await hostFixture(t,{apiKeyLogin:true});
   await assert.rejects(startLocalV4Host(f.config,{inspectImage:id=>id}),e=>e.code==='HOST_CODEX_OWNER_LOGIN_REQUIRED');
+});
+
+// ---- review-1 regressions and the 10-minute Work cap
+import {OWNER_SUBSCRIPTION_LOCK_DIRECTORY,acquireExecutionLock,releaseExecutionLock} from '../src/owner-subscription-route.ts';
+import {loadHostConfig,assertTrustedExecutable,isInsideForTest,hostPreflight} from '../src/local-v4-host.ts';
+import {preflightOwnerLoginCodex} from '../../../packages/agents/src/index.ts';
+import {symlinkSync,chmodSync,existsSync,statSync} from 'node:fs';
+
+test('route accepts the exact MyEve owner principal UUID and enforces maxWorkSeconds 1..600',()=>{
+  const uuid='bd78f31f-b369-443a-a1d4-6d7d2ecc0118';
+  assert.equal(parseOwnerSubscriptionRoute(routeFor({ownerScope:uuid})).ownerScope,uuid);
+  for(const ownerScope of ['BD78F31F-B369-443A-A1D4-6D7D2ECC0118','bd78f31f-b369-443a-a1d4-6d7d2ecc011*','tester:'+uuid,uuid+'x'])routeRefused(routeFor({ownerScope}),'SUBSCRIPTION_ROUTE_OWNER_SCOPE');
+  for(const maxWorkSeconds of [0,601,3600,1.5,'600'])routeRefused(routeFor({maxWorkSeconds}),'SUBSCRIPTION_ROUTE_WORK_SECONDS');
+  const {maxWorkSeconds,...missing}=routeFor();routeRefused(missing,'SUBSCRIPTION_ROUTE_SHAPE');
+});
+
+test('Work cap: expiry aborts the running process group, leaves its operation UNKNOWN, fences and refuses further operations',async t=>{
+  const f=ledgerFixture(t,{route:{maxWorkSeconds:1}});
+  f.set.hold(new Promise(()=>{}));                                   // the "process" only ends when aborted
+  const started=Date.now();await f.run('productive');
+  assert.ok(Date.now()-started>=900&&Date.now()-started<5000);
+  assert.deepEqual(f.expired,['WORK_TIME_LIMIT']);
+  const spend=f.ledger.read(f.binding.workId);
+  assert.equal(spend.status,'UNKNOWN');assert.equal(spend.unknownOperations,1);assert.equal(spend.authorityState,'fenced');assert.equal(spend.cancelled,true);
+  assert.ok(f.decisions.some(d=>d.code==='PROVIDER_OUTCOME_UNKNOWN'&&d.expired==='WORK_TIME_LIMIT'));
+  assert.throws(()=>f.run('productive'),/clock is not running/);
+  assert.throws(()=>f.ops.startWork(f.binding.workId,()=>{}),/time limit/);   // a replay never resets the clock
+  assert.equal(existsSync(join(f.lockDirectory,'execution.lock')),false);      // the machine lock is released
+});
+
+test('a lease needs a running Work clock; startWork is idempotent and never resets',async t=>{
+  const f=ledgerFixture(t);
+  const other={...f.binding,workId:randomUUID()};
+  assert.throws(()=>f.ops.issue(other,'productive',()=>{},()=>{}),/clock is not running/);
+  f.ops.startWork(f.binding.workId,()=>{throw Error('second callback must not replace the first');});
+  f.ops.expireWork(f.binding.workId,'TEST');assert.deepEqual(f.expired,['TEST']);
+});
+
+test('concurrency is machine-wide: a second host instance sharing the fixed lock directory refuses while one process runs',async t=>{
+  const a=ledgerFixture(t),b=ledgerFixture(t,{lockDir:a.lockDirectory});
+  let release;a.set.hold(new Promise(r=>{release=r;}));
+  const first=a.run('productive');
+  for(let i=0;i<50&&!existsSync(join(a.lockDirectory,'execution.lock'));i++)await new Promise(r=>setTimeout(r,10));
+  await assert.rejects(b.run('productive'),/machine-wide concurrency/);
+  assert.equal(b.calls.length,0);assert.equal(b.ledger.read(b.binding.workId).operations.length,0);   // refused before any ledger exposure
+  assert.equal(statSync(a.lockDirectory).mode&0o777,0o700);
+  release();await first;
+  await b.run('productive');assert.equal(b.calls.length,1);
+  // Stale holder (dead process) is taken over; an unreadable holder fails closed.
+  writeFileSync(join(a.lockDirectory,'execution.lock'),JSON.stringify({pid:2**30,token:'stale',startedAt:'x'}));
+  const token=acquireExecutionLock(a.lockDirectory);releaseExecutionLock(a.lockDirectory,token);
+  writeFileSync(join(a.lockDirectory,'execution.lock'),'garbage');
+  assert.throws(()=>acquireExecutionLock(a.lockDirectory),/machine-wide/);
+  // Composition always uses the fixed owner-only directory under the operator's home.
+  const c=await compose(t),s=c.make();t.after(()=>s.close().catch(()=>{}));
+  assert.equal(s.ownerSubscription.lockDirectory,OWNER_SUBSCRIPTION_LOCK_DIRECTORY);
+  assert.match(OWNER_SUBSCRIPTION_LOCK_DIRECTORY,/\/\.myfactory\/owner-subscription$/);
+});
+
+test('owner-login preflight children get the allowlisted environment (no API keys)',async t=>{
+  const dir=tmp(t,'sub-preflight-'),codex=join(dir,'codex');
+  writeFileSync(codex,`#!/usr/bin/env node
+require('node:fs').appendFileSync(${JSON.stringify(join(dir,'env.jsonl'))},JSON.stringify(Object.keys(process.env))+'\\n');
+const a=process.argv.slice(2);if(a[0]==='--version'){console.log('codex-cli 1.0.0');process.exit(0);}
+console.log(a.includes('forced_login_method="chatgpt"')?'Logged in using ChatGPT':'Logged in using an API key');`,{mode:0o755});
+  const prior=process.env.OPENAI_API_KEY;process.env.OPENAI_API_KEY='sk-must-not-reach-preflight';
+  t.after(()=>{if(prior===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=prior;});
+  const pf=await preflightOwnerLoginCodex(codex);
+  assert.equal(pf.authenticated,true);assert.equal(pf.version,'codex-cli 1.0.0');
+  const envs=readFileSync(join(dir,'env.jsonl'),'utf8').trim().split('\n').map(l=>JSON.parse(l));
+  assert.equal(envs.length,2);
+  for(const keys of envs)assert.ok(!keys.includes('OPENAI_API_KEY')&&keys.filter(k=>k!=='__CF_USER_TEXT_ENCODING').every(k=>['CI','HOME','LANG','PATH','TMPDIR','USER','CODEX_HOME'].includes(k)),keys.join(','));
+});
+
+test('host config and Codex executable trust is checked before any execution; `..`-prefixed names are inside',async t=>{
+  const dir=tmp(t,'sub-trust-');
+  const keys=join(dir,'k.json');
+  const raw={schema:HOST_CONFIG_SCHEMA,factoryId:'factory-sub',port:8792,dataDir:join(dir,'data'),materialDir:join(dir,'material'),
+    witness:{path:join(dir,'witness','head.json'),epoch:'e1'},worker:{codexExecutable:'/opt/homebrew/bin/codex',workerProfile:'mac'},verificationImage:'sha256:'+'a'.repeat(64),
+    profile:{checkCommands:['node q.mjs'],allowedPaths:['q.mjs']},client:{id:'myeve',name:'MyEve owner',ownerScope:scope.ownerId,repositoryPaths:[dir]},
+    enrollment:{scope,agentId:'agent',registryVersion:'r1',sourceKeyFiles:{myeve:keys,relay:keys}},provider:routeFor()};
+  const cfg=join(dir,'host-config.json');writeFileSync(cfg,JSON.stringify(raw),{mode:0o600});
+  assert.equal(loadHostConfig(cfg).provider.mode,'OWNER_SUBSCRIPTION_LOCAL');
+  const untrusted=(fn,code)=>assert.throws(fn,e=>e.code===code,code);
+  chmodSync(cfg,0o666);untrusted(()=>loadHostConfig(cfg),'HOST_CONFIG_UNTRUSTED');chmodSync(cfg,0o620);untrusted(()=>loadHostConfig(cfg),'HOST_CONFIG_UNTRUSTED');chmodSync(cfg,0o600);
+  const link=join(dir,'link.json');symlinkSync(cfg,link);untrusted(()=>loadHostConfig(link),'HOST_CONFIG_UNTRUSTED');
+  const open=join(dir,'open');mkdirSync(open);chmodSync(open,0o777);const inOpen=join(open,'c.json');writeFileSync(inOpen,JSON.stringify(raw),{mode:0o600});
+  untrusted(()=>loadHostConfig(inOpen),'HOST_CONFIG_UNTRUSTED');
+  // Executable: a replaceable binary is refused BEFORE it ever runs (preflight included).
+  const marker=join(dir,'executed'),codex=join(dir,'codex');
+  writeFileSync(codex,`#!/bin/sh\ntouch ${marker}\necho codex-cli 1.0.0\n`,{mode:0o755});
+  assert.doesNotThrow(()=>assertTrustedExecutable(codex));
+  chmodSync(codex,0o777);
+  await assert.rejects(hostPreflight({...parseHostConfig(raw),worker:{codexExecutable:codex,workerProfile:'mac'}}),e=>e.code==='HOST_CODEX_UNTRUSTED');
+  chmodSync(codex,0o755);
+  const inOpenCodex=join(open,'codex');writeFileSync(inOpenCodex,`#!/bin/sh\ntouch ${marker}\n`,{mode:0o755});
+  untrusted(()=>assertTrustedExecutable(inOpenCodex),'HOST_CODEX_UNTRUSTED');
+  const linkCodex=join(open,'codex-link');symlinkSync(codex,linkCodex);untrusted(()=>assertTrustedExecutable(linkCodex),'HOST_CODEX_UNTRUSTED');
+  assert.equal(existsSync(marker),false);
+  untrusted(()=>assertTrustedExecutable('codex'),'HOST_CODEX_UNTRUSTED');
+  // Containment: `<repo>/..material` is inside the repository, `<repo>/../x` is not.
+  assert.equal(isInsideForTest(join(dir,'..material'),dir),true);
+  assert.equal(isInsideForTest(join(dir,'..','x'),dir),false);
 });

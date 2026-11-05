@@ -1,18 +1,18 @@
 import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, writeFileSync } from 'node:fs';
 import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createLocalV4Supervisor, type ProductiveBinding } from './server.ts';
 import { FileReceiverWitness, type LocalOrderedEnrollment, type ReceiverScope } from './local-ordered-admission.ts';
 import { readCurrentProducerSourceIdentity } from './producer-results.ts';
 import { validatePrice, type SpendPrice } from './spend-gateway.ts';
-import { createCodexAdapter } from '../../../packages/agents/src/index.ts';
+import { createCodexAdapter, preflightOwnerLoginCodex } from '../../../packages/agents/src/index.ts';
 import { digest } from '../../../packages/hosted-routing/src/result.ts';
 import type { PolicyKey } from '../../../packages/capability-enforcement/src/ordering-wire.ts';
 import { ownerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
 import { OWNER_SUBSCRIPTION_PRICING_REVISION } from '../../../packages/storage/src/spend-policy.ts';
-import { ownerLoginStatus, parseOwnerSubscriptionRoute, subscriptionSpendContract, OwnerSubscriptionRefused, OWNER_SUBSCRIPTION_ROUTE, type OwnerSubscriptionRoute } from './owner-subscription-route.ts';
+import { parseOwnerSubscriptionRoute, subscriptionSpendContract, OwnerSubscriptionRefused, OWNER_SUBSCRIPTION_ROUTE, type OwnerSubscriptionRoute } from './owner-subscription-route.ts';
 
 /**
  * Trusted host composition of the ordered LOCAL_V4 supervisor (private beta: owner + named testers on one Mac).
@@ -68,7 +68,46 @@ function real(p: string): string {
   while (!existsSync(head)) { tail.unshift(head.slice(dirname(head).length + 1)); head = dirname(head); }
   return join(realpathSync(head), ...tail);
 }
-const inside = (child: string, parent: string) => { const r = relative(real(parent), real(child)); return r === '' || !r.startsWith('..') && !isAbsolute(r); };
+/** `..`-prefixed names (e.g. `<repo>/..material`) are inside; only a `..` path segment leaves the parent. */
+const inside = (child: string, parent: string) => { const r = relative(real(parent), real(child)); return r === '' || r !== '..' && !r.startsWith('..' + sep) && !isAbsolute(r); };
+export const isInsideForTest = inside;
+
+const uid = () => process.getuid!();
+/** Not replaceable by another local user: owned by the operator (or root), never group/world-writable, unless a sticky root-owned dir. */
+function trustedNode(path: string, st: import('node:fs').Stats, allowSticky: boolean): boolean {
+  if (st.uid !== uid() && st.uid !== 0) return false;
+  if ((st.mode & 0o022) === 0) return true;
+  return allowSticky && st.isDirectory() && (st.mode & 0o1000) !== 0 && st.uid === 0;
+}
+function trustedAncestors(path: string): boolean {
+  for (let dir = dirname(path); ; dir = dirname(dir)) {
+    let st; try { st = lstatSync(dir); } catch { return false; }
+    if (!trustedNode(dir, st, true)) return false;
+    if (dir === dirname(dir)) return true;
+  }
+}
+/** P1 trust: the host config is an operator-owned regular file (no symlink), not group/world-writable, in a trusted directory, outside the repo. */
+export function assertTrustedConfigFile(path: string) {
+  let st; try { st = lstatSync(path); } catch { return refuse('HOST_CONFIG_MISSING'); }
+  if (st.isSymbolicLink() || !st.isFile()) refuse('HOST_CONFIG_UNTRUSTED');
+  if (st.uid !== uid() || (st.mode & 0o022) !== 0 || !trustedAncestors(path)) refuse('HOST_CONFIG_UNTRUSTED');
+  if (inside(path, repoRoot)) refuse('HOST_CONFIG_PATH_INSIDE_REPOSITORY');
+}
+/** P1 trust before ANY execution (preflight included): the resolved Codex executable and every ancestor cannot be replaced by others. */
+export function assertTrustedExecutable(path: string) {
+  if (!isAbsolute(path) || resolve(path) !== path) refuse('HOST_CODEX_UNTRUSTED');
+  let target; try { target = realpathSync(path); } catch { return refuse('HOST_CODEX_UNAVAILABLE'); }
+  const st = lstatSync(target);
+  if (!st.isFile() || (st.mode & 0o111) === 0 || !trustedNode(target, st, false) || !trustedAncestors(target)) refuse('HOST_CODEX_UNTRUSTED');
+  // The configured link itself (if any) must also sit in trusted directories.
+  if (!trustedAncestors(path)) refuse('HOST_CODEX_UNTRUSTED');
+}
+/** The preflight the route actually uses; the subscription route's children get the allowlisted environment. */
+export async function hostPreflight(config: LocalV4HostConfig) {
+  assertTrustedExecutable(config.worker.codexExecutable);
+  return isSubscriptionProvider(config.provider) ? preflightOwnerLoginCodex(config.worker.codexExecutable, config.worker.workerProfile)
+    : createCodexAdapter(config.worker.codexExecutable, config.worker.workerProfile).preflightCodex();
+}
 
 const ID = /^[a-z0-9][a-z0-9._-]{0,63}$/, NAME = /^[A-Za-z0-9:_.-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
 /** Strict parse; every unknown, missing or unqualified field refuses. Paths that hold state or material must be outside the repo. */
@@ -209,10 +248,10 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
   const sourceKeys = { myeve: readPublicPolicyKey(config.enrollment.sourceKeyFiles.myeve, 'HOST_SOURCE_KEY_MYEVE'),
     relay: readPublicPolicyKey(config.enrollment.sourceKeyFiles.relay, 'HOST_SOURCE_KEY_RELAY') };
   if ((deps.inspectImage ?? dockerImageId)(config.verificationImage) !== config.verificationImage) refuse('HOST_VERIFICATION_IMAGE_UNAVAILABLE');
-  const preflight = await createCodexAdapter(config.worker.codexExecutable, config.worker.workerProfile).preflightCodex();
-  if (!preflight.binaryAvailable || !preflight.authenticated || !preflight.version) refuse('HOST_CODEX_UNAVAILABLE');
   const subscription = isSubscriptionProvider(config.provider) ? config.provider : null;
-  if (subscription && !(await ownerLoginStatus(config.worker.codexExecutable))) refuse('HOST_CODEX_OWNER_LOGIN_REQUIRED');
+  const preflight = await hostPreflight(config);
+  if (!preflight.binaryAvailable || !preflight.version) refuse('HOST_CODEX_UNAVAILABLE');
+  if (!preflight.authenticated) refuse(subscription ? 'HOST_CODEX_OWNER_LOGIN_REQUIRED' : 'HOST_CODEX_UNAVAILABLE');
   const identity = hostFactoryIdentity(config, preflight.version!);
 
   mkdirSync(config.dataDir, { recursive: true, mode: 0o700 }); chmodSync(config.dataDir, 0o700);
@@ -252,7 +291,8 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
       mode: OWNER_SUBSCRIPTION_ROUTE, ownerOnly: true, bindHost: subscription!.bindHost, ownerScope: subscription!.ownerScope, clientId: subscription!.clientId,
       model: subscription!.model, validUntil: subscription!.validUntil, metering: 'SUBSCRIPTION_UNMETERED', credential: 'OPERATOR_CODEX_CHATGPT_LOGIN',
       limits: { maxProductiveOperations: subscription!.maxProductiveOperations, plannedCompletionOperations: 1,
-        maxOperationsPerWork: subscription!.maxProductiveOperations + 1, maxConcurrentRuns: subscription!.maxConcurrentRuns },
+        maxOperationsPerWork: subscription!.maxProductiveOperations + 1, maxConcurrentRuns: subscription!.maxConcurrentRuns,
+        concurrencyScope: 'MACHINE', maxWorkSeconds: subscription!.maxWorkSeconds },
       spendContract: subscriptionSpendContract(subscription!),
       spendReadContract: 'spend.status is SUBSCRIPTION_UNMETERED (or UNKNOWN, fenced); metering=SUBSCRIPTION_UNMETERED, costKnown=false, currency=null, every *Microusd field null. Never settle as $0.' },
     feedback: { strictLocalV4MaxRounds: 1 }, pid: process.pid, startedAt: new Date().toISOString(),
@@ -263,6 +303,7 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
 
 export function loadHostConfig(path: string): LocalV4HostConfig {
   if (!isAbsolute(path)) refuse('HOST_CONFIG_PATH');
+  assertTrustedConfigFile(path);
   let text; try { text = readFileSync(path, 'utf8'); } catch { return refuse('HOST_CONFIG_MISSING'); }
   return parseHostConfig(json(text, 'HOST_CONFIG_JSON'));
 }

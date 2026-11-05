@@ -8,8 +8,7 @@
  *
  * The only argument is a config path. No secrets on argv or in the environment; composition is apps/supervisor/src/local-v4-host.ts.
  */
-import { loadHostConfig, provisionHostMaterial, startLocalV4Host, hostFactoryIdentity, HostConfigRefused } from '../apps/supervisor/src/local-v4-host.ts';
-import { createCodexAdapter } from '../packages/agents/src/index.ts';
+import { loadHostConfig, provisionHostMaterial, startLocalV4Host, hostFactoryIdentity, hostPreflight, HostConfigRefused } from '../apps/supervisor/src/local-v4-host.ts';
 
 const [command, path, ...rest] = process.argv.slice(2);
 const fail = (message) => { process.stderr.write(`local-v4-host: ${message}\n`); process.exit(2); };
@@ -20,7 +19,7 @@ try {
   if (command === 'provision') {
     console.log(JSON.stringify(await provisionHostMaterial(config)));
   } else if (command === 'identity') {
-    const preflight = await createCodexAdapter(config.worker.codexExecutable, config.worker.workerProfile).preflightCodex();
+    const preflight = await hostPreflight(config);   // executable trust checked first; owner-login route uses the allowlisted env
     if (!preflight.version) fail('HOST_CODEX_UNAVAILABLE');
     const { configuration, ...identity } = hostFactoryIdentity(config, preflight.version);
     console.log(JSON.stringify({ ...identity, configuration }, null, 2));

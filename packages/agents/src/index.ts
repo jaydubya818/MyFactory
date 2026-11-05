@@ -487,10 +487,11 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
   };
 }
 
-async function readOnlyCommand(executablePath: string, args: string[]): Promise<{
+async function readOnlyCommand(executablePath: string, args: string[], env?: Record<string, string>): Promise<{
   code: number | null; output: string; error: string | null;
 }> {
   const child = spawn(executablePath, args, {
+    ...(env ? { env } : {}),
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
@@ -540,6 +541,25 @@ async function preflightCodexWith(executablePath: string, workerProfile: "mac" |
     authenticated: loginResult.code === 0 && !loginResult.error,
     error: loginResult.error ?? (loginResult.code === 0 ? null : "Codex login status failed"),
   };
+}
+
+/**
+ * Preflight for the host-only owner-login (OWNER_SUBSCRIPTION_LOCAL) route. Both children get the same allowlisted environment as the
+ * execution child (no API keys or provider overrides); `authenticated` is true only for the operator's ChatGPT login under the forced
+ * ChatGPT login method. The generic preflight used by every other route is unchanged.
+ */
+export async function preflightOwnerLoginCodex(executablePath: string, workerProfile: "mac" | "container" = "mac"): Promise<CodexPreflight> {
+  validateExecutable(executablePath);
+  if (!isAbsolute(executablePath)) throw new TypeError("Owner-login Codex executable must be absolute");
+  const env = ownerLoginEnvironment();
+  const versionResult = await readOnlyCommand(executablePath, ["--version"], env);
+  if (versionResult.code !== 0 || versionResult.error) {
+    return { workerProfile, binaryAvailable: false, version: null, authenticated: false, error: versionResult.error ?? "Codex --version failed" };
+  }
+  const version = versionResult.output.split(/\r?\n/).map((line) => line.trim()).find((line) => /^codex-cli\s+\S+/.test(line)) ?? null;
+  const login = await readOnlyCommand(executablePath, ["-c", 'forced_login_method="chatgpt"', "login", "status"], env);
+  const chatgpt = login.code === 0 && !login.error && /Logged in using ChatGPT/.test(login.output);
+  return { workerProfile, binaryAvailable: true, version, authenticated: chatgpt, error: chatgpt ? null : login.error ?? "Owner ChatGPT Codex login required" };
 }
 
 /** Test/configuration seam. Only host configuration should choose an executable path. */

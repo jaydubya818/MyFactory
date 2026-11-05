@@ -1,15 +1,15 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { chmodSync, lstatSync, mkdirSync, readFileSync, renameSync, linkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { isModelReference } from '../../../packages/contracts/src/model-reference.ts';
 import { OWNER_SUBSCRIPTION_ROUTE, ownerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
-import { ownerLoginEnvironment, type CodexAdapter, type CodexPreflight, type CodexRunOptions, type CodexRunResult } from '../../../packages/agents/src/index.ts';
+import { preflightOwnerLoginCodex, type CodexAdapter, type CodexPreflight, type CodexRunOptions, type CodexRunResult } from '../../../packages/agents/src/index.ts';
 import { OWNER_SUBSCRIPTION_PRICING_REVISION, type SpendBinding, type SpendPhase, type SpendPlan } from '../../../packages/storage/src/spend-policy.ts';
 import type { SpendLedger } from '../../../packages/storage/src/spend.ts';
 import { ActionError } from './actions.ts';
 import type { FactoryClient } from './connections.ts';
 
-const execFileAsync = promisify(execFile);
 export { OWNER_SUBSCRIPTION_ROUTE, OWNER_SUBSCRIPTION_PRICING_REVISION };
 
 /**
@@ -20,8 +20,10 @@ export { OWNER_SUBSCRIPTION_ROUTE, OWNER_SUBSCRIPTION_PRICING_REVISION };
  * ledger operation (reserve -> markDispatched -> process -> SUBSCRIPTION_UNMETERED), under the same single-use dispatch claim,
  * UNKNOWN fencing (a crash or unresolved process leaves the operation UNKNOWN and fences the Work), cancellation and ordered
  * revocation (`authorizeDispatch` before every ledger/process boundary). Each issued lease admits exactly one process.
- * Strict ceilings: at most two productive operations plus the one protected completion per Work, one subscription process at a
- * time on this host. The route is selected only by trusted host configuration (never HTTP, request fields or environment), must
+ * Strict ceilings: at most two productive operations plus the one protected completion per Work; one subscription process at a
+ * time on this MACHINE (an exclusive lock file under a fixed owner-only directory, shared by every host instance); and a hard
+ * wall-clock cap per Work (`maxWorkSeconds` <= 600) from dispatch acceptance, whose expiry aborts the running Codex process group,
+ * leaves its operation UNKNOWN, cancels the Work budget and stops the run like an owner stop. The route is selected only by trusted host configuration (never HTTP, request fields or environment), must
  * be bound to exact 127.0.0.1, serves exactly one owner client scope and requires an explicit `ownerOnly: true` acknowledgement.
  * Hosted/cloud surfaces refuse its markers. Usage is never priced: readers surface SUBSCRIPTION_UNMETERED, never $0.
  */
@@ -37,10 +39,14 @@ export interface OwnerSubscriptionRoute {
   /** Productive Codex processes per Work (1 or 2; strict LOCAL_V4 keeps one feedback round). Completion is always exactly 1. */
   maxProductiveOperations: 1 | 2;
   maxConcurrentRuns: 1;
+  /** Hard wall-clock limit per Work from dispatch acceptance (1..600 seconds). */
+  maxWorkSeconds: number;
 }
 export class OwnerSubscriptionRefused extends Error { readonly code: string; constructor(code: string) { super(code); this.code = code; } }
 const refuse = (code: string): never => { throw new OwnerSubscriptionRefused(code); };
-const ROUTE_KEYS = ['mode', 'ownerOnly', 'bindHost', 'ownerScope', 'clientId', 'model', 'validUntil', 'maxProductiveOperations', 'maxConcurrentRuns'];
+const ROUTE_KEYS = ['mode', 'ownerOnly', 'bindHost', 'ownerScope', 'clientId', 'model', 'validUntil', 'maxProductiveOperations', 'maxConcurrentRuns', 'maxWorkSeconds'];
+/** `owner:<name>` or exactly one lowercase owner principal UUID (MyEve's owner id). No wildcard, no mapping. */
+const OWNER_SCOPE = /^(?:owner:[A-Za-z0-9:_.-]{1,122}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
 
 /** Strict parse: unknown or missing fields, a non-owner scope, a non-loopback bind or a missing acknowledgement refuse. */
 export function parseOwnerSubscriptionRoute(raw: unknown, now = Date.now()): OwnerSubscriptionRoute {
@@ -50,16 +56,17 @@ export function parseOwnerSubscriptionRoute(raw: unknown, now = Date.now()): Own
   if (r.mode !== OWNER_SUBSCRIPTION_ROUTE) refuse('SUBSCRIPTION_ROUTE_MODE');
   if (r.ownerOnly !== true) refuse('SUBSCRIPTION_ROUTE_OWNER_ACK');
   if (r.bindHost !== '127.0.0.1') refuse('SUBSCRIPTION_ROUTE_LOOPBACK');
-  if (typeof r.ownerScope !== 'string' || !/^owner:[A-Za-z0-9:_.-]{1,122}$/.test(r.ownerScope)) refuse('SUBSCRIPTION_ROUTE_OWNER_SCOPE');
+  if (typeof r.ownerScope !== 'string' || !OWNER_SCOPE.test(r.ownerScope)) refuse('SUBSCRIPTION_ROUTE_OWNER_SCOPE');
   if (typeof r.clientId !== 'string' || !/^[a-z0-9_-]{1,64}$/.test(r.clientId)) refuse('SUBSCRIPTION_ROUTE_CLIENT');
   if (!isModelReference(r.model)) refuse('SUBSCRIPTION_ROUTE_MODEL');
   const until = typeof r.validUntil === 'string' ? Date.parse(r.validUntil) : NaN;
   if (!Number.isFinite(until) || until <= now || until > now + 30 * 86400_000) refuse('SUBSCRIPTION_ROUTE_EXPIRY');
   if (r.maxProductiveOperations !== 1 && r.maxProductiveOperations !== 2) refuse('SUBSCRIPTION_ROUTE_OPERATIONS');
   if (r.maxConcurrentRuns !== 1) refuse('SUBSCRIPTION_ROUTE_CONCURRENCY');
+  if (!Number.isSafeInteger(r.maxWorkSeconds) || (r.maxWorkSeconds as number) < 1 || (r.maxWorkSeconds as number) > 600) refuse('SUBSCRIPTION_ROUTE_WORK_SECONDS');
   return { mode: OWNER_SUBSCRIPTION_ROUTE, ownerOnly: true, bindHost: '127.0.0.1', ownerScope: r.ownerScope as string,
     clientId: r.clientId as string, model: r.model as string, validUntil: r.validUntil as string,
-    maxProductiveOperations: r.maxProductiveOperations as 1 | 2, maxConcurrentRuns: 1 };
+    maxProductiveOperations: r.maxProductiveOperations as 1 | 2, maxConcurrentRuns: 1, maxWorkSeconds: r.maxWorkSeconds as number };
 }
 
 /** The exact prepare-time spend contract MyEve sends for this route (operation units, not money). */
@@ -68,15 +75,53 @@ export function subscriptionSpendContract(route: OwnerSubscriptionRoute, planned
     plannedCompletionOperations: 1, maxPaidOperations: plannedProductiveOperations + 1, completionReserveMicrousd: 1 };
 }
 
-/** True only when the pinned executable reports the operator's ChatGPT login under the forced ChatGPT login method. */
+/** True only when the pinned executable reports the operator's ChatGPT login (allowlisted environment for every child). */
 export async function ownerLoginStatus(executablePath: string): Promise<boolean> {
-  try {
-    const { stdout, stderr } = await execFileAsync(executablePath, ['-c', 'forced_login_method="chatgpt"', 'login', 'status'],
-      { env: ownerLoginEnvironment(), timeout: 20_000, maxBuffer: 64 * 1024 });
-    return /Logged in using ChatGPT/.test(String(stdout) + String(stderr));
-  } catch { return false; }
+  try { return (await preflightOwnerLoginCodex(executablePath)).authenticated; } catch { return false; }
 }
 
+/** Fixed machine-wide lock directory (owner-only). Every host instance of this user shares it. */
+export const OWNER_SUBSCRIPTION_LOCK_DIRECTORY = join(homedir(), '.myfactory', 'owner-subscription');
+const LOCK_FILE = 'execution.lock';
+function ownerOnlyDirectory(path: string) {
+  mkdirSync(path, { recursive: true, mode: 0o700 });
+  const st = lstatSync(path);
+  if (!st.isDirectory() || st.isSymbolicLink() || st.uid !== process.getuid!()) throw new Error('Owner subscription lock directory is not owner-only');
+  if ((st.mode & 0o077) !== 0) chmodSync(path, 0o700);
+  if ((lstatSync(path).mode & 0o077) !== 0) throw new Error('Owner subscription lock directory is not owner-only');
+}
+const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === 'EPERM'; } };
+type LockHolder = { pid: number; token: string; startedAt: string };
+function readHolder(path: string): LockHolder | null {
+  try { const h = JSON.parse(readFileSync(path, 'utf8')); return Number.isSafeInteger(h?.pid) && typeof h?.token === 'string' ? h : null; } catch { return null; }
+}
+/**
+ * Exclusive machine-wide execution lock: O_EXCL creation of one file in the fixed owner-only directory. A holder whose process is gone
+ * (host crash) is taken over atomically by rename; the renamed file must be exactly the stale holder that was read, otherwise the
+ * takeover is undone and refused. An unreadable lock fails closed.
+ */
+export function acquireExecutionLock(directory: string): string {
+  ownerOnlyDirectory(directory);
+  const path = join(directory, LOCK_FILE), token = randomUUID();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { writeFileSync(path, JSON.stringify({ pid: process.pid, token, startedAt: new Date().toISOString() }), { flag: 'wx', mode: 0o600 }); return token; }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
+    const holder = readHolder(path);
+    if (!holder || alive(holder.pid)) break;
+    const aside = join(directory, `stale-${token}.lock`);
+    try { renameSync(path, aside); } catch { continue; }
+    const moved = readHolder(aside);
+    if (moved?.token !== holder.token) { try { linkSync(aside, path); } catch { /* another holder now owns the path */ } try { unlinkSync(aside); } catch {} break; }
+    try { unlinkSync(aside); } catch {}
+  }
+  throw new Error('Owner subscription machine-wide concurrency limit reached');
+}
+export function releaseExecutionLock(directory: string, token: string) {
+  const path = join(directory, LOCK_FILE);
+  if (readHolder(path)?.token === token) { try { unlinkSync(path); } catch {} }
+}
+
+interface WorkClock { controller: AbortController; expired: string | null; timer: ReturnType<typeof setTimeout>; onExpire: (reason: string) => void }
 interface Lease { binding: SpendBinding; phase: SpendPhase; used: boolean; authorizeDispatch: () => void;
   onDecision: (evidence: Record<string, unknown>) => void }
 export const SUBSCRIPTION_BASE_URL = 'owner-subscription://local';
@@ -87,23 +132,52 @@ export class OwnerSubscriptionOperations {
   readonly #adapter: CodexAdapter;
   readonly #executable: string;
   readonly #leases = new Map<string, Lease>();
+  readonly #works = new Map<string, WorkClock>();
+  readonly #lockDirectory: string;
+  readonly #preflight: () => Promise<CodexPreflight>;
   #active = 0;
   #disabled: string | null = null;
-  constructor(route: OwnerSubscriptionRoute, ledger: SpendLedger, adapter: CodexAdapter, executablePath: string) {
+  /** `seams` are test-only (never reachable from host configuration): the default lock directory is fixed. */
+  constructor(route: OwnerSubscriptionRoute, ledger: SpendLedger, adapter: CodexAdapter, executablePath: string,
+    seams: { lockDirectory?: string; preflight?: () => Promise<CodexPreflight> } = {}) {
     this.route = parseOwnerSubscriptionRoute(route);
     if (typeof executablePath !== 'string' || !executablePath.startsWith('/')) throw new OwnerSubscriptionRefused('SUBSCRIPTION_ROUTE_EXECUTABLE');
     this.#ledger = ledger; this.#adapter = adapter; this.#executable = executablePath;
+    this.#lockDirectory = seams.lockDirectory ?? OWNER_SUBSCRIPTION_LOCK_DIRECTORY;
+    this.#preflight = seams.preflight ?? (() => preflightOwnerLoginCodex(this.#executable));
     Object.freeze(this.route);
   }
   /** Permanently disables the route in this process (e.g. a non-loopback listener). Nothing further is admitted. */
-  disable(reason: string) { this.#disabled ??= reason; this.#leases.clear(); }
+  disable(reason: string) { this.#disabled ??= reason; this.#leases.clear(); for (const id of [...this.#works.keys()]) this.expireWork(id, 'ROUTE_DISABLED'); }
+  get lockDirectory() { return this.#lockDirectory; }
+  /**
+   * Starts (idempotently, never resets) the Work's wall-clock cap at dispatch acceptance. Expiry aborts the running process group,
+   * revokes the Work's leases and calls `onExpire` (the host cancels the budget and stops the run).
+   */
+  startWork(workId: string, onExpire: (reason: string) => void) {
+    const existing = this.#works.get(workId);
+    if (existing) { if (existing.expired) throw new ActionError('Owner subscription Work time limit reached', 'dispatch_denied', 409); return; }
+    const clock: WorkClock = { controller: new AbortController(), expired: null, onExpire,
+      timer: setTimeout(() => this.expireWork(workId, 'WORK_TIME_LIMIT'), this.route.maxWorkSeconds * 1000) };
+    clock.timer.unref?.();
+    this.#works.set(workId, clock);
+  }
+  expireWork(workId: string, reason: string) {
+    const clock = this.#works.get(workId);
+    if (!clock || clock.expired) return;
+    clock.expired = reason; clearTimeout(clock.timer); clock.controller.abort();
+    for (const [token, lease] of this.#leases) if (lease.binding.workId === workId) this.#leases.delete(token);
+    try { clock.onExpire(reason); } catch { /* the ledger fence below the process already holds */ }
+  }
+  workExpired(workId: string) { return this.#works.get(workId)?.expired ?? null; }
   get disabled() { return this.#disabled; }
   availability() {
     return { mode: OWNER_SUBSCRIPTION_ROUTE, spendEnforced: true, metering: 'SUBSCRIPTION_UNMETERED', ownerOnly: true,
       reason: this.#disabled ? 'Owner subscription route disabled: ' + this.#disabled
         : 'Owner-only local route: the operator\'s Codex login; every operation admitted by the Work ledger and recorded SUBSCRIPTION_UNMETERED (never $0)',
       limits: { maxProductiveOperations: this.route.maxProductiveOperations, plannedCompletionOperations: 1,
-        maxOperationsPerWork: this.route.maxProductiveOperations + 1, maxConcurrentRuns: 1 },
+        maxOperationsPerWork: this.route.maxProductiveOperations + 1, maxConcurrentRuns: 1,
+        concurrencyScope: 'MACHINE', maxWorkSeconds: this.route.maxWorkSeconds },
       owner: { clientId: this.route.clientId, ownerScope: this.route.ownerScope }, bindHost: this.route.bindHost,
       spendContract: subscriptionSpendContract(this.route), validUntil: this.route.validUntil, enabled: !this.#disabled };
   }
@@ -128,6 +202,8 @@ export class OwnerSubscriptionOperations {
   /** One single-use lease = one Codex process. The token is a local lookup key only; it is never a network credential. */
   issue(binding: SpendBinding, phase: SpendPhase, authorizeDispatch: () => void, onDecision: Lease['onDecision']) {
     if (this.#disabled) throw new ActionError('Owner subscription route is disabled', 'spend_unqualified', 503);
+    const clock = this.#works.get(binding.workId);
+    if (!clock || clock.expired) throw new ActionError('Owner subscription Work clock is not running', 'dispatch_denied', 409);
     const childToken = randomBytes(32).toString('hex');
     this.#leases.set(childToken, { binding: { ...binding }, phase, used: false, authorizeDispatch, onDecision });
     return { baseUrl: SUBSCRIPTION_BASE_URL, childToken };
@@ -136,11 +212,10 @@ export class OwnerSubscriptionOperations {
 
   /** Preflight requires the ChatGPT login (an API-key login refuses) and binds the route into the executor version. */
   preflightCodex = async (): Promise<CodexPreflight> => {
-    const base = await this.#adapter.preflightCodex();
+    const base = await this.#preflight();
     if (!base.binaryAvailable || !base.version || !/^codex-cli \S+$/.test(base.version)) return { ...base, authenticated: false };
-    const chatgpt = await ownerLoginStatus(this.#executable);
-    return { ...base, version: ownerSubscriptionExecutorVersion(base.version), authenticated: base.authenticated && chatgpt,
-      error: chatgpt ? base.error : 'Owner ChatGPT Codex login required' };
+    return { ...base, version: ownerSubscriptionExecutorVersion(base.version), authenticated: base.authenticated,
+      error: base.authenticated ? base.error : base.error ?? 'Owner ChatGPT Codex login required' };
   };
 
   /** Worker for both phases. Admission happens here, before the process exists; the outcome is recorded after it ends. */
@@ -150,7 +225,11 @@ export class OwnerSubscriptionOperations {
     if (!lease || options.gateway?.baseUrl !== SUBSCRIPTION_BASE_URL) throw new Error('Owner subscription lease required');
     if (lease.used) throw new Error('Owner subscription lease is single-use');
     if ((lease.phase === 'completion') !== (options.sandbox === 'read-only')) throw new Error('Owner subscription phase mismatch');
+    const clock = this.#works.get(lease.binding.workId);
+    if (!clock || clock.expired) throw new Error('Owner subscription Work time limit reached');
     if (this.#active >= this.route.maxConcurrentRuns) throw new Error('Owner subscription concurrency limit reached');
+    // Machine-wide: refused (before any ledger exposure) while another host instance runs a subscription process.
+    const lockToken = acquireExecutionLock(this.#lockDirectory);
     lease.used = true; this.#active += 1;
     let operationId: string | null = null, dispatched = false;
     const decision = (code: string, extra: Record<string, unknown> = {}) => {
@@ -169,14 +248,15 @@ export class OwnerSubscriptionOperations {
     } catch (error) {
       if (operationId && !dispatched) { try { this.#ledger.releaseUndispatched(operationId); } catch { try { this.#ledger.markUnknown(operationId); } catch {} } }
       else if (operationId) { try { this.#ledger.markUnknown(operationId); } catch {} }
-      this.#active -= 1; this.revoke(token);
+      this.#active -= 1; this.revoke(token); releaseExecutionLock(this.#lockDirectory, lockToken);
       decision('LOCAL_ADMISSION_DENIED');
       throw error;
     }
     const { gateway: _gateway, boundedProductiveContext: _bounded, productiveEndSignal: _end, sessionHome: _home, ...plain } = options;
     let result: CodexRunResult | undefined;
     try {
-      result = await this.#adapter.runCodex({ ...plain, ownerLogin: true });
+      result = await this.#adapter.runCodex({ ...plain, ownerLogin: true,
+        signal: plain.signal ? AbortSignal.any([plain.signal, clock.controller.signal]) : clock.controller.signal });
       return result;
     } finally {
       this.#active -= 1; this.revoke(token);
@@ -185,7 +265,8 @@ export class OwnerSubscriptionOperations {
       if (result && ['completed', 'failed', 'yielded'].includes(result.status)) {
         try { this.#ledger.settleSubscriptionUnmetered(operationId!, { outcome: result.status, threadId: result.threadId }); decision('SUBSCRIPTION_UNMETERED', { outcome }); }
         catch (error) { try { this.#ledger.markUnknown(operationId!); } catch {} decision('PROVIDER_OUTCOME_UNKNOWN', { outcome, recordError: String((error as Error)?.message ?? error).slice(0, 200) }); }
-      } else { try { this.#ledger.markUnknown(operationId!); } catch {} decision('PROVIDER_OUTCOME_UNKNOWN', { outcome }); }
+      } else { try { this.#ledger.markUnknown(operationId!); } catch {} decision('PROVIDER_OUTCOME_UNKNOWN', { outcome, ...(clock.expired ? { expired: clock.expired } : {}) }); }
+      releaseExecutionLock(this.#lockDirectory, lockToken);
     }
   };
 }

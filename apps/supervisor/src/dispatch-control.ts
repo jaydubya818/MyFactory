@@ -243,6 +243,19 @@ export class FactoryDispatchControl {
    };
    const authorizeDispatch=()=>{this.orderedGate?.assertDispatch(identity.requestId);route.assertOwner(this.current(connectionClient,'factory.dispatch'));};
    const planned=data.request.spendContract.plannedProductiveOperations;
+   // Hard wall-clock cap from dispatch acceptance (never reset by a replay). Expiry stops the Work exactly like an owner stop:
+   // the process group is aborted (its operation stays UNKNOWN), the budget is cancelled and fenced, and the run is cancelled.
+   route.startWork(identity.workId,reason=>{
+    try{this.storage.transaction(()=>{
+     const events=this.storage.listEvents(data.order.id);
+     if(events.some(e=>e.type==='factory.terminal'))return;
+     this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.subscription_work_expired',payload:{reason,maxWorkSeconds:route.route.maxWorkSeconds}});
+     if(!events.some(e=>e.type==='factory.writer_bound'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.writer_bound',payload:{...identity}});
+     if(!events.some(e=>e.type==='factory.stop_requested'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.stop_requested',payload:{...identity}});
+    });}catch{}
+    try{this.spend.cancelBound(binding);}catch{try{this.spend.fenceAuthority(binding);}catch{}}
+    void this.execution.cancel(data.order,data.run).catch(()=>{});
+   });
    let lease=route.issue(binding,'productive',authorizeDispatch,onDecision),repairIssued=false;
    const productiveEnd=new AbortController();   // the operator-login process ends on its own; one process is one operation
    gatewayBinding={baseUrl:lease.baseUrl,childToken:lease.childToken,productiveEndSignal:productiveEnd.signal,close:async()=>{route.revoke(lease.childToken);},
