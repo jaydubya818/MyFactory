@@ -180,6 +180,7 @@ export class FactoryDispatchControl {
   if(!this.localFixture&&!this.spendFixture&&!this.subscription)throw new ActionError('Paid execution disabled: actual paid boundary is not qualified','spend_unqualified',503);
   this.orderedGate?.assertDispatch(identity.requestId);
   const admittedWork={...data.order,...data.request.input as object} as WorkOrder;
+  let subscriptionHooks:{onExpire:(reason:string)=>void;isTerminal:()=>boolean}|undefined;
   let gateway:SpendGateway|undefined, gatewayBinding:{baseUrl:string;childToken:string;close:()=>Promise<void>;
    productiveEndSignal:AbortSignal;nextProductive:()=>Promise<{baseUrl:string;childToken:string;productiveEndSignal:AbortSignal}>;beginCompletion:()=>Promise<{baseUrl:string;childToken:string}>;assertCompleted:()=>void;fenceAuthority:()=>void;assertCurrentConnection:()=>void}|undefined;
   if(this.spendFixture){
@@ -243,19 +244,24 @@ export class FactoryDispatchControl {
    };
    const authorizeDispatch=()=>{this.orderedGate?.assertDispatch(identity.requestId);route.assertOwner(this.current(connectionClient,'factory.dispatch'));};
    const planned=data.request.spendContract.plannedProductiveOperations;
-   // Hard wall-clock cap from dispatch acceptance (never reset by a replay). Expiry stops the Work exactly like an owner stop:
-   // the process group is aborted (its operation stays UNKNOWN), the budget is cancelled and fenced, and the run is cancelled.
-   route.startWork(identity.workId,reason=>{
+   // Hard wall-clock cap, started only when execution ACCEPTS the dispatch claim (below) and never reset. Expiry of a non-terminal
+   // Work stops it exactly like an owner stop: the process group is aborted (its operation stays UNKNOWN), the budget is cancelled and
+   // fenced, and the run is cancelled. A terminal Work only retires its clock. The watchdog enforces the same deadline on its own.
+   const terminalNow=()=>{
+    const events=this.storage.listEvents(data.order.id),run=this.storage.getRun(data.run.id);
+    return events.some(e=>e.type==='factory.terminal')||!events.some(e=>e.type==='factory.dispatch_claimed')||
+     !!run&&['ready_for_review','failed','cancelled'].includes(run.state);
+   };
+   subscriptionHooks={isTerminal:terminalNow,onExpire:reason=>{
+    if(terminalNow())return;
     try{this.storage.transaction(()=>{
      const events=this.storage.listEvents(data.order.id);
-     if(events.some(e=>e.type==='factory.terminal'))return;
      this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.subscription_work_expired',payload:{reason,maxWorkSeconds:route.route.maxWorkSeconds}});
-     if(!events.some(e=>e.type==='factory.writer_bound'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.writer_bound',payload:{...identity}});
      if(!events.some(e=>e.type==='factory.stop_requested'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.stop_requested',payload:{...identity}});
     });}catch{}
     try{this.spend.cancelBound(binding);}catch{try{this.spend.fenceAuthority(binding);}catch{}}
     void this.execution.cancel(data.order,data.run).catch(()=>{});
-   });
+   }};
    let lease=route.issue(binding,'productive',authorizeDispatch,onDecision),repairIssued=false;
    const productiveEnd=new AbortController();   // the operator-login process ends on its own; one process is one operation
    gatewayBinding={baseUrl:lease.baseUrl,childToken:lease.childToken,productiveEndSignal:productiveEnd.signal,close:async()=>{route.revoke(lease.childToken);},
@@ -287,6 +293,7 @@ export class FactoryDispatchControl {
    this.orderedGate?.assertDispatch(identity.requestId);   // current receiver authority at the claim itself, not only before gateway setup
    if(!current.events.some(e=>e.type==='factory.writer_bound'))this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.writer_bound',payload:{...identity}});
    this.storage.appendEvent({workOrderId:data.order.id,runId:data.run.id,type:'factory.dispatch_claimed',payload:{identity,supervisorPid:process.pid}});
+   if(this.subscription&&subscriptionHooks)this.subscription.startWork(identity.workId,subscriptionHooks);   // the clock starts at acceptance
    return true;
   }),gatewayBinding));
   if(!started)await gatewayBinding?.close();
@@ -314,7 +321,7 @@ export class FactoryDispatchControl {
   const stopped=events.some(e=>e.type==='factory.stop_requested');
   const terminal=events.find(e=>e.type==='factory.terminal');
   let state='PREPARING',quiescent=false;
-  if(terminal){state=String(terminal.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));}
+  if(terminal){state=String(terminal.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));this.subscription?.retireWork(data.request.workId);}
   else if(run&&snapshot){
    const resourceBinding=digest(data);
    const resources=await this.execution.reconcile(run,()=>{this.record(client,requestId)});
@@ -341,7 +348,7 @@ export class FactoryDispatchControl {
      this.storage.appendEvent({workOrderId:data.order.id,runId:run.id,type:'factory.terminal',payload:{state:proposed,identity:binding,resourceProof:resources.evidence,at:new Date().toISOString()}});
     });
     const saved=currentResourceRecord?this.record(client,requestId).events.find(e=>e.type==='factory.terminal'):undefined;
-    if(saved){state=String(saved.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));}
+    if(saved){state=String(saved.payload.state);quiescent=true;if(binding)this.spend.fenceAuthority(spendBinding(binding));this.subscription?.retireWork(data.request.workId);}
     }
    }
   }

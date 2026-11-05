@@ -56,6 +56,9 @@ export interface CodexRunOptions {
    * allowlisted environment (no API keys or provider overrides), `--ignore-user-config --ignore-rules`, a forced ChatGPT
    * login method and web search disabled. Mutually exclusive with `gateway`, bounded context and `sessionHome`. */
   ownerLogin?: true;
+  /** Owner-login only: start Codex through the host watchdog (machine-wide kernel lock + absolute Work deadline, enforced outside
+   * the supervisor). argv: python -I script run <lockFile> <owner> <deadlineMs> <codex> <codex argv...>. */
+  ownerLoginWatchdog?: { python: string; script: string; lockFile: string; owner: string; deadlineMs: number };
 }
 
 export type CodexRunStatus = "completed" | "yielded" | "failed" | "cancelled" | "timed_out";
@@ -137,6 +140,12 @@ function validateRunOptions(options: CodexRunOptions): void {
   if (options.ownerLogin !== undefined &&
       (options.ownerLogin !== true || options.gateway !== undefined || options.boundedProductiveContext !== undefined || options.sessionHome !== undefined)) {
     throw new TypeError("Owner login excludes the metered gateway, bounded gateway context and an attempt-owned Codex home");
+  }
+  const w = options.ownerLoginWatchdog;
+  if (w !== undefined && (options.ownerLogin !== true || !w || typeof w !== "object" ||
+      ![w.python, w.script, w.lockFile, w.owner].every(v => typeof v === "string" && isAbsolute(v) && !v.includes("\0")) ||
+      !Number.isSafeInteger(w.deadlineMs) || w.deadlineMs <= 0)) {
+    throw new TypeError("Owner-login watchdog requires absolute paths and an absolute deadline");
   }
   if (options.onEvent !== undefined && typeof options.onEvent !== "function") {
     throw new TypeError("onEvent must be a function");
@@ -264,7 +273,10 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
       "--json", "-o", finalMessagePath,
       options.prompt,
     ];
-    child = spawn(executablePath, argv, {
+    const watchdog = options.ownerLoginWatchdog;
+    const command = watchdog ? watchdog.python : executablePath;
+    const commandArgs = watchdog ? ["-I", watchdog.script, "run", watchdog.lockFile, watchdog.owner, String(watchdog.deadlineMs), executablePath, ...argv] : argv;
+    child = spawn(command, commandArgs, {
       cwd: workspacePath,
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],

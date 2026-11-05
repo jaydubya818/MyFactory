@@ -24,6 +24,7 @@ import { createCodexAdapter } from '../../../packages/agents/src/index.ts';
 import { validatePrice } from './spend-gateway.ts';
 import type { ProviderConnection } from './provider-connection.ts';
 import { FactoryDispatchControl } from "./dispatch-control.ts";
+import { assertTrustedExecutablePath } from './executable-trust.ts';
 import { OwnerSubscriptionOperations, parseOwnerSubscriptionRoute, type OwnerSubscriptionRoute } from './owner-subscription-route.ts';
 import { LocalOrderedAdmission, assertWitnessOutsideData, type LocalOrderedEnrollment, type ReceiverWitness } from "./local-ordered-admission.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
@@ -254,6 +255,7 @@ function validateOwnerSubscriptionBinding(options: LocalV4SupervisorOptions): Ow
       p.verificationImage !== undefined && (typeof p.verificationImage !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(p.verificationImage)))
     throw new Error('Owner subscription binding is not qualified');
   const route = parseOwnerSubscriptionRoute(p.route);
+  assertTrustedExecutablePath(p.codexExecutable);   // direct composition: never an executable another local user can replace
   if (!options.orderedAdmission || options.localFactoryFixture || options.localSpendFixture || options.jobDependencies || options.localV4ResourceProbe ||
       options.maxParallelRuns !== undefined && options.maxParallelRuns !== 1 || options.retainCheckpoints || options.startRun || options.cancelRun ||
       options.publishDraft || options.confirmHumanPresence || (options as { realProvider?: unknown }).realProvider)
@@ -372,7 +374,9 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   const productive = options.productive;
   const codexAdapter = productive ? createCodexAdapter(productive.codexExecutable, productive.workerProfile ?? 'mac') : undefined;
   const subscription = options.subscription ? new OwnerSubscriptionOperations(options.subscription.route, spend,
-    createCodexAdapter(options.subscription.codexExecutable, 'mac'), options.subscription.codexExecutable) : undefined;
+    createCodexAdapter(options.subscription.codexExecutable, 'mac'), options.subscription.codexExecutable, dataDir) : undefined;
+  // Before anything else is served: this host's own orphaned watchdog/Codex group (from a crashed supervisor) is killed.
+  subscription?.recoverOrphans();
   const productiveDependencies = codexAdapter ? { runCodex: codexAdapter.runCodex, preflightCodex: codexAdapter.preflightCodex,
     verifyCandidate: verifyLeasedCandidate, verifyWorkspaceTree: verifyLeasedTree } : subscription ? { runCodex: subscription.runCodex,
     preflightCodex: subscription.preflightCodex, verifyCandidate: verifyLeasedCandidate, verifyWorkspaceTree: verifyLeasedTree } : undefined;

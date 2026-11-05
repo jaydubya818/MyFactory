@@ -1,7 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { chmodSync, lstatSync, mkdirSync, readFileSync, renameSync, linkSync, unlinkSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { assertTrustedExecutablePath } from './executable-trust.ts';
+import { killOwnOrphan, lockFree, watchdogFor, OWNER_SUBSCRIPTION_LOCK_DIRECTORY, WATCHDOG_DEADLINE, WATCHDOG_REFUSED_LOCKED } from './owner-subscription-watchdog.ts';
 import { isModelReference } from '../../../packages/contracts/src/model-reference.ts';
 import { OWNER_SUBSCRIPTION_ROUTE, ownerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
 import { preflightOwnerLoginCodex, type CodexAdapter, type CodexPreflight, type CodexRunOptions, type CodexRunResult } from '../../../packages/agents/src/index.ts';
@@ -80,48 +79,9 @@ export async function ownerLoginStatus(executablePath: string): Promise<boolean>
   try { return (await preflightOwnerLoginCodex(executablePath)).authenticated; } catch { return false; }
 }
 
-/** Fixed machine-wide lock directory (owner-only). Every host instance of this user shares it. */
-export const OWNER_SUBSCRIPTION_LOCK_DIRECTORY = join(homedir(), '.myfactory', 'owner-subscription');
-const LOCK_FILE = 'execution.lock';
-function ownerOnlyDirectory(path: string) {
-  mkdirSync(path, { recursive: true, mode: 0o700 });
-  const st = lstatSync(path);
-  if (!st.isDirectory() || st.isSymbolicLink() || st.uid !== process.getuid!()) throw new Error('Owner subscription lock directory is not owner-only');
-  if ((st.mode & 0o077) !== 0) chmodSync(path, 0o700);
-  if ((lstatSync(path).mode & 0o077) !== 0) throw new Error('Owner subscription lock directory is not owner-only');
-}
-const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === 'EPERM'; } };
-type LockHolder = { pid: number; token: string; startedAt: string };
-function readHolder(path: string): LockHolder | null {
-  try { const h = JSON.parse(readFileSync(path, 'utf8')); return Number.isSafeInteger(h?.pid) && typeof h?.token === 'string' ? h : null; } catch { return null; }
-}
-/**
- * Exclusive machine-wide execution lock: O_EXCL creation of one file in the fixed owner-only directory. A holder whose process is gone
- * (host crash) is taken over atomically by rename; the renamed file must be exactly the stale holder that was read, otherwise the
- * takeover is undone and refused. An unreadable lock fails closed.
- */
-export function acquireExecutionLock(directory: string): string {
-  ownerOnlyDirectory(directory);
-  const path = join(directory, LOCK_FILE), token = randomUUID();
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try { writeFileSync(path, JSON.stringify({ pid: process.pid, token, startedAt: new Date().toISOString() }), { flag: 'wx', mode: 0o600 }); return token; }
-    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
-    const holder = readHolder(path);
-    if (!holder || alive(holder.pid)) break;
-    const aside = join(directory, `stale-${token}.lock`);
-    try { renameSync(path, aside); } catch { continue; }
-    const moved = readHolder(aside);
-    if (moved?.token !== holder.token) { try { linkSync(aside, path); } catch { /* another holder now owns the path */ } try { unlinkSync(aside); } catch {} break; }
-    try { unlinkSync(aside); } catch {}
-  }
-  throw new Error('Owner subscription machine-wide concurrency limit reached');
-}
-export function releaseExecutionLock(directory: string, token: string) {
-  const path = join(directory, LOCK_FILE);
-  if (readHolder(path)?.token === token) { try { unlinkSync(path); } catch {} }
-}
-
-interface WorkClock { controller: AbortController; expired: string | null; timer: ReturnType<typeof setTimeout>; onExpire: (reason: string) => void }
+export { OWNER_SUBSCRIPTION_LOCK_DIRECTORY };
+interface WorkClock { controller: AbortController; expired: string | null; retired: boolean; deadlineMs: number; timer: ReturnType<typeof setTimeout>;
+  onExpire: (reason: string) => void; isTerminal: () => boolean }
 interface Lease { binding: SpendBinding; phase: SpendPhase; used: boolean; authorizeDispatch: () => void;
   onDecision: (evidence: Record<string, unknown>) => void }
 export const SUBSCRIPTION_BASE_URL = 'owner-subscription://local';
@@ -135,13 +95,17 @@ export class OwnerSubscriptionOperations {
   readonly #works = new Map<string, WorkClock>();
   readonly #lockDirectory: string;
   readonly #preflight: () => Promise<CodexPreflight>;
+  readonly #owner: string;
   #active = 0;
   #disabled: string | null = null;
   /** `seams` are test-only (never reachable from host configuration): the default lock directory is fixed. */
   constructor(route: OwnerSubscriptionRoute, ledger: SpendLedger, adapter: CodexAdapter, executablePath: string,
-    seams: { lockDirectory?: string; preflight?: () => Promise<CodexPreflight> } = {}) {
+    stateDirectory: string, seams: { lockDirectory?: string; preflight?: () => Promise<CodexPreflight> } = {}) {
     this.route = parseOwnerSubscriptionRoute(route);
     if (typeof executablePath !== 'string' || !executablePath.startsWith('/')) throw new OwnerSubscriptionRefused('SUBSCRIPTION_ROUTE_EXECUTABLE');
+    if (typeof stateDirectory !== 'string' || !stateDirectory.startsWith('/')) throw new OwnerSubscriptionRefused('SUBSCRIPTION_ROUTE_STATE');
+    assertTrustedExecutablePath(executablePath);   // direct composition is checked too, not only the launcher
+    this.#owner = stateDirectory;
     this.#ledger = ledger; this.#adapter = adapter; this.#executable = executablePath;
     this.#lockDirectory = seams.lockDirectory ?? OWNER_SUBSCRIPTION_LOCK_DIRECTORY;
     this.#preflight = seams.preflight ?? (() => preflightOwnerLoginCodex(this.#executable));
@@ -150,26 +114,41 @@ export class OwnerSubscriptionOperations {
   /** Permanently disables the route in this process (e.g. a non-loopback listener). Nothing further is admitted. */
   disable(reason: string) { this.#disabled ??= reason; this.#leases.clear(); for (const id of [...this.#works.keys()]) this.expireWork(id, 'ROUTE_DISABLED'); }
   get lockDirectory() { return this.#lockDirectory; }
+  /** Startup recovery, before the host listens: kill this host's own orphaned watchdog/Codex group (never another host's). */
+  recoverOrphans() { return killOwnOrphan(this.#lockDirectory, this.#owner); }
   /**
-   * Starts (idempotently, never resets) the Work's wall-clock cap at dispatch acceptance. Expiry aborts the running process group,
-   * revokes the Work's leases and calls `onExpire` (the host cancels the budget and stops the run).
+   * Starts the Work's wall-clock cap when execution ACCEPTED the dispatch claim (idempotent, never reset). The same absolute deadline
+   * is handed to the watchdog, which enforces it even if this supervisor dies. Expiry of a non-terminal Work aborts the running process
+   * group, revokes the Work's leases and calls `onExpire`; for a terminal Work it only retires the clock.
    */
-  startWork(workId: string, onExpire: (reason: string) => void) {
+  startWork(workId: string, hooks: { onExpire: (reason: string) => void; isTerminal: () => boolean }) {
     const existing = this.#works.get(workId);
-    if (existing) { if (existing.expired) throw new ActionError('Owner subscription Work time limit reached', 'dispatch_denied', 409); return; }
-    const clock: WorkClock = { controller: new AbortController(), expired: null, onExpire,
+    if (existing) { if (existing.expired || existing.retired) throw new ActionError('Owner subscription Work time limit reached', 'dispatch_denied', 409); return; }
+    const clock: WorkClock = { controller: new AbortController(), expired: null, retired: false, deadlineMs: Date.now() + this.route.maxWorkSeconds * 1000,
+      onExpire: hooks.onExpire, isTerminal: hooks.isTerminal,
       timer: setTimeout(() => this.expireWork(workId, 'WORK_TIME_LIMIT'), this.route.maxWorkSeconds * 1000) };
     clock.timer.unref?.();
     this.#works.set(workId, clock);
   }
+  /** Terminal Work: the timer is retired and can never cancel or stop it afterwards. */
+  retireWork(workId: string) {
+    const clock = this.#works.get(workId);
+    if (!clock || clock.expired || clock.retired) return;
+    clock.retired = true; clearTimeout(clock.timer);
+    for (const [token, lease] of this.#leases) if (lease.binding.workId === workId) this.#leases.delete(token);
+  }
+  workDeadline(workId: string) { return this.#works.get(workId)?.deadlineMs ?? null; }
   expireWork(workId: string, reason: string) {
     const clock = this.#works.get(workId);
-    if (!clock || clock.expired) return;
+    if (!clock || clock.expired || clock.retired) return;
+    let terminal = false; try { terminal = clock.isTerminal(); } catch { terminal = false; }
+    if (terminal) { this.retireWork(workId); return; }
     clock.expired = reason; clearTimeout(clock.timer); clock.controller.abort();
     for (const [token, lease] of this.#leases) if (lease.binding.workId === workId) this.#leases.delete(token);
     try { clock.onExpire(reason); } catch { /* the ledger fence below the process already holds */ }
   }
   workExpired(workId: string) { return this.#works.get(workId)?.expired ?? null; }
+  workRetired(workId: string) { return this.#works.get(workId)?.retired ?? false; }
   get disabled() { return this.#disabled; }
   availability() {
     return { mode: OWNER_SUBSCRIPTION_ROUTE, spendEnforced: true, metering: 'SUBSCRIPTION_UNMETERED', ownerOnly: true,
@@ -203,7 +182,7 @@ export class OwnerSubscriptionOperations {
   issue(binding: SpendBinding, phase: SpendPhase, authorizeDispatch: () => void, onDecision: Lease['onDecision']) {
     if (this.#disabled) throw new ActionError('Owner subscription route is disabled', 'spend_unqualified', 503);
     const clock = this.#works.get(binding.workId);
-    if (!clock || clock.expired) throw new ActionError('Owner subscription Work clock is not running', 'dispatch_denied', 409);
+    if (clock && (clock.expired || clock.retired)) throw new ActionError('Owner subscription Work clock is not running', 'dispatch_denied', 409);
     const childToken = randomBytes(32).toString('hex');
     this.#leases.set(childToken, { binding: { ...binding }, phase, used: false, authorizeDispatch, onDecision });
     return { baseUrl: SUBSCRIPTION_BASE_URL, childToken };
@@ -212,6 +191,7 @@ export class OwnerSubscriptionOperations {
 
   /** Preflight requires the ChatGPT login (an API-key login refuses) and binds the route into the executor version. */
   preflightCodex = async (): Promise<CodexPreflight> => {
+    assertTrustedExecutablePath(this.#executable);   // every execution entry, including preparation and dispatch preflights
     const base = await this.#preflight();
     if (!base.binaryAvailable || !base.version || !/^codex-cli \S+$/.test(base.version)) return { ...base, authenticated: false };
     return { ...base, version: ownerSubscriptionExecutorVersion(base.version), authenticated: base.authenticated,
@@ -226,10 +206,13 @@ export class OwnerSubscriptionOperations {
     if (lease.used) throw new Error('Owner subscription lease is single-use');
     if ((lease.phase === 'completion') !== (options.sandbox === 'read-only')) throw new Error('Owner subscription phase mismatch');
     const clock = this.#works.get(lease.binding.workId);
-    if (!clock || clock.expired) throw new Error('Owner subscription Work time limit reached');
+    if (!clock || clock.expired || clock.retired || Date.now() >= clock.deadlineMs) throw new Error('Owner subscription Work time limit reached');
     if (this.#active >= this.route.maxConcurrentRuns) throw new Error('Owner subscription concurrency limit reached');
-    // Machine-wide: refused (before any ledger exposure) while another host instance runs a subscription process.
-    const lockToken = acquireExecutionLock(this.#lockDirectory);
+    // Every execution entry re-checks trust; the machine-wide kernel lock is probed before any ledger exposure (the watchdog
+    // takes it for real; a race lost after dispatch is recorded UNKNOWN, never retried).
+    assertTrustedExecutablePath(this.#executable);
+    const watchdog = watchdogFor(this.#lockDirectory);
+    if (!lockFree(this.#lockDirectory)) throw new Error('Owner subscription machine-wide concurrency limit reached');
     lease.used = true; this.#active += 1;
     let operationId: string | null = null, dispatched = false;
     const decision = (code: string, extra: Record<string, unknown> = {}) => {
@@ -248,7 +231,7 @@ export class OwnerSubscriptionOperations {
     } catch (error) {
       if (operationId && !dispatched) { try { this.#ledger.releaseUndispatched(operationId); } catch { try { this.#ledger.markUnknown(operationId); } catch {} } }
       else if (operationId) { try { this.#ledger.markUnknown(operationId); } catch {} }
-      this.#active -= 1; this.revoke(token); releaseExecutionLock(this.#lockDirectory, lockToken);
+      this.#active -= 1; this.revoke(token);
       decision('LOCAL_ADMISSION_DENIED');
       throw error;
     }
@@ -256,17 +239,20 @@ export class OwnerSubscriptionOperations {
     let result: CodexRunResult | undefined;
     try {
       result = await this.#adapter.runCodex({ ...plain, ownerLogin: true,
+        ownerLoginWatchdog: { ...watchdog, owner: this.#owner, deadlineMs: clock.deadlineMs },
         signal: plain.signal ? AbortSignal.any([plain.signal, clock.controller.signal]) : clock.controller.signal });
       return result;
     } finally {
       this.#active -= 1; this.revoke(token);
       // A process that ended on its own is recorded unmetered. A timeout, abort or adapter exception is unresolved: UNKNOWN + fence.
       const outcome = result?.status ?? null;
-      if (result && ['completed', 'failed', 'yielded'].includes(result.status)) {
+      // A watchdog refusal (lock race, exit 75) or deadline kill (124), or any end at/after the deadline, is unresolved too.
+      const watchdogEnded = result && (result.exitCode === WATCHDOG_REFUSED_LOCKED || result.exitCode === WATCHDOG_DEADLINE ||
+        result.exitSignal === 'SIGKILL' || Date.now() >= clock.deadlineMs);
+      if (result && !watchdogEnded && ['completed', 'failed', 'yielded'].includes(result.status)) {
         try { this.#ledger.settleSubscriptionUnmetered(operationId!, { outcome: result.status, threadId: result.threadId }); decision('SUBSCRIPTION_UNMETERED', { outcome }); }
         catch (error) { try { this.#ledger.markUnknown(operationId!); } catch {} decision('PROVIDER_OUTCOME_UNKNOWN', { outcome, recordError: String((error as Error)?.message ?? error).slice(0, 200) }); }
       } else { try { this.#ledger.markUnknown(operationId!); } catch {} decision('PROVIDER_OUTCOME_UNKNOWN', { outcome, ...(clock.expired ? { expired: clock.expired } : {}) }); }
-      releaseExecutionLock(this.#lockDirectory, lockToken);
     }
   };
 }

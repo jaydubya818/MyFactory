@@ -110,15 +110,16 @@ function ledgerFixture(t,{planned=2,lockDir,route:routeOver}={}){
       if(outcome==='throw')throw Error('adapter crashed');
       return {workerProfile:'mac',status:outcome,success:outcome==='completed',exitCode:0,exitSignal:null,startedAt:'',finishedAt:'',eventsPath:'/dev/null',stderrPath:'',finalMessagePath:'',finalMessageAvailable:false,threadId:'11111111-2222-4333-8444-555555555555',usage:null,completionEventSeen:true,error:null};}};
   const lockDirectory=lockDir??join(dir,'locks');
-  const ops=new OwnerSubscriptionOperations(route,ledger,adapter,'/opt/homebrew/bin/codex',{lockDirectory});
+  const exe=join(dir,'codex-trusted');writeFileSync(exe,'#!/bin/sh\nexit 0\n',{mode:0o755});
+  const ops=new OwnerSubscriptionOperations(route,ledger,adapter,exe,join(dir,'state'),{lockDirectory,preflight:adapter.preflightCodex});
   const workId=randomUUID(),binding={workId,workGeneration:1,dispatchIdentity:randomUUID(),requestId:randomUUID(),workOrderId,factoryVersion:'f'.repeat(64),runId};
   const {plan,ceiling}=ops.plan(subscriptionSpendContract(route,planned));
   ledger.createBudget(binding,ceiling,new Date(Date.now()+600_000).toISOString(),plan);ledger.bindAuthority(binding);
-  const expired=[];ops.startWork(workId,reason=>{expired.push(reason);try{ledger.cancelBound(binding);}catch{}});
+  const expired=[],terminal={now:false};ops.startWork(workId,{isTerminal:()=>terminal.now,onExpire:reason=>{expired.push(reason);try{ledger.cancelBound(binding);}catch{}}});
   const decisions=[];
   const run=(phase,opts={})=>{const lease=ops.issue(binding,phase,()=>{},e=>decisions.push(e));
     return ops.runCodex({workspacePath:'/tmp',prompt:'p',model:'gpt-5.5',timeoutMs:1000,artifactsDir:'/tmp',...(phase==='completion'?{sandbox:'read-only'}:{}),gateway:lease,...opts});};
-  return {dir,path,ledger,ops,route,binding,calls,run,decisions,expired,lockDirectory,set:{hold:p=>{hold=p;},outcome:o=>{outcome=o;}}};
+  return {dir,path,ledger,ops,route,binding,calls,run,decisions,expired,terminal,exe,lockDirectory,set:{hold:p=>{hold=p;},outcome:o=>{outcome=o;}}};
 }
 
 test('ledger admits each subscription process, records SUBSCRIPTION_UNMETERED (never $0) and enforces the operation ceiling',async t=>{
@@ -316,9 +317,17 @@ ptest('end to end: the ordered receiver dispatches the operator-login worker onc
   const request=requestFor(h.repo,h.base,routeFor());
   const prep=await prepared(h,request);assert.equal(prep.status,200,JSON.stringify(prep.body));
   const s=prep.body.snapshot,identity=identityFor(request,s);
+  // A dispatch that execution does not accept (dispatch paused) never starts the Work clock; the later accepted one does.
+  h.supervisor.storage.setDispatchPaused(true,h.supervisor.storage.getPolicy().revision,'test');
+  assert.notEqual((await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,identity)).status,200);
+  assert.equal(h.supervisor.ownerSubscription.workDeadline(request.workId),null);
+  h.supervisor.storage.setDispatchPaused(false,h.supervisor.storage.getPolicy().revision,'test');
   const dispatch=await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,identity);assert.equal(dispatch.status,200,JSON.stringify(dispatch.body));
   let done;for(let i=0;i<1200;i++){done=(await h.get('/api/connect/v1/dispatches/'+request.requestId)).body;if(done.quiescent)break;await new Promise(r=>setTimeout(r,50));}
   assert.equal(done.state,'COMPLETED',JSON.stringify({state:done.state,blocker:done.blocker,events:h.supervisor.storage.listEvents(s.workOrderId).filter(e=>/hold|decision|failed|stderr|stopped/.test(e.type)).map(e=>e.type+':'+JSON.stringify(e.payload).slice(0,300))}));
+  assert.ok(h.supervisor.ownerSubscription.workDeadline(request.workId)>0);
+  assert.equal(h.supervisor.ownerSubscription.workRetired(request.workId),true);       // terminal readback retires the clock
+  assert.equal(done.spend.cancelled,false);
   assert.equal(done.spend.status,'SUBSCRIPTION_UNMETERED');assert.equal(done.spend.metering,'SUBSCRIPTION_UNMETERED');assert.equal(done.spend.settledMicrousd,null);
   assert.deepEqual(done.spend.operations.map(o=>[o.phase,o.state,o.actualMicrousd]),[['productive','settled',null],['completion','settled',null]]);
   const calls=readFileSync(log,'utf8').trim().split('\n').map(l=>JSON.parse(l));
@@ -367,7 +376,9 @@ test('host launcher refuses the subscription route without the operator ChatGPT 
 });
 
 // ---- review-1 regressions and the 10-minute Work cap
-import {OWNER_SUBSCRIPTION_LOCK_DIRECTORY,acquireExecutionLock,releaseExecutionLock} from '../src/owner-subscription-route.ts';
+import {OWNER_SUBSCRIPTION_LOCK_DIRECTORY} from '../src/owner-subscription-route.ts';
+import {watchdogFor,lockFree,lockHolder,killOwnOrphan} from '../src/owner-subscription-watchdog.ts';
+import {spawn,spawnSync} from 'node:child_process';
 import {loadHostConfig,assertTrustedExecutable,isInsideForTest,hostPreflight} from '../src/local-v4-host.ts';
 import {preflightOwnerLoginCodex} from '../../../packages/agents/src/index.ts';
 import {symlinkSync,chmodSync,existsSync,statSync} from 'node:fs';
@@ -390,37 +401,91 @@ test('Work cap: expiry aborts the running process group, leaves its operation UN
   assert.equal(spend.status,'UNKNOWN');assert.equal(spend.unknownOperations,1);assert.equal(spend.authorityState,'fenced');assert.equal(spend.cancelled,true);
   assert.ok(f.decisions.some(d=>d.code==='PROVIDER_OUTCOME_UNKNOWN'&&d.expired==='WORK_TIME_LIMIT'));
   assert.throws(()=>f.run('productive'),/clock is not running/);
-  assert.throws(()=>f.ops.startWork(f.binding.workId,()=>{}),/time limit/);   // a replay never resets the clock
-  assert.equal(existsSync(join(f.lockDirectory,'execution.lock')),false);      // the machine lock is released
+  assert.throws(()=>f.ops.startWork(f.binding.workId,{onExpire:()=>{},isTerminal:()=>false}),/time limit/);   // a replay never resets the clock
 });
 
-test('a lease needs a running Work clock; startWork is idempotent and never resets',async t=>{
+test('a process needs an accepted (running) Work clock; startWork is idempotent; terminal Works only retire their clock',async t=>{
   const f=ledgerFixture(t);
   const other={...f.binding,workId:randomUUID()};
-  assert.throws(()=>f.ops.issue(other,'productive',()=>{},()=>{}),/clock is not running/);
-  f.ops.startWork(f.binding.workId,()=>{throw Error('second callback must not replace the first');});
-  f.ops.expireWork(f.binding.workId,'TEST');assert.deepEqual(f.expired,['TEST']);
+  const lease=f.ops.issue(other,'productive',()=>{},()=>{});                     // issuing before acceptance is allowed ...
+  await assert.rejects(f.ops.runCodex({workspacePath:'/tmp',prompt:'p',model:'gpt-5.5',timeoutMs:1000,artifactsDir:'/tmp',gateway:lease}),/time limit/);   // ... running is not
+  assert.equal(f.ops.workDeadline(other.workId),null);
+  f.ops.startWork(f.binding.workId,{onExpire:()=>{throw Error('second hooks must not replace the first');},isTerminal:()=>false});
+  f.terminal.now=true;f.ops.expireWork(f.binding.workId,'WORK_TIME_LIMIT');
+  assert.deepEqual(f.expired,[]);assert.equal(f.ops.workRetired(f.binding.workId),true);assert.equal(f.ledger.read(f.binding.workId).cancelled,false);
+  // A retired clock's timer never fires into a finished Work.
+  const g=ledgerFixture(t,{route:{maxWorkSeconds:1}});g.ops.retireWork(g.binding.workId);
+  await new Promise(r=>setTimeout(r,1300));
+  assert.deepEqual(g.expired,[]);assert.equal(g.ledger.read(g.binding.workId).cancelled,false);
 });
 
-test('concurrency is machine-wide: a second host instance sharing the fixed lock directory refuses while one process runs',async t=>{
+// Kernel-lock helpers: a real watchdog holding the lock around a long-running stand-in Codex.
+function sleeper(dir,name='codex-sleeper'){const p=join(dir,name);writeFileSync(p,'#!/bin/sh\nsleep 60\n',{mode:0o755});return p;}
+function launchDetached(dir,lockDirectory,{owner='/owner/state',deadlineMs=Date.now()+60_000,orphan=false}={}){
+  const w=watchdogFor(lockDirectory),args=['-I',w.script,'run',w.lockFile,owner,String(deadlineMs),sleeper(dir)];
+  if(!orphan){const c=spawn(w.python,args,{detached:true,stdio:'ignore'});c.unref();return c.pid;}
+  // Supervisor death: an intermediate process starts the watchdog and exits immediately.
+  const r=spawnSync(process.execPath,['-e',`const c=require('node:child_process').spawn(${JSON.stringify(w.python)},${JSON.stringify(args)},{detached:true,stdio:'ignore'});c.unref();console.log(c.pid);`],{encoding:'utf8'});
+  return Number(r.stdout.trim());
+}
+const waitFor=async(cond,ms=8000)=>{for(const end=Date.now()+ms;Date.now()<end;){if(cond())return true;await new Promise(r=>setTimeout(r,50));}return cond();};
+const killGroup=pid=>{try{process.kill(-pid,'SIGKILL');}catch{}};
+
+test('machine-wide concurrency is a kernel lock: a second host refuses before any ledger exposure; a crashed holder releases it',async t=>{
   const a=ledgerFixture(t),b=ledgerFixture(t,{lockDir:a.lockDirectory});
-  let release;a.set.hold(new Promise(r=>{release=r;}));
-  const first=a.run('productive');
-  for(let i=0;i<50&&!existsSync(join(a.lockDirectory,'execution.lock'));i++)await new Promise(r=>setTimeout(r,10));
+  const pid=launchDetached(a.dir,a.lockDirectory);t.after(()=>killGroup(pid));
+  assert.ok(await waitFor(()=>!lockFree(a.lockDirectory)));
   await assert.rejects(b.run('productive'),/machine-wide concurrency/);
-  assert.equal(b.calls.length,0);assert.equal(b.ledger.read(b.binding.workId).operations.length,0);   // refused before any ledger exposure
+  assert.equal(b.calls.length,0);assert.equal(b.ledger.read(b.binding.workId).operations.length,0);
+  const w=watchdogFor(a.lockDirectory);
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x',String(Date.now()+60_000),sleeper(a.dir,'other')]).status,75);   // another watchdog refuses
   assert.equal(statSync(a.lockDirectory).mode&0o777,0o700);
-  release();await first;
+  killGroup(pid);                                                         // holder crash: the kernel releases the lock, no takeover logic
+  assert.ok(await waitFor(()=>lockFree(a.lockDirectory)));
   await b.run('productive');assert.equal(b.calls.length,1);
-  // Stale holder (dead process) is taken over; an unreadable holder fails closed.
-  writeFileSync(join(a.lockDirectory,'execution.lock'),JSON.stringify({pid:2**30,token:'stale',startedAt:'x'}));
-  const token=acquireExecutionLock(a.lockDirectory);releaseExecutionLock(a.lockDirectory,token);
-  writeFileSync(join(a.lockDirectory,'execution.lock'),'garbage');
-  assert.throws(()=>acquireExecutionLock(a.lockDirectory),/machine-wide/);
-  // Composition always uses the fixed owner-only directory under the operator's home.
+  // A momentary probe (another host checking) never refuses a launch: the watchdog retries briefly.
+  const holdFor=spawn(w.python,['-I','-c',`import fcntl,os,time\nfd=os.open(${JSON.stringify(w.lockFile)},os.O_RDWR)\nfcntl.flock(fd,fcntl.LOCK_EX)\ntime.sleep(0.3)`]);
+  await new Promise(r=>setTimeout(r,100));
+  const quick=join(a.dir,'codex-quick');writeFileSync(quick,'#!/bin/sh\nexit 0\n',{mode:0o755});
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x',String(Date.now()+60_000),quick]).status,0);
+  await new Promise(r=>holdFor.once('close',r));
   const c=await compose(t),s=c.make();t.after(()=>s.close().catch(()=>{}));
   assert.equal(s.ownerSubscription.lockDirectory,OWNER_SUBSCRIPTION_LOCK_DIRECTORY);
   assert.match(OWNER_SUBSCRIPTION_LOCK_DIRECTORY,/\/\.myfactory\/owner-subscription$/);
+});
+
+test('supervisor death keeps exclusivity and the wall clock: the watchdog holds the lock and kills its group at the deadline',async t=>{
+  const dir=tmp(t,'sub-orphan-'),lockDirectory=join(dir,'locks');
+  const pid=launchDetached(dir,lockDirectory,{orphan:true,deadlineMs:Date.now()+2000});t.after(()=>killGroup(pid));
+  assert.ok(pid>0);
+  assert.ok(await waitFor(()=>!lockFree(lockDirectory)));               // the launcher is gone, Codex still holds the lock
+  assert.equal(lockHolder(lockDirectory).pgid,pid);
+  await new Promise(r=>setTimeout(r,1000));assert.equal(lockFree(lockDirectory),false);
+  assert.ok(await waitFor(()=>lockFree(lockDirectory),9000),'deadline kill must release the lock');
+  let alive=true;try{process.kill(-pid,0);}catch{alive=false;}
+  assert.equal(alive,false);
+  const w=watchdogFor(lockDirectory);                                    // at or after the deadline nothing starts
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x',String(Date.now()-1),sleeper(dir,'late')]).status,124);
+});
+
+test('startup recovery kills only this host\'s orphaned group, before anything else',async t=>{
+  const dir=tmp(t,'sub-recover-'),lockDirectory=join(dir,'locks');
+  const pid=launchDetached(dir,lockDirectory,{orphan:true,owner:'/host/a/data'});t.after(()=>killGroup(pid));
+  assert.ok(await waitFor(()=>!lockFree(lockDirectory)));
+  assert.deepEqual(killOwnOrphan(lockDirectory,'/host/b/data'),{killedPgid:null});assert.equal(lockFree(lockDirectory),false);   // another host's process is left alone
+  assert.deepEqual(killOwnOrphan(lockDirectory,'/host/a/data'),{killedPgid:pid});assert.equal(lockFree(lockDirectory),true);
+});
+
+test('executable trust is re-checked at every execution entry and in direct composition',async t=>{
+  const f=ledgerFixture(t);
+  assert.ok((await f.ops.preflightCodex()).authenticated);
+  chmodSync(f.exe,0o777);
+  await assert.rejects(f.ops.preflightCodex(),e=>e.code==='HOST_CODEX_UNTRUSTED');
+  await assert.rejects(f.run('productive'),e=>e.code==='HOST_CODEX_UNTRUSTED');
+  assert.equal(f.calls.length,0);assert.equal(f.ledger.read(f.binding.workId).operations.length,0);
+  assert.throws(()=>new OwnerSubscriptionOperations(f.route,f.ledger,{},f.exe,join(f.dir,'state')),e=>e.code==='HOST_CODEX_UNTRUSTED');
+  const c=await compose(t);chmodSync(c.codex,0o777);
+  assert.throws(()=>c.make(),e=>e.code==='HOST_CODEX_UNTRUSTED');
 });
 
 test('owner-login preflight children get the allowlisted environment (no API keys)',async t=>{
