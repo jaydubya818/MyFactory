@@ -6,19 +6,35 @@ import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {profileTest} from './local-v4-profile.mjs';
-import {createLocalV4Supervisor} from '../src/server.ts';
-import {FileReceiverWitness} from '../src/local-ordered-admission.ts';
-import {OwnerSubscriptionOperations,parseOwnerSubscriptionRoute,subscriptionSpendContract,OwnerSubscriptionRefused,SUBSCRIPTION_BASE_URL} from '../src/owner-subscription-route.ts';
-import {parseHostConfig,HostConfigRefused,HOST_CONFIG_SCHEMA,hostExecutionConfiguration} from '../src/local-v4-host.ts';
-import {openStorage} from '../../../packages/storage/src/index.ts';
-import {SpendLedger} from '../../../packages/storage/src/spend.ts';
-import {OWNER_SUBSCRIPTION_PRICING_REVISION,assertNotOwnerSubscriptionPlan} from '../../../packages/storage/src/spend-policy.ts';
-import {OWNER_SUBSCRIPTION_PRICING_REVISION_MARKER,ownerSubscriptionExecutorVersion} from '../../../packages/contracts/src/owner-subscription-route.ts';
-import {ownerLoginEnvironment} from '../../../packages/agents/src/index.ts';
-import {parseInput} from '../../../packages/hosted-routing/src/index.mjs';
-import {validateManifest,digest} from '../../../packages/hosted-routing/src/result.ts';
-import {PostgresSpendLedger} from '../../cloud-control/src/postgres-spend.mjs';
-import {signPolicyMessage,verifyPolicyMessage,policyMessageHash} from '../../../packages/capability-enforcement/src/ordering-wire.ts';
+import os from 'node:os';
+import {syncBuiltinESMExports} from 'node:module';
+
+// Synthetic composition must not acquire (or contend with) the operator's live machine lock. Initialize the module's default
+// lock root under one disposable fixture home, then restore the OS builtin BEFORE any tests run. Production source, HOME,
+// route selection and global flock semantics are unchanged; all hosts in this fixture still share exactly one kernel lock.
+const fixtureHome=realpathSync(mkdtempSync(join(tmpdir(),'sub-owner-home-')));
+const realHomedir=os.homedir;
+try{
+  os.homedir=()=>fixtureHome;syncBuiltinESMExports();
+  await import('../src/owner-subscription-watchdog.ts');
+}finally{os.homedir=realHomedir;syncBuiltinESMExports();}
+const {createLocalV4Supervisor}=await import('../src/server.ts');
+const {FileReceiverWitness}=await import('../src/local-ordered-admission.ts');
+const {OwnerSubscriptionOperations,parseOwnerSubscriptionRoute,subscriptionSpendContract,OwnerSubscriptionRefused,SUBSCRIPTION_BASE_URL,OWNER_SUBSCRIPTION_LOCK_DIRECTORY}=await import('../src/owner-subscription-route.ts');
+const {parseHostConfig,HostConfigRefused,HOST_CONFIG_SCHEMA,hostExecutionConfiguration,provisionHostMaterial,startLocalV4Host,MATERIAL,loadHostConfig,assertTrustedExecutable,isInsideForTest,hostPreflight}=await import('../src/local-v4-host.ts');
+const {openStorage}=await import('../../../packages/storage/src/index.ts');
+const {SpendLedger}=await import('../../../packages/storage/src/spend.ts');
+const {OWNER_SUBSCRIPTION_PRICING_REVISION,assertNotOwnerSubscriptionPlan}=await import('../../../packages/storage/src/spend-policy.ts');
+const {OWNER_SUBSCRIPTION_PRICING_REVISION_MARKER,ownerSubscriptionExecutorVersion}=await import('../../../packages/contracts/src/owner-subscription-route.ts');
+const {ownerLoginEnvironment,preflightOwnerLoginCodex}=await import('../../../packages/agents/src/index.ts');
+const {parseInput}=await import('../../../packages/hosted-routing/src/index.mjs');
+const {validateManifest,digest}=await import('../../../packages/hosted-routing/src/result.ts');
+const {PostgresSpendLedger}=await import('../../cloud-control/src/postgres-spend.mjs');
+const {signPolicyMessage,verifyPolicyMessage,policyMessageHash}=await import('../../../packages/capability-enforcement/src/ordering-wire.ts');
+const {watchdogFor,lockFree,lockHolder,killOwnOrphan,WATCHDOG_SOURCE}=await import('../src/owner-subscription-watchdog.ts');
+assert.equal(OWNER_SUBSCRIPTION_LOCK_DIRECTORY,join(fixtureHome,'.myfactory','owner-subscription'));
+test.after(()=>rmSync(fixtureHome,{recursive:true,force:true}));
+
 const ptest=profileTest(test);
 
 // FIXTURE ONLY: synthetic keys, temporary git repositories and SQLite files, a disposable stand-in Codex executable. No real Codex
@@ -351,7 +367,6 @@ ptest('end to end: the ordered receiver dispatches the operator-login worker onc
 });
 
 // ---- trusted host launcher with the subscription provider (disposable stand-in Codex; no dispatch)
-import {provisionHostMaterial,startLocalV4Host,MATERIAL} from '../src/local-v4-host.ts';
 const pubKey=k=>({keyId:k.keyId,jwk:{kty:'EC',crv:'P-256',x:k.jwk.x,y:k.jwk.y}});
 async function hostFixture(t,{apiKeyLogin=false}={}){
   const dir=tmp(t,'sub-hostrun-'),repo=join(dir,'repo');mkdirSync(repo);
@@ -386,11 +401,7 @@ test('host launcher refuses the subscription route without the operator ChatGPT 
 });
 
 // ---- review-1 regressions and the 10-minute Work cap
-import {OWNER_SUBSCRIPTION_LOCK_DIRECTORY} from '../src/owner-subscription-route.ts';
-import {watchdogFor,lockFree,lockHolder,killOwnOrphan,WATCHDOG_SOURCE} from '../src/owner-subscription-watchdog.ts';
 import {spawn,spawnSync} from 'node:child_process';
-import {loadHostConfig,assertTrustedExecutable,isInsideForTest,hostPreflight} from '../src/local-v4-host.ts';
-import {preflightOwnerLoginCodex} from '../../../packages/agents/src/index.ts';
 import {symlinkSync,chmodSync,existsSync,statSync} from 'node:fs';
 
 test('route accepts the exact MyEve owner principal UUID and enforces maxWorkSeconds 1..600',()=>{
