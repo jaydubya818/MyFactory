@@ -387,7 +387,7 @@ test('host launcher refuses the subscription route without the operator ChatGPT 
 
 // ---- review-1 regressions and the 10-minute Work cap
 import {OWNER_SUBSCRIPTION_LOCK_DIRECTORY} from '../src/owner-subscription-route.ts';
-import {watchdogFor,lockFree,lockHolder,killOwnOrphan} from '../src/owner-subscription-watchdog.ts';
+import {watchdogFor,lockFree,lockHolder,killOwnOrphan,WATCHDOG_SOURCE} from '../src/owner-subscription-watchdog.ts';
 import {spawn,spawnSync} from 'node:child_process';
 import {loadHostConfig,assertTrustedExecutable,isInsideForTest,hostPreflight} from '../src/local-v4-host.ts';
 import {preflightOwnerLoginCodex} from '../../../packages/agents/src/index.ts';
@@ -448,7 +448,7 @@ test('machine-wide concurrency is a kernel lock: a second host refuses before an
   await assert.rejects(b.run('productive'),/machine-wide concurrency/);
   assert.equal(b.calls.length,0);assert.equal(b.ledger.read(b.binding.workId).operations.length,0);
   const w=watchdogFor(a.lockDirectory);
-  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x','60000',randomUUID(),sleeper(a.dir,'other')]).status,75);   // another watchdog refuses
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x','60000',randomUUID(),sleeper(a.dir,'other')],{detached:true,timeout:15_000,killSignal:'SIGKILL'}).status,75);   // another watchdog refuses
   assert.equal(statSync(a.lockDirectory).mode&0o777,0o700);
   killGroup(pid);                                                         // holder crash: the kernel releases the lock, no takeover logic
   assert.ok(await waitFor(()=>lockFree(a.lockDirectory)));
@@ -457,7 +457,7 @@ test('machine-wide concurrency is a kernel lock: a second host refuses before an
   const holdFor=spawn(w.python,['-I','-c',`import fcntl,os,time\nfd=os.open(${JSON.stringify(w.lockFile)},os.O_RDWR)\nfcntl.flock(fd,fcntl.LOCK_EX)\ntime.sleep(0.3)`]);const holdClosed=new Promise(r=>holdFor.once('close',r));
   await new Promise(r=>setTimeout(r,100));
   const quick=join(a.dir,'codex-quick');writeFileSync(quick,'#!/bin/sh\nexit 0\n',{mode:0o755});
-  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x','60000',randomUUID(),quick]).status,0);
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x','60000',randomUUID(),quick],{detached:true,timeout:15_000,killSignal:'SIGKILL'}).status,0);
   await holdClosed;
   const c=await compose(t),s=c.make();t.after(()=>s.close().catch(()=>{}));
   assert.equal(s.ownerSubscription.lockDirectory,OWNER_SUBSCRIPTION_LOCK_DIRECTORY);
@@ -475,7 +475,7 @@ test('supervisor death keeps exclusivity and the wall clock: the watchdog holds 
   let alive=true;try{process.kill(-pid,0);}catch{alive=false;}
   assert.equal(alive,false);
   const w=watchdogFor(lockDirectory);                                    // at or after the deadline nothing starts
-  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x','0',randomUUID(),sleeper(dir,'late')]).status,124);
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/x','0',randomUUID(),sleeper(dir,'late')],{detached:true,timeout:15_000,killSignal:'SIGKILL'}).status,124);
 });
 
 test('startup recovery kills only this host\'s orphaned group, before anything else',async t=>{
@@ -577,11 +577,11 @@ test('the watchdog holds the lock and the deadline over the WHOLE group, reports
   assert.ok(await waitFor(()=>lockFree(lockDirectory)));
   // A signal-killed Codex is reported as that signal, never as an ordinary exit code.
   const killed=join(dir,'codex-killed');writeFileSync(killed,'#!/bin/sh\nkill -KILL $$\n',{mode:0o755});
-  const r3=spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/o','60000',randomUUID(),killed]);
+  const r3=spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/o','60000',randomUUID(),killed],{detached:true,timeout:15_000,killSignal:'SIGKILL'});
   assert.equal(r3.status,null);assert.equal(r3.signal,'SIGKILL');
-  // Deadline and grace are monotonic; the wall clock is read once, at launch.
+  // Deadline and grace use the shared monotonic clock; no adjustable wall clock is read.
   const src=readFileSync(w.script,'utf8');
-  assert.equal((src.match(/time\.time\(\)/g)??[]).length,0);assert.match(src,/deadline = time\.monotonic\(\) \+ remaining_ms/);assert.match(src,/grace = time\.monotonic\(\) \+ 5/);
+  assert.equal((src.match(/time\.time\(\)/g)??[]).length,0);assert.match(src,/deadline = entry_ms \+ remaining_ms/);assert.match(src,/grace = monotonic_ms\(\) \+ 5000/);
 });
 
 test('signalled or >=128 exits are UNKNOWN, never settled as unmetered success',async t=>{
@@ -615,7 +615,7 @@ test('review-4: fail-closed scans, private lock fd, deadline recheck, monotonic 
   await new Promise(r=>run.once('exit',r));assert.ok(await waitFor(()=>lockFree(lockDirectory)));
   // The deadline is rechecked right before spawning: 1 ms left never starts Codex.
   const marker=join(dir,'started'),touch=join(dir,'codex-touch');writeFileSync(touch,`#!/bin/sh\ntouch ${marker}\n`,{mode:0o755});
-  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/o','1',randomUUID(),touch]).status,124);assert.equal(existsSync(marker),false);
+  assert.equal(spawnSync(w.python,['-I',w.script,'run',w.lockFile,'/o','1',randomUUID(),touch],{detached:true,timeout:15_000,killSignal:'SIGKILL'}).status,124);assert.equal(existsSync(marker),false);
   // Allowance = min(maxWorkSeconds, request deadline), monotonic: a later wall-clock rollback does not extend it.
   const f=ledgerFixture(t),other=randomUUID();
   f.ops.startWork(other,{onExpire:()=>{},isTerminal:()=>false,requestDeadline:new Date(Date.now()+2000).toISOString()});
@@ -628,6 +628,83 @@ test('review-4: fail-closed scans, private lock fd, deadline recheck, monotonic 
   const quick=join(dir,'codex-q');writeFileSync(quick,'#!/bin/sh\nexit 0\n',{mode:0o755});
   const kills=[],realKill=process.kill;process.kill=function(pid,sig){if(pid<0)kills.push([pid,sig]);return realKill.call(process,pid,sig);};
   try{await createCodexAdapter(quick).runCodex({workspacePath:ws,prompt:'p',model:'gpt-5.5',timeoutMs:20000,artifactsDir:art,ownerLogin:true,
-    ownerLoginWatchdog:{...w,owner:'/o',remainingMs:20000,nonce:randomUUID()}});}finally{process.kill=realKill;}
+    ownerLoginWatchdog:{...w,owner:'/o',remainingMs:20000,deadlineMonoMs:Number(process.hrtime.bigint()/1_000_000n)+20000,nonce:randomUUID()}});}finally{process.kill=realKill;}
   assert.deepEqual(kills,[]);
+});
+
+test('failed or incomplete process inspection cannot release the execution lock as a successful completion',async t=>{
+  for(const inspection of ['nonzero','empty','partial','timeout']){
+    const dir=tmp(t,'sub-ps-'+inspection+'-'),w=watchdogFor(join(dir,'locks'));
+    const probe=join(dir,'ps-fixture');
+    const action=inspection==='nonzero'?'sys.exit(1)':inspection==='empty'?'sys.exit(0)':inspection==='partial'?'print("123 123 S");sys.exit(0)':'time.sleep(5)';
+    writeFileSync(probe,`#!/usr/bin/python3\nimport os,sys,time\nif "-A" in sys.argv:\n    ${action}\nos.execv("/bin/ps",["/bin/ps"]+sys.argv[1:])\n`,{mode:0o755});
+    const script=join(dir,'watchdog-inspection.py');
+    writeFileSync(script,WATCHDOG_SOURCE.replace('["/bin/ps"]',`[${JSON.stringify(probe)}]`));
+    const codex=join(dir,'codex-leaves');writeFileSync(codex,'#!/bin/sh\n(sleep 60) &\nexit 0\n',{mode:0o755});
+    const child=spawn(w.python,['-I',script,'run',w.lockFile,'/fixture','1800',randomUUID(),codex],{detached:true,stdio:'ignore'});
+    t.after(()=>killGroup(child.pid));
+    const exited=new Promise(resolve=>child.once('exit',(code,signal)=>resolve({code,signal})));
+    await new Promise(resolve=>setTimeout(resolve,600));
+    assert.equal(lockFree(join(dir,'locks')),false,inspection);
+    assert.deepEqual(await exited,{code:null,signal:'SIGKILL'},inspection);
+    assert.ok(await waitFor(()=>lockFree(join(dir,'locks'))),inspection);
+  }
+});
+
+test('a deadline spent collecting launch metadata never starts Codex',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'sub-expired-launch-'));
+  try{
+    const w=watchdogFor(join(dir,'locks')),probe=join(dir,'slow-ps'),marker=join(dir,'executed');
+    writeFileSync(probe,'#!/usr/bin/python3\nimport os,sys,time\ntime.sleep(0.9)\nos.execv("/bin/ps",["/bin/ps"]+sys.argv[1:])\n',{mode:0o755});
+    const script=join(dir,'watchdog-delay.py');writeFileSync(script,WATCHDOG_SOURCE.replace('["/bin/ps"]',`[${JSON.stringify(probe)}]`));
+    const codex=join(dir,'codex-marker');writeFileSync(codex,`#!/bin/sh\ntouch ${JSON.stringify(marker)}\n`,{mode:0o755});
+    const result=spawnSync(w.python,['-I',script,'run',w.lockFile,'/fixture','750',randomUUID(),codex],{detached:true,timeout:5000,killSignal:'SIGKILL'});
+    assert.equal(result.status,124);assert.equal(existsSync(marker),false);
+  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test('absolute watchdog deadlines include interpreter startup and malformed deadlines never fall back to legacy mode',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'sub-absolute-deadline-'));
+  try{
+    const w=watchdogFor(join(dir,'locks')),marker=join(dir,'executed'),codex=join(dir,'codex-marker');
+    writeFileSync(codex,`#!/bin/sh\ntouch ${JSON.stringify(marker)}\n`,{mode:0o755});
+    const mono=()=>Number(process.hrtime.bigint()/1_000_000n);
+    for(const [absolute,status]of[[String(mono()-1),124],['NaN',64],['0',64],['-1',64]]){
+      const result=spawnSync(w.python,['-I',w.script,'run-deadline',w.lockFile,'/fixture','60000',randomUUID(),absolute,codex],{detached:true,timeout:5000,killSignal:'SIGKILL'});
+      assert.equal(result.status,status,absolute);assert.equal(existsSync(marker),false);
+    }
+    const missing=spawnSync(w.python,['-I',w.script,'run-deadline',w.lockFile,'/fixture','60000',randomUUID(),codex],{detached:true,timeout:5000,killSignal:'SIGKILL'});
+    assert.equal(missing.status,64);assert.equal(existsSync(marker),false);
+    const unsupported=join(dir,'unsupported.py');
+    writeFileSync(unsupported,WATCHDOG_SOURCE.replace('sys.platform == "darwin"','False').replace('sys.platform == "linux"','False'));
+    assert.equal(spawnSync(w.python,['-I',unsupported,'run-deadline',w.lockFile,'/fixture','60000',randomUUID(),String(mono()+1000),codex],{detached:true,timeout:5000,killSignal:'SIGKILL'}).status,70);
+    assert.equal(existsSync(marker),false);
+  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test('lock acquisition consumes both the legacy duration and the absolute Work allowance',async t=>{
+  for(const absolute of [false,true]){
+    const dir=tmp(t,'sub-lock-deadline-'),w=watchdogFor(join(dir,'locks')),ready=join(dir,'ready'),marker=join(dir,'executed');
+    const holder=spawn(w.python,['-I','-c',`import fcntl,os,time\nfd=os.open(${JSON.stringify(w.lockFile)},os.O_RDWR|os.O_CREAT,0o600)\nfcntl.flock(fd,fcntl.LOCK_EX)\nopen(${JSON.stringify(ready)},'w').write('ready')\ntime.sleep(0.7)\n`],{detached:true,stdio:'ignore'});
+    t.after(()=>killGroup(holder.pid));assert.ok(await waitFor(()=>existsSync(ready)));
+    const codex=join(dir,'codex-marker');writeFileSync(codex,`#!/bin/sh\ntouch ${JSON.stringify(marker)}\n`,{mode:0o755});
+    const args=absolute?['run-deadline',w.lockFile,'/fixture','60000',randomUUID(),String(Number(process.hrtime.bigint()/1_000_000n)+150),codex]:['run',w.lockFile,'/fixture','150',randomUUID(),codex];
+    const result=spawnSync(w.python,['-I',w.script,...args],{detached:true,timeout:5000,killSignal:'SIGKILL'});
+    assert.equal(result.status,124);assert.equal(existsSync(marker),false);
+  }
+});
+
+test('adapter filesystem preparation cannot renew the absolute Work deadline or start Codex after expiry',async t=>{
+  const {default:fsPromises}=await import('node:fs/promises');
+  const {syncBuiltinESMExports}=await import('node:module');
+  const {createCodexAdapter}=await import('../../../packages/agents/src/index.ts');
+  const dir=tmp(t,'sub-adapter-deadline-'),w=watchdogFor(join(dir,'locks')),ws=join(dir,'ws'),art=join(dir,'art'),marker=join(dir,'executed');mkdirSync(ws);mkdirSync(art);
+  const codex=join(dir,'codex-marker');writeFileSync(codex,`#!/bin/sh\ntouch ${JSON.stringify(marker)}\n`,{mode:0o755});
+  const realOpen=fsPromises.open;let delayed=false,started=false;
+  fsPromises.open=async function(path,...args){if(String(path).endsWith('/stderr.log')){delayed=true;await new Promise(r=>setTimeout(r,250));}return realOpen.call(this,path,...args);};syncBuiltinESMExports();
+  try{
+    await assert.rejects(createCodexAdapter(codex).runCodex({workspacePath:ws,prompt:'p',model:'gpt-5.5',timeoutMs:20000,artifactsDir:art,ownerLogin:true,
+      ownerLoginWatchdog:{...w,owner:'/fixture',remainingMs:60000,deadlineMonoMs:Number(process.hrtime.bigint()/1_000_000n)+100,nonce:randomUUID()},onProcessStart:()=>{started=true;}}),/time limit reached before spawn/);
+  }finally{fsPromises.open=realOpen;syncBuiltinESMExports();}
+  assert.equal(delayed,true);assert.equal(started,false);assert.equal(existsSync(marker),false);
 });

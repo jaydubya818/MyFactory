@@ -37,14 +37,17 @@ import undiciSuccessor from '../../../docs/capability-control/source-identity-20
 import sofieIntegration from '../../../docs/capability-control/source-identity-20261025/sofie-integration-successor.json' with {type:'json'};
 
 import successor from '../../../docs/capability-control/source-identity-20261029/developer-beta-candidate.json' with {type:'json'};
+import localSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-local-successor.json' with {type:'json'};
 
 test('inventoried source and configuration bind the exact unqualified source candidate',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
  const computed=JSON.parse(execFileSync(process.execPath,['apps/cloud-control/scripts/cloud-source-identity.mjs'],{cwd:root,encoding:'utf8'}));
  assert.deepEqual(computed,source);
- assert.equal(source.sourceDigest,successor.sourceDigest);
- assert.equal(digest(productionConfiguration),successor.configurationDigest);
- assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:successor.configurationDigest}),successor.factoryVersion);
+ assert.equal(source.sourceDigest,localSuccessor.sourceDigest);
+ assert.equal(localSuccessor.predecessorSourceDigest,successor.sourceDigest);
+ assert.equal(localSuccessor.releaseQualified,false);
+ assert.equal(digest(productionConfiguration),localSuccessor.configurationDigest);
+ assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:localSuccessor.configurationDigest}),localSuccessor.factoryVersion);
  assert.equal(productionExecutionContractSha256,successor.executionContractSha256);
  assert.equal(historical.sourceDigest,successor.historicalSourceDigest);
  assert.notEqual(historical.sourceDigest,source.sourceDigest);

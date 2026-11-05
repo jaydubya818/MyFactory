@@ -13,19 +13,48 @@ import { assertTrustedExecutablePath, assertTrustedFile } from './executable-tru
  *  - takes a KERNEL lock (flock LOCK_EX|LOCK_NB) on the one lock file; a second process anywhere on the machine exits 75 before Codex
  *    exists. The lock descriptor is private to the watchdog (never inherited), and the watchdog stays until every member of its
  *    group is gone (a failed process scan counts as survivors): supervisor death does not release it, and there is no takeover logic;
- *  - receives the Work's REMAINING time (from the host's monotonic deadline), refuses (exit 124) when none is left, rechecks just
+ *  - receives the host's absolute monotonic Work deadline and remaining-time cap, refuses (exit 124) when none is left, rechecks just
  *    before spawning Codex, and at the deadline kills its whole process group independently of the supervisor;
  *  - records {pgid, owner, deadline} in the lock file so a restarting host can kill ITS OWN orphaned group before anything else.
  */
 export const WATCHDOG_REFUSED_LOCKED = 75;
 export const WATCHDOG_DEADLINE = 124;
 export const WATCHDOG_SOURCE = `import fcntl, json, os, signal, subprocess, sys, time
-mode = sys.argv[1]
+mode = sys.argv[1] if len(sys.argv) > 1 else ""
+if mode not in ("probe", "run", "run-deadline") or (mode == "probe" and len(sys.argv) != 3) or (mode == "run" and len(sys.argv) < 7) or (mode == "run-deadline" and len(sys.argv) < 8):
+    sys.exit(64)
 lock_path = sys.argv[2]
+# Match Node hrtime's system-wide clock, including suspend on Darwin. Python 3.9 time.monotonic() has a process-local offset
+# on Darwin and cannot be compared to the host deadline. Unsupported clocks refuse before any Codex process exists.
+try:
+    clock_id = time.CLOCK_MONOTONIC_RAW if sys.platform == "darwin" else time.CLOCK_MONOTONIC if sys.platform == "linux" else None
+    if clock_id is None:
+        sys.exit(70)
+    def monotonic_ms():
+        return time.clock_gettime_ns(clock_id) / 1000000
+    entry_ms = monotonic_ms()
+except (AttributeError, OSError):
+    sys.exit(70)
+if mode != "probe":
+    owner, remaining_ms, nonce = sys.argv[3], int(sys.argv[4]), sys.argv[5]
+    deadline = entry_ms + remaining_ms
+    if mode == "run-deadline":
+        absolute = sys.argv[6]
+        if not absolute.isascii() or not absolute.isdigit() or int(absolute) <= 0:
+            sys.exit(64)
+        deadline = min(deadline, int(absolute))
+        codex, codex_args = sys.argv[7], sys.argv[8:]
+    else:
+        # Legacy duration-only invocations are retained for direct fixtures; production always uses run-deadline.
+        codex, codex_args = sys.argv[6], sys.argv[7:]
+    if remaining_ms <= 0 or entry_ms >= deadline:
+        sys.exit(124)
 fd = os.open(lock_path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
 # A momentary probe by another host must not refuse a launch; a real holder keeps the lock for the whole group lifetime.
 attempts = 1 if mode == "probe" else 20
 for attempt in range(attempts):
+    if mode != "probe" and monotonic_ms() >= deadline:
+        sys.exit(124)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         break
@@ -35,12 +64,6 @@ for attempt in range(attempts):
         time.sleep(0.05)
 if mode == "probe":
     sys.exit(0)
-owner, remaining_ms, nonce, codex = sys.argv[3], int(sys.argv[4]), sys.argv[5], sys.argv[6]
-# The host passes the REMAINING milliseconds of the Work (computed from its own monotonic deadline, fixed once at the claim);
-# no wall clock is read here, so clock changes cannot extend it.
-deadline = time.monotonic() + remaining_ms / 1000.0
-if remaining_ms <= 0:
-    sys.exit(124)
 # The watchdog must lead its own process group: it waits for, and kills, exactly that group. A caller that did not start it
 # detached would otherwise make it wait on (or kill) the caller's own group.
 if os.getpgrp() != os.getpid():
@@ -51,7 +74,12 @@ if pgid != me:
 PS_ENV = {"PATH": "/usr/bin:/bin", "LC_ALL": "C"}
 def ps(args):
     proc = subprocess.Popen(["/bin/ps"] + args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=PS_ENV, text=True)
-    out, _ = proc.communicate(timeout=10)
+    try:
+        out, _ = proc.communicate(timeout=1)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate(timeout=1)
+        raise
     if proc.returncode != 0 or not out.strip():
         raise RuntimeError("ps failed")
     return proc.pid, out
@@ -70,22 +98,24 @@ signal.signal(signal.SIGINT, on_term)
 # Same allowlist as the owner-login child environment (the system interpreter shim may add toolchain variables).
 allowed = ("PATH", "HOME", "CODEX_HOME", "TMPDIR", "LANG", "USER", "CI")
 # Last deadline check immediately before Codex exists (identity probing above may have taken time).
-if time.monotonic() >= deadline:
+if monotonic_ms() >= deadline:
     sys.exit(124)
 # The lock descriptor is NOT inherited (non-inheritable, close_fds): only the watchdog can unlock it, and it holds it until the
 # whole group is gone.
-child = subprocess.Popen([codex] + sys.argv[7:], close_fds=True, env={k: v for k, v in os.environ.items() if k in allowed})
+child = subprocess.Popen([codex] + codex_args, close_fds=True, env={k: v for k, v in os.environ.items() if k in allowed})
 def others():
     """True while any live member of this process group other than the watchdog (and its own ps probe) exists. Unknown = alive."""
     try:
         probe, out = ps(["-A", "-o", "pid=,pgid=,stat="])
     except Exception:
         return True                       # a failed or empty scan means members MAY survive: keep the lock and the deadline
-    if not any(line.split()[:1] == [str(me)] for line in out.splitlines()):
-        return True                       # a scan that does not even list the watchdog is not trusted
-    for line in out.splitlines():
-        f = line.split()
-        if len(f) >= 3 and f[1] == str(pgid) and f[0] not in (str(me), str(probe)) and not f[2].startswith("Z"):
+    records = [line.split() for line in out.splitlines() if line.strip()]
+    if any(len(f) != 3 or not f[0].isdigit() or not f[1].isdigit() or not f[2][0].isalpha() for f in records):
+        return True                       # incomplete output cannot prove the absence of a writer
+    if not any(f[0] == str(me) and f[1] == str(pgid) for f in records):
+        return True                       # a scan that does not even list the watchdog in its group is not trusted
+    for f in records:
+        if f[1] == str(pgid) and f[0] not in (str(me), str(probe)) and not f[2].startswith("Z"):
             return True
     return False
 def kill_group(sig):
@@ -96,8 +126,8 @@ def kill_group(sig):
 def expire():
     signal.signal(signal.SIGTERM, signal.SIG_IGN)
     kill_group(signal.SIGTERM)
-    grace = time.monotonic() + 5
-    while time.monotonic() < grace:
+    grace = monotonic_ms() + 5000
+    while monotonic_ms() < grace:
         child.poll()
         if not others():
             break
@@ -113,7 +143,7 @@ while True:
     # The lock and the deadline cover the WHOLE group: the watchdog stays until every descendant is gone.
     if status is not None and not others():
         break
-    if time.monotonic() >= deadline:
+    if monotonic_ms() >= deadline:
         expire()
     if stopping:
         stopping.clear()
@@ -193,7 +223,7 @@ function verifiedOwnHolder(directory: string, owner: string): LockHolder | 'FREE
   if (!holder) return 'DOUBT';
   if (holder.owner !== owner) return 'OTHER';
   const id = processIdentity(holder.pid);
-  if (!id || id.start !== holder.start || !id.command.includes(` run ${join(directory, LOCK_FILE)} `) || !id.command.includes(` ${holder.nonce} `)) return 'DOUBT';
+  if (!id || id.start !== holder.start || !["run", "run-deadline"].some(mode => id.command.includes(` ${mode} ${join(directory, LOCK_FILE)} `)) || !id.command.includes(` ${holder.nonce} `)) return 'DOUBT';
   return holder;
 }
 export type OrphanRecovery = { status: 'NONE' } | { status: 'OTHER_HOST' } | { status: 'KILLED'; pgid: number } | { status: 'UNVERIFIED' };

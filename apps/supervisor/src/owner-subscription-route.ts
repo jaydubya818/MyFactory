@@ -251,7 +251,7 @@ export class OwnerSubscriptionOperations {
     let result: CodexRunResult | undefined;
     try {
       result = await this.#adapter.runCodex({ ...plain, ownerLogin: true,
-        ownerLoginWatchdog: { ...watchdog, owner: this.#owner, remainingMs: Math.max(1, Math.floor(clock.deadlineMono - monotonicMs())), nonce: randomUUID() },
+        ownerLoginWatchdog: { ...watchdog, owner: this.#owner, remainingMs: Math.max(0, Math.floor(clock.deadlineMono - monotonicMs())), deadlineMonoMs: clock.deadlineMono, nonce: randomUUID() },
         signal: plain.signal ? AbortSignal.any([plain.signal, clock.controller.signal]) : clock.controller.signal });
       return result;
     } finally {
