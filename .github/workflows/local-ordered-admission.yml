@@ -64,6 +64,8 @@ jobs:
         run: docker pull node:22-bookworm
       - name: Portable receiver, revocation-race and spend-boundary contracts (preparation-driven tests skip off the pinned profile)
         run: node --test apps/supervisor/test/local-ordered-admission.test.mjs apps/supervisor/test/local-ordered-admission-race.test.mjs apps/supervisor/test/local-ordered-admission-productive.test.mjs apps/supervisor/test/local-v4-host.test.mjs apps/supervisor/test/owner-subscription-route.test.mjs packages/verification/test/leased-source.test.mjs apps/supervisor/test/spend-gateway.test.mjs apps/supervisor/test/spend-review-regressions.test.mjs
+      - name: Hosted metered container, credential broker, hosted limits and outbound-only mailbox contracts (synthetic Docker, loopback stand-ins)
+        run: node --test --test-concurrency=1 apps/supervisor/test/metered-container.test.mjs apps/supervisor/test/container-broker.test.mjs apps/supervisor/test/hosted-limits.test.mjs apps/supervisor/test/mailbox-poller.test.mjs apps/supervisor/test/owner-container.test.mjs
       - name: Autonomous test-feedback loop, recovery reconcile and failure-report contracts (fixture agent, no provider)
         run: node --test apps/supervisor/test/feedback-loop.test.mjs apps/supervisor/test/execution-provider.test.mjs packages/verification/test/failure-report.test.mjs packages/agents/test/agents.test.mjs
       - name: Require unchanged tracked source

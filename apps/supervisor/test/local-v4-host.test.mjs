@@ -37,7 +37,7 @@ async function fixture(t,over={}){
   const credentialFile=join(dir,'provider-credential');writeFileSync(credentialFile,'disposable-never-sent\n',{mode:0o600});
   const scope={ownerId:'owner:fixture',organizationId:'org',installationId:'install',backendId:'backend',incarnation:'epoch',enrollmentVersion:1};
   const raw={schema:HOST_CONFIG_SCHEMA,factoryId:'factory-host-fixture',port:0,dataDir:join(dir,'data'),materialDir:join(dir,'material'),
-    witness:{path:join(dir,'witness','head.json'),epoch:'epoch-1'},worker:{codexExecutable:codex,workerProfile:'mac'},verificationImage:IMAGE,
+    witness:{path:join(dir,'witness','head.json'),epoch:'epoch-1'},worker:{codexExecutable:codex,workerProfile:'mac',requireContainer:false},verificationImage:IMAGE,
     profile:{checkCommands:['node quantity.mjs'],allowedPaths:['quantity.mjs']},
     client:{id:'myeve',name:'MyEve private beta',ownerScope:scope.ownerId,repositoryPaths:[repo]},
     enrollment:{scope,agentId:'agent',registryVersion:'r1',sourceKeyFiles:{myeve:join(keyDir,'myeve.json'),relay:join(keyDir,'relay.json')}},
@@ -64,6 +64,30 @@ test('host config is strict and fails closed',async t=>{
   refused(()=>parseHostConfig({...ok,provider:{...ok.provider,price:{...price,validUntil:'2001-01-01T00:00:00Z'}}}),'HOST_CONFIG_PRICE');
   refused(()=>parseHostConfig({...ok,profile:{checkCommands:['x'],allowedPaths:['../escape']}}),'HOST_CONFIG_PROFILE');
   refused(()=>parseHostConfig({...ok,client:{...ok.client,ownerScope:'owner:other'}}),'HOST_CONFIG_OWNER_SCOPE');
+});
+
+test('metered host config: no native, uncontained execution; the credential stays outside every container bind; limits never rise',async t=>{
+  const f=await fixture(t),ok={...f.raw,port:8791},worker=ok.worker;
+  const state=join(f.dir,'container-state'),container={imageId:IMAGE,dockerExecutable:'/usr/local/bin/docker',stateDirectory:state};
+  const real={...ok.provider,upstreamOrigin:'https://api.openai.com'};
+  refused(()=>parseHostConfig({...ok,worker:{codexExecutable:worker.codexExecutable,workerProfile:'mac'}}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
+  refused(()=>parseHostConfig({...ok,worker:{...worker,requireContainer:true}}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
+  refused(()=>parseHostConfig({...ok,provider:real}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
+  refused(()=>parseHostConfig({...ok,worker:{...worker,requireContainer:'false'}}),'HOST_CONFIG_WORKER');
+  refused(()=>parseHostConfig({...ok,worker:{...worker,requireContainer:false,meteredContainer:container}}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
+  const contained={codexExecutable:worker.codexExecutable,workerProfile:'mac',meteredContainer:container};
+  const parsed=parseHostConfig({...ok,provider:real,worker:contained});
+  assert.deepEqual(parsed.worker.meteredContainer,container);
+  assert.equal(parseHostConfig({...ok,provider:real,worker:{...contained,requireContainer:true}}).worker.requireContainer,true);
+  refused(()=>parseHostConfig({...ok,provider:real,worker:{...contained,meteredContainer:{...container,authFile:'/a'}}}),'HOST_CONFIG_METERED_CONTAINER');
+  refused(()=>parseHostConfig({...ok,provider:real,worker:{...contained,ownerContainer:{...container,authFile:'/a'}}}),'HOST_CONFIG_WORKER');
+  refused(()=>parseHostConfig({...ok,provider:{...real,credentialFile:join(state,'key')},worker:contained}),'HOST_CONFIG_CREDENTIAL_EXPOSED_TO_CONTAINER');
+  refused(()=>parseHostConfig({...ok,provider:{...real,credentialFile:join(f.repo,'key')},worker:contained}),'HOST_CONFIG_CREDENTIAL_EXPOSED_TO_CONTAINER');
+  refused(()=>parseHostConfig({...ok,provider:real,worker:{...contained,meteredContainer:{...container,stateDirectory:join(f.repo,'state')}}}),'HOST_CONFIG_CONTAINER_STATE_OVERLAP');
+  const limits={maxWorkMicrousd:1_300_000,maxWorksPerPerson:4,monthlyBudgetMicrousd:25_000_000};
+  assert.deepEqual(parseHostConfig({...ok,provider:real,worker:contained,hostedLimits:{...limits,maxWorksPerPerson:2}}).hostedLimits.maxWorksPerPerson,2);
+  refused(()=>parseHostConfig({...ok,provider:real,worker:contained,hostedLimits:{...limits,maxWorkMicrousd:1_300_001}}),'HOST_CONFIG_HOSTED_LIMITS');
+  refused(()=>parseHostConfig({...ok,provider:real,worker:contained,hostedLimits:{...limits,monthlyBudgetMicrousd:26_000_000}}),'HOST_CONFIG_HOSTED_LIMITS');
 });
 
 async function started(t,f,deps={inspectImage:id=>id}){

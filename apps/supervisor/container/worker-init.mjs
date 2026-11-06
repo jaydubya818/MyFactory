@@ -14,7 +14,9 @@ const child = spawn('/usr/local/bin/codex', config.argv, {
   uid: config.workerUid, gid: config.workerGid, cwd: '/workspace', stdio: 'inherit',
   env: { PATH: '/usr/local/bin:/usr/bin:/bin:/node_modules/.bin', HOME: '/home/worker', CODEX_HOME: '/home/worker/.codex',
     TMPDIR: '/tmp', LANG: 'C.UTF-8', CI: '1', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_OPTIONAL_LOCKS: '0',
-    PLAYWRIGHT_BROWSERS_PATH: '/opt/qdev-dashboard/browsers', NODE_OPTIONS: '--v8-pool-size=1', UV_THREADPOOL_SIZE: '1' },
+    PLAYWRIGHT_BROWSERS_PATH: '/opt/qdev-dashboard/browsers', NODE_OPTIONS: '--v8-pool-size=1', UV_THREADPOOL_SIZE: '1',
+    // Metered mode only: the per-operation broker token (never the gateway child token or the API key).
+    ...(typeof config.workerGatewayToken === 'string' && /^[a-f0-9]{64}$/.test(config.workerGatewayToken) ? { FACTORY_GATEWAY_TOKEN: config.workerGatewayToken } : {}) },
 });
 child.once('error', () => process.exit(125));
 child.once('close', (code, signal) => { clearTimeout(timer); clearInterval(wallTimer); process.exit(signal ? 125 : code ?? 125); });

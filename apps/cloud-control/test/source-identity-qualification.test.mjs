@@ -39,18 +39,22 @@ import sofieIntegration from '../../../docs/capability-control/source-identity-2
 import successor from '../../../docs/capability-control/source-identity-20261029/developer-beta-candidate.json' with {type:'json'};
 import localSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-local-successor.json' with {type:'json'};
 import containerSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-container-successor.json' with {type:'json'};
+import hostedSuccessor from '../../../docs/capability-control/source-identity-20261105/hosted-metered-successor.json' with {type:'json'};
 
 test('inventoried source and configuration bind the exact unqualified source candidate',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
  const computed=JSON.parse(execFileSync(process.execPath,['apps/cloud-control/scripts/cloud-source-identity.mjs'],{cwd:root,encoding:'utf8'}));
  assert.deepEqual(computed,source);
- assert.equal(source.sourceDigest,containerSuccessor.sourceDigest);
+ assert.equal(source.sourceDigest,hostedSuccessor.sourceDigest);
+ assert.equal(hostedSuccessor.predecessorSourceDigest,containerSuccessor.sourceDigest);
+ assert.equal(hostedSuccessor.configurationDigest,containerSuccessor.configurationDigest);
+ assert.equal(hostedSuccessor.releaseQualified,false);
+ assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:hostedSuccessor.configurationDigest}),hostedSuccessor.factoryVersion);
  assert.equal(containerSuccessor.predecessorSourceDigest,localSuccessor.sourceDigest);
  assert.equal(localSuccessor.predecessorSourceDigest,successor.sourceDigest);
  assert.equal(localSuccessor.releaseQualified,false);
  assert.equal(containerSuccessor.releaseQualified,false);
  assert.equal(digest(productionConfiguration),containerSuccessor.configurationDigest);
- assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:containerSuccessor.configurationDigest}),containerSuccessor.factoryVersion);
  assert.equal(productionExecutionContractSha256,successor.executionContractSha256);
  assert.equal(historical.sourceDigest,successor.historicalSourceDigest);
  assert.notEqual(historical.sourceDigest,source.sourceDigest);

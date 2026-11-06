@@ -61,6 +61,9 @@ export interface CodexRunOptions {
   ownerLoginWatchdog?: { python: string; script: string; lockFile: string; owner: string; remainingMs: number; deadlineMonoMs: number; nonce: string };
   /** Trusted host-only container invocation, admitted by OwnerSubscriptionOperations; never model/request configuration. */
   ownerLoginContainer?: { script: string; invocation: Record<string, unknown> };
+  /** Trusted host-only metered container: the gateway argv runs inside the qualified worker container. Requires `gateway`; the
+   * wrapper receives the gateway child token in its environment and hands the container only a broker token. Never request input. */
+  meteredContainer?: { script: string; invocation: Record<string, unknown> };
 }
 
 export type CodexRunStatus = "completed" | "yielded" | "failed" | "cancelled" | "timed_out";
@@ -145,6 +148,10 @@ function validateRunOptions(options: CodexRunOptions): void {
   }
   const w = options.ownerLoginWatchdog;
   if (options.ownerLoginContainer && (!w || options.ownerLogin !== true || !isAbsolute(options.ownerLoginContainer.script))) throw new TypeError('Container requires the owner watchdog');
+  const m = options.meteredContainer;
+  if (m !== undefined && (!options.gateway || options.ownerLogin !== undefined || options.ownerLoginContainer !== undefined || w !== undefined ||
+      !m || typeof m.script !== 'string' || !isAbsolute(m.script) || m.script.includes('\0') || !m.invocation || typeof m.invocation !== 'object' ||
+      (m.invocation as { mode?: unknown }).mode !== 'metered')) throw new TypeError('Metered container requires the metered gateway and excludes the owner login');
   if (w !== undefined && (options.ownerLogin !== true || !w || typeof w !== "object" ||
       ![w.python, w.script, w.lockFile, w.owner].every(v => typeof v === "string" && isAbsolute(v) && !v.includes("\0")) ||
       !Number.isSafeInteger(w.remainingMs) || w.remainingMs <= 0 || !Number.isSafeInteger(w.deadlineMonoMs) || w.deadlineMonoMs <= 0 || typeof w.nonce !== "string" || !/^[0-9a-f-]{36}$/.test(w.nonce))) {
@@ -283,16 +290,19 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
     if (remainingMs !== null && remainingMs <= 0) throw new Error("Owner subscription Work time limit reached before spawn");
     const container = options.ownerLoginContainer;
     if (container && (!watchdog || !isAbsolute(container.script))) throw new Error('Container requires the owner watchdog');
-    const target = container ? process.execPath : executablePath;
-    const targetArgs = container ? [container.script, JSON.stringify(container.invocation), ...argv] : argv;
+    const metered = options.meteredContainer;
+    const target = container || metered ? process.execPath : executablePath;
+    const targetArgs = container ? [container.script, JSON.stringify(container.invocation), ...argv]
+      : metered ? [metered.script, JSON.stringify(metered.invocation), ...argv] : argv;
     const commandArgs = watchdog ? ["-I", watchdog.script, "run-deadline", watchdog.lockFile, watchdog.owner, String(remainingMs), watchdog.nonce, String(watchdog.deadlineMonoMs), target, ...targetArgs] : targetArgs;
-    child = spawn(command, commandArgs, {
+    child = spawn(watchdog ? command : target, commandArgs, {
       cwd: workspacePath,
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
+      // The container wrapper needs the operator HOME only to locate the fixed Docker Desktop socket; Codex runs in the container.
       ...(gateway ? { env: {
-        PATH: process.env.PATH ?? '', HOME: codexHome ?? runDir, TMPDIR: process.env.TMPDIR ?? '/tmp',
+        PATH: process.env.PATH ?? '', HOME: metered ? (process.env.HOME ?? runDir) : codexHome ?? runDir, TMPDIR: process.env.TMPDIR ?? '/tmp',
         LANG: process.env.LANG ?? 'en_US.UTF-8', CI: '1', CODEX_HOME: codexHome ?? runDir,
         FACTORY_GATEWAY_TOKEN: gateway.childToken,
       } } : {}),

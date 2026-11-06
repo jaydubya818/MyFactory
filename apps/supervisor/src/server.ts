@@ -26,7 +26,9 @@ import type { ProviderConnection } from './provider-connection.ts';
 import { FactoryDispatchControl } from "./dispatch-control.ts";
 import { assertTrustedExecutablePath } from './executable-trust.ts';
 import { OwnerSubscriptionOperations, parseOwnerSubscriptionRoute, type OwnerSubscriptionRoute, type OwnerContainerProfile } from './owner-subscription-route.ts';
-import { parseOwnerContainerProfile } from './owner-container-profile.mjs';
+import { parseOwnerContainerProfile, parseMeteredContainerProfile, type MeteredContainerProfile } from './owner-container-profile.mjs';
+import { MeteredContainerExecutor } from './metered-container.ts';
+import { HostedSpendGuard, parseHostedLimits, type HostedLimits } from './hosted-limits.ts';
 import { dockerCommand } from './owner-container-worker.mjs';
 import { LocalOrderedAdmission, assertWitnessOutsideData, type LocalOrderedEnrollment, type ReceiverWitness } from "./local-ordered-admission.ts";
 import type { SpendPrice } from "./spend-gateway.ts";
@@ -271,15 +273,29 @@ export interface ProductiveBinding {
   provider: ProviderConnection; codexExecutable: string; workerProfile?: 'mac' | 'container';
   /** Immutable local image ID. Selects the source-bound finite browser resource profile; never supplied by HTTP or environment. */
   verificationImage?: string;
+  /** Qualified metered worker container (no credential). Codex runs only inside it; the provider credential stays in the host gateway. */
+  container?: MeteredContainerProfile;
+  /** Default true: native (uncontained) metered execution is refused. `false` is accepted only for a loopback fixture provider,
+   *  never for the real provider origin, so tester/hosted service can never run Codex natively on the Mac. */
+  requireContainer?: boolean;
+  /** Hosted/tester ceilings (default: the approved $1.30/Work, 4 Works/person, $25/month). May lower, never raise. */
+  hostedLimits?: HostedLimits;
 }
 const PRODUCTIVE_ORIGINS = [/^http:\/\/127\.0\.0\.1:\d{1,5}$/, /^https:\/\/api\.openai\.com$/];
 function validateProductiveBinding(options: LocalV4SupervisorOptions): ProductiveBinding {
   const p = options.productiveBinding as ProductiveBinding;
-  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['provider', 'codexExecutable', 'workerProfile', 'verificationImage'].includes(k)) ||
+  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['provider', 'codexExecutable', 'workerProfile', 'verificationImage', 'container', 'requireContainer', 'hostedLimits'].includes(k)) ||
       !p.provider || typeof p.codexExecutable !== 'string' || !isAbsolute(p.codexExecutable) || p.codexExecutable.includes('\0') ||
       p.verificationImage !== undefined && (typeof p.verificationImage !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(p.verificationImage)) ||
+      p.requireContainer !== undefined && typeof p.requireContainer !== 'boolean' ||
       !PRODUCTIVE_ORIGINS.some(pattern => pattern.test(p.provider.upstreamOrigin)))
     throw new Error('Productive binding is not qualified');
+  if (p.container !== undefined) parseMeteredContainerProfile(p.container);
+  // Jay's approval: no native, uncontained tester execution. Native is accepted only for a loopback fixture provider, explicitly.
+  if (p.requireContainer !== false && p.container === undefined) throw new Error('Native metered execution refused: requireContainer');
+  if (p.requireContainer === false && (p.container !== undefined || !/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(p.provider.upstreamOrigin)))
+    throw new Error('Native metered execution refused: only a loopback fixture provider may run uncontained');
+  parseHostedLimits(p.hostedLimits);
   if (!options.orderedAdmission || options.localFactoryFixture || options.localSpendFixture || options.jobDependencies || options.localV4ResourceProbe ||
       options.maxParallelRuns !== undefined && options.maxParallelRuns !== 1 || options.retainCheckpoints || options.startRun || options.cancelRun ||
       options.publishDraft || options.confirmHumanPresence)
@@ -374,7 +390,12 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   if(options.retainCheckpoints&&(!options.localFactoryFixture&&!options.localSpendFixture||realProvider))
     throw new Error('Checkpoint export is deferred outside explicit fixture qualification');
   const productive = options.productive;
-  const codexAdapter = productive ? createCodexAdapter(productive.codexExecutable, productive.workerProfile ?? 'mac') : undefined;
+  const nativeAdapter = productive ? createCodexAdapter(productive.codexExecutable, productive.workerProfile ?? 'mac') : undefined;
+  const meteredContainer = productive?.container ? new MeteredContainerExecutor(nativeAdapter!, productive.container, dataDir) : undefined;
+  // Before anything else is served: this host's own labelled metered containers from a crashed supervisor are reaped (or the route disables).
+  meteredContainer?.recover();
+  const codexAdapter = meteredContainer ?? nativeAdapter;
+  const hostedGuard = productive ? new HostedSpendGuard(resolve(dataDir, 'hosted-limits.sqlite'), resolve(dataDir, 'factory.sqlite'), parseHostedLimits(productive.hostedLimits)) : undefined;
   const subscription = options.subscription ? new OwnerSubscriptionOperations(options.subscription.route, spend,
     createCodexAdapter(options.subscription.codexExecutable, 'mac'), options.subscription.codexExecutable, dataDir,
     options.subscription.container ? { container: options.subscription.container } : {}) : undefined;
@@ -410,6 +431,10 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   if (subscription) {
     if (!dispatchControl) throw new Error('Owner subscription route requires producer signing');
     dispatchControl.useOwnerSubscription(subscription);
+  }
+  if (hostedGuard) {
+    if (!dispatchControl) throw new Error('Metered productive binding requires producer signing');
+    dispatchControl.useHostedLimits(hostedGuard);
   }
   if (options.orderedAdmission && (resultMode !== 'LOCAL_V4' || !dispatchControl || options.realProvider))
     throw new Error('Local ordered admission requires the unqualified-for-live local V4 supervisor with producer signing');
@@ -918,6 +943,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
       ordered?.close();
       storage.close();
       spend.close();
+      hostedGuard?.close();
     },
   };
 }

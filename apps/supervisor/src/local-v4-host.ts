@@ -14,7 +14,8 @@ import type { PolicyKey } from '../../../packages/capability-enforcement/src/ord
 import { ownerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
 import { OWNER_SUBSCRIPTION_PRICING_REVISION } from '../../../packages/storage/src/spend-policy.ts';
 import { parseOwnerSubscriptionRoute, subscriptionSpendContract, OwnerSubscriptionRefused, OWNER_SUBSCRIPTION_ROUTE, type OwnerSubscriptionRoute, type OwnerContainerProfile } from './owner-subscription-route.ts';
-import { parseOwnerContainerProfile, containerExecutorVersion } from './owner-container-profile.mjs';
+import { parseOwnerContainerProfile, containerExecutorVersion, parseMeteredContainerProfile, meteredContainerExecutorVersion, type MeteredContainerProfile } from './owner-container-profile.mjs';
+import { parseHostedLimits, APPROVED_HOSTED_LIMITS, type HostedLimits } from './hosted-limits.ts';
 import { assertContainerAvailable } from './owner-container-worker.mjs';
 
 /**
@@ -42,7 +43,9 @@ export interface LocalV4HostConfig {
   dataDir: string;
   materialDir: string;
   witness: { path: string; epoch: string };
-  worker: { codexExecutable: string; workerProfile: 'mac'; ownerContainer?: OwnerContainerProfile };
+  worker: { codexExecutable: string; workerProfile: 'mac'; ownerContainer?: OwnerContainerProfile; meteredContainer?: MeteredContainerProfile; requireContainer?: boolean };
+  /** Metered only: hosted/tester ceilings (absent = the approved $1.30/Work, 4 Works/person, $25/month; may lower, never raise). */
+  hostedLimits?: HostedLimits;
   verificationImage: string;
   profile: { checkCommands: string[]; allowedPaths: string[] };
   client: { id: string; name: string; ownerScope: string; repositoryPaths: string[] };
@@ -90,6 +93,7 @@ export function assertTrustedExecutable(path: string) {
 export async function hostPreflight(config: LocalV4HostConfig) {
   assertTrustedExecutable(config.worker.codexExecutable);
   if (config.worker.ownerContainer) { assertTrustedExecutable(config.worker.ownerContainer.dockerExecutable); assertContainerAvailable(config.worker.ownerContainer); }
+  if (config.worker.meteredContainer) { assertTrustedExecutable(config.worker.meteredContainer.dockerExecutable); assertContainerAvailable(config.worker.meteredContainer); }
   return isSubscriptionProvider(config.provider) ? preflightOwnerLoginCodex(config.worker.codexExecutable, config.worker.workerProfile)
     : createCodexAdapter(config.worker.codexExecutable, config.worker.workerProfile).preflightCodex();
 }
@@ -97,16 +101,26 @@ export async function hostPreflight(config: LocalV4HostConfig) {
 const ID = /^[a-z0-9][a-z0-9._-]{0,63}$/, NAME = /^[A-Za-z0-9:_.-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
 /** Strict parse; every unknown, missing or unqualified field refuses. Paths that hold state or material must be outside the repo. */
 export function parseHostConfig(raw: unknown): LocalV4HostConfig {
-  const c = obj(raw, ['schema', 'factoryId', 'port', 'dataDir', 'materialDir', 'witness', 'worker', 'verificationImage', 'profile', 'client', 'enrollment', 'provider'], 'HOST_CONFIG_SHAPE');
+  const c = obj(raw, ['schema', 'factoryId', 'port', 'dataDir', 'materialDir', 'witness', 'worker', 'verificationImage', 'profile', 'client', 'enrollment', 'provider',
+    ...(raw && typeof raw === 'object' && Object.hasOwn(raw, 'hostedLimits') ? ['hostedLimits'] : [])], 'HOST_CONFIG_SHAPE');
   if (c.schema !== HOST_CONFIG_SCHEMA) refuse('HOST_CONFIG_SCHEMA');
   const port = Number.isSafeInteger(c.port) && (c.port as number) >= 1024 && (c.port as number) <= 65535 ? c.port as number : refuse('HOST_CONFIG_PORT');
   const dataDir = abs(c.dataDir, 'HOST_CONFIG_DATA_DIR'), materialDir = abs(c.materialDir, 'HOST_CONFIG_MATERIAL_DIR');
   const w = obj(c.witness, ['path', 'epoch'], 'HOST_CONFIG_WITNESS');
   const witness = { path: abs(w.path, 'HOST_CONFIG_WITNESS'), epoch: str(w.epoch, NAME, 'HOST_CONFIG_WITNESS') };
-  const wk = obj(c.worker, c.worker && Object.hasOwn(c.worker as object, 'ownerContainer') ? ['codexExecutable', 'workerProfile', 'ownerContainer'] : ['codexExecutable', 'workerProfile'], 'HOST_CONFIG_WORKER');
+  const wkRaw = (c.worker && typeof c.worker === 'object' ? c.worker : {}) as object;
+  const wk = obj(c.worker, ['codexExecutable', 'workerProfile', ...['ownerContainer', 'meteredContainer', 'requireContainer'].filter(k => Object.hasOwn(wkRaw, k))], 'HOST_CONFIG_WORKER');
   if (wk.workerProfile !== 'mac') refuse('HOST_CONFIG_WORKER');
+  if (Object.hasOwn(wk, 'requireContainer') && typeof wk.requireContainer !== 'boolean') refuse('HOST_CONFIG_WORKER');
+  if (Object.hasOwn(wk, 'ownerContainer') && Object.hasOwn(wk, 'meteredContainer')) refuse('HOST_CONFIG_WORKER');
+  let meteredContainer: MeteredContainerProfile | undefined;
+  try { meteredContainer = Object.hasOwn(wk, 'meteredContainer') ? parseMeteredContainerProfile(wk.meteredContainer) : undefined; } catch { refuse('HOST_CONFIG_METERED_CONTAINER'); }
   const worker = { codexExecutable: abs(wk.codexExecutable, 'HOST_CONFIG_WORKER'), workerProfile: 'mac' as const,
-    ...(Object.hasOwn(wk, 'ownerContainer') ? { ownerContainer: parseOwnerContainerProfile(wk.ownerContainer) } : {}) };
+    ...(Object.hasOwn(wk, 'ownerContainer') ? { ownerContainer: parseOwnerContainerProfile(wk.ownerContainer) } : {}),
+    ...(meteredContainer ? { meteredContainer } : {}),
+    ...(Object.hasOwn(wk, 'requireContainer') ? { requireContainer: wk.requireContainer as boolean } : {}) };
+  let hostedLimits: HostedLimits | undefined;
+  if (Object.hasOwn(c, 'hostedLimits')) { try { hostedLimits = parseHostedLimits(c.hostedLimits); } catch { refuse('HOST_CONFIG_HOSTED_LIMITS'); } }
   const verificationImage = str(c.verificationImage, /^sha256:[a-f0-9]{64}$/, 'HOST_CONFIG_IMAGE');
   const pr = obj(c.profile, ['checkCommands', 'allowedPaths'], 'HOST_CONFIG_PROFILE');
   const profile = { checkCommands: strings(pr.checkCommands, 16, 'HOST_CONFIG_PROFILE'),
@@ -129,6 +143,7 @@ export function parseHostConfig(raw: unknown): LocalV4HostConfig {
     try { route = parseOwnerSubscriptionRoute(c.provider); } catch (error) { return refuse(error instanceof OwnerSubscriptionRefused ? 'HOST_CONFIG_' + error.code : 'HOST_CONFIG_PROVIDER'); }
     const factoryId = str(c.factoryId, ID, 'HOST_CONFIG_FACTORY_ID');
     if (route.clientId !== client.id || route.ownerScope !== client.ownerScope || route.ownerScope !== scope.ownerId) refuse('HOST_CONFIG_SUBSCRIPTION_OWNER_ONLY');
+    if (worker.meteredContainer || Object.hasOwn(worker, 'requireContainer') || hostedLimits) refuse('HOST_CONFIG_METERED_OPTIONS_REQUIRE_METERED_ROUTE');
     for (const p of [dataDir, materialDir, witness.path]) if (inside(p, repoRoot)) refuse('HOST_CONFIG_PATH_INSIDE_REPOSITORY');
     if (inside(witness.path, dataDir) || inside(materialDir, dataDir) || inside(dataDir, materialDir)) refuse('HOST_CONFIG_PATH_OVERLAP');
     return { schema: HOST_CONFIG_SCHEMA, factoryId, port, dataDir, materialDir, witness, worker, verificationImage, profile, client, enrollment, provider: { ...route } };
@@ -143,7 +158,19 @@ export function parseHostConfig(raw: unknown): LocalV4HostConfig {
   const factoryId = str(c.factoryId, ID, 'HOST_CONFIG_FACTORY_ID');
   for (const p of [dataDir, materialDir, witness.path, provider.credentialFile]) if (inside(p, repoRoot)) refuse('HOST_CONFIG_PATH_INSIDE_REPOSITORY');
   if (inside(witness.path, dataDir) || inside(materialDir, dataDir) || inside(dataDir, materialDir)) refuse('HOST_CONFIG_PATH_OVERLAP');
-  return { schema: HOST_CONFIG_SCHEMA, factoryId, port, dataDir, materialDir, witness, worker, verificationImage, profile, client, enrollment, provider };
+  // No native, uncontained metered execution for hosted/tester service: the container is required unless explicitly disabled for a
+  // loopback fixture provider (synthetic qualification only). The real provider origin always requires the qualified container.
+  const requireContainer = worker.requireContainer !== false;
+  if (requireContainer && !worker.meteredContainer) refuse('HOST_CONFIG_NATIVE_METERED_REFUSED');
+  if (!requireContainer && (worker.meteredContainer || !upstreamOrigin.startsWith('http://127.0.0.1:'))) refuse('HOST_CONFIG_NATIVE_METERED_REFUSED');
+  if (worker.meteredContainer) {
+    // The API credential file is read only by the host gateway; it must never sit under any path a worker container binds.
+    const st = worker.meteredContainer.stateDirectory;
+    for (const root of [st, dataDir, ...client.repositoryPaths]) if (inside(provider.credentialFile, root)) refuse('HOST_CONFIG_CREDENTIAL_EXPOSED_TO_CONTAINER');
+    if (inside(st, repoRoot) || client.repositoryPaths.some(r => inside(st, r) || inside(r, st))) refuse('HOST_CONFIG_CONTAINER_STATE_OVERLAP');
+  }
+  return { schema: HOST_CONFIG_SCHEMA, factoryId, port, dataDir, materialDir, witness, worker, verificationImage, profile, client, enrollment, provider,
+    ...(hostedLimits ? { hostedLimits } : {}) };
 }
 
 /** Owner-only regular file (0600, current uid, no symlink); refuses anything else. */
@@ -207,7 +234,8 @@ export function hostExecutionConfiguration(config: LocalV4HostConfig, executorVe
   // The subscription route is bound into the identity through the executor version, exactly as its preflight reports it.
   const subscription = isSubscriptionProvider(config.provider);
   return { model: subscription ? (config.provider as OwnerSubscriptionRoute).model : (config.provider as MeteredProviderConfig).price.model,
-    executor: 'codex-cli' as const, executorVersion: subscription ? (config.worker.ownerContainer ? containerExecutorVersion(executorVersion, config.worker.ownerContainer) : ownerSubscriptionExecutorVersion(executorVersion)) : executorVersion, skillRevision: SKILL_REVISION,
+    executor: 'codex-cli' as const, executorVersion: subscription ? (config.worker.ownerContainer ? containerExecutorVersion(executorVersion, config.worker.ownerContainer) : ownerSubscriptionExecutorVersion(executorVersion))
+      : config.worker.meteredContainer ? meteredContainerExecutorVersion(executorVersion, config.worker.meteredContainer) : executorVersion, skillRevision: SKILL_REVISION,
     workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage, nodeVersion: process.version,
     platform: process.platform, architecture: process.arch, commands: [...config.profile.checkCommands],
     allowedPaths: [...config.profile.allowedPaths], timeoutMs: 30 * 60 * 1000 };
@@ -252,7 +280,9 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
   const metered = subscription ? null : config.provider as MeteredProviderConfig;
   const productiveBinding: ProductiveBinding | undefined = metered ? {
     provider: { upstreamOrigin: metered.upstreamOrigin, price: { ...metered.price }, authorize: async () => credential! },
-    codexExecutable: config.worker.codexExecutable, workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage } : undefined;
+    codexExecutable: config.worker.codexExecutable, workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage,
+    ...(config.worker.meteredContainer ? { container: config.worker.meteredContainer } : { requireContainer: false }),
+    hostedLimits: parseHostedLimits(config.hostedLimits) } : undefined;
   const supervisor = createLocalV4Supervisor({ dataDir: config.dataDir, deskPort: config.port, resultSigning: material.result,
     orderedAdmission: { enrollment, witness: new FileReceiverWitness(config.witness.path, config.witness.epoch), witnessPath: config.witness.path },
     ...(productiveBinding ? { productiveBinding } : { ownerSubscriptionBinding: { route: { ...subscription! }, codexExecutable: config.worker.codexExecutable,
@@ -275,7 +305,11 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
       sourceKeyIds: { myeve: sourceKeys.myeve.keyId, relay: sourceKeys.relay.keyId } },
     receiverSigner: publicJwk(material.signer),
     resultKeys: material.result.keys.map(({ factoryId, keyId, publicKey, activeFrom, notAfter }) => ({ factoryId, keyId, publicKey, activeFrom, notAfter })),
-    provider: metered ? { upstreamOrigin: metered.upstreamOrigin, price: metered.price } : {
+    provider: metered ? { upstreamOrigin: metered.upstreamOrigin, price: metered.price,
+      isolation: config.worker.meteredContainer ? 'metered-container-v1' : 'native-loopback-fixture-only',
+      credential: 'HOST_GATEWAY_ONLY (0600 file; the container receives only per-operation tokens)',
+      hostedLimits: { ...parseHostedLimits(config.hostedLimits), approved: APPROVED_HOSTED_LIMITS,
+        monthlyBudgetNote: 'The OpenAI project monthly budget is set by the owner in the OpenAI dashboard; this host guard refuses admission independently.' } } : {
       mode: OWNER_SUBSCRIPTION_ROUTE, ownerOnly: true, bindHost: subscription!.bindHost, ownerScope: subscription!.ownerScope, clientId: subscription!.clientId,
       model: subscription!.model, validUntil: subscription!.validUntil, metering: 'SUBSCRIPTION_UNMETERED', credential: 'OPERATOR_CODEX_CHATGPT_LOGIN',
       limits: { maxProductiveOperations: subscription!.maxProductiveOperations, plannedCompletionOperations: 1,

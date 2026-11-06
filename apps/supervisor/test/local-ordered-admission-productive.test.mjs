@@ -94,7 +94,7 @@ async function startProductive(t,{factory,dir,repo,base,keys,up,provider,codex,e
   const witness=new FileReceiverWitness(witnessPath,'epoch-1');
   const orderedAdmission={enrollment:{scope,agentId:'agent',registryVersion:'r1',clientId:'myeve',sourceKeys:{myeve:ks.myeve,relay:ks.relay},signer:ks.signer,
     factory:factory??{factoryId:key.factoryId,factoryVersion:ZERO,sourceDigest:ZERO,configurationDigest:ZERO}},witness,witnessPath};
-  const productiveBinding={provider:provider??{upstreamOrigin:up.origin,upstreamApiKey:'disposable-key',price:reviewPrice},codexExecutable:codex??installFakeCodex(f.dir),...(extra??{})};
+  const productiveBinding={provider:provider??{upstreamOrigin:up.origin,upstreamApiKey:'disposable-key',price:reviewPrice},codexExecutable:codex??installFakeCodex(f.dir),requireContainer:false,...(extra??{})};
   const supervisor=createLocalV4Supervisor({dataDir,resultSigning,orderedAdmission,productiveBinding});
   await new Promise((resolve,reject)=>{supervisor.server.once('error',reject);supervisor.server.listen(0,'127.0.0.1',resolve)});
   const origin='http://127.0.0.1:'+supervisor.server.address().port;
@@ -129,7 +129,7 @@ test('productive binding is host-only, ordered-only and refuses every unqualifie
     const pair=generateKeyPairSync('ed25519'),key={factoryId:'f',keyId:'k',publicKey:pair.publicKey.export({type:'spki',format:'pem'}).toString(),activeFrom:'2020-01-01T00:00:00Z',notAfter:'2099-01-01T00:00:00Z'};
     return createLocalV4Supervisor({dataDir:d,resultSigning:{factoryId:'f',currentKeyId:'k',privateKey:pair.privateKey.export({type:'pkcs8',format:'pem'}).toString(),keys:[key]},...over});};
   const ordered={enrollment:{scope,agentId:'agent',registryVersion:'r1',clientId:'myeve',sourceKeys:{myeve:{keyId:'a',jwk:{}},relay:{keyId:'b',jwk:{}}},signer:{keyId:'c',jwk:{}},factory:{factoryId:'f',factoryVersion:ZERO,sourceDigest:ZERO,configurationDigest:ZERO}},witness:new FileReceiverWitness(join(dir,'w','h.json'),'e'),witnessPath:join(dir,'w','h.json')};
-  const base={provider,codexExecutable:codex};
+  const base={provider,codexExecutable:codex,requireContainer:false};
   assert.throws(()=>make({productiveBinding:base}),/ordered receiver/);                                                           // no receiver
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,codexExecutable:'codex'}}),/not qualified/);          // PATH lookup
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,provider:{...provider,upstreamOrigin:'https://example.com'}}}),/not qualified/);

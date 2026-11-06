@@ -85,7 +85,9 @@ test('host config: the subscription provider is opt-in by mode, bound to the sin
   refused({provider:routeFor({credentialFile:'/x'})},'HOST_CONFIG_SUBSCRIPTION_ROUTE_SHAPE');
   const price={revision:OWNER_SUBSCRIPTION_PRICING_REVISION,model:'gpt-5.5',validUntil:'2099-01-01T00:00:00Z',contextLimitTokens:1000,outputLimitTokens:100,inputMicrousdPerMillion:1,outputMicrousdPerMillion:1};
   refused({provider:{upstreamOrigin:'https://api.openai.com',credentialFile:join(dir,'c'),price}},'HOST_CONFIG_PRICE');
-  const metered=parseHostConfig({...raw,provider:{upstreamOrigin:'https://api.openai.com',credentialFile:join(dir,'c'),price:{...price,revision:'r1'}}});
+  // Native metered execution against the real provider origin is refused (hosted beta: container required); a loopback fixture may opt out.
+  refused({provider:{upstreamOrigin:'https://api.openai.com',credentialFile:join(dir,'c'),price:{...price,revision:'r1'}}},'HOST_CONFIG_NATIVE_METERED_REFUSED');
+  const metered=parseHostConfig({...raw,worker:{...raw.worker,requireContainer:false},provider:{upstreamOrigin:'http://127.0.0.1:9',credentialFile:join(dir,'c'),price:{...price,revision:'r1'}}});
   const a=hostExecutionConfiguration(config,'codex-cli 1.2.3'),b=hostExecutionConfiguration(metered,'codex-cli 1.2.3');
   assert.equal(a.executorVersion,'codex-cli 1.2.3 route=OWNER_SUBSCRIPTION_LOCAL');assert.equal(b.executorVersion,'codex-cli 1.2.3');
   assert.notEqual(digest(a),digest(b));

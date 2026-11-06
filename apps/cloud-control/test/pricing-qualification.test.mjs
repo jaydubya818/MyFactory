@@ -79,9 +79,13 @@ import {loadVectors,installationOf} from './fixtures/myeve-conformance/support.m
 import candidateSuccessor from '../../../docs/capability-control/source-identity-20261029/developer-beta-candidate.json' with {type:'json'};
 import localSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-local-successor.json' with {type:'json'};
 import containerSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-container-successor.json' with {type:'json'};
+import hostedSuccessor from '../../../docs/capability-control/source-identity-20261105/hosted-metered-successor.json' with {type:'json'};
 
 test('separate successor identity preserves configuration; an old installation cannot authorize it', () => {
- assert.equal(sourceIdentity.sourceDigest,containerSuccessor.sourceDigest);
+ assert.equal(sourceIdentity.sourceDigest,hostedSuccessor.sourceDigest);
+ assert.equal(hostedSuccessor.predecessorSourceDigest,containerSuccessor.sourceDigest);
+ assert.equal(hostedSuccessor.configurationDigest,containerSuccessor.configurationDigest);
+ assert.equal(hostedSuccessor.releaseQualified,false);
  assert.equal(containerSuccessor.predecessorSourceDigest,localSuccessor.sourceDigest);
  assert.equal(containerSuccessor.configurationDigest,localSuccessor.configurationDigest);
  assert.equal(containerSuccessor.releaseQualified,false);

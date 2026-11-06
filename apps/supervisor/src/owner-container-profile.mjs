@@ -10,7 +10,8 @@ export const OWNER_CONTAINER_NETWORK = 'myfactory-owner-codex-internal';
 export const ownerDockerEndpoint = () => 'unix://' + join(homedir(), '.docker', 'run', 'docker.sock');
 export function currentOwnerContainerPolicy() { return createHash('sha256').update([
   'owner-container-v1', 'codex=0.163.0;node=24.22.1;undici=7.30.1', 'maxWorkMs=600000', 'guardian=root;child=operator-uid-nonroot',
-  'internal-network;broker=chatgpt.com/backend-api/codex:responses,models',
+  'internal-network;broker=chatgpt.com/backend-api/codex:responses,models|metered=host-spend-gateway:v1/responses',
+  'broker-config=stdin-memory-only;broker-body=model,store!=true,tools=function|custom|local_shell|tool_search(client)',
   'tool-network=deny;bubblewrap;approval=never', 'root=readonly;workspace=phase-bound;auth=dummy',
   readFileSync(new URL('../container/worker-init.mjs', import.meta.url)),
   readFileSync(new URL('../container/broker.mjs', import.meta.url)),
@@ -29,9 +30,32 @@ export function parseOwnerContainerProfile(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) ||
     Object.keys(raw).sort().join(',') !== 'authFile,dockerExecutable,imageId,stateDirectory' ||
     !/^sha256:[a-f0-9]{64}$/.test(raw.imageId) ||
-    !['authFile', 'dockerExecutable', 'stateDirectory'].every(k => typeof raw[k] === 'string' && raw[k].startsWith('/') && !raw[k].includes('\0') && !raw[k].split('/').includes('..')))
+    !['authFile', 'dockerExecutable', 'stateDirectory'].every(k => typeof raw[k] === 'string' && raw[k].startsWith('/') && !raw[k].includes('\0') && !raw[k].includes(',') && !raw[k].split('/').includes('..')))
     throw Error('OWNER_CONTAINER_PROFILE_INVALID');
   return Object.freeze({ ...raw });
+}
+/**
+ * Metered LOCAL_V4 container profile: the same qualified image and Docker endpoint, but NO subscription credential. The OpenAI API
+ * key stays in the host spend gateway; the broker container receives only that gateway's per-operation child token (never on disk).
+ */
+export function parseMeteredContainerProfile(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw) ||
+    Object.keys(raw).sort().join(',') !== 'dockerExecutable,imageId,stateDirectory' ||
+    !/^sha256:[a-f0-9]{64}$/.test(raw.imageId) ||
+    !['dockerExecutable', 'stateDirectory'].every(k => typeof raw[k] === 'string' && raw[k].startsWith('/') && !raw[k].includes('\0') && !raw[k].includes(',') && !raw[k].split('/').includes('..')))
+    throw Error('METERED_CONTAINER_PROFILE_INVALID');
+  return Object.freeze({ ...raw });
+}
+/** Either qualified profile shape; the shape alone selects the credential mode and the two are never interchangeable. */
+export function parseAnyContainerProfile(raw) {
+  if (raw && typeof raw === 'object' && Object.hasOwn(raw, 'authFile')) return { mode: 'owner', profile: parseOwnerContainerProfile(raw) };
+  return { mode: 'metered', profile: parseMeteredContainerProfile(raw) };
+}
+export const METERED_CONTAINER_ROUTE = 'LOCAL_V4_METERED';
+export function meteredContainerExecutorVersion(version, profile) {
+  if (version !== 'codex-cli 0.163.0') throw Error('METERED_CONTAINER_VERSION_INVALID');
+  const p = parseMeteredContainerProfile(profile);
+  return `${version} route=${METERED_CONTAINER_ROUTE} isolation=metered-container-v1 image=${p.imageId} policy=${OWNER_CONTAINER_POLICY} endpoint=${createHash('sha256').update(ownerDockerEndpoint()).digest('hex')}`;
 }
 export function containerExecutorVersion(version, profile) {
   if (version !== 'codex-cli 0.163.0') throw Error('OWNER_CONTAINER_VERSION_INVALID');

@@ -15,6 +15,7 @@ import {SpendLedger,type SpendPlan} from '../../../packages/storage/src/spend.ts
 import {SpendGateway,type SpendPrice,validatePrice} from './spend-gateway.ts';
 import type {ProviderConnection} from './provider-connection.ts';
 import type {OwnerSubscriptionOperations} from './owner-subscription-route.ts';
+import {HostedLimitRefused,type HostedSpendGuard} from './hosted-limits.ts';
 import type {WorkOrder,Run} from '../../../packages/contracts/src/index.ts';
 
 export interface ExecutionIdentity {
@@ -56,6 +57,13 @@ export class FactoryDispatchControl {
   if(this.subscription||this.spendFixture||this.localFixture||!this.live)throw Error('Owner subscription route is exclusive host composition');
   this.subscription=operations;
  }
+ private hosted?:HostedSpendGuard;
+ /** Host composition only (metered LOCAL_V4): per-Work ceiling, Works per person and the calendar-month guard. Never request input. */
+ useHostedLimits(guard:HostedSpendGuard){
+  if(this.hosted||this.subscription||!this.spendFixture)throw Error('Hosted limits apply only to the metered host composition');
+  this.hosted=guard;
+ }
+ private gatewayLedger(){return this.hosted?this.hosted.wrapLedger(this.spend):this.spend;}
  /** Host composition only: once enrolled, ordinary preparation is refused and dispatch requires an ADMITTED ordered outcome. */
  requireOrderedAdmission(gate:{authority:OrderedAuthority;assertDispatch(requestId:string):void}){
   if(this.orderedGate)throw Error('Ordered admission is already enrolled');
@@ -136,6 +144,11 @@ export class FactoryDispatchControl {
     Buffer.byteLength(canonical(input))>32000)throw new ActionError('Preparation outside bounded repository profile','invalid_input');
   work.repositoryPath=realpathSync(work.repositoryPath);
   const request={...input,input:work},hash=digest(request);
+  if(this.hosted){
+   // Before any Work order or budget exists; a replay of the same admitted Work is not counted twice and nothing is given back.
+   try{this.hosted.admit({clientId:client.id,ownerScope:client.ownerScope??'',workId:input.workId,ceilingMicrousd:Math.floor(input.maxSpendUsd*1_000_000)});}
+   catch(error){if(error instanceof HostedLimitRefused)throw new ActionError('Hosted limit refused: '+error.code,'hosted_limit',409);throw error;}
+  }
   const created=this.storage.transaction(()=>{
    const fresh=this.current(client,'factory.prepare');
    if(!canAccessRepository(fresh,work.repositoryPath))throw new ActionError('Repository outside connection scope','forbidden',403);
@@ -198,7 +211,7 @@ export class FactoryDispatchControl {
    };
    let productiveEnd=new AbortController();
    const authorizeDispatch=()=>{this.orderedGate?.assertDispatch(identity.requestId);};
-   gateway=new SpendGateway({ledger:this.spend,binding,phase:'productive',
+   gateway=new SpendGateway({ledger:this.gatewayLedger(),binding,phase:'productive',
     ...this.spendFixture,childToken,onDecision,authorizeDispatch,productiveCheckpointAfter:data.request.spendContract.plannedProductiveOperations===2?1:undefined,onProductiveBoundary:()=>productiveEnd.abort(),
     assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
    let current=gateway;
@@ -216,7 +229,7 @@ export class FactoryDispatchControl {
      await current.close();
      productiveEnd=new AbortController();
      const repairToken=randomBytes(32).toString('hex');
-     current=new SpendGateway({ledger:this.spend,binding,phase:'productive',...this.spendFixture!,childToken:repairToken,
+     current=new SpendGateway({ledger:this.gatewayLedger(),binding,phase:'productive',...this.spendFixture!,childToken:repairToken,
       onDecision,authorizeDispatch,productiveCheckpointAfter:2,onProductiveBoundary:()=>productiveEnd.abort(),
       assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
      return {baseUrl:await current.listen(),childToken:repairToken,productiveEndSignal:productiveEnd.signal};
@@ -225,7 +238,7 @@ export class FactoryDispatchControl {
      await current.close();
      this.spend.beginCompletion(binding);
      const completionToken=randomBytes(32).toString('hex');
-     current=new SpendGateway({ledger:this.spend,binding,phase:'completion',...this.spendFixture!,childToken:completionToken,onDecision,authorizeDispatch});
+     current=new SpendGateway({ledger:this.gatewayLedger(),binding,phase:'completion',...this.spendFixture!,childToken:completionToken,onDecision,authorizeDispatch});
      return {baseUrl:await current.listen(),childToken:completionToken};
     },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};
   }else if(this.subscription){
