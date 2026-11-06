@@ -9,6 +9,10 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { parseMeteredContainerProfile, parseAnyContainerProfile, meteredContainerExecutorVersion, containerExecutorVersion, OWNER_CONTAINER_POLICY } from '../src/owner-container-profile.mjs';
 import { rewriteMeteredArgv, resetWorkerHome, sweepBrokerCredentials, assertCredentialBindIsolation } from '../src/owner-container-worker.mjs';
 import { MeteredContainerExecutor } from '../src/metered-container.ts';
+import { assertTrustedExecutablePath } from '../src/executable-trust.ts';
+// The wrapper runs under process.execPath, which must itself be trusted. Where it is not (e.g. a shared CI toolcache), the executor must
+// refuse fail-closed before any container exists; the positive path is exercised on the pinned owner Mac profile.
+const trustedNode = (() => { try { assertTrustedExecutablePath(process.execPath); return true; } catch { return false; } })();
 import { createCodexAdapter } from '../../../packages/agents/src/index.ts';
 import { isOwnerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
 import { createLocalV4Supervisor, createSupervisor } from '../src/server.ts';
@@ -185,6 +189,8 @@ test('adapter: the metered container requires the gateway and excludes the owner
   await assert.rejects(executor.runCodex({ ...base }), /GATEWAY_REQUIRED/);
   await assert.rejects(executor.runCodex({ ...base, gateway: { baseUrl: 'http://127.0.0.1:1/v1', childToken: hex() }, ownerLogin: true }), /OPTIONS_REFUSED/);
   const childToken = hex(), gateway = { baseUrl: 'http://127.0.0.1:47001/v1', childToken };
+  if (!trustedNode) { executor.bindOperation(childToken, { runId: randomUUID(), workId: randomUUID(), deadlineMonoMs: mono() + 30_000 });
+    await assert.rejects(executor.runCodex({ ...base, gateway }), /HOST_CODEX_UNTRUSTED/); t.diagnostic('untrusted Node runtime: refused fail-closed'); return; }
   await assert.rejects(executor.runCodex({ ...base, gateway }), /OPERATION_UNBOUND/, 'an unbound token never starts a container');
   // An admitted Work deadline already reached refuses before any container exists (no fresh per-invocation allowance).
   const late = hex(); executor.bindOperation(late, { runId: 'run-late', workId: 'w', deadlineMonoMs: mono() - 1 });
@@ -233,6 +239,8 @@ test('container mode never runs the configured executable on the host; the only 
   assert.match(pre.version, /^codex-cli 0\.163\.0 route=LOCAL_V4_METERED/); assert.equal(pre.authenticated, true);
   const artifacts = join(f.root, 'artifacts2'); mkdirSync(artifacts);
   const token = hex(); executor.bindOperation(token, { runId: randomUUID(), workId: randomUUID(), deadlineMonoMs: mono() + 30_000 });
+  if (!trustedNode) { await assert.rejects(executor.runCodex({ workspacePath: f.workspace, artifactsDir: artifacts, prompt: 'task', model: 'openai/gpt-5.5', timeoutMs: 30_000,
+    gateway: { baseUrl: 'http://127.0.0.1:47002/v1', childToken: token } }), /HOST_CODEX_UNTRUSTED/); assert.equal(existsSync(ran), false); t.diagnostic('untrusted Node runtime: refused fail-closed'); return; }
   const result = await executor.runCodex({ workspacePath: f.workspace, artifactsDir: artifacts, prompt: 'task', model: 'openai/gpt-5.5', timeoutMs: 30_000,
     gateway: { baseUrl: 'http://127.0.0.1:47002/v1', childToken: token } });
   assert.equal(result.exitCode, 0, readFileSync(result.stderrPath, 'utf8'));
