@@ -31,6 +31,7 @@ if (prompt === 'gateway-config') {
       !configs.includes('model_provider="factory_spend"') ||
       !configs.includes('model_providers.factory_spend.supports_websockets=false') ||
       !configs.includes('web_search="disabled"') ||
+      !configs.includes('features.multi_agent=false') ||
       !configs.some(item => item.startsWith('model_providers.factory_spend.base_url="http://127.0.0.1:8123/v1"')) ||
       process.env.FACTORY_GATEWAY_TOKEN !== 'a'.repeat(64) ||
       process.env.OPENAI_API_KEY || process.env.CODEX_API_KEY || process.env.VERCEL_OIDC_TOKEN ||

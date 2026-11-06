@@ -201,6 +201,9 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
       '-c', 'model_providers.factory_spend.request_max_retries=0',
       '-c', 'model_providers.factory_spend.stream_max_retries=0',
       '-c', 'web_search="disabled"',
+      // Codex 0.16x offers sub-agents as a "namespace" tool. The metered gateway prices only function, custom and
+      // client tool-search tools, and a bounded Work has exactly one productive worker, so the surface stays off.
+      '-c', 'features.multi_agent=false',
     ] : [];
     child = spawn(executablePath, [
       "exec", "-m", options.model,
