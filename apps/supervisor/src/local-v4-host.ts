@@ -17,7 +17,7 @@ import { parseOwnerSubscriptionRoute, subscriptionSpendContract, OwnerSubscripti
 import { parseOwnerContainerProfile, containerExecutorVersion, parseMeteredContainerProfile, meteredContainerExecutorVersion, type MeteredContainerProfile } from './owner-container-profile.mjs';
 import { parseHostedLimits, APPROVED_HOSTED_LIMITS, type HostedLimits } from './hosted-limits.ts';
 import { assertContainerAvailable } from './owner-container-worker.mjs';
-import { assertNativeFixtureStandIn } from './native-fixture.ts';
+import { PINNED_CODEX } from './metered-container.ts';
 
 /**
  * Trusted host composition of the ordered LOCAL_V4 supervisor (private beta: owner + named testers on one Mac).
@@ -94,7 +94,11 @@ export function assertTrustedExecutable(path: string) {
 export async function hostPreflight(config: LocalV4HostConfig) {
   assertTrustedExecutable(config.worker.codexExecutable);
   if (config.worker.ownerContainer) { assertTrustedExecutable(config.worker.ownerContainer.dockerExecutable); assertContainerAvailable(config.worker.ownerContainer); }
-  if (config.worker.meteredContainer) { assertTrustedExecutable(config.worker.meteredContainer.dockerExecutable); assertContainerAvailable(config.worker.meteredContainer); }
+  if (config.worker.meteredContainer) {
+    // Metered container mode never runs a host Codex executable: the version is the qualified image's pinned label (checked here).
+    assertTrustedExecutable(config.worker.meteredContainer.dockerExecutable); assertContainerAvailable(config.worker.meteredContainer);
+    return { workerProfile: 'mac' as const, binaryAvailable: true, version: PINNED_CODEX, authenticated: true, error: null };
+  }
   return isSubscriptionProvider(config.provider) ? preflightOwnerLoginCodex(config.worker.codexExecutable, config.worker.workerProfile)
     : createCodexAdapter(config.worker.codexExecutable, config.worker.workerProfile).preflightCodex();
 }
@@ -159,13 +163,9 @@ export function parseHostConfig(raw: unknown): LocalV4HostConfig {
   const factoryId = str(c.factoryId, ID, 'HOST_CONFIG_FACTORY_ID');
   for (const p of [dataDir, materialDir, witness.path, provider.credentialFile]) if (inside(p, repoRoot)) refuse('HOST_CONFIG_PATH_INSIDE_REPOSITORY');
   if (inside(witness.path, dataDir) || inside(materialDir, dataDir) || inside(dataDir, materialDir)) refuse('HOST_CONFIG_PATH_OVERLAP');
-  // No native, uncontained metered execution for hosted/tester service: the container is required unless explicitly disabled for a
-  // loopback fixture provider (synthetic qualification only). The real provider origin always requires the qualified container.
-  const requireContainer = worker.requireContainer !== false;
-  if (requireContainer && !worker.meteredContainer) refuse('HOST_CONFIG_NATIVE_METERED_REFUSED');
-  if (!requireContainer && (worker.meteredContainer || !upstreamOrigin.startsWith('http://127.0.0.1:'))) refuse('HOST_CONFIG_NATIVE_METERED_REFUSED');
-  // A loopback provider URL could be a proxy to the real provider: only a marked fixture stand-in (never the real Codex) may run natively.
-  if (!requireContainer) { try { assertNativeFixtureStandIn(worker.codexExecutable); } catch { refuse('HOST_CONFIG_NATIVE_METERED_REFUSED'); } }
+  // No native, uncontained metered execution from host configuration, ever (Jay, 2026-11-05): the qualified container is required for
+  // every provider origin, loopback included. `requireContainer` may only restate true.
+  if (worker.requireContainer === false || !worker.meteredContainer) refuse('HOST_CONFIG_NATIVE_METERED_REFUSED');
   if (worker.meteredContainer) {
     // The API credential file is read only by the host gateway; it must never sit under any path a worker container binds.
     const st = worker.meteredContainer.stateDirectory;
@@ -284,7 +284,7 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
   const productiveBinding: ProductiveBinding | undefined = metered ? {
     provider: { upstreamOrigin: metered.upstreamOrigin, price: { ...metered.price }, authorize: async () => credential! },
     codexExecutable: config.worker.codexExecutable, workerProfile: config.worker.workerProfile, verificationImage: config.verificationImage,
-    ...(config.worker.meteredContainer ? { container: config.worker.meteredContainer } : { requireContainer: false }),
+    container: config.worker.meteredContainer!,
     hostedLimits: parseHostedLimits(config.hostedLimits) } : undefined;
   const supervisor = createLocalV4Supervisor({ dataDir: config.dataDir, deskPort: config.port, resultSigning: material.result,
     orderedAdmission: { enrollment, witness: new FileReceiverWitness(config.witness.path, config.witness.epoch), witnessPath: config.witness.path },
@@ -309,7 +309,7 @@ export async function startLocalV4Host(config: LocalV4HostConfig, deps: HostDepe
     receiverSigner: publicJwk(material.signer),
     resultKeys: material.result.keys.map(({ factoryId, keyId, publicKey, activeFrom, notAfter }) => ({ factoryId, keyId, publicKey, activeFrom, notAfter })),
     provider: metered ? { upstreamOrigin: metered.upstreamOrigin, price: metered.price,
-      isolation: config.worker.meteredContainer ? 'metered-container-v1' : 'native-loopback-fixture-only',
+      isolation: 'metered-container-v1',
       credential: 'HOST_GATEWAY_ONLY (0600 file; the container receives only per-operation tokens)',
       hostedLimits: { ...parseHostedLimits(config.hostedLimits), approved: APPROVED_HOSTED_LIMITS,
         monthlyBudgetNote: 'The OpenAI project monthly budget is set by the owner in the OpenAI dashboard; this host guard refuses admission independently.' } } : {

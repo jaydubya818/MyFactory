@@ -7,6 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {profileTest} from './local-v4-profile.mjs';
+import {installFakeDocker} from './fixtures/fake-docker-install.mjs';
 import {parseHostConfig,provisionHostMaterial,startLocalV4Host,HostConfigRefused,HOST_CONFIG_SCHEMA,MATERIAL} from '../src/local-v4-host.ts';
 import {signPolicyMessage,verifyPolicyMessage,policyMessageHash} from '../../../packages/capability-enforcement/src/ordering-wire.ts';
 const ptest=profileTest(test);
@@ -33,17 +34,18 @@ async function fixture(t,over={}){
   git('init','-q');git('config','user.name','Host fixture');git('config','user.email','fixture@example.invalid');
   writeFileSync(join(repo,'quantity.mjs'),'console.log(0);\n');git('add','.');git('commit','-qm','base');
   const codex=join(dir,'codex-host-fixture');writeFileSync(codex,FAKE_CODEX,{mode:0o755});
+  const docker=installFakeDocker(dir);                                     // metered Codex runs only in the (synthetic) qualified container
   const keys={myeve:await policyKey('myeve-k1'),relay:await policyKey('relay-k1')},keyDir=join(dir,'public-keys');mkdirSync(keyDir);
   for(const a of ['myeve','relay'])writeFileSync(join(keyDir,a+'.json'),JSON.stringify(pub(keys[a])));
   const credentialFile=join(dir,'provider-credential');writeFileSync(credentialFile,'disposable-never-sent\n',{mode:0o600});
   const scope={ownerId:'owner:fixture',organizationId:'org',installationId:'install',backendId:'backend',incarnation:'epoch',enrollmentVersion:1};
   const raw={schema:HOST_CONFIG_SCHEMA,factoryId:'factory-host-fixture',port:0,dataDir:join(dir,'data'),materialDir:join(dir,'material'),
-    witness:{path:join(dir,'witness','head.json'),epoch:'epoch-1'},worker:{codexExecutable:codex,workerProfile:'mac',requireContainer:false},verificationImage:IMAGE,
+    witness:{path:join(dir,'witness','head.json'),epoch:'epoch-1'},worker:{codexExecutable:codex,workerProfile:'mac',meteredContainer:docker.profile},verificationImage:IMAGE,
     profile:{checkCommands:['node quantity.mjs'],allowedPaths:['quantity.mjs']},
     client:{id:'myeve',name:'MyEve private beta',ownerScope:scope.ownerId,repositoryPaths:[repo]},
     enrollment:{scope,agentId:'agent',registryVersion:'r1',sourceKeyFiles:{myeve:join(keyDir,'myeve.json'),relay:join(keyDir,'relay.json')}},
     provider:{upstreamOrigin:'http://127.0.0.1:9',credentialFile,price},...over};
-  return {dir,repo,keys,scope,raw,base:git('rev-parse','HEAD')};
+  return {dir,repo,keys,scope,raw,docker,base:git('rev-parse','HEAD')};
 }
 const refused=(fn,code)=>assert.throws(fn,e=>e instanceof HostConfigRefused&&e.code===code,code);
 
@@ -67,28 +69,27 @@ test('host config is strict and fails closed',async t=>{
   refused(()=>parseHostConfig({...ok,client:{...ok.client,ownerScope:'owner:other'}}),'HOST_CONFIG_OWNER_SCOPE');
 });
 
-test('metered host config: no native, uncontained execution; the credential stays outside every container bind; limits never rise',async t=>{
-  const f=await fixture(t),ok={...f.raw,port:8791},worker=ok.worker;
-  const state=join(f.dir,'container-state'),container={imageId:IMAGE,dockerExecutable:'/usr/local/bin/docker',stateDirectory:state};
+test('metered host config: never native (any executable, any provider URL); the credential stays outside every container bind; limits never rise',async t=>{
+  const f=await fixture(t),ok={...f.raw,port:8791},worker=ok.worker,container=worker.meteredContainer,state=container.stateDirectory;
   const real={...ok.provider,upstreamOrigin:'https://api.openai.com'};
-  refused(()=>parseHostConfig({...ok,worker:{codexExecutable:worker.codexExecutable,workerProfile:'mac'}}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
-  refused(()=>parseHostConfig({...ok,worker:{...worker,requireContainer:true}}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
-  refused(()=>parseHostConfig({...ok,provider:real}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
+  const native={codexExecutable:worker.codexExecutable,workerProfile:'mac'};
+  refused(()=>parseHostConfig({...ok,worker:native}),'HOST_CONFIG_NATIVE_METERED_REFUSED');                         // loopback provider: still refused
+  refused(()=>parseHostConfig({...ok,provider:real,worker:native}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
+  refused(()=>parseHostConfig({...ok,worker:{...native,requireContainer:false}}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
+  refused(()=>parseHostConfig({...ok,worker:{...worker,requireContainer:false}}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
   refused(()=>parseHostConfig({...ok,worker:{...worker,requireContainer:'false'}}),'HOST_CONFIG_WORKER');
-  refused(()=>parseHostConfig({...ok,worker:{...worker,requireContainer:false,meteredContainer:container}}),'HOST_CONFIG_NATIVE_METERED_REFUSED');
-  const contained={codexExecutable:worker.codexExecutable,workerProfile:'mac',meteredContainer:container};
-  const parsed=parseHostConfig({...ok,provider:real,worker:contained});
-  assert.deepEqual(parsed.worker.meteredContainer,container);
-  assert.equal(parseHostConfig({...ok,provider:real,worker:{...contained,requireContainer:true}}).worker.requireContainer,true);
-  refused(()=>parseHostConfig({...ok,provider:real,worker:{...contained,meteredContainer:{...container,authFile:'/a'}}}),'HOST_CONFIG_METERED_CONTAINER');
-  refused(()=>parseHostConfig({...ok,provider:real,worker:{...contained,ownerContainer:{...container,authFile:'/a'}}}),'HOST_CONFIG_WORKER');
-  refused(()=>parseHostConfig({...ok,provider:{...real,credentialFile:join(state,'key')},worker:contained}),'HOST_CONFIG_CREDENTIAL_EXPOSED_TO_CONTAINER');
-  refused(()=>parseHostConfig({...ok,provider:{...real,credentialFile:join(f.repo,'key')},worker:contained}),'HOST_CONFIG_CREDENTIAL_EXPOSED_TO_CONTAINER');
-  refused(()=>parseHostConfig({...ok,provider:real,worker:{...contained,meteredContainer:{...container,stateDirectory:join(f.repo,'state')}}}),'HOST_CONFIG_CONTAINER_STATE_OVERLAP');
+  refused(()=>parseHostConfig({...ok,worker:{...worker,nativeFixtureAdapter:{}}}),'HOST_CONFIG_WORKER');            // the test seam is not configuration
+  assert.deepEqual(parseHostConfig({...ok,provider:real}).worker.meteredContainer,container);
+  assert.equal(parseHostConfig({...ok,provider:real,worker:{...worker,requireContainer:true}}).worker.requireContainer,true);
+  refused(()=>parseHostConfig({...ok,provider:real,worker:{...worker,meteredContainer:{...container,authFile:'/a'}}}),'HOST_CONFIG_METERED_CONTAINER');
+  refused(()=>parseHostConfig({...ok,provider:real,worker:{...worker,ownerContainer:{...container,authFile:'/a'}}}),'HOST_CONFIG_WORKER');
+  refused(()=>parseHostConfig({...ok,provider:{...real,credentialFile:join(state,'key')}}),'HOST_CONFIG_CREDENTIAL_EXPOSED_TO_CONTAINER');
+  refused(()=>parseHostConfig({...ok,provider:{...real,credentialFile:join(f.repo,'key')}}),'HOST_CONFIG_CREDENTIAL_EXPOSED_TO_CONTAINER');
+  refused(()=>parseHostConfig({...ok,provider:real,worker:{...worker,meteredContainer:{...container,stateDirectory:join(f.repo,'state')}}}),'HOST_CONFIG_CONTAINER_STATE_OVERLAP');
   const limits={maxWorkMicrousd:1_300_000,maxWorksPerPerson:4,monthlyBudgetMicrousd:25_000_000};
-  assert.deepEqual(parseHostConfig({...ok,provider:real,worker:contained,hostedLimits:{...limits,maxWorksPerPerson:2}}).hostedLimits.maxWorksPerPerson,2);
-  refused(()=>parseHostConfig({...ok,provider:real,worker:contained,hostedLimits:{...limits,maxWorkMicrousd:1_300_001}}),'HOST_CONFIG_HOSTED_LIMITS');
-  refused(()=>parseHostConfig({...ok,provider:real,worker:contained,hostedLimits:{...limits,monthlyBudgetMicrousd:26_000_000}}),'HOST_CONFIG_HOSTED_LIMITS');
+  assert.deepEqual(parseHostConfig({...ok,provider:real,hostedLimits:{...limits,maxWorksPerPerson:2}}).hostedLimits.maxWorksPerPerson,2);
+  refused(()=>parseHostConfig({...ok,provider:real,hostedLimits:{...limits,maxWorkMicrousd:1_300_001}}),'HOST_CONFIG_HOSTED_LIMITS');
+  refused(()=>parseHostConfig({...ok,provider:real,hostedLimits:{...limits,monthlyBudgetMicrousd:26_000_000}}),'HOST_CONFIG_HOSTED_LIMITS');
 });
 
 async function started(t,f,deps={inspectImage:id=>id}){
@@ -135,7 +136,8 @@ test('host composes the ordered productive supervisor on loopback: health answer
   const facts=JSON.parse(readFileSync(join(config.materialDir,MATERIAL.facts),'utf8'));
   assert.equal(facts.origin,host.origin);assert.equal(facts.receiverSigner.jwk.d,undefined);assert.equal(facts.feedback.strictLocalV4MaxRounds,1);
   assert.equal(JSON.stringify(facts).includes(token),false);assert.equal(JSON.stringify(facts).includes('disposable-never-sent'),false);
-  assert.equal(facts.configuration.executorVersion,'codex-cli 0.0.0-host-fixture');
+  assert.match(facts.configuration.executorVersion,/^codex-cli 0\.163\.0 route=LOCAL_V4_METERED isolation=metered-container-v1/);
+  assert.equal(facts.provider.isolation,'metered-container-v1');
 });
 
 ptest('host-computed Factory identity is exactly the one the real preparation captures (ordered admission reaches PREPARED)',{timeout:120000},async t=>{

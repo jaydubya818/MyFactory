@@ -9,6 +9,7 @@ const monotonicMs = () => Number(process.hrtime.bigint() / 1_000_000n);
 const SAFE_ID = /^[a-zA-Z0-9_-]{1,128}$/;
 const WORKER_SCRIPT = fileURLToPath(new URL('./owner-container-worker.mjs', import.meta.url));
 export const METERED_CONTAINER_MAX_MS = 600_000;
+export const PINNED_CODEX = 'codex-cli 0.163.0';
 
 /**
  * Metered LOCAL_V4 execution inside the qualified worker container (Jay's approval, 2026-11-05: no native, uncontained tester execution).
@@ -47,12 +48,13 @@ export class MeteredContainerExecutor implements CodexAdapter {
     if (outcome.status === 'UNVERIFIED') this.#disabled = 'unverified container resources or live prior owner';
     return outcome;
   }
+  /** No host executable is run: the Codex version is the qualified image's pinned label (factory.owner.codex=0.163.0), proven by
+   *  assertContainerAvailable together with the image id and policy. Authentication is the host gateway's, not a Codex login. */
   preflightCodex = async (): Promise<CodexPreflight> => {
-    const base = await this.#base.preflightCodex();
-    if (!base.binaryAvailable || !base.version) return base;
+    const base = { workerProfile: 'mac' as const, binaryAvailable: true, version: PINNED_CODEX, authenticated: true, error: null };
     if (this.#disabled) return { ...base, authenticated: false, error: 'Metered container route disabled: ' + this.#disabled };
     assertContainerAvailable(this.profile);
-    return { ...base, version: meteredContainerExecutorVersion(base.version, this.profile) };
+    return { ...base, version: meteredContainerExecutorVersion(PINNED_CODEX, this.profile) };
   };
   runCodex = async (options: CodexRunOptions): Promise<CodexRunResult> => {
     if (this.#disabled) throw Error('Metered container route is disabled');
@@ -66,6 +68,8 @@ export class MeteredContainerExecutor implements CodexAdapter {
     if (deadlineMonoMs <= monotonicMs()) throw Error('METERED_CONTAINER_WORK_DEADLINE_REACHED');
     // Refuse before the process exists; the gateway has reserved nothing yet (reservation happens per provider request).
     assertContainerAvailable(this.profile);
+    // The only process the host starts is the pinned container wrapper under the trusted Node runtime (never the configured executable).
+    assertTrustedExecutablePath(process.execPath); assertTrustedFile(WORKER_SCRIPT);
     const invocation = {
       // runId is the SAVED Run id: the container label factory.run=<Run id> is exactly what readback/reconcile probes.
       mode: 'metered', profile: this.profile, runId: binding.runId, workId: binding.workId, operationId: randomBytes(16).toString('hex'),

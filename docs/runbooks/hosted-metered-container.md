@@ -25,10 +25,10 @@ tester accounts, conversations and accounting records are preserved.
    the gateway child token or the API key. Nothing from `~/.codex` is mounted in metered mode.
 
 ## Refusals
-- `requireContainer` defaults to true. Native metered execution is refused at host-config parse, at supervisor composition, and again before
-  every native run. The only exception is an explicit `requireContainer: false` with a loopback provider AND a fixture stand-in
-  executable: a small script that carries the marker `MYFACTORY_NATIVE_FIXTURE_STAND_IN_NOT_CODEX` and neither is nor invokes the real
-  `codex`. A loopback URL alone is never accepted, because it could be a proxy to the real provider. The legacy `private-alpha.ts`
+- Native metered execution cannot be configured. Without the qualified container, host-config parsing and supervisor composition refuse,
+  whatever the executable or provider URL, loopback included. The configured Codex executable is never spawned on the host, and in
+  container mode the preflight reads the version from the pinned image label. The only way to run without a container is a test-injected,
+  in-process synthetic adapter (`nativeFixtureAdapter`), which host JSON cannot express and no launcher sets. The legacy `private-alpha.ts`
   serving path is closed.
 - The owner subscription route remains owner-only. Metered container options together with the subscription route refuse. The
   subscription pricing revision is refused as a metered price, both in direct composition and in the guarded ledger.
@@ -58,7 +58,9 @@ tester accounts, conversations and accounting records are preserved.
 
 ## Outbound-only mailbox (`scripts/mailbox-poller.mjs`)
 This implements contract v1 plus proposals P7/P8: a per-path forward bound (`/qdev/v1/evaluate` 720 s, others 30 s), up to 4
-concurrent leases, an atomic never-evicted SQLite id store (`idStore`, 0600) and one poller per installation. Every envelope must carry `target` (`factory` or `verifier`), a `leaseId` and a base64 body. Each target
+concurrent leases, an atomic never-evicted SQLite id store (`idStore`, 0600) and one poller per installation. The poller credential uses a
+distinct format (`mfpoll_` + base64url) that neither the Factory (64-hex bearer only) nor the verifier accepts. It is never forwarded: headers,
+path, query and the decoded body are scanned in constant time first. Internal `//` in a path is refused. Every envelope must carry `target` (`factory` or `verifier`), a `leaseId` and a base64 body. Each target
 maps to exactly one configured `127.0.0.1` origin: `factoryOrigin`, or the optional `verifierOrigin`. The verifier allowlist is exactly
 the existing qdev verifier host API: POST to `/qdev/v1/{handoff,evaluate,verdict,artifact/file,artifact/commit}`. Artifact bodies stay within the 1 MiB envelope limit. See
 `apps/supervisor/src/mailbox-poller.ts` and the hosted contract. There is no listener on the Mac. The poller long-polls the HTTPS

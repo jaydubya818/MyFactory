@@ -12,6 +12,7 @@ import {join} from 'node:path';
 import {verifyLifecycleReceipt} from '../../../packages/capability-enforcement/src/lifecycle-wire.ts';
 import {tmpdir} from 'node:os';
 import {createLocalV4Supervisor} from '../src/server.ts';
+import {createCodexAdapter} from '../../../packages/agents/src/index.ts';
 import {FactoryDispatchControl} from '../src/dispatch-control.ts';
 import {LocalExecutionProvider} from '../src/local-execution-provider.ts';
 import {FileReceiverWitness,assertWitnessOutsideData} from '../src/local-ordered-admission.ts';
@@ -95,7 +96,7 @@ async function startProductive(t,{factory,dir,repo,base,keys,up,provider,codex,e
   const witness=new FileReceiverWitness(witnessPath,'epoch-1');
   const orderedAdmission={enrollment:{scope,agentId:'agent',registryVersion:'r1',clientId:'myeve',sourceKeys:{myeve:ks.myeve,relay:ks.relay},signer:ks.signer,
     factory:factory??{factoryId:key.factoryId,factoryVersion:ZERO,sourceDigest:ZERO,configurationDigest:ZERO}},witness,witnessPath};
-  const productiveBinding={provider:provider??{upstreamOrigin:up.origin,upstreamApiKey:'disposable-key',price:reviewPrice},codexExecutable:codex??installFakeCodex(f.dir),requireContainer:false,...(extra??{})};
+  const productiveBinding={provider:provider??{upstreamOrigin:up.origin,upstreamApiKey:'disposable-key',price:reviewPrice},codexExecutable:codex??installFakeCodex(f.dir),...(extra?.container?{}:{nativeFixtureAdapter:createCodexAdapter(codex??installFakeCodex(f.dir),'mac')}),...(extra??{})};
   const supervisor=createLocalV4Supervisor({dataDir,resultSigning,orderedAdmission,productiveBinding});
   await new Promise((resolve,reject)=>{supervisor.server.once('error',reject);supervisor.server.listen(0,'127.0.0.1',resolve)});
   const origin='http://127.0.0.1:'+supervisor.server.address().port;
@@ -130,7 +131,12 @@ test('productive binding is host-only, ordered-only and refuses every unqualifie
     const pair=generateKeyPairSync('ed25519'),key={factoryId:'f',keyId:'k',publicKey:pair.publicKey.export({type:'spki',format:'pem'}).toString(),activeFrom:'2020-01-01T00:00:00Z',notAfter:'2099-01-01T00:00:00Z'};
     return createLocalV4Supervisor({dataDir:d,resultSigning:{factoryId:'f',currentKeyId:'k',privateKey:pair.privateKey.export({type:'pkcs8',format:'pem'}).toString(),keys:[key]},...over});};
   const ordered={enrollment:{scope,agentId:'agent',registryVersion:'r1',clientId:'myeve',sourceKeys:{myeve:{keyId:'a',jwk:{}},relay:{keyId:'b',jwk:{}}},signer:{keyId:'c',jwk:{}},factory:{factoryId:'f',factoryVersion:ZERO,sourceDigest:ZERO,configurationDigest:ZERO}},witness:new FileReceiverWitness(join(dir,'w','h.json'),'e'),witnessPath:join(dir,'w','h.json')};
-  const base={provider,codexExecutable:codex,requireContainer:false};
+  const base={provider,codexExecutable:codex,nativeFixtureAdapter:createCodexAdapter(codex,'mac')};
+  // Review MF-2 P1: without the container NOTHING native runs from configuration, whatever the executable or provider URL.
+  assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{provider,codexExecutable:codex}}),/Native metered execution refused/);
+  assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{provider,codexExecutable:codex,requireContainer:false}}),/not qualified/);
+  assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,provider:{...provider,upstreamOrigin:'https://api.openai.com'}}}),/test-only, loopback-only/);
+  assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,nativeFixtureAdapter:{runCodex:'x'}}}),/test-only/);
   assert.throws(()=>make({productiveBinding:base}),/ordered receiver/);                                                           // no receiver
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,codexExecutable:'codex'}}),/not qualified/);          // PATH lookup
   assert.throws(()=>make({orderedAdmission:ordered,productiveBinding:{...base,provider:{...provider,upstreamOrigin:'https://example.com'}}}),/not qualified/);
@@ -191,8 +197,8 @@ ptest('metered container: Codex runs only in the container labelled with the sav
   const image='sha256:'+'d'.repeat(64);writeFileSync(join(bin,'fake-docker-state','image.json'),JSON.stringify({id:image,emulateCodex:true}));
   const stateDirectory=join(root,'state');mkdirSync(stateDirectory,{mode:0o700});
   // A version-only stand-in: in container mode the host never runs it for work (Codex runs only through the container wrapper).
-  const codex=join(root,'codex-version-only');writeFileSync(codex,'#!/bin/sh\n[ "$1" = "--version" ] && echo "codex-cli 0.163.0" && exit 0\n[ "$1" = "login" ] && exit 0\necho "never run natively" >&2; exit 9\n',{mode:0o755});
-  const extra={container:{imageId:image,dockerExecutable:docker,stateDirectory},requireContainer:true};
+  const ran=join(root,'host-executable-ran');const codex=join(root,'never-run-on-host');writeFileSync(codex,`#!/bin/sh\ntouch ${ran}\nexit 9\n`,{mode:0o755});
+  const extra={container:{imageId:image,dockerExecutable:docker,stateDirectory}};
   const up=await disposableUpstream(t),id=await productiveIdentity(t,up,extra,undefined,codex),h=await startProductive(t,{...id,up,extra,codex}),request=requestFor(h.repo,h.base);
   request.spendContract={...request.spendContract,maxPaidOperations:3,plannedProductiveOperations:2};
   const {pair}=await admitted(t,h,request),prep=await h.prepare(request,pair);assert.equal(prep.status,200,JSON.stringify(prep.body));
@@ -213,4 +219,5 @@ ptest('metered container: Codex runs only in the container labelled with the sav
   writeFileSync(join(bin,'fake-docker-state','state.json'),JSON.stringify(st));                          // the reaper removed it
   const done=await quiescent(h,request);assert.equal(done.quiescent,true);
   assert.equal(done.spend.operations.length,1);
+  assert.equal(existsSync(ran),false,'container mode never spawns the configured executable on the host (preflight included)');
 });

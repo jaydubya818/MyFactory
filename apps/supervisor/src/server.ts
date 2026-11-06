@@ -20,7 +20,7 @@ import { authenticateClient, authorizeClientAction, canAccessRepository, readCli
 import { LocalExecutionProvider, type LocalResourceProbe } from './local-execution-provider.ts';
 import { runCodex } from '../../../packages/agents/src/index.ts';
 import { verifyCandidate, verifyLeasedCandidate, verifyLeasedTree } from '../../../packages/verification/src/index.ts';
-import { createCodexAdapter } from '../../../packages/agents/src/index.ts';
+import { createCodexAdapter, type CodexAdapter } from '../../../packages/agents/src/index.ts';
 import { validatePrice } from './spend-gateway.ts';
 import type { ProviderConnection } from './provider-connection.ts';
 import { FactoryDispatchControl } from "./dispatch-control.ts";
@@ -28,7 +28,6 @@ import { assertTrustedExecutablePath } from './executable-trust.ts';
 import { OwnerSubscriptionOperations, parseOwnerSubscriptionRoute, type OwnerSubscriptionRoute, type OwnerContainerProfile } from './owner-subscription-route.ts';
 import { parseOwnerContainerProfile, parseMeteredContainerProfile, type MeteredContainerProfile } from './owner-container-profile.mjs';
 import { MeteredContainerExecutor } from './metered-container.ts';
-import { assertNativeFixtureStandIn, fixtureOnlyNativeAdapter } from './native-fixture.ts';
 import { isOwnerSubscriptionRevision } from '../../../packages/storage/src/spend-policy.ts';
 import { HostedSpendGuard, parseHostedLimits, type HostedLimits } from './hosted-limits.ts';
 import { dockerCommand } from './owner-container-worker.mjs';
@@ -277,28 +276,29 @@ export interface ProductiveBinding {
   verificationImage?: string;
   /** Qualified metered worker container (no credential). Codex runs only inside it; the provider credential stays in the host gateway. */
   container?: MeteredContainerProfile;
-  /** Default true: native (uncontained) metered execution is refused. `false` is accepted only for a loopback fixture provider,
-   *  never for the real provider origin, so tester/hosted service can never run Codex natively on the Mac. */
-  requireContainer?: boolean;
+  /** TEST-ONLY seam: an injected synthetic worker adapter for a loopback fixture provider. Host configuration cannot express it (it is a
+   *  function object), `local-v4-host.ts` never sets it, and without it native metered execution is refused outright: the configured
+   *  executable is never spawned natively. Mutually exclusive with `container`. */
+  nativeFixtureAdapter?: { runCodex: CodexAdapter['runCodex']; preflightCodex: CodexAdapter['preflightCodex'] };
   /** Hosted/tester ceilings (default: the approved $1.30/Work, 4 Works/person, $25/month). May lower, never raise. */
   hostedLimits?: HostedLimits;
 }
 const PRODUCTIVE_ORIGINS = [/^http:\/\/127\.0\.0\.1:\d{1,5}$/, /^https:\/\/api\.openai\.com$/];
 function validateProductiveBinding(options: LocalV4SupervisorOptions): ProductiveBinding {
   const p = options.productiveBinding as ProductiveBinding;
-  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['provider', 'codexExecutable', 'workerProfile', 'verificationImage', 'container', 'requireContainer', 'hostedLimits'].includes(k)) ||
+  if (!p || typeof p !== 'object' || Object.keys(p).some(k => !['provider', 'codexExecutable', 'workerProfile', 'verificationImage', 'container', 'nativeFixtureAdapter', 'hostedLimits'].includes(k)) ||
       !p.provider || typeof p.codexExecutable !== 'string' || !isAbsolute(p.codexExecutable) || p.codexExecutable.includes('\0') ||
       p.verificationImage !== undefined && (typeof p.verificationImage !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(p.verificationImage)) ||
-      p.requireContainer !== undefined && typeof p.requireContainer !== 'boolean' ||
       !PRODUCTIVE_ORIGINS.some(pattern => pattern.test(p.provider.upstreamOrigin)))
     throw new Error('Productive binding is not qualified');
   if (p.container !== undefined) parseMeteredContainerProfile(p.container);
-  // Jay's approval: no native, uncontained tester execution. Native is accepted only for a loopback fixture provider, explicitly.
-  if (p.requireContainer !== false && p.container === undefined) throw new Error('Native metered execution refused: requireContainer');
-  if (p.requireContainer === false && (p.container !== undefined || !/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(p.provider.upstreamOrigin)))
-    throw new Error('Native metered execution refused: only a loopback fixture provider may run uncontained');
-  // A loopback URL is not proof of a fixture (a loopback proxy can reach the real provider): the executable itself must be a stand-in.
-  if (p.requireContainer === false) assertNativeFixtureStandIn(p.codexExecutable);
+  // Jay's approval: no native, uncontained tester execution. Without the qualified container the configured executable is NEVER spawned:
+  // the only alternative is a test-injected synthetic adapter (not expressible in host configuration) for a loopback fixture provider.
+  const fixture = p.nativeFixtureAdapter;
+  if (p.container === undefined && fixture === undefined) throw new Error('Native metered execution refused: the qualified container is required');
+  if (fixture !== undefined && (p.container !== undefined || !fixture || typeof fixture.runCodex !== 'function' || typeof fixture.preflightCodex !== 'function' ||
+      !/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(p.provider.upstreamOrigin)))
+    throw new Error('Native metered execution refused: a synthetic fixture adapter is test-only, loopback-only and exclusive with the container');
   if (isOwnerSubscriptionRevision(p.provider?.price?.revision)) throw new Error('Productive binding is not qualified: the subscription operations revision is never a metered price');
   parseHostedLimits(p.hostedLimits);
   if (!options.orderedAdmission || options.localFactoryFixture || options.localSpendFixture || options.jobDependencies || options.localV4ResourceProbe ||
@@ -397,12 +397,13 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   if(options.retainCheckpoints&&(!options.localFactoryFixture&&!options.localSpendFixture||realProvider))
     throw new Error('Checkpoint export is deferred outside explicit fixture qualification');
   const productive = options.productive;
-  const nativeAdapter = productive ? createCodexAdapter(productive.codexExecutable, productive.workerProfile ?? 'mac') : undefined;
-  const meteredContainer = productive?.container ? new MeteredContainerExecutor(nativeAdapter!, productive.container, dataDir) : undefined;
+  // Container mode: this adapter is only ever invoked with `meteredContainer`, so it spawns the pinned wrapper (process.execPath +
+  // owner-container-worker.mjs), never the configured executable.
+  const meteredContainer = productive?.container ? new MeteredContainerExecutor(createCodexAdapter(productive.codexExecutable, productive.workerProfile ?? 'mac'), productive.container, dataDir) : undefined;
   // Before anything else is served: this host's own labelled metered containers from a crashed supervisor are reaped (or the route disables).
   meteredContainer?.recover();
-  // Without a container, the ONLY native executable is a re-verified fixture stand-in (validateProductiveBinding already refused the rest).
-  const codexAdapter = meteredContainer ?? (nativeAdapter ? fixtureOnlyNativeAdapter(nativeAdapter, productive!.codexExecutable) : undefined);
+  // Without a container the configured executable is never spawned: only the test-injected synthetic adapter (validated above) runs.
+  const codexAdapter = meteredContainer ?? productive?.nativeFixtureAdapter;
   const hostedGuard = productive ? new HostedSpendGuard(resolve(dataDir, 'hosted-limits.sqlite'), resolve(dataDir, 'factory.sqlite'), parseHostedLimits(productive.hostedLimits)) : undefined;
   const subscription = options.subscription ? new OwnerSubscriptionOperations(options.subscription.route, spend,
     createCodexAdapter(options.subscription.codexExecutable, 'mac'), options.subscription.codexExecutable, dataDir,

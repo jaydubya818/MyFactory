@@ -8,11 +8,11 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
-import { MailboxPoller, ForwardedIdStore, forwardTimeoutMs, parseEnvelope, assertLoopbackFactoryOrigin, assertMailboxOrigin, assertForwardPath, loadPollerConfig, MAILBOX_LIMITS } from '../src/mailbox-poller.ts';
+import { MailboxPoller, ForwardedIdStore, forwardTimeoutMs, containsSecret, POLLER_CREDENTIAL, parseEnvelope, assertLoopbackFactoryOrigin, assertMailboxOrigin, assertForwardPath, loadPollerConfig, MAILBOX_LIMITS } from '../src/mailbox-poller.ts';
 
 const sha = b => createHash('sha256').update(b).digest('hex');
 const gates = {};
-const CREDENTIAL = randomBytes(32).toString('base64url');
+const CREDENTIAL = 'mfpoll_' + randomBytes(32).toString('base64url');
 const listen = server => new Promise(r => server.listen(0, '127.0.0.1', () => r(`http://127.0.0.1:${server.address().port}`)));
 
 function envelope(overrides = {}, bodyBytes = Buffer.from('{"requestId":"r1","sig":"é\\u0000"}')) {
@@ -105,7 +105,7 @@ test('untrusted envelopes refuse: wrong installation, digest, method, path, head
   const bad = [
     envelope({ installationId: 'inst-2' }), envelope({ bodySha256: 'a'.repeat(64) }), envelope({ method: 'CONNECT' }),
     envelope({ path: '/api/admin/reset' }), envelope({ path: '/api/connect/v1/../../admin' }), envelope({ path: '//evil.example/api/connect/v1/x' }),
-    envelope({ path: '/api/connect/v1/%2e%2e/x' }), envelope({ path: 'http://evil/api/connect/v1/x' }), envelope({ path: '/api/healthz' }),
+    envelope({ path: '/api/connect/v1/%2e%2e/x' }), envelope({ path: '/api/connect/v1//dispatches' }), envelope({ path: '/api/capability-admission//challenge?x=1' }), envelope({ path: 'http://evil/api/connect/v1/x' }), envelope({ path: '/api/healthz' }),
     envelope({ headers: { cookie: 'session=1' } }), envelope({ headers: { host: 'evil' } }), envelope({ headers: { authorization: 'a\r\nx: y' } }),
     envelope({ bodyEncoding: 'hex' }), envelope({ deadline: new Date(Date.now() - 1).toISOString() }), envelope({ deadline: new Date(Date.now() + 7_200_000).toISOString() }),
     envelope({ id: 'not-a-uuid' }), envelope({ extra: true }), envelope({ method: 'GET' }), envelope({ leaseId: 'x' }),
@@ -239,4 +239,33 @@ test('per-path forward bound: verifier evaluation gets its documented maximum, e
   for (let i = 0; i < 100 && h.responses.length < 2; i++) await new Promise(r => setTimeout(r, 20));
   poller.stop(); await running;
   assert.equal(h.responses.length, 2);
+});
+
+test('the poller credential never reaches an endpoint: body, path, query and headers are scanned (decoded); its format is unusable as a Factory or verifier bearer', async t => {
+  const h = await harness(t); const poller = h.make();
+  const enc = encodeURIComponent(CREDENTIAL);
+  const cases = [
+    envelope({}, Buffer.from(JSON.stringify({ note: 'x' + CREDENTIAL + 'y' }))),                    // correctly hashed base64 body
+    envelope({}, Buffer.from(CREDENTIAL)),
+    envelope({ method: 'GET', path: `/api/connect/v1/dispatches/${CREDENTIAL}`, body: '', bodySha256: sha(Buffer.alloc(0)) }),
+    envelope({ method: 'GET', path: `/api/health?k=${enc}`, body: '', bodySha256: sha(Buffer.alloc(0)), headers: {} }),
+    envelope({ headers: { authorization: 'Bearer ' + CREDENTIAL, 'content-type': 'application/json' } }),
+    envelope({ target: 'verifier', path: '/qdev/v1/verdict', headers: { 'x-qdev-path': CREDENTIAL } }),
+  ];
+  for (const e of cases) {
+    const parsed = parseEnvelope(e, 'inst-1');
+    await assert.rejects(poller.handle(parsed), /MAILBOX_CREDENTIAL_ECHO/);
+    assert.equal(poller.seen(e.id), true, 'claimed so it can never be forwarded later');
+  }
+  assert.equal(h.factorySeen.length + h.verifierSeen.length, 0, 'nothing was forwarded');
+  // Constant-time scan correctness (full scan, no early exit).
+  assert.equal(containsSecret(Buffer.from('aaXYZbb'), Buffer.from('XYZ')), true);
+  assert.equal(containsSecret(Buffer.from('XYZ'), Buffer.from('XYZ')), true);
+  assert.equal(containsSecret(Buffer.from('XYbXYZ'.slice(0, 5)), Buffer.from('XYZ')), false);
+  assert.equal(containsSecret(Buffer.alloc(1024 * 1024, 0x61), Buffer.from(CREDENTIAL)), false);
+  // Distinct format: the Factory accepts only `Bearer <64 hex>`; a poller credential can never match it.
+  assert.equal(/^Bearer ([a-f0-9]{64})$/.test('Bearer ' + CREDENTIAL), false);
+  assert.ok(POLLER_CREDENTIAL.test(CREDENTIAL));
+  for (const bad of ['a'.repeat(64), randomBytes(32).toString('base64url'), 'mfpoll_short'])
+    assert.throws(() => h.make({ credential: bad, idStore: join(h.dir, 'ids-x.sqlite') }), /CREDENTIAL_FORMAT/);
 });

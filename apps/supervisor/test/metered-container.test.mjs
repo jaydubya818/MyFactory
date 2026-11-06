@@ -12,7 +12,6 @@ import { MeteredContainerExecutor } from '../src/metered-container.ts';
 import { createCodexAdapter } from '../../../packages/agents/src/index.ts';
 import { isOwnerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
 import { createLocalV4Supervisor, createSupervisor } from '../src/server.ts';
-import { NATIVE_FIXTURE_MARKER, assertNativeFixtureStandIn, fixtureOnlyNativeAdapter } from '../src/native-fixture.ts';
 import { OWNER_SUBSCRIPTION_PRICING_REVISION } from '../../../packages/storage/src/spend-policy.ts';
 
 const WORKER = fileURLToPath(new URL('../src/owner-container-worker.mjs', import.meta.url));
@@ -205,42 +204,39 @@ test('adapter: the metered container requires the gateway and excludes the owner
   assert.match(pre.version, /route=LOCAL_V4_METERED/);
 });
 
-test('supervisor composition refuses native (uncontained) metered execution unless it is a loopback fixture', t => {
-  const dataDir = realpathSync(mkdtempSync(join(tmpdir(), 'native-refusal-'))); t.after(() => rmSync(dataDir, { recursive: true, force: true }));
-  const price = { revision: 'r1', model: 'openai/gpt-5.5', validUntil: '2099-01-01T00:00:00Z', contextLimitTokens: 1000, outputLimitTokens: 100, inputMicrousdPerMillion: 1, outputMicrousdPerMillion: 1 };
-  const make = productiveBinding => () => createLocalV4Supervisor({ dataDir, resultSigning: {}, productiveBinding });
-  const real = { upstreamOrigin: 'https://api.openai.com', authorize: async () => 'k', price };
-  assert.throws(make({ provider: real, codexExecutable: '/usr/bin/true' }), /Native metered execution refused: requireContainer/);
-  assert.throws(make({ provider: real, codexExecutable: '/usr/bin/true', requireContainer: true }), /Native metered execution refused/);
-  assert.throws(make({ provider: real, codexExecutable: '/usr/bin/true', requireContainer: false }), /only a loopback fixture provider/);
-  assert.throws(make({ provider: { ...real, upstreamOrigin: 'http://127.0.0.1:9' }, codexExecutable: '/usr/bin/true', requireContainer: 'no' }), /not qualified/);
-  assert.throws(make({ provider: real, codexExecutable: '/usr/bin/true', container: { imageId: IMAGE, dockerExecutable: '/usr/bin/docker', stateDirectory: '/s', authFile: '/a' } }), /PROFILE_INVALID/);
-  assert.throws(make({ provider: real, codexExecutable: '/usr/bin/true', container: { imageId: IMAGE, dockerExecutable: '/usr/bin/docker', stateDirectory: '/s' }, hostedLimits: { maxWorkMicrousd: 2_000_000, maxWorksPerPerson: 4, monthlyBudgetMicrousd: 25_000_000 } }), /HOSTED_LIMITS_ABOVE_APPROVAL/);
-});
-
-test('native execution: any real Codex is refused even with a loopback provider; only a marked stand-in passes, re-checked before every run', async t => {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'native-standin-'))); t.after(() => rmSync(dir, { recursive: true, force: true }));
+test('native execution is impossible from configuration: no container means refusal for every executable and provider URL (review MF-2 P1)', async t => {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'native-refusal-2-'))); t.after(() => rmSync(dir, { recursive: true, force: true }));
   const price = { revision: 'r1', model: 'openai/gpt-5.5', validUntil: '2099-01-01T00:00:00Z', contextLimitTokens: 1000, outputLimitTokens: 100, inputMicrousdPerMillion: 1, outputMicrousdPerMillion: 1 };
   const loopback = { upstreamOrigin: 'http://127.0.0.1:9', authorize: async () => 'k', price };   // could be a reverse proxy to the real provider
   const make = productiveBinding => () => createLocalV4Supervisor({ dataDir: dir, resultSigning: {}, productiveBinding });
-  const write = (name, text) => { const p = join(dir, name); writeFileSync(p, text, { mode: 0o755 }); return p; };
-  const M = '# ' + NATIVE_FIXTURE_MARKER + '\n';
-  const real = [process.execPath, '/usr/bin/true', write('unmarked', '#!/bin/sh\nexit 0\n'), write('wrapper', '#!/bin/sh\n' + M + 'exec codex "$@"\n'),
-    write('abs-wrapper', '#!/bin/sh\n' + M + 'exec /opt/homebrew/bin/codex "$@"\n'), write('npm-wrapper', '#!/usr/bin/env node\n// ' + NATIVE_FIXTURE_MARKER + '\nimport("@openai/codex")\n'),
-    write('vendor', '#!/bin/sh\n' + M + 'exec ./vendor/aarch64/codex/codex\n'), write('big', '#!/bin/sh\n' + M + '#'.repeat(70_000) + '\n')];
-  for (const codexExecutable of real) {
-    assert.throws(make({ provider: loopback, codexExecutable, requireContainer: false }), /Native metered execution refused/, codexExecutable);
-    assert.throws(() => assertNativeFixtureStandIn(codexExecutable), /NativeExecutionRefused|refused/, codexExecutable);
-  }
-  const standIn = write('stand-in', '#!/bin/sh\n' + M + 'echo "codex-cli 0.0.0-fixture"\n');
-  assert.throws(make({ provider: loopback, codexExecutable: standIn, requireContainer: false }), /ordered receiver/, 'the stand-in passes the native check (refused later only for the missing receiver)');
-  assert.throws(make({ provider: { ...loopback, price: { ...price, revision: OWNER_SUBSCRIPTION_PRICING_REVISION } }, codexExecutable: standIn, requireContainer: false }), /subscription operations revision/);
-  // A stand-in swapped for the real CLI after composition is refused before the next process exists.
-  let runs = 0;
-  const adapter = fixtureOnlyNativeAdapter({ runCodex: async () => { runs++; return {}; }, preflightCodex: async () => ({}) }, standIn);
-  await adapter.runCodex({}); assert.equal(runs, 1);
-  writeFileSync(standIn, '#!/bin/sh\n' + M + 'exec codex "$@"\n');
-  assert.throws(() => adapter.runCodex({}), /refused/); assert.equal(runs, 1);
+  // The bypass from round 2: a "marked" script that execs the real CLI through shell quoting. Content is no longer inspected at all.
+  const bypass = join(dir, 'marked'); writeFileSync(bypass, '#!/bin/sh\n# MYFACTORY_NATIVE_FIXTURE_STAND_IN_NOT_CODEX\nexec /opt/homebrew/bin/co""dex "$@"\n', { mode: 0o755 });
+  for (const codexExecutable of [bypass, process.execPath, '/usr/bin/true'])
+    for (const extra of [{}, { requireContainer: false }]) assert.throws(make({ provider: loopback, codexExecutable, ...extra }), /Native metered execution refused|not qualified/);
+  // The only alternative is an in-process synthetic adapter object (test-only; host JSON cannot express a function), loopback-only.
+  const fixture = { runCodex: async () => ({}), preflightCodex: async () => ({}) };
+  assert.throws(make({ provider: { ...loopback, upstreamOrigin: 'https://api.openai.com' }, codexExecutable: bypass, nativeFixtureAdapter: fixture }), /test-only, loopback-only/);
+  assert.throws(make({ provider: loopback, codexExecutable: bypass, nativeFixtureAdapter: fixture, container: { imageId: IMAGE, dockerExecutable: '/usr/bin/docker', stateDirectory: '/s' } }), /exclusive with the container/);
+  assert.throws(make({ provider: loopback, codexExecutable: bypass, nativeFixtureAdapter: { runCodex: 'exec' } }), /test-only/);
+  assert.throws(make({ provider: { ...loopback, price: { ...price, revision: OWNER_SUBSCRIPTION_PRICING_REVISION } }, codexExecutable: bypass, nativeFixtureAdapter: fixture }), /subscription operations revision/);
+  // No production source composes the fixture seam: only server.ts names it (to validate it).
+  const root = fileURLToPath(new URL('../../../', import.meta.url));
+  for (const file of ['apps/supervisor/src/local-v4-host.ts', 'scripts/local-v4-host.mjs', 'apps/supervisor/src/dispatch-control.ts', 'apps/supervisor/src/metered-container.ts'])
+    assert.ok(!readFileSync(join(root, file), 'utf8').includes('nativeFixtureAdapter'), file);
+});
+
+test('container mode never runs the configured executable on the host; the only spawned process is the pinned wrapper under trusted Node', async t => {
+  const f = fixture(t);
+  const ran = join(f.root, 'host-ran'), codex = join(f.root, 'bin', 'codex-never'); writeFileSync(codex, `#!/bin/sh\ntouch ${ran}\nexit 9\n`, { mode: 0o755 });
+  const executor = new MeteredContainerExecutor(createCodexAdapter(codex, 'mac'), f.profile, f.root);
+  const pre = await executor.preflightCodex();
+  assert.match(pre.version, /^codex-cli 0\.163\.0 route=LOCAL_V4_METERED/); assert.equal(pre.authenticated, true);
+  const artifacts = join(f.root, 'artifacts2'); mkdirSync(artifacts);
+  const token = hex(); executor.bindOperation(token, { runId: randomUUID(), workId: randomUUID(), deadlineMonoMs: mono() + 30_000 });
+  const result = await executor.runCodex({ workspacePath: f.workspace, artifactsDir: artifacts, prompt: 'task', model: 'openai/gpt-5.5', timeoutMs: 30_000,
+    gateway: { baseUrl: 'http://127.0.0.1:47002/v1', childToken: token } });
+  assert.equal(result.exitCode, 0, readFileSync(result.stderrPath, 'utf8'));
+  assert.equal(existsSync(ran), false, 'the configured executable never ran on the host');
 });
 
 test('legacy private-alpha native execution is closed', () => {

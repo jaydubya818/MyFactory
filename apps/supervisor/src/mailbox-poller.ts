@@ -32,6 +32,32 @@ const refuse = (code: string): never => { throw new MailboxRefused(code); };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const NAME = /^[A-Za-z0-9:_.-]{1,128}$/;
 const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
+/**
+ * Poller credentials have their own format (`mfpoll_` + base64url). The Factory accepts only a 64-hex bearer and the verifier only its
+ * configured credential hashes, so an echoed poller credential is structurally unusable by either endpoint; it is still never forwarded.
+ */
+export const POLLER_CREDENTIAL = /^mfpoll_[A-Za-z0-9_-]{43,256}$/;
+/** Data-independent scan: every window is compared in full and the result is folded without early exit. */
+export function containsSecret(haystack: Buffer, needle: Buffer): boolean {
+  const n = needle.length, last = haystack.length - n;
+  if (n === 0 || last < 0) return false;
+  let found = 0;
+  for (let i = 0; i <= last; i++) {
+    let diff = 0;
+    for (let j = 0; j < n; j++) diff |= haystack[i + j] ^ needle[j];
+    found |= ((diff - 1) >>> 31) & 1;          // 1 exactly when diff === 0
+  }
+  return found === 1;
+}
+/** Every byte the poller would send to a local endpoint, in raw and percent-decoded form. */
+export function envelopeCarriesSecret(envelope: Pick<MailboxEnvelope, 'path' | 'headers' | 'body'>, secret: string): boolean {
+  const needle = Buffer.from(secret, 'utf8');
+  let decodedPath = envelope.path; try { decodedPath = decodeURIComponent(envelope.path.replace(/\+/g, ' ')); } catch { /* raw form still scanned */ }
+  const parts = [envelope.body, Buffer.from(envelope.path, 'utf8'), Buffer.from(decodedPath, 'utf8'), ...Object.values(envelope.headers).map(v => Buffer.from(v, 'utf8'))];
+  let hit = false;
+  for (const part of parts) hit = containsSecret(part, needle) || hit;   // no short-circuit: every part is scanned
+  return hit;
+}
 
 export interface MailboxEnvelope {
   id: string; installationId: string; ownerId: string; createdAt: string; deadline: string; method: typeof FORWARD_METHODS[number];
@@ -71,7 +97,8 @@ export function assertMailboxOrigin(origin: string, allowLoopbackForTest = false
 }
 export function assertForwardPath(path: unknown, target: MailboxTarget = 'factory'): string {
   if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//') || Buffer.byteLength(path) > MAILBOX_LIMITS.maxPathBytes ||
-      /[\0-\x20\x7f#\\]/.test(path) || path.split('?')[0].split('/').some(s => s === '..' || s === '.' || /%2e|%2f|%5c/i.test(s)) ||
+      /[\0-\x20\x7f#\\]/.test(path) || path.split('?')[0].includes('//') ||
+      path.split('?')[0].split('/').some(s => s === '..' || s === '.' || /%2e|%2f|%5c/i.test(s)) ||
       !(MAILBOX_TARGETS[target].exact.includes(path) ||
         MAILBOX_TARGETS[target].prefixes.some(prefix => prefix.endsWith('/') ? path.startsWith(prefix) : path === prefix || path.startsWith(prefix + '?'))))
     return refuse('MAILBOX_PATH_REFUSED');
@@ -120,7 +147,7 @@ export function readSecretFile(path: string, code = 'MAILBOX_CREDENTIAL'): strin
   let st; try { st = lstatSync(path); } catch { return refuse(code + '_MISSING'); }
   if (!st.isFile() || st.isSymbolicLink() || (st.mode & 0o077) !== 0 || st.uid !== process.getuid!()) refuse(code + '_PERMISSIONS');
   const value = readFileSync(path, 'utf8').trim();
-  if (!/^[A-Za-z0-9._~+/=-]{32,512}$/.test(value)) refuse(code + '_FORMAT');
+  if (!POLLER_CREDENTIAL.test(value)) refuse(code + '_FORMAT');
   return value;
 }
 
@@ -216,7 +243,7 @@ export class MailboxPoller {
       if (this.#ports.verifier === this.#ports.factory) refuse('MAILBOX_TARGETS_NOT_DISTINCT');
     }
     if (typeof options.installationId !== 'string' || !NAME.test(options.installationId)) refuse('MAILBOX_INSTALLATION_INVALID');
-    if (typeof options.credential !== 'string' || !/^[A-Za-z0-9._~+/=-]{32,512}$/.test(options.credential)) refuse('MAILBOX_CREDENTIAL_FORMAT');
+    if (typeof options.credential !== 'string' || !POLLER_CREDENTIAL.test(options.credential)) refuse('MAILBOX_CREDENTIAL_FORMAT');
     this.#store = new ForwardedIdStore(options.idStore, options.installationId);
     try { this.#store.acquire(); } catch (error) { this.#store.close(); throw error; }
     this.#o = { ...options };
@@ -241,7 +268,8 @@ export class MailboxPoller {
   /** Forwards one leased request exactly once and posts the answer. Never re-forwards an id, in this or any other process. */
   async handle(envelope: MailboxEnvelope): Promise<'RESPONDED' | 'DUPLICATE' | 'EXPIRED' | 'FORWARD_FAILED'> {
     if (this.#store.has(envelope.id)) { this.#log({ event: 'duplicate', id: envelope.id }); return 'DUPLICATE'; }
-    if (Object.values(envelope.headers).some(v => v.includes(this.#o.credential))) { this.#store.claim(envelope.id, envelope.target); return refuse('MAILBOX_CREDENTIAL_ECHO'); }
+    // The poller credential must never reach an endpoint: headers, path, query and the DECODED body are all scanned before any claim.
+    if (envelopeCarriesSecret(envelope, this.#o.credential)) { this.#store.claim(envelope.id, envelope.target); return refuse('MAILBOX_CREDENTIAL_ECHO'); }
     // Each contract-v1 target maps to exactly one configured loopback origin; an unconfigured target is never forwarded anywhere else.
     const port = this.#ports[envelope.target];
     if (port === undefined) { this.#log({ event: 'target_unconfigured', id: envelope.id, target: envelope.target }); return refuse('MAILBOX_TARGET_NOT_CONFIGURED'); }
