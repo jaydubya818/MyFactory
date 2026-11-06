@@ -255,3 +255,15 @@ test('hosted Fetch transport failure is UNKNOWN and never retried',async t=>{
  assert.equal(f.ledger.read(f.binding.workId).unknownExposureMicrousd,1200);
  assert.equal((await call()).status,409);assert.equal(calls,1);
 });
+
+test('an unqualified 200 outcome stays UNKNOWN and records only protocol tokens that classify it',async t=>{
+ const events=[];
+ const f=await fixture(t,(_req,res)=>{res.writeHead(200,{'content-type':'text/event-stream','x-request-id':'provider-failed'});
+  res.end('event: response.created\ndata: {"type":"response.created","response":{"status":"in_progress"}}\n\n'+
+   'event: response.failed\ndata: {"type":"response.failed","response":{"status":"failed","error":{"code":"invalid_prompt","message":"secret prompt text"}}}\n\n');},4000,{onDecision:e=>events.push(e)});
+ assert.equal((await f.call({model:'fixture-model',input:'hello',stream:true})).status,503);
+ assert.equal(f.ledger.read(f.binding.workId).status,'UNKNOWN');
+ assert.equal(events[0].code,'PROVIDER_OUTCOME_UNKNOWN');
+ assert.equal(events[0].outcome,'last_event=response.failed;status=failed;error=invalid_prompt;usage=missing;request_id=present');
+ assert(!JSON.stringify(events).includes('secret prompt text'));
+});

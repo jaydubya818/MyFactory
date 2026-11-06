@@ -38,7 +38,7 @@ export interface SpendGatewayOptions extends ProviderConnection {
   onProductiveBoundary?: () => void;
   /** Absolute settled operation boundary for a host-owned implementation checkpoint. */
   productiveCheckpointAfter?: number;
-  onDecision?: (evidence: {code:string;stage:string;status:number;upstreamStatus:number|null;operationId:string|null;elapsedMs:number;retryable:false}) => void;
+  onDecision?: (evidence: {code:string;stage:string;status:number;upstreamStatus:number|null;operationId:string|null;elapsedMs:number;retryable:false;outcome?:string}) => void;
   /** Synchronous current-authority check (throws to deny). Called immediately before each ledger/provider boundary so a
    *  later pause/revocation cannot use an already-issued child token. Absent = no extra authority (legacy gateways). */
   authorizeDispatch?: () => void;
@@ -92,6 +92,23 @@ function completedResponse(body: Buffer, streaming: boolean): Record<string, unk
     } catch { /* A later valid completion may exist. */ }
   }
   return null;
+}
+
+const protocolToken = (value: unknown) => typeof value === 'string' && /^[a-z0-9_.-]{1,64}$/.test(value) ? value : '-';
+/** Classifies an unqualified provider outcome with protocol enums only: never content, messages or headers. */
+function outcomeClass(body: Buffer, streaming: boolean): string {
+  let last: Record<string, unknown> | null = null;
+  if (streaming) {
+    for (const line of body.toString('utf8').split(/\r?\n/)) {
+      if (!line.startsWith('data: ')) continue;
+      try { last = JSON.parse(line.slice(6)) as Record<string, unknown>; } catch { /* Partial events carry no class. */ }
+    }
+  } else { try { last = JSON.parse(body.toString('utf8')) as Record<string, unknown>; } catch { last = null; } }
+  const response = (last?.response ?? last) as Record<string, unknown> | null;
+  const error = (response?.error ?? last?.error) as Record<string, unknown> | undefined;
+  const incomplete = response?.incomplete_details as Record<string, unknown> | undefined;
+  return `last_event=${protocolToken(last?.type)};status=${protocolToken(response?.status)};error=${protocolToken(error?.code ?? error?.type)}` +
+    (incomplete ? `;incomplete=${protocolToken(incomplete.reason)}` : '');
 }
 
 function authoritativeUsage(response: Record<string, unknown> | null): { input_tokens: number; output_tokens: number } | null {
@@ -173,7 +190,8 @@ export class SpendGateway {
     let stage = 'request';
     let upstreamStatus: number | null = null;
     const started=Date.now();
-    const record=(code:string,status:number)=>this.#options.onDecision?.({code,stage,status,upstreamStatus,operationId,elapsedMs:Date.now()-started,retryable:false});
+    let outcome: string | undefined;
+    const record=(code:string,status:number)=>this.#options.onDecision?.({code,stage,status,upstreamStatus,operationId,elapsedMs:Date.now()-started,retryable:false,...(outcome?{outcome}:{})});
     try {
       validatePrice(price);
       const bytes = await bodyOf(request);
@@ -254,7 +272,10 @@ export class SpendGateway {
         (typeof completed?.id === 'string' ? completed.id : null);
       if(providerRequestId?.includes(credential))throw new Error('Provider credential echo denied');
       if (!upstream.ok || completed?.status !== 'completed' || !usage || !providerRequestId || usage.input_tokens > price.contextLimitTokens ||
-        usage.output_tokens > outputCap) throw new Error('Provider outcome or usage unqualified');
+        usage.output_tokens > outputCap) {
+        outcome = outcomeClass(result, payload.stream === true) + `;usage=${usage ? 'present' : 'missing'};request_id=${providerRequestId ? 'present' : 'missing'}`;
+        throw new Error('Provider outcome or usage unqualified');
+      }
       const actual = Math.ceil(usage.input_tokens * price.inputMicrousdPerMillion / 1_000_000) +
         Math.ceil(usage.output_tokens * price.outputMicrousdPerMillion / 1_000_000);
       await ledger.settle(operationId, actual, providerRequestId, usage);
