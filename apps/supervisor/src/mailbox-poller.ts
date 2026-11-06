@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { request as httpRequest } from 'node:http';
-import { closeSync, fsyncSync, lstatSync, openSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { closeSync, lstatSync, openSync, readFileSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import { isAbsolute, resolve } from 'node:path';
 
 /**
@@ -9,7 +10,7 @@ import { isAbsolute, resolve } from 'node:path';
  * It never opens a listener, never authorizes anything (every Factory signature is verified end to end by the Factory itself), never
  * forwards the poller credential to the Factory, and never retries a request it has forwarded (UNKNOWN semantics stay with the client).
  */
-export const MAILBOX_LIMITS = Object.freeze({ maxBodyBytes: 1024 * 1024, pollWaitSeconds: 25, leaseMs: 30_000, maxForwardMs: 30_000, maxPathBytes: 2048, seenIds: 4096 });
+export const MAILBOX_LIMITS = Object.freeze({ maxBodyBytes: 1024 * 1024, pollWaitSeconds: 25, leaseMs: 30_000, maxForwardMs: 30_000, maxEvaluateForwardMs: 720_000, maxInFlight: 4, maxPathBytes: 2048 });
 export const FORWARD_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 /** Factory routes reachable through the mailbox: the connect protocol, ordered capability admission and health. Nothing else. */
 export const FORWARD_PATH_PREFIXES = ['/api/connect/v1/', '/api/capability-admission/', '/api/health'] as const;
@@ -46,8 +47,8 @@ export interface MailboxPollerOptions {
   factoryOrigin: string;
   /** Exact `http://127.0.0.1:<port>` verifier host origin (contract v1 `target: "verifier"`). Absent: verifier envelopes refuse. */
   verifierOrigin?: string;
-  /** Optional 0600 file recording forwarded request ids, so a replayed id is never forwarded twice across restarts. */
-  seenFile?: string;
+  /** Required owner-only SQLite store of every forwarded id (never evicted) and the single-poller lock for this installation. */
+  idStore: string;
   /** Test seams only (never reachable from the launcher config): mailbox fetch and a loopback HTTP mailbox. */
   fetch?: typeof fetch;
   allowLoopbackMailboxForTest?: boolean;
@@ -151,11 +152,60 @@ export function forwardToFactory(port: number, envelope: MailboxEnvelope, timeou
   });
 }
 
+/**
+ * Durable, never-evicting record of every forwarded request id (contract v1 P4), shared atomically by every process on this Mac:
+ * a SQLite table with a PRIMARY KEY on the id. `claim` is a single INSERT, so two processes can never both forward one id, and no id is
+ * ever forgotten. The same database holds the single-poller-per-installation lock.
+ */
+export class ForwardedIdStore {
+  readonly #db: DatabaseSync;
+  readonly #installation: string;
+  #locked = false;
+  constructor(path: string, installationId: string) {
+    if (typeof path !== 'string' || !isAbsolute(path) || resolve(path) !== path) refuse('MAILBOX_ID_STORE_PATH');
+    // Created owner-only before SQLite opens it; an existing store must already be a private regular file of this uid.
+    closeSync(openSync(path, 'a', 0o600));
+    const st = lstatSync(path);
+    if (!st.isFile() || st.isSymbolicLink() || (st.mode & 0o077) !== 0 || st.uid !== process.getuid!()) refuse('MAILBOX_ID_STORE_UNTRUSTED');
+    this.#installation = installationId;
+    this.#db = new DatabaseSync(path, { timeout: 5000 });
+    this.#db.exec(`PRAGMA busy_timeout = 5000;
+      CREATE TABLE IF NOT EXISTS forwarded_requests (id TEXT PRIMARY KEY, installation_id TEXT NOT NULL, target TEXT NOT NULL, claimed_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS poller_lock (installation_id TEXT PRIMARY KEY, pid INTEGER NOT NULL, acquired_at TEXT NOT NULL);`);
+  }
+  /** One poller per installation: refuses while another LIVE process holds the lock; a dead holder is replaced. */
+  acquire() {
+    this.#db.exec('BEGIN IMMEDIATE');
+    try {
+      const row = this.#db.prepare('SELECT pid FROM poller_lock WHERE installation_id = ?').get(this.#installation) as { pid: number } | undefined;
+      if (row && row.pid !== process.pid) {
+        let alive = true; try { process.kill(row.pid, 0); } catch (e) { alive = (e as NodeJS.ErrnoException).code !== 'ESRCH'; }
+        if (alive) refuse('MAILBOX_POLLER_ALREADY_RUNNING');
+      }
+      this.#db.prepare('INSERT OR REPLACE INTO poller_lock VALUES (?, ?, ?)').run(this.#installation, process.pid, new Date().toISOString());
+      this.#db.exec('COMMIT'); this.#locked = true;
+    } catch (error) { try { this.#db.exec('ROLLBACK'); } catch { /* none open */ } throw error; }
+  }
+  release() { if (this.#locked) this.#db.prepare('DELETE FROM poller_lock WHERE installation_id = ? AND pid = ?').run(this.#installation, process.pid); this.#locked = false; }
+  /** Atomic claim: true exactly once per id, forever and across processes. */
+  claim(id: string, target: MailboxTarget): boolean {
+    try { this.#db.prepare('INSERT INTO forwarded_requests VALUES (?, ?, ?, ?)').run(id, this.#installation, target, new Date().toISOString()); return true; }
+    catch (error) { if (/UNIQUE|constraint/i.test(String((error as Error).message))) return false; throw error; }
+  }
+  has(id: string) { return !!this.#db.prepare('SELECT 1 FROM forwarded_requests WHERE id = ?').get(id); }
+  close() { try { this.release(); } finally { this.#db.close(); } }
+}
+
+/** Per-path forward bound: a verifier evaluation runs up to its documented maximum; everything else gets 30 s. Always <= the envelope deadline. */
+export function forwardTimeoutMs(envelope: Pick<MailboxEnvelope, 'target' | 'path'>): number {
+  return envelope.target === 'verifier' && envelope.path === '/qdev/v1/evaluate' ? MAILBOX_LIMITS.maxEvaluateForwardMs : MAILBOX_LIMITS.maxForwardMs;
+}
+
 export class MailboxPoller {
-  readonly #o: Required<Pick<MailboxPollerOptions, 'mailboxOrigin' | 'installationId' | 'credential' | 'factoryOrigin'>> & MailboxPollerOptions;
+  readonly #o: MailboxPollerOptions;
   readonly #ports: Partial<Record<MailboxTarget, number>> = {};
   readonly #fetch: typeof fetch;
-  readonly #seen: Map<string, number> = new Map();
+  readonly #store: ForwardedIdStore;
   #stopped = false;
   #abort = new AbortController();
   constructor(options: MailboxPollerOptions) {
@@ -167,34 +217,15 @@ export class MailboxPoller {
     }
     if (typeof options.installationId !== 'string' || !NAME.test(options.installationId)) refuse('MAILBOX_INSTALLATION_INVALID');
     if (typeof options.credential !== 'string' || !/^[A-Za-z0-9._~+/=-]{32,512}$/.test(options.credential)) refuse('MAILBOX_CREDENTIAL_FORMAT');
-    if (options.seenFile !== undefined && (typeof options.seenFile !== 'string' || !isAbsolute(options.seenFile))) refuse('MAILBOX_SEEN_FILE');
+    this.#store = new ForwardedIdStore(options.idStore, options.installationId);
+    try { this.#store.acquire(); } catch (error) { this.#store.close(); throw error; }
     this.#o = { ...options };
     this.#fetch = options.fetch ?? fetch;
-    if (options.seenFile) this.#loadSeen(options.seenFile);
   }
   #log(event: Record<string, unknown>) { try { this.#o.log?.(event); } catch { /* evidence only */ } }
-  #loadSeen(path: string) {
-    let text: string;
-    try {
-      const st = lstatSync(path);
-      if (!st.isFile() || st.isSymbolicLink() || (st.mode & 0o077) !== 0 || st.uid !== process.getuid!()) refuse('MAILBOX_SEEN_FILE');
-      text = readFileSync(path, 'utf8');
-    } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
-    const ids = JSON.parse(text) as [string, number][];
-    if (!Array.isArray(ids)) refuse('MAILBOX_SEEN_FILE');
-    for (const [id, at] of ids) if (UUID.test(id) && Number.isSafeInteger(at)) this.#seen.set(id, at);
-  }
-  #remember(id: string) {
-    this.#seen.set(id, Date.now());
-    while (this.#seen.size > MAILBOX_LIMITS.seenIds) this.#seen.delete(this.#seen.keys().next().value!);
-    const path = this.#o.seenFile;
-    if (!path) return;
-    const tmp = `${path}.${process.pid}.tmp`, fd = openSync(tmp, 'w', 0o600);
-    try { writeFileSync(fd, JSON.stringify([...this.#seen])); fsyncSync(fd); } finally { closeSync(fd); }
-    renameSync(tmp, path);
-  }
-  seen(id: string) { return this.#seen.has(id); }
+  seen(id: string) { return this.#store.has(id); }
   stop() { this.#stopped = true; this.#abort.abort(); }
+  close() { this.stop(); this.#store.close(); }
   #auth() { return { authorization: `Bearer ${this.#o.credential}`, 'cache-control': 'no-store' }; }
   /** One long-poll: null on 204 (nothing leased). Throws MailboxRefused on any malformed or unexpected mailbox answer. */
   async next(): Promise<MailboxEnvelope | null> {
@@ -207,21 +238,21 @@ export class MailboxPoller {
     let raw: unknown; try { raw = JSON.parse(text); } catch { return refuse('MAILBOX_ENVELOPE_JSON'); }
     return parseEnvelope(raw, this.#o.installationId);
   }
-  /** Forwards one leased request exactly once and posts the Factory's answer. Never re-forwards a seen id. */
+  /** Forwards one leased request exactly once and posts the answer. Never re-forwards an id, in this or any other process. */
   async handle(envelope: MailboxEnvelope): Promise<'RESPONDED' | 'DUPLICATE' | 'EXPIRED' | 'FORWARD_FAILED'> {
-    if (this.#seen.has(envelope.id)) { this.#log({ event: 'duplicate', id: envelope.id }); return 'DUPLICATE'; }
-    if (Object.values(envelope.headers).some(v => v.includes(this.#o.credential))) { this.#remember(envelope.id); return refuse('MAILBOX_CREDENTIAL_ECHO'); }
+    if (this.#store.has(envelope.id)) { this.#log({ event: 'duplicate', id: envelope.id }); return 'DUPLICATE'; }
+    if (Object.values(envelope.headers).some(v => v.includes(this.#o.credential))) { this.#store.claim(envelope.id, envelope.target); return refuse('MAILBOX_CREDENTIAL_ECHO'); }
     // Each contract-v1 target maps to exactly one configured loopback origin; an unconfigured target is never forwarded anywhere else.
     const port = this.#ports[envelope.target];
     if (port === undefined) { this.#log({ event: 'target_unconfigured', id: envelope.id, target: envelope.target }); return refuse('MAILBOX_TARGET_NOT_CONFIGURED'); }
-    const remaining = Math.min(Date.parse(envelope.deadline) - Date.now(), MAILBOX_LIMITS.maxForwardMs);
+    const remaining = Math.min(Date.parse(envelope.deadline) - Date.now(), forwardTimeoutMs(envelope));
     if (remaining <= 0) { this.#log({ event: 'expired', id: envelope.id }); return 'EXPIRED'; }
-    // Recorded BEFORE the Factory sees it: a crash after this point can never cause a second forward of the same id.
-    this.#remember(envelope.id);
+    // Claimed durably and atomically BEFORE the endpoint sees it: a crash or a second process can never cause a second forward.
+    if (!this.#store.claim(envelope.id, envelope.target)) { this.#log({ event: 'duplicate', id: envelope.id }); return 'DUPLICATE'; }
     let result: Forwarded;
     try { result = await forwardToFactory(port, envelope, remaining); }
     catch (error) {
-      // The Factory outcome is unknown to this process. No retry and no synthetic answer: the client's deadline and readback decide.
+      // The outcome is unknown to this process. No retry and no synthetic answer: the client's deadline and readback decide.
       this.#log({ event: 'forward_failed', id: envelope.id, code: error instanceof MailboxRefused ? error.code : 'MAILBOX_FORWARD_ERROR' });
       return 'FORWARD_FAILED';
     }
@@ -236,20 +267,30 @@ export class MailboxPoller {
     this.#log({ event: 'responded', id: envelope.id, status: result.status });
     return 'RESPONDED';
   }
-  /** Long-poll loop with bounded exponential backoff on any mailbox error. Sequential: one leased request at a time. */
+  /** Long-poll loop with bounded backoff. Up to `maxInFlight` leased requests are handled concurrently, so one long verifier evaluation
+   *  never blocks Factory traffic; each id is still forwarded at most once (atomic durable claim). */
   async run(): Promise<void> {
     let backoff = 1000;
-    while (!this.#stopped) {
-      try {
-        const envelope = await this.next();
-        if (envelope) await this.handle(envelope);
-        backoff = 1000;
-      } catch (error) {
-        if (this.#stopped) break;
-        this.#log({ event: 'poll_error', code: error instanceof MailboxRefused ? error.code : 'MAILBOX_TRANSPORT_ERROR' });
-        await new Promise(r => setTimeout(r, backoff)); backoff = Math.min(backoff * 2, 30_000);
+    const inFlight = new Set<Promise<unknown>>();
+    try {
+      while (!this.#stopped) {
+        if (inFlight.size >= MAILBOX_LIMITS.maxInFlight) { await Promise.race(inFlight); continue; }
+        try {
+          const envelope = await this.next();
+          if (envelope) {
+            const task: Promise<unknown> = this.handle(envelope)
+              .catch(error => this.#log({ event: 'handle_refused', id: envelope.id, code: error instanceof MailboxRefused ? error.code : 'MAILBOX_HANDLE_ERROR' }))
+              .finally(() => inFlight.delete(task));
+            inFlight.add(task);
+          }
+          backoff = 1000;
+        } catch (error) {
+          if (this.#stopped) break;
+          this.#log({ event: 'poll_error', code: error instanceof MailboxRefused ? error.code : 'MAILBOX_TRANSPORT_ERROR' });
+          await new Promise(r => setTimeout(r, backoff)); backoff = Math.min(backoff * 2, 30_000);
+        }
       }
-    }
+    } finally { await Promise.allSettled([...inFlight]); }
   }
 }
 async function boundedText(response: Response, limit: number): Promise<string> {
@@ -267,7 +308,7 @@ export function loadPollerConfig(path: string): MailboxPollerOptions {
   let st; try { st = lstatSync(path); } catch { return refuse('MAILBOX_CONFIG_MISSING'); }
   if (!st.isFile() || st.isSymbolicLink() || st.uid !== process.getuid!() || (st.mode & 0o022) !== 0) refuse('MAILBOX_CONFIG_UNTRUSTED');
   let c: Record<string, unknown>; try { c = JSON.parse(readFileSync(path, 'utf8')); } catch { return refuse('MAILBOX_CONFIG_JSON'); }
-  const keys = ['schema', 'mailboxOrigin', 'installationId', 'credentialFile', 'factoryOrigin', 'seenFile', ...(c && typeof c === 'object' && Object.hasOwn(c, 'verifierOrigin') ? ['verifierOrigin'] : [])];
+  const keys = ['schema', 'mailboxOrigin', 'installationId', 'credentialFile', 'factoryOrigin', 'idStore', ...(c && typeof c === 'object' && Object.hasOwn(c, 'verifierOrigin') ? ['verifierOrigin'] : [])];
   if (!c || typeof c !== 'object' || Array.isArray(c) || Object.keys(c).sort().join(',') !== [...keys].sort().join(',') || c.schema !== MAILBOX_POLLER_CONFIG_SCHEMA)
     refuse('MAILBOX_CONFIG_SHAPE');
   assertMailboxOrigin(c.mailboxOrigin as string, false);
@@ -276,5 +317,5 @@ export function loadPollerConfig(path: string): MailboxPollerOptions {
   const credential = readSecretFile(c.credentialFile as string);
   return { mailboxOrigin: c.mailboxOrigin as string, installationId: c.installationId as string, credential, factoryOrigin: c.factoryOrigin as string,
     ...(c.verifierOrigin !== undefined ? { verifierOrigin: c.verifierOrigin as string } : {}),
-    seenFile: c.seenFile as string };
+    idStore: c.idStore as string };
 }

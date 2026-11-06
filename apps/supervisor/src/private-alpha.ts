@@ -1,8 +1,6 @@
 import {readFileSync} from 'node:fs';
 import {isAbsolute} from 'node:path';
-import {createSupervisor} from './server.ts';
 import {loadRealProvider,validateRealProvider,type RealProviderConfig} from './real-provider.ts';
-import {providerAuthorization} from './provider-connection.ts';
 import {oidcPreflight} from './oidc-preflight.ts';
 
 // Configuration contains a scoped identity or Keychain reference, never credentials.
@@ -16,12 +14,7 @@ if(process.argv.includes('--check')){
  if(config.mode!=='VERCEL_OIDC_GATEWAY_PRIVATE_ALPHA')throw Error('OIDC configuration required for non-generating preflight');
  console.log(JSON.stringify(await oidcPreflight(config,loadRealProvider(config))));
 }else{
- if(!process.env.FACTORY_DATA_DIR||!isAbsolute(process.env.FACTORY_DATA_DIR))throw Error('An explicit private-alpha FACTORY_DATA_DIR is required');
- const port=Number(process.env.FACTORY_PORT??8789);
- if(!Number.isSafeInteger(port)||port<1024||port>65535)throw Error('A valid private-alpha loopback port is required');
- await providerAuthorization(loadRealProvider(config));
- const supervisor=createSupervisor({realProvider:config});
- supervisor.server.listen(port,'127.0.0.1',()=>console.log(`Private-alpha Factory listening at http://127.0.0.1:${port}; live qualification pending`));
- const shutdown=()=>{void supervisor.close().then(()=>process.exit(0));};
- process.once('SIGINT',shutdown);process.once('SIGTERM',shutdown);
+ // Closed (Jay, 2026-11-05): this entry point ran the real Codex natively with no container or hosted limits. Use the LOCAL_V4 host
+ // with the metered container route. Refused before any credential, provider or listener is touched.
+ throw Error('Legacy private-alpha native execution is closed: use scripts/local-v4-host.mjs with the metered container route');
 }

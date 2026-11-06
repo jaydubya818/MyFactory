@@ -6,7 +6,7 @@
  *
  * Config (operator-owned, not group/world-writable, outside the repository):
  *   { "schema": "myfactory-mailbox-poller/v1", "mailboxOrigin": "https://<hosted MyEve origin>", "installationId": "<id>",
- *     "credentialFile": "/abs/poller-credential (0600)", "factoryOrigin": "http://127.0.0.1:<port>", "seenFile": "/abs/forwarded-ids.json",
+ *     "credentialFile": "/abs/poller-credential (0600)", "factoryOrigin": "http://127.0.0.1:<port>", "idStore": "/abs/forwarded-ids.sqlite (0600)",
  *     "verifierOrigin": "http://127.0.0.1:<verifier port>" (optional; contract v1 target "verifier") }
  * The only argument is the config path. No secrets on argv or in the environment. Composition is apps/supervisor/src/mailbox-poller.ts.
  */
@@ -21,4 +21,4 @@ try {
   poller = new MailboxPoller({ ...loadPollerConfig(path), log: event => process.stdout.write(JSON.stringify({ at: new Date().toISOString(), ...event }) + '\n') });
 } catch (error) { fail(error instanceof MailboxRefused ? error.code : 'refused'); }
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => poller.stop());
-await poller.run();
+try { await poller.run(); } finally { poller.close(); }   // releases the single-poller lock; forwarded ids stay recorded forever

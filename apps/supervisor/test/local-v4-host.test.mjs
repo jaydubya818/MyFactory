@@ -15,10 +15,11 @@ const ptest=profileTest(test);
 // that is never called (no dispatch happens here). No provider, network, Docker, spend or tester authority. The real host uses the
 // real Codex executable and the immutable Docker verifier image from its reviewed config.
 const FAKE_CODEX=`#!/usr/bin/env node
+// MYFACTORY_NATIVE_FIXTURE_STAND_IN_NOT_CODEX (synthetic qualification only; never the real CLI)
 const a=process.argv.slice(2);
 if(a[0]==='--version'){console.log('codex-cli 0.0.0-host-fixture');process.exit(0);}
 if(a[0]==='login'){process.exit(0);}
-console.error('host fixture codex never executes work');process.exit(7);
+console.error('host fixture stand-in never executes work');process.exit(7);
 `;
 const price={revision:'synthetic',model:'openai/gpt-5.5',validUntil:'2099-01-01T00:00:00Z',contextLimitTokens:1000,outputLimitTokens:100,inputMicrousdPerMillion:1000000,outputMicrousdPerMillion:1000000};
 const IMAGE='sha256:'+'a'.repeat(64);

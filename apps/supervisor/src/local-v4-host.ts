@@ -17,6 +17,7 @@ import { parseOwnerSubscriptionRoute, subscriptionSpendContract, OwnerSubscripti
 import { parseOwnerContainerProfile, containerExecutorVersion, parseMeteredContainerProfile, meteredContainerExecutorVersion, type MeteredContainerProfile } from './owner-container-profile.mjs';
 import { parseHostedLimits, APPROVED_HOSTED_LIMITS, type HostedLimits } from './hosted-limits.ts';
 import { assertContainerAvailable } from './owner-container-worker.mjs';
+import { assertNativeFixtureStandIn } from './native-fixture.ts';
 
 /**
  * Trusted host composition of the ordered LOCAL_V4 supervisor (private beta: owner + named testers on one Mac).
@@ -163,6 +164,8 @@ export function parseHostConfig(raw: unknown): LocalV4HostConfig {
   const requireContainer = worker.requireContainer !== false;
   if (requireContainer && !worker.meteredContainer) refuse('HOST_CONFIG_NATIVE_METERED_REFUSED');
   if (!requireContainer && (worker.meteredContainer || !upstreamOrigin.startsWith('http://127.0.0.1:'))) refuse('HOST_CONFIG_NATIVE_METERED_REFUSED');
+  // A loopback provider URL could be a proxy to the real provider: only a marked fixture stand-in (never the real Codex) may run natively.
+  if (!requireContainer) { try { assertNativeFixtureStandIn(worker.codexExecutable); } catch { refuse('HOST_CONFIG_NATIVE_METERED_REFUSED'); } }
   if (worker.meteredContainer) {
     // The API credential file is read only by the host gateway; it must never sit under any path a worker container binds.
     const st = worker.meteredContainer.stateDirectory;

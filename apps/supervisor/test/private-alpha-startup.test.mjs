@@ -16,9 +16,9 @@ test('real startup cannot borrow synthetic workers, fixtures, or authority overr
   assert.throws(()=>createSupervisor({realProvider:config,...option}),/cannot use fixture/);
  }
 });
-test('real startup requires provisioned signing before attempting credential access',()=>{
+test('legacy private-alpha startup is closed before any signing, credential or provider access',()=>{
  const dir=mkdtempSync(join(tmpdir(),'alpha-startup-'));
- try{assert.throws(()=>createSupervisor({dataDir:dir,realProvider:config}),/signing must be provisioned/);}
+ try{assert.throws(()=>createSupervisor({dataDir:dir,realProvider:config}),/Legacy private-alpha native execution is closed/);}
  finally{rmSync(dir,{recursive:true,force:true});}
 });
 test('provider configuration rejects inline secrets and oversized model bounds',()=>{

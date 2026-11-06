@@ -64,6 +64,13 @@ export class FactoryDispatchControl {
   this.hosted=guard;
  }
  private gatewayLedger(){return this.hosted?this.hosted.wrapLedger(this.spend):this.spend;}
+ private meteredContainer?:{bindOperation(childToken:string,binding:{runId:string;workId:string;deadlineMonoMs:number}):void;releaseOperation(childToken:string):void};
+ /** Host composition only: every gateway child token is bound to the saved Run id (the container label used by readback) and to ONE
+  *  absolute Work deadline computed at dispatch, shared by every productive, repair and completion invocation. */
+ useMeteredContainer(executor:NonNullable<FactoryDispatchControl['meteredContainer']>){
+  if(this.meteredContainer||!this.hosted)throw Error('Metered container requires the hosted metered composition');
+  this.meteredContainer=executor;
+ }
  /** Host composition only: once enrolled, ordinary preparation is refused and dispatch requires an ADMITTED ordered outcome. */
  requireOrderedAdmission(gate:{authority:OrderedAuthority;assertDispatch(requestId:string):void}){
   if(this.orderedGate)throw Error('Ordered admission is already enrolled');
@@ -206,6 +213,11 @@ export class FactoryDispatchControl {
    Object.freeze(connectionClient.actions);Object.freeze(connectionClient.repositoryPaths);Object.freeze(connectionClient);
    Object.freeze(connectionIdentity.allowedPaths);Object.freeze(connectionIdentity);
    const childToken=randomBytes(32).toString('hex');
+   // One absolute Work deadline (the admitted request deadline, at most 600 s), read once here; every container invocation shares it.
+   const workDeadlineMonoMs=Number(process.hrtime.bigint()/1_000_000n)+Math.max(0,Math.min(600_000,Date.parse(identity.deadline)-Date.now()));
+   const issued:string[]=[];
+   const bindToken=(token:string)=>{issued.push(token);this.meteredContainer?.bindOperation(token,{runId:data.run.id,workId:identity.workId,deadlineMonoMs:workDeadlineMonoMs});};
+   bindToken(childToken);
    const onDecision=(evidence:Parameters<NonNullable<import('./spend-gateway.ts').SpendGatewayOptions['onDecision']>>[0])=>{
     this.storage.appendEvent({workOrderId:identity.workOrderId,runId:identity.remoteRunId,type:'provider.operation_decision',payload:{...evidence}});
    };
@@ -216,7 +228,8 @@ export class FactoryDispatchControl {
     assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
    let current=gateway;
    let repairIssued=false;
-   gatewayBinding={baseUrl:await gateway.listen(),childToken,productiveEndSignal:productiveEnd.signal,close:()=>current.close(),
+   gatewayBinding={baseUrl:await gateway.listen(),childToken,productiveEndSignal:productiveEnd.signal,
+    close:async()=>{for(const token of issued)this.meteredContainer?.releaseOperation(token);await current.close();},
     assertCurrentConnection:()=>{this.bind(connectionClient,connectionIdentity,'factory.dispatch');authorizeDispatch();
      if(Date.parse(connectionIdentity.deadline)<=Date.now())throw new ActionError('Dispatch expired','dispatch_denied',409);},
     nextProductive:async()=>{
@@ -228,7 +241,7 @@ export class FactoryDispatchControl {
      repairIssued=true;
      await current.close();
      productiveEnd=new AbortController();
-     const repairToken=randomBytes(32).toString('hex');
+     const repairToken=randomBytes(32).toString('hex');bindToken(repairToken);
      current=new SpendGateway({ledger:this.gatewayLedger(),binding,phase:'productive',...this.spendFixture!,childToken:repairToken,
       onDecision,authorizeDispatch,productiveCheckpointAfter:2,onProductiveBoundary:()=>productiveEnd.abort(),
       assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
@@ -237,7 +250,7 @@ export class FactoryDispatchControl {
     beginCompletion:async()=>{
      await current.close();
      this.spend.beginCompletion(binding);
-     const completionToken=randomBytes(32).toString('hex');
+     const completionToken=randomBytes(32).toString('hex');bindToken(completionToken);
      current=new SpendGateway({ledger:this.gatewayLedger(),binding,phase:'completion',...this.spendFixture!,childToken:completionToken,onDecision,authorizeDispatch});
      return {baseUrl:await current.listen(),childToken:completionToken};
     },assertCompleted:()=>this.spend.assertCompleted(binding),fenceAuthority:()=>this.spend.fenceAuthority(binding)};

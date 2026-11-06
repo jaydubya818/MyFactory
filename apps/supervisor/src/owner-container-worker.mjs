@@ -144,10 +144,12 @@ const BASE_URL_FLAG = /^model_providers\.factory_spend\.base_url="http:\/\/127\.
 export function rewriteMeteredArgv(argv) {
   const out = [...argv];
   const at = out.findIndex((v, i) => out[i - 1] === '-c' && BASE_URL_FLAG.test(v));
-  if (at < 0 || out.filter(v => /factory_spend\.base_url/.test(v)).length !== 1 ||
+  if (at < 0 || out.filter((v, i) => out[i - 1] === '-c' && /base_url/.test(v)).length !== 1 ||
     !out.some((v, i) => out[i - 1] === '-c' && v === 'model_provider="factory_spend"') ||
     !out.some((v, i) => out[i - 1] === '-c' && v === 'model_providers.factory_spend.env_key="FACTORY_GATEWAY_TOKEN"') ||
-    !out.includes('--ignore-user-config') || out.some(v => /chatgpt|forced_login_method|requires_openai_auth|OPENAI_API_KEY/i.test(v)))
+    !out.includes('--ignore-user-config') ||
+    // Only configuration (`-c` values) and option flags are inspected; the positional prompt is task text and may mention anything.
+    out.some((v, i) => i < out.length - 1 && (out[i - 1] === '-c' || v.startsWith('-')) && /chatgpt|forced_login_method|requires_openai_auth|OPENAI_API_KEY|env_key="(?!FACTORY_GATEWAY_TOKEN")/i.test(v)))
     throw Error('METERED_CONTAINER_ARGUMENTS_INVALID');
   const port = Number(BASE_URL_FLAG.exec(out[at])[1]);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw Error('METERED_CONTAINER_ARGUMENTS_INVALID');

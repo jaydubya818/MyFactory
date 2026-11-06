@@ -7,9 +7,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { MailboxPoller, parseEnvelope, assertLoopbackFactoryOrigin, assertMailboxOrigin, assertForwardPath, loadPollerConfig, MAILBOX_LIMITS } from '../src/mailbox-poller.ts';
+import { DatabaseSync } from 'node:sqlite';
+import { MailboxPoller, ForwardedIdStore, forwardTimeoutMs, parseEnvelope, assertLoopbackFactoryOrigin, assertMailboxOrigin, assertForwardPath, loadPollerConfig, MAILBOX_LIMITS } from '../src/mailbox-poller.ts';
 
 const sha = b => createHash('sha256').update(b).digest('hex');
+const gates = {};
 const CREDENTIAL = randomBytes(32).toString('base64url');
 const listen = server => new Promise(r => server.listen(0, '127.0.0.1', () => r(`http://127.0.0.1:${server.address().port}`)));
 
@@ -32,14 +34,16 @@ async function harness(t, factoryReply = (req, body, res) => { res.writeHead(201
     if (req.url === '/api/factory-mailbox/v1/respond' && req.method === 'POST') { responses.push(JSON.parse(Buffer.concat(chunks).toString('utf8'))); res.writeHead(204); res.end(); return; }
     res.writeHead(404); res.end(); }); });
   const verifierSeen = [];
-  const verifier = createServer((req, res) => { const chunks = []; req.on('data', c => chunks.push(c)); req.on('end', () => {
+  const verifier = createServer((req, res) => { const chunks = []; req.on('data', c => chunks.push(c)); req.on('end', async () => {
     verifierSeen.push({ method: req.method, url: req.url, headers: req.headers, body: Buffer.concat(chunks) });
+    if (req.url === '/qdev/v1/evaluate' && gates.evaluate) await gates.evaluate;
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end('{"state":"FINAL"}'); }); });
   const factoryOrigin = await listen(factory), mailboxOrigin = await listen(mailbox), verifierOrigin = await listen(verifier);
   t.after(() => { factory.close(); mailbox.close(); verifier.close(); });
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'mailbox-'))); t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const make = (extra = {}) => new MailboxPoller({ mailboxOrigin, installationId: 'inst-1', credential: CREDENTIAL, factoryOrigin, verifierOrigin, seenFile: join(dir, 'seen.json'),
-    allowLoopbackMailboxForTest: true, ...extra });
+  const pollers = []; t.after(() => { for (const p of pollers) try { p.close(); } catch {} });
+  const make = (extra = {}) => { const p = new MailboxPoller({ mailboxOrigin, installationId: 'inst-1', credential: CREDENTIAL, factoryOrigin, verifierOrigin, idStore: join(dir, 'ids.sqlite'),
+    allowLoopbackMailboxForTest: true, ...extra }); pollers.push(p); return p; };
   return { factorySeen, verifierSeen, queue, responses, auths, make, dir, factoryOrigin, mailboxOrigin, verifierOrigin };
 }
 
@@ -75,7 +79,7 @@ test('single use: a replayed id is never forwarded twice, including after a poll
   const restarted = h.make();
   assert.equal(await restarted.handle(parseEnvelope(e, 'inst-1')), 'DUPLICATE');
   assert.equal(h.factorySeen.length, 1);
-  assert.equal(statSync(join(h.dir, 'seen.json')).mode & 0o777, 0o600);
+  assert.equal(statSync(join(h.dir, 'ids.sqlite')).mode & 0o777, 0o600);
 });
 
 test('a Factory failure is never retried or answered synthetically; an expired request is not forwarded', async t => {
@@ -139,7 +143,7 @@ test('launcher config: credential only from an owner-only 0600 file; group/world
   const cred = join(dir, 'poller-credential'); writeFileSync(cred, CREDENTIAL + '\n', { mode: 0o600 });
   const config = join(dir, 'poller.json');
   const write = o => { writeFileSync(config, JSON.stringify({ schema: 'myfactory-mailbox-poller/v1', mailboxOrigin: 'https://myeve.example', installationId: 'inst-1',
-    credentialFile: cred, factoryOrigin: 'http://127.0.0.1:8792', seenFile: join(dir, 'seen.json'), ...o }), { mode: 0o600 }); };
+    credentialFile: cred, factoryOrigin: 'http://127.0.0.1:8792', idStore: join(dir, 'ids.sqlite'), ...o }), { mode: 0o600 }); };
   write({}); assert.equal(loadPollerConfig(config).credential, CREDENTIAL);
   chmodSync(cred, 0o644); assert.throws(() => loadPollerConfig(config), /CREDENTIAL_PERMISSIONS/); chmodSync(cred, 0o600);
   write({ factoryOrigin: 'http://localhost:8792' }); assert.throws(() => loadPollerConfig(config), /NOT_LOOPBACK/);
@@ -179,9 +183,60 @@ test('contract v1 targets: verifier envelopes reach only the configured verifier
   assert.equal(h.verifierSeen[0].headers['x-qdev-path'], 'index.html');
   assert.equal(await poller.handle(parseEnvelope(envelope(), 'inst-1')), 'RESPONDED');
   assert.equal(h.factorySeen.length, 1); assert.equal(h.verifierSeen.length, 1);
-  const factoryOnly = h.make({ verifierOrigin: undefined, seenFile: join(h.dir, 'seen-2.json') });
+  const factoryOnly = h.make({ verifierOrigin: undefined, idStore: join(h.dir, 'ids-2.sqlite') });
   await assert.rejects(factoryOnly.handle(parseEnvelope(envelope({ target: 'verifier', path: '/qdev/v1/verdict' }), 'inst-1')), /TARGET_NOT_CONFIGURED/);
   assert.equal(h.verifierSeen.length, 1);
   assert.throws(() => h.make({ verifierOrigin: h.factoryOrigin }), /NOT_DISTINCT/);
   assert.throws(() => h.make({ verifierOrigin: 'http://localhost:8795' }), /NOT_LOOPBACK/);
+});
+
+test('never forward twice: no eviction after thousands of ids, and an atomic claim shared across processes', async t => {
+  const h = await harness(t);
+  const first = envelope();
+  const poller = h.make();
+  assert.equal(await poller.handle(parseEnvelope(first, 'inst-1')), 'RESPONDED');
+  const store = new ForwardedIdStore(join(h.dir, 'ids.sqlite'), 'inst-1'); t.after(() => store.close());
+  for (let i = 0; i < 5000; i++) assert.equal(store.claim(randomUUID(), 'factory'), true);
+  assert.equal(await poller.handle(parseEnvelope(first, 'inst-1')), 'DUPLICATE', 'the first id is never evicted');
+  // Another PROCESS claims an id first: this poller must not forward it.
+  const other = envelope();
+  const child = spawnSync(process.execPath, ['--input-type=module', '-e',
+    `import {ForwardedIdStore} from ${JSON.stringify(fileURLToPath(new URL('../src/mailbox-poller.ts', import.meta.url)))};` +
+    `const s=new ForwardedIdStore(${JSON.stringify(join(h.dir, 'ids.sqlite'))},'inst-1');process.stdout.write(String(s.claim(${JSON.stringify(other.id)},'factory')));s.close();`],
+    { encoding: 'utf8', env: { PATH: process.env.PATH, HOME: process.env.HOME } });
+  assert.equal(child.stdout, 'true', child.stderr);
+  assert.equal(await poller.handle(parseEnvelope(other, 'inst-1')), 'DUPLICATE');
+  assert.equal(h.factorySeen.length, 1);
+});
+
+test('one poller per installation: a live holder refuses a second poller; a dead holder is replaced', async t => {
+  const h = await harness(t);
+  const path = join(h.dir, 'ids.sqlite');
+  h.make().close();                                                   // creates the store
+  const db = new DatabaseSync(path); t.after(() => db.close());
+  db.prepare('INSERT OR REPLACE INTO poller_lock VALUES (?, ?, ?)').run('inst-1', process.ppid, new Date().toISOString());
+  assert.throws(() => h.make(), /POLLER_ALREADY_RUNNING/);
+  db.prepare('INSERT OR REPLACE INTO poller_lock VALUES (?, ?, ?)').run('inst-1', 2 ** 22 + 12345, new Date().toISOString());
+  const p = h.make();
+  assert.equal(db.prepare('SELECT pid FROM poller_lock').get().pid, process.pid);
+  p.close();
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM poller_lock').get().n, 0, 'released on close');
+});
+
+test('per-path forward bound: verifier evaluation gets its documented maximum, everything else 30 s; a long evaluation does not block Factory traffic', async t => {
+  assert.equal(forwardTimeoutMs({ target: 'verifier', path: '/qdev/v1/evaluate' }), 720_000);
+  assert.ok(MAILBOX_LIMITS.maxEvaluateForwardMs >= 600_000 + 60_000, 'covers the verifier evaluation deadline plus grace');
+  for (const e of [{ target: 'verifier', path: '/qdev/v1/handoff' }, { target: 'verifier', path: '/qdev/v1/verdict' }, { target: 'factory', path: '/api/connect/v1/dispatches' }])
+    assert.equal(forwardTimeoutMs(e), 30_000);
+  const h = await harness(t);
+  let release; gates.evaluate = new Promise(r => { release = r; }); t.after(() => { release(); delete gates.evaluate; });
+  h.queue.push(envelope({ target: 'verifier', path: '/qdev/v1/evaluate', deadline: new Date(Date.now() + 900_000).toISOString() }), envelope());
+  const poller = h.make(); const running = poller.run();
+  for (let i = 0; i < 100 && h.responses.length < 1; i++) await new Promise(r => setTimeout(r, 20));
+  assert.equal(h.responses.length, 1, 'the Factory request was answered while the evaluation was still running');
+  assert.equal(h.verifierSeen.length, 1);
+  release();
+  for (let i = 0; i < 100 && h.responses.length < 2; i++) await new Promise(r => setTimeout(r, 20));
+  poller.stop(); await running;
+  assert.equal(h.responses.length, 2);
 });

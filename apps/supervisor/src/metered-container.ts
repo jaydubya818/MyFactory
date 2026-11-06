@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import type { CodexAdapter, CodexPreflight, CodexRunOptions, CodexRunResult } from '../../../packages/agents/src/index.ts';
 import { assertTrustedExecutablePath, assertTrustedFile } from './executable-trust.ts';
@@ -6,7 +6,7 @@ import { assertContainerAvailable, recoverOwnerContainers } from './owner-contai
 import { meteredContainerExecutorVersion, parseMeteredContainerProfile, type MeteredContainerProfile } from './owner-container-profile.mjs';
 
 const monotonicMs = () => Number(process.hrtime.bigint() / 1_000_000n);
-const hash = (value: string) => createHash('sha256').update(value).digest('hex').slice(0, 40);
+const SAFE_ID = /^[a-zA-Z0-9_-]{1,128}$/;
 const WORKER_SCRIPT = fileURLToPath(new URL('./owner-container-worker.mjs', import.meta.url));
 export const METERED_CONTAINER_MAX_MS = 600_000;
 
@@ -33,6 +33,14 @@ export class MeteredContainerExecutor implements CodexAdapter {
     this.#base = base; this.#owner = owner;
   }
   get disabled() { return this.#disabled; }
+  readonly #bindings = new Map<string, { runId: string; workId: string; deadlineMonoMs: number }>();
+  /** Host dispatch only: binds a gateway child token to the saved Run id and the ONE absolute admitted Work deadline. Never rebinds. */
+  bindOperation(childToken: string, binding: { runId: string; workId: string; deadlineMonoMs: number }) {
+    if (!/^[a-f0-9]{64}$/.test(childToken) || this.#bindings.has(childToken) || ![binding?.runId, binding?.workId].every(v => typeof v === 'string' && SAFE_ID.test(v)) ||
+        !Number.isSafeInteger(binding.deadlineMonoMs)) throw Error('METERED_CONTAINER_BINDING_INVALID');
+    this.#bindings.set(childToken, { runId: binding.runId, workId: binding.workId, deadlineMonoMs: binding.deadlineMonoMs });
+  }
+  releaseOperation(childToken: string) { this.#bindings.delete(childToken); }
   /** Startup, before listening: reap only this host's own labelled resources whose supervisor is gone; anything unproven disables the route. */
   recover() {
     const outcome = recoverOwnerContainers(this.profile, this.#owner);
@@ -51,14 +59,17 @@ export class MeteredContainerExecutor implements CodexAdapter {
     if (!options?.gateway) throw Error('METERED_CONTAINER_GATEWAY_REQUIRED');
     if (options.ownerLogin !== undefined || options.ownerLoginContainer !== undefined || options.ownerLoginWatchdog !== undefined || options.meteredContainer !== undefined)
       throw Error('METERED_CONTAINER_OPTIONS_REFUSED');
+    // Only a token the dispatch bound to its saved Run and admitted Work deadline may start a container (fail closed otherwise).
+    const binding = this.#bindings.get(options.gateway.childToken);
+    if (!binding) throw Error('METERED_CONTAINER_OPERATION_UNBOUND');
+    const deadlineMonoMs = Math.min(binding.deadlineMonoMs, monotonicMs() + Math.min(options.timeoutMs, METERED_CONTAINER_MAX_MS));
+    if (deadlineMonoMs <= monotonicMs()) throw Error('METERED_CONTAINER_WORK_DEADLINE_REACHED');
     // Refuse before the process exists; the gateway has reserved nothing yet (reservation happens per provider request).
     assertContainerAvailable(this.profile);
     const invocation = {
-      mode: 'metered', profile: this.profile, runId: hash(options.workspacePath),
-      // The session home is attempt-owned; keying the container home by it keeps `exec resume` inside one attempt only.
-      workId: hash(options.sessionHome ?? options.workspacePath), operationId: randomBytes(16).toString('hex'),
-      owner: this.#owner, supervisorPid: process.pid, model: options.model,
-      deadlineMonoMs: monotonicMs() + Math.min(options.timeoutMs, METERED_CONTAINER_MAX_MS),
+      // runId is the SAVED Run id: the container label factory.run=<Run id> is exactly what readback/reconcile probes.
+      mode: 'metered', profile: this.profile, runId: binding.runId, workId: binding.workId, operationId: randomBytes(16).toString('hex'),
+      owner: this.#owner, supervisorPid: process.pid, model: options.model, deadlineMonoMs,
     };
     return this.#base.runCodex({ ...options, meteredContainer: { script: WORKER_SCRIPT, invocation } });
   };

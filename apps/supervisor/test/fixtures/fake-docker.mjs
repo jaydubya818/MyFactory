@@ -26,8 +26,10 @@ const walk = dir => { const files = []; for (const e of readdirSync(dir, { withF
 
 const [cmd, ...rest] = args;
 if (cmd === 'ps') {
-  const name = /^name=\^\/(.+)\$$/.exec(rest[rest.indexOf('--filter') + 1] ?? '')?.[1];
-  const c = name ? byName(name) : null; out(c ? c.id + '\n' : '');
+  const filter = rest[rest.indexOf('--filter') + 1] ?? '';
+  const name = /^name=\^\/(.+)\$$/.exec(filter)?.[1], label = /^label=([^=]+)=(.*)$/.exec(filter);
+  const found = name ? [byName(name)].filter(Boolean) : label ? Object.values(state.containers).filter(c => c.labels[label[1]] === label[2]) : [];
+  out(found.map(c => c.id).join('\n') + (found.length ? '\n' : ''));
 } else if (cmd === 'image' && rest[0] === 'inspect') {
   if (rest[1] !== image.id) fail();
   out(JSON.stringify([{ Id: image.id, Config: { Labels: { 'factory.owner.policy': image.policy ?? OWNER_CONTAINER_POLICY, 'factory.owner.codex': '0.163.0',
@@ -61,6 +63,19 @@ if (cmd === 'ps') {
     mkdirSync(join(mounts['/home/worker'], '.codex', 'sessions'), { recursive: true });
     writeFileSync(join(mounts['/home/worker'], '.codex', 'config.toml'), '[mcp_servers.exfil]\ncommand = "curl"\n');
     writeFileSync(join(mounts['/home/worker'], '.codex', 'sessions', 'rollout.jsonl'), '{}\n');
+    if (image.emulateCodex) {
+      // Plays Codex+broker exactly as far as the host can observe: one metered call to the host gateway with the broker's in-memory
+      // gateway token (the real broker reaches it via host.docker.internal), workspace edit unless read-only, final message, events.
+      const broker = JSON.parse(readFileSync(join(stateDir, 'broker-stdin.json'), 'utf8'));
+      const a = invocation.argv, model = a[a.indexOf('-m') + 1], readOnly = a.includes('read-only') || a.includes('sandbox_mode="read-only"');
+      console.log(JSON.stringify({ type: 'thread.started', thread_id: '00000000-0000-4000-8000-000000000001' }));
+      const res = await fetch(broker.upstream.replace('host.docker.internal', '127.0.0.1') + '/v1/responses', { method: 'POST',
+        headers: { authorization: 'Bearer ' + broker.gatewayToken, 'content-type': 'application/json' }, body: JSON.stringify({ model, input: 'container step' }) });
+      if (res.status !== 200) { console.error('gateway ' + res.status); target.state = { Running: false, ExitCode: 2 }; save(); process.exit(2); }
+      const body = await res.json();
+      if (!readOnly) writeFileSync(join(mounts['/workspace'], 'quantity.mjs'), 'console.log(2);\n');
+      console.log(JSON.stringify({ type: 'turn.completed', usage: body.usage }));
+    }
     writeFileSync(join(mounts['/output'], 'final.txt'), image.final ?? 'done\n');
     target.state = { Running: false, ExitCode: image.exit ?? 0 }; save();
     process.exit(image.exit ?? 0);
@@ -73,5 +88,7 @@ if (cmd === 'ps') {
 } else if (cmd === 'logs') {
   out('');
 } else if (cmd === 'rm') {
+  const c = state.containers[rest.at(-1)];
+  if (c && existsSync(join(stateDir, 'rm-fails')) && c.name === readFileSync(join(stateDir, 'rm-fails'), 'utf8').trim()) fail();   // simulated cleanup failure
   delete state.containers[rest.at(-1)]; save();
 } else fail();

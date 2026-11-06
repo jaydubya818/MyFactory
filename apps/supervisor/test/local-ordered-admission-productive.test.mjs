@@ -6,7 +6,7 @@ import {SpendGateway} from '../src/spend-gateway.ts';
 const reviewPrice={revision:'synthetic',model:'openai/gpt-5.5',validUntil:'2099-01-01T00:00:00Z',contextLimitTokens:1000,outputLimitTokens:100,inputMicrousdPerMillion:1000000,outputMicrousdPerMillion:1000000};
 import assert from 'node:assert/strict';
 import {randomUUID,generateKeyPairSync,createHash} from 'node:crypto';
-import {mkdtempSync,mkdirSync,writeFileSync,rmSync,copyFileSync,existsSync,realpathSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,rmSync,copyFileSync,existsSync,realpathSync,readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {verifyLifecycleReceipt} from '../../../packages/capability-enforcement/src/lifecycle-wire.ts';
@@ -56,6 +56,7 @@ const dispatchIdentity=(request,s)=>({runId:randomUUID(),writerGeneration:1,disp
 const pauseMyfactory=(h,version=2)=>fence(h,'myeve',version,{operation:'pause',capabilityId:'myfactory'});
 
 const FAKE_CODEX=`#!/usr/bin/env node
+// MYFACTORY_NATIVE_FIXTURE_STAND_IN_NOT_CODEX (synthetic qualification only; never the real CLI)
 // Disposable stand-in for the Codex CLI: reads only what the real adapter passes (argv and the child-token environment).
 const fs=require('node:fs');
 const a=process.argv.slice(2);
@@ -107,8 +108,8 @@ async function startProductive(t,{factory,dir,repo,base,keys,up,provider,codex,e
 }
 // Discovery: an enrolled placeholder identity makes the native snapshot an ambiguous (never dispatchable) outcome, but the snapshot itself
 // is the real productive configuration identity the production enrollment must pin.
-async function productiveIdentity(t,up,extra,checkCommands){
-  const h=await startProductive(t,{up,extra}),request=requestFor(h.repo,h.base);
+async function productiveIdentity(t,up,extra,checkCommands,codex){
+  const h=await startProductive(t,{up,extra,codex}),request=requestFor(h.repo,h.base);
   request.spendContract={...request.spendContract,maxPaidOperations:3,plannedProductiveOperations:2};
   if(checkCommands) request.input.checkCommands=checkCommands;
   const {pair}=await admitted(t,h,request);await h.prepare(request,pair);
@@ -179,4 +180,37 @@ ptest('productive: a MyEve revoke while the worker holds denies its first metere
   assert.equal(up.seen.calls,0);assert.equal(done.spend.operations.filter(o=>o.status==='SETTLED').length,0);
   const last=await verifyLifecycleReceipt((await h.post('/api/capability-admission/control',{envelope})).body,h.keys.signer);
   assert.equal(last.state,'CLEANUP_CONFIRMED');assert.equal(last.inventoryComplete,true);assert.ok(last.sequence>first.sequence);
+});
+
+// Review MF-1 P1: the metered container carries label factory.run=<saved Run id>, and readback/reconcile probe exactly that label, so a
+// surviving container (wrapper loss or failed cleanup) can never be reported quiescent. Synthetic Docker CLI; loopback gateway only.
+ptest('metered container: Codex runs only in the container labelled with the saved Run id; readback is never quiescent while it survives',{timeout:180000},async t=>{
+  const root=realpathSync(mkdtempSync(join(tmpdir(),'metered-e2e-')));t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const bin=join(root,'bin');mkdirSync(bin,{mode:0o700});mkdirSync(join(bin,'fake-docker-state'));
+  const docker=join(bin,'docker');writeFileSync(docker,`#!${process.execPath}\nimport ${JSON.stringify(new URL('./fixtures/fake-docker.mjs',import.meta.url).pathname)};\n`,{mode:0o755});
+  const image='sha256:'+'d'.repeat(64);writeFileSync(join(bin,'fake-docker-state','image.json'),JSON.stringify({id:image,emulateCodex:true}));
+  const stateDirectory=join(root,'state');mkdirSync(stateDirectory,{mode:0o700});
+  // A version-only stand-in: in container mode the host never runs it for work (Codex runs only through the container wrapper).
+  const codex=join(root,'codex-version-only');writeFileSync(codex,'#!/bin/sh\n[ "$1" = "--version" ] && echo "codex-cli 0.163.0" && exit 0\n[ "$1" = "login" ] && exit 0\necho "never run natively" >&2; exit 9\n',{mode:0o755});
+  const extra={container:{imageId:image,dockerExecutable:docker,stateDirectory},requireContainer:true};
+  const up=await disposableUpstream(t),id=await productiveIdentity(t,up,extra,undefined,codex),h=await startProductive(t,{...id,up,extra,codex}),request=requestFor(h.repo,h.base);
+  request.spendContract={...request.spendContract,maxPaidOperations:3,plannedProductiveOperations:2};
+  const {pair}=await admitted(t,h,request),prep=await h.prepare(request,pair);assert.equal(prep.status,200,JSON.stringify(prep.body));
+  const s=prep.body.snapshot;assert.match(s.configuration.executorVersion,/route=LOCAL_V4_METERED isolation=metered-container-v1/);
+  writeFileSync(join(bin,'fake-docker-state','rm-fails'),'myfactory-owner-codex');                     // the worker container survives cleanup
+  assert.equal((await h.post(`/api/connect/v1/dispatches/${request.requestId}/dispatch`,dispatchIdentity(request,s))).status,200);
+  const fake=()=>JSON.parse(readFileSync(join(bin,'fake-docker-state','state.json'),'utf8'));
+  const events=()=>h.supervisor.storage.listEvents(s.workOrderId).map(e=>e.type);
+  for(let i=0;i<600&&!events().includes('run.agent_result');i++)await new Promise(r=>setTimeout(r,50));
+  assert.ok(events().includes('run.agent_result'),JSON.stringify(events()));
+  const survivor=Object.values(fake().containers).find(c=>c.name==='myfactory-owner-codex');
+  assert.ok(survivor,'the synthetic worker container ran and survived cleanup');
+  assert.equal(survivor.labels['factory.run'],s.runId,'container label is the saved Run id');
+  assert.equal(up.seen.calls,1,'the only provider call came from inside the container, through the host gateway');
+  assert.ok(up.seen.keys.every(k=>k==='Bearer disposable-key'));
+  await assert.rejects(quiescent(h,request,4000),/not quiescent/,'readback waits for the labelled container');
+  const st=fake();for(const [k,c] of Object.entries(st.containers))if(c.labels['factory.run']===s.runId)delete st.containers[k];
+  writeFileSync(join(bin,'fake-docker-state','state.json'),JSON.stringify(st));                          // the reaper removed it
+  const done=await quiescent(h,request);assert.equal(done.quiescent,true);
+  assert.equal(done.spend.operations.length,1);
 });

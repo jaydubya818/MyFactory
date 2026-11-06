@@ -5,13 +5,15 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync, mkdirSync, existsSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { parseMeteredContainerProfile, parseAnyContainerProfile, meteredContainerExecutorVersion, containerExecutorVersion, OWNER_CONTAINER_POLICY } from '../src/owner-container-profile.mjs';
 import { rewriteMeteredArgv, resetWorkerHome, sweepBrokerCredentials, assertCredentialBindIsolation } from '../src/owner-container-worker.mjs';
 import { MeteredContainerExecutor } from '../src/metered-container.ts';
 import { createCodexAdapter } from '../../../packages/agents/src/index.ts';
 import { isOwnerSubscriptionExecutorVersion } from '../../../packages/contracts/src/owner-subscription-route.ts';
-import { createLocalV4Supervisor } from '../src/server.ts';
+import { createLocalV4Supervisor, createSupervisor } from '../src/server.ts';
+import { NATIVE_FIXTURE_MARKER, assertNativeFixtureStandIn, fixtureOnlyNativeAdapter } from '../src/native-fixture.ts';
+import { OWNER_SUBSCRIPTION_PRICING_REVISION } from '../../../packages/storage/src/spend-policy.ts';
 
 const WORKER = fileURLToPath(new URL('../src/owner-container-worker.mjs', import.meta.url));
 const FAKE = fileURLToPath(new URL('./fixtures/fake-docker.mjs', import.meta.url));
@@ -79,6 +81,9 @@ test('metered argv: only the host spend-gateway provider, rewritten to the broke
     gatewayArgv('/o', 1, ['-c', 'model_providers.factory_spend.base_url="http://127.0.0.1:9/v1"']),
   ];
   for (const argv of bad) assert.throws(() => rewriteMeteredArgv(argv), /METERED_CONTAINER_ARGUMENTS_INVALID/);
+  // Task text is never filtered: the positional prompt may mention ChatGPT, OPENAI_API_KEY, base_url or login methods (review P3).
+  for (const prompt of ['Use ChatGPT login docs', 'Document OPENAI_API_KEY', '- forced_login_method="chatgpt" in README', 'set model_providers.x.base_url="http://127.0.0.1:1/v1"'])
+    assert.equal(rewriteMeteredArgv([...gatewayArgv('/o').slice(0, -1), prompt]).argv.at(-1), prompt);
 });
 
 test('worker home is reset between operations: config.toml and other files never survive; sessions survive only for resume', t => {
@@ -180,9 +185,20 @@ test('adapter: the metered container requires the gateway and excludes the owner
   const executor = new MeteredContainerExecutor(adapter, f.profile, f.root);
   await assert.rejects(executor.runCodex({ ...base }), /GATEWAY_REQUIRED/);
   await assert.rejects(executor.runCodex({ ...base, gateway: { baseUrl: 'http://127.0.0.1:1/v1', childToken: hex() }, ownerLogin: true }), /OPTIONS_REFUSED/);
-  const childToken = hex();
-  const result = await executor.runCodex({ ...base, gateway: { baseUrl: 'http://127.0.0.1:47001/v1', childToken } });
+  const childToken = hex(), gateway = { baseUrl: 'http://127.0.0.1:47001/v1', childToken };
+  await assert.rejects(executor.runCodex({ ...base, gateway }), /OPERATION_UNBOUND/, 'an unbound token never starts a container');
+  // An admitted Work deadline already reached refuses before any container exists (no fresh per-invocation allowance).
+  const late = hex(); executor.bindOperation(late, { runId: 'run-late', workId: 'w', deadlineMonoMs: mono() - 1 });
+  await assert.rejects(executor.runCodex({ ...base, gateway: { ...gateway, childToken: late } }), /WORK_DEADLINE_REACHED/);
+  assert.throws(() => executor.bindOperation(late, { runId: 'r', workId: 'w', deadlineMonoMs: mono() + 1000 }), /BINDING_INVALID/, 'never rebinds');
+  const runId = randomUUID(), workDeadline = mono() + 45_000;
+  executor.bindOperation(childToken, { runId, workId: randomUUID(), deadlineMonoMs: workDeadline });
+  const result = await executor.runCodex({ ...base, gateway, prompt: 'Explain ChatGPT login vs OPENAI_API_KEY; do not set forced_login_method.' });
   assert.equal(result.exitCode, 0, readFileSync(result.stderrPath, 'utf8'));
+  const create = f.read('state.json').log.find(a => a[0] === 'create' && a.includes('myfactory-owner-codex'));
+  assert.ok(create.includes(`factory.run=${runId}`), 'the container label is the saved Run id that readback probes');
+  const invocationDeadline = f.read('worker-view.json').invocation.deadlineUnixMs;
+  assert.ok(invocationDeadline <= Date.now() + 45_000, 'the container deadline is the shared absolute Work deadline, not a fresh 600 s');
   assert.equal(f.read('broker-stdin.json').gatewayToken, childToken);
   assert.equal(f.read('broker-stdin.json').upstream, 'http://host.docker.internal:47001');
   const pre = await executor.preflightCodex();
@@ -200,6 +216,39 @@ test('supervisor composition refuses native (uncontained) metered execution unle
   assert.throws(make({ provider: { ...real, upstreamOrigin: 'http://127.0.0.1:9' }, codexExecutable: '/usr/bin/true', requireContainer: 'no' }), /not qualified/);
   assert.throws(make({ provider: real, codexExecutable: '/usr/bin/true', container: { imageId: IMAGE, dockerExecutable: '/usr/bin/docker', stateDirectory: '/s', authFile: '/a' } }), /PROFILE_INVALID/);
   assert.throws(make({ provider: real, codexExecutable: '/usr/bin/true', container: { imageId: IMAGE, dockerExecutable: '/usr/bin/docker', stateDirectory: '/s' }, hostedLimits: { maxWorkMicrousd: 2_000_000, maxWorksPerPerson: 4, monthlyBudgetMicrousd: 25_000_000 } }), /HOSTED_LIMITS_ABOVE_APPROVAL/);
+});
+
+test('native execution: any real Codex is refused even with a loopback provider; only a marked stand-in passes, re-checked before every run', async t => {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'native-standin-'))); t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const price = { revision: 'r1', model: 'openai/gpt-5.5', validUntil: '2099-01-01T00:00:00Z', contextLimitTokens: 1000, outputLimitTokens: 100, inputMicrousdPerMillion: 1, outputMicrousdPerMillion: 1 };
+  const loopback = { upstreamOrigin: 'http://127.0.0.1:9', authorize: async () => 'k', price };   // could be a reverse proxy to the real provider
+  const make = productiveBinding => () => createLocalV4Supervisor({ dataDir: dir, resultSigning: {}, productiveBinding });
+  const write = (name, text) => { const p = join(dir, name); writeFileSync(p, text, { mode: 0o755 }); return p; };
+  const M = '# ' + NATIVE_FIXTURE_MARKER + '\n';
+  const real = [process.execPath, '/usr/bin/true', write('unmarked', '#!/bin/sh\nexit 0\n'), write('wrapper', '#!/bin/sh\n' + M + 'exec codex "$@"\n'),
+    write('abs-wrapper', '#!/bin/sh\n' + M + 'exec /opt/homebrew/bin/codex "$@"\n'), write('npm-wrapper', '#!/usr/bin/env node\n// ' + NATIVE_FIXTURE_MARKER + '\nimport("@openai/codex")\n'),
+    write('vendor', '#!/bin/sh\n' + M + 'exec ./vendor/aarch64/codex/codex\n'), write('big', '#!/bin/sh\n' + M + '#'.repeat(70_000) + '\n')];
+  for (const codexExecutable of real) {
+    assert.throws(make({ provider: loopback, codexExecutable, requireContainer: false }), /Native metered execution refused/, codexExecutable);
+    assert.throws(() => assertNativeFixtureStandIn(codexExecutable), /NativeExecutionRefused|refused/, codexExecutable);
+  }
+  const standIn = write('stand-in', '#!/bin/sh\n' + M + 'echo "codex-cli 0.0.0-fixture"\n');
+  assert.throws(make({ provider: loopback, codexExecutable: standIn, requireContainer: false }), /ordered receiver/, 'the stand-in passes the native check (refused later only for the missing receiver)');
+  assert.throws(make({ provider: { ...loopback, price: { ...price, revision: OWNER_SUBSCRIPTION_PRICING_REVISION } }, codexExecutable: standIn, requireContainer: false }), /subscription operations revision/);
+  // A stand-in swapped for the real CLI after composition is refused before the next process exists.
+  let runs = 0;
+  const adapter = fixtureOnlyNativeAdapter({ runCodex: async () => { runs++; return {}; }, preflightCodex: async () => ({}) }, standIn);
+  await adapter.runCodex({}); assert.equal(runs, 1);
+  writeFileSync(standIn, '#!/bin/sh\n' + M + 'exec codex "$@"\n');
+  assert.throws(() => adapter.runCodex({}), /refused/); assert.equal(runs, 1);
+});
+
+test('legacy private-alpha native execution is closed', () => {
+  const realProvider = { mode: 'OPENAI_RESPONSES_PRIVATE_ALPHA' };
+  assert.throws(() => createSupervisor({ realProvider }), /./);
+  const text = readFileSync(fileURLToPath(new URL('../src/private-alpha.ts', import.meta.url)), 'utf8');
+  assert.match(text, /throw Error\('Legacy private-alpha native execution is closed/);
+  assert.ok(!/createSupervisor\(/.test(text), 'the entry point no longer composes a supervisor');
 });
 
 test('credential bind isolation also holds for the metered mode (no auth file)', t => {

@@ -28,6 +28,8 @@ import { assertTrustedExecutablePath } from './executable-trust.ts';
 import { OwnerSubscriptionOperations, parseOwnerSubscriptionRoute, type OwnerSubscriptionRoute, type OwnerContainerProfile } from './owner-subscription-route.ts';
 import { parseOwnerContainerProfile, parseMeteredContainerProfile, type MeteredContainerProfile } from './owner-container-profile.mjs';
 import { MeteredContainerExecutor } from './metered-container.ts';
+import { assertNativeFixtureStandIn, fixtureOnlyNativeAdapter } from './native-fixture.ts';
+import { isOwnerSubscriptionRevision } from '../../../packages/storage/src/spend-policy.ts';
 import { HostedSpendGuard, parseHostedLimits, type HostedLimits } from './hosted-limits.ts';
 import { dockerCommand } from './owner-container-worker.mjs';
 import { LocalOrderedAdmission, assertWitnessOutsideData, type LocalOrderedEnrollment, type ReceiverWitness } from "./local-ordered-admission.ts";
@@ -295,6 +297,9 @@ function validateProductiveBinding(options: LocalV4SupervisorOptions): Productiv
   if (p.requireContainer !== false && p.container === undefined) throw new Error('Native metered execution refused: requireContainer');
   if (p.requireContainer === false && (p.container !== undefined || !/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(p.provider.upstreamOrigin)))
     throw new Error('Native metered execution refused: only a loopback fixture provider may run uncontained');
+  // A loopback URL is not proof of a fixture (a loopback proxy can reach the real provider): the executable itself must be a stand-in.
+  if (p.requireContainer === false) assertNativeFixtureStandIn(p.codexExecutable);
+  if (isOwnerSubscriptionRevision(p.provider?.price?.revision)) throw new Error('Productive binding is not qualified: the subscription operations revision is never a metered price');
   parseHostedLimits(p.hostedLimits);
   if (!options.orderedAdmission || options.localFactoryFixture || options.localSpendFixture || options.jobDependencies || options.localV4ResourceProbe ||
       options.maxParallelRuns !== undefined && options.maxParallelRuns !== 1 || options.retainCheckpoints || options.startRun || options.cancelRun ||
@@ -340,6 +345,8 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
     if(process.env.FACTORY_CODEX_MODEL&&process.env.FACTORY_CODEX_MODEL!==options.realProvider.model)
       throw new Error('Factory model differs from the pinned private-alpha provider');
   }
+  // The legacy private-alpha provider ran the real Codex natively with no container or hosted limits. Closed (Jay, 2026-11-05).
+  if (options.realProvider) throw new Error('Legacy private-alpha native execution is closed: metered Codex runs only in the qualified container route');
   const dataDir = resolve(options.dataDir ?? process.env.FACTORY_DATA_DIR ?? defaultDataDir);
   // Productive verification consumes the owned read-only source artifact; fixture and ordinary modes keep in-memory leases only.
   const localPreparation = resultMode === 'LOCAL_V4' ? createLocalV4Preparation(dataDir, { sourceArtifacts: !!options.productive || !!options.subscription }) : undefined;
@@ -394,7 +401,8 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   const meteredContainer = productive?.container ? new MeteredContainerExecutor(nativeAdapter!, productive.container, dataDir) : undefined;
   // Before anything else is served: this host's own labelled metered containers from a crashed supervisor are reaped (or the route disables).
   meteredContainer?.recover();
-  const codexAdapter = meteredContainer ?? nativeAdapter;
+  // Without a container, the ONLY native executable is a re-verified fixture stand-in (validateProductiveBinding already refused the rest).
+  const codexAdapter = meteredContainer ?? (nativeAdapter ? fixtureOnlyNativeAdapter(nativeAdapter, productive!.codexExecutable) : undefined);
   const hostedGuard = productive ? new HostedSpendGuard(resolve(dataDir, 'hosted-limits.sqlite'), resolve(dataDir, 'factory.sqlite'), parseHostedLimits(productive.hostedLimits)) : undefined;
   const subscription = options.subscription ? new OwnerSubscriptionOperations(options.subscription.route, spend,
     createCodexAdapter(options.subscription.codexExecutable, 'mac'), options.subscription.codexExecutable, dataDir,
@@ -414,19 +422,23 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   if(options.localSpendFixture&&!fixtureDependencies)throw new Error('Local spend fixture requires injected worker and verifier');
   if(options.localSpendFixture&&!/^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(options.localSpendFixture.upstreamOrigin))
     throw new Error('Local spend fixture must target loopback only');
-  const containerProbe = options.subscription?.container ? {
+  // Container-aware readback for BOTH container routes: every container of a Run (worker, broker, verifier) carries label factory.run=<Run id>,
+  // so quiescence is never reported while a labelled container survives (wrapper loss or failed cleanup).
+  const containerProfile = options.subscription?.container ?? meteredContainer?.profile;
+  const containerProbe = containerProfile ? {
     processAbsent(pid: unknown, group: boolean) {
       if (typeof pid !== 'number' || !Number.isSafeInteger(pid) || pid <= 0) return false;
       try { process.kill(group ? -pid : pid, 0); return false; } catch (e) { return (e as NodeJS.ErrnoException).code === 'ESRCH'; }
     },
     async verifierAbsent(runId: string) {
-      try { return dockerCommand(options.subscription!.container!, ['ps','-aq','--filter',`label=factory.run=${runId}`]) === ''; }
+      try { return dockerCommand(containerProfile, ['ps','-aq','--filter',`label=factory.run=${runId}`]) === ''; }
       catch { return false; }
     },
-    async readiness() { try { const pre = await subscription!.preflightCodex(); return { ready: pre.authenticated, reason: pre.error }; }
-      catch { return { ready: false, reason: 'Qualified owner container unavailable' }; } },
+    async readiness() {
+      try { const pre = await (subscription ?? meteredContainer)!.preflightCodex(); return { ready: pre.authenticated, reason: pre.error }; }
+      catch { return { ready: false, reason: 'Qualified container unavailable' }; } },
   } : options.localV4ResourceProbe;
-  const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer,containerProbe,!!options.subscription?.container),producer,spend,
+  const dispatchControl=producer?new FactoryDispatchControl(storage,new LocalExecutionProvider(storage,jobs,producer,containerProbe,!!containerProfile),producer,spend,
     options.localFactoryFixture === true && fixtureDependencies,realProvider??options.localSpendFixture??productive?.provider,!!realProvider||!!productive||!!subscription,currentConnection):null;
   if (subscription) {
     if (!dispatchControl) throw new Error('Owner subscription route requires producer signing');
@@ -435,6 +447,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   if (hostedGuard) {
     if (!dispatchControl) throw new Error('Metered productive binding requires producer signing');
     dispatchControl.useHostedLimits(hostedGuard);
+    if (meteredContainer) dispatchControl.useMeteredContainer(meteredContainer);
   }
   if (options.orderedAdmission && (resultMode !== 'LOCAL_V4' || !dispatchControl || options.realProvider))
     throw new Error('Local ordered admission requires the unqualified-for-live local V4 supervisor with producer signing');

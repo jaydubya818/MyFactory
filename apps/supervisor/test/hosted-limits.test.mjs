@@ -10,6 +10,8 @@ import { SpendLedger } from '../../../packages/storage/src/spend.ts';
 import { SpendGateway } from '../src/spend-gateway.ts';
 import { HostedSpendGuard, parseHostedLimits, APPROVED_HOSTED_LIMITS, monthWindow } from '../src/hosted-limits.ts';
 import { FactoryDispatchControl } from '../src/dispatch-control.ts';
+import { DatabaseSync } from 'node:sqlite';
+import { OWNER_SUBSCRIPTION_PRICING_REVISION } from '../../../packages/storage/src/spend-policy.ts';
 
 const plan = { version: 'WORK_LEDGER_V2', pricingRevision: 'local-v1', model: 'fixture-model', validUntil: new Date(Date.now() + 3_600_000).toISOString(),
   perOperationReserveMicrousd: 1200, plannedProductiveOperations: 2, plannedCompletionOperations: 1, maxPaidOperations: 3, completionReserveMicrousd: 1200 };
@@ -86,10 +88,10 @@ test('monthly guard: settled + reserved + UNKNOWN exposure this UTC month; admis
   const blocked = { ...c, operationId: randomUUID(), model: plan.model, pricingRevision: plan.pricingRevision, reservedMicrousd: 3000, phase: 'productive' };
   assert.throws(() => wrapped.reserve(blocked), /HOSTED_MONTHLY_BUDGET/);
   assert.equal(f.ledger.getOperation(blocked.operationId), null);
-  // A new UTC month starts from zero recorded exposure (the OpenAI project budget is also per month; set by Jay, not code).
   const next = new HostedSpendGuard(join(f.dir, 'hosted-limits.sqlite'), join(f.dir, 'factory.sqlite'), limits, () => new Date(Date.parse(monthWindow(new Date()).end) + 1000));
   t.after(() => next.close());
-  assert.equal(next.recordedMonthMicrousd(), 0);
+  // A new UTC month counts only exposure that reaches into it: the still-UNKNOWN reservation (1200), never the settled 900.
+  assert.equal(next.recordedMonthMicrousd(), 1200);
 });
 
 test('spend gateway with the guarded ledger: the reservation that would cross the month budget is refused before any provider I/O', async t => {
@@ -127,4 +129,38 @@ test('hosted limits compose only with the metered host provider', t => {
   const dir = mkdtempSync(join(tmpdir(), 'hosted-compose-')); t.after(() => rmSync(dir, { recursive: true, force: true }));
   const control = new FactoryDispatchControl({}, {}, {}, {}, false, undefined, true);
   assert.throws(() => control.useHostedLimits({}), /only to the metered host composition/);
+});
+
+test('month attribution by exposure time: a reservation from last month dispatched now counts now; the guard rechecks at dispatch across midnight', t => {
+  const limits = { maxWorkMicrousd: 1_300_000, maxWorksPerPerson: 4, monthlyBudgetMicrousd: 3600 };
+  const f = fixture(t, limits);
+  const { start } = monthWindow(new Date());
+  const before = new Date(Date.parse(start) - 1000).toISOString();          // one second before this month began
+  const raw = new DatabaseSync(join(f.dir, 'factory.sqlite'));
+  t.after(() => raw.close());
+  const backdate = id => raw.prepare('UPDATE work_spend_operations SET created_at = ?, updated_at = ? WHERE operation_id = ?').run(before, before, id);
+  // Reserved last month, dispatched (exposure) this month: counted this month.
+  const a = f.work(); const id = randomUUID();
+  f.ledger.reserve({ ...a, operationId: id, model: plan.model, pricingRevision: plan.pricingRevision, reservedMicrousd: 1200, phase: 'productive' });
+  backdate(id); f.ledger.markDispatched(id);
+  assert.equal(f.guard.recordedMonthMicrousd(), 1200);
+  // Still UNKNOWN from last month: counted until it resolves.
+  const b = f.work(); const unknown = f.spendSettled(b, null); f.ledger.markUnknown(unknown); backdate(unknown);
+  assert.equal(f.guard.recordedMonthMicrousd(), 2400);
+  // Settled entirely last month: not counted now.
+  const c = f.work(); const old = f.spendSettled(c, 700); backdate(old);
+  assert.equal(f.guard.recordedMonthMicrousd(), 2400);
+  // Straddle: the reservation fits, then the month total moves past the budget before the paid boundary -> dispatch refuses.
+  const d = f.work(), wrapped = f.guard.wrapLedger(f.ledger), late = randomUUID();
+  wrapped.reserve({ ...d, operationId: late, model: plan.model, pricingRevision: plan.pricingRevision, reservedMicrousd: 1200, phase: 'productive' });
+  const e = f.work(); const other = randomUUID();
+  f.ledger.reserve({ ...e, operationId: other, model: plan.model, pricingRevision: plan.pricingRevision, reservedMicrousd: 1200, phase: 'productive' });
+  assert.throws(() => wrapped.markDispatched(late), /HOSTED_MONTHLY_BUDGET/);
+  assert.equal(f.ledger.getOperation(late).state, 'reserved', 'not dispatched; the gateway releases it');
+});
+
+test('the guarded ledger refuses the subscription operations revision (no unmetered UNKNOWN can hide from the month total)', t => {
+  const f = fixture(t), b = f.work(), wrapped = f.guard.wrapLedger(f.ledger);
+  assert.throws(() => wrapped.reserve({ ...b, operationId: randomUUID(), model: plan.model, pricingRevision: OWNER_SUBSCRIPTION_PRICING_REVISION, reservedMicrousd: 1, phase: 'productive' }),
+    /HOSTED_SUBSCRIPTION_REVISION_REFUSED/);
 });

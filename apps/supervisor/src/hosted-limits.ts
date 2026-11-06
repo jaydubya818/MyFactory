@@ -53,14 +53,24 @@ export class HostedSpendGuard {
   }
   close() { this.#db.close(); this.#spend.close(); }
   static personKey(clientId: string, ownerScope: string) { return JSON.stringify([clientId, ownerScope]); }
-  /** Metered exposure recorded this UTC month: settled actuals plus every reserved/dispatched/UNKNOWN reservation. Never subscription units. */
+  /**
+   * Metered exposure attributed to this UTC month by EXPOSURE time, not creation time: an operation counts in every month its exposure
+   * touches. Settled operations count their actual from creation to settlement; reserved, dispatched and UNKNOWN reservations count in
+   * every month from their creation onward until they resolve (a reservation made before midnight and dispatched after counts in the new
+   * month). Conservative by design: an operation spanning midnight counts in both months. Subscription operation units never count.
+   */
   recordedMonthMicrousd(): number {
     const { start, end } = monthWindow(this.#now());
     const row = this.#spend.prepare(`SELECT COALESCE(SUM(CASE WHEN state = 'settled' THEN COALESCE(actual_microusd, reserved_microusd)
         WHEN state IN ('reserved','dispatched','unknown') THEN reserved_microusd ELSE 0 END), 0) AS total
-      FROM work_spend_operations WHERE created_at >= ? AND created_at < ? AND (pricing_revision IS NULL OR pricing_revision != ?)`)
-      .get(start, end, OWNER_SUBSCRIPTION_PRICING_REVISION) as { total: number | bigint };
+      FROM work_spend_operations WHERE created_at < ? AND (state IN ('reserved','dispatched','unknown') OR updated_at >= ?)
+        AND (pricing_revision IS NULL OR pricing_revision != ?)`)
+      .get(end, start, OWNER_SUBSCRIPTION_PRICING_REVISION) as { total: number | bigint };
     return Number(row.total);
+  }
+  /** At the paid boundary (the reservation is already recorded): the current month, including it, must still be within budget. */
+  assertDispatchWithinMonth() {
+    if (this.recordedMonthMicrousd() > this.limits.monthlyBudgetMicrousd) refuse('HOSTED_MONTHLY_BUDGET');
   }
   worksAdmitted(clientId: string, ownerScope: string): number {
     return Number((this.#db.prepare('SELECT COUNT(*) AS n FROM hosted_work_admissions WHERE person_key = ?')
@@ -98,10 +108,15 @@ export class HostedSpendGuard {
   /** The ledger handed to metered spend gateways: identical except that `reserve` first passes the monthly guard. */
   wrapLedger<L extends GatewayLedger>(ledger: L): GatewayLedger {
     return {
-      read: (...a) => ledger.read(...a), markDispatched: (...a) => ledger.markDispatched(...a), settle: (...a) => ledger.settle(...a),
+      read: (...a) => ledger.read(...a),
+      // Rechecked at dispatch so an admission or reservation straddling midnight is judged against the month the exposure lands in.
+      markDispatched: (...a) => { this.assertDispatchWithinMonth(); return ledger.markDispatched(...a); }, settle: (...a) => ledger.settle(...a),
       markUnknown: (...a) => ledger.markUnknown(...a), releaseUndispatched: (...a) => ledger.releaseUndispatched(...a),
       assertCompletionEligible: (...a) => ledger.assertCompletionEligible(...a),
-      reserve: (input: SpendReservation) => { this.assertReservation(input.reservedMicrousd); return ledger.reserve(input); },
+      reserve: (input: SpendReservation) => {
+        if (input?.pricingRevision === OWNER_SUBSCRIPTION_PRICING_REVISION) refuse('HOSTED_SUBSCRIPTION_REVISION_REFUSED');
+        this.assertReservation(input.reservedMicrousd); return ledger.reserve(input);
+      },
     };
   }
 }

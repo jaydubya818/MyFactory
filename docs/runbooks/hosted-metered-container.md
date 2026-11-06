@@ -25,18 +25,25 @@ tester accounts, conversations and accounting records are preserved.
    the gateway child token or the API key. Nothing from `~/.codex` is mounted in metered mode.
 
 ## Refusals
-- `requireContainer` defaults to true. Native metered execution is refused at host-config parse and again at supervisor composition. The
-  only exception is an explicit `requireContainer: false` with a loopback fixture provider (`http://127.0.0.1:<port>`), which exists for
-  synthetic qualification. The real origin `https://api.openai.com` always requires the container.
-- The owner subscription route remains owner-only. Metered container options together with the subscription route refuse.
+- `requireContainer` defaults to true. Native metered execution is refused at host-config parse, at supervisor composition, and again before
+  every native run. The only exception is an explicit `requireContainer: false` with a loopback provider AND a fixture stand-in
+  executable: a small script that carries the marker `MYFACTORY_NATIVE_FIXTURE_STAND_IN_NOT_CODEX` and neither is nor invokes the real
+  `codex`. A loopback URL alone is never accepted, because it could be a proxy to the real provider. The legacy `private-alpha.ts`
+  serving path is closed.
+- The owner subscription route remains owner-only. Metered container options together with the subscription route refuse. The
+  subscription pricing revision is refused as a metered price, both in direct composition and in the guarded ledger.
+- Each gateway child token is bound at dispatch to the saved Run id and to one absolute admitted Work deadline. The container is
+  labelled `factory.run=<Run id>`, which is the label readback and reconcile probe through the container-aware resource probe, so a
+  surviving container keeps the Run non-quiescent. Every invocation shares that one deadline. An unbound token never starts a container.
 
 ## Limits (`hosted-limits.ts`, durable `hosted-limits.sqlite` beside `factory.sqlite`)
 - Per Work: 1,300,000 µUSD (`maxSpendUsd` × 10^6). Prepare refuses above it before any Work order or budget exists.
 - Per person: 4 Works per (client id, owner scope). A replay of an admitted Work is not counted twice. A slot is never given back
   automatically, even if preparation later fails.
-- Per calendar month (UTC): admission refuses when recorded metered exposure (settled actuals plus reserved, dispatched and UNKNOWN
-  reservations this month) plus the new Work's ceiling would exceed 25,000,000 µUSD. Every gateway reservation is also checked
-  synchronously before the ledger write. Subscription operation units never count.
+- Per calendar month (UTC): admission refuses when recorded metered exposure plus the new Work's ceiling would exceed 25,000,000 µUSD.
+  Exposure is attributed by exposure time. A settled operation counts from creation to settlement. A reserved, dispatched or UNKNOWN
+  reservation counts in every month until it resolves, so one made before midnight and dispatched after counts in the new month.
+  The guard rechecks before every reservation and again at dispatch.
 - Host config `hostedLimits` may lower these values and can never raise them. Absent means the approved values.
 - **The $25/month cap on the OpenAI project itself is set by Jay in the OpenAI dashboard. It is not in code.** The host guard above is an
   independent, earlier refusal. It does not replace the provider-side cap.
@@ -50,16 +57,25 @@ tester accounts, conversations and accounting records are preserved.
 - Bind sources containing a comma are refused. Swap is bounded (`--memory-swap 2g`).
 
 ## Outbound-only mailbox (`scripts/mailbox-poller.mjs`)
-This implements contract v1. Every envelope must carry `target` (`factory` or `verifier`), a `leaseId` and a base64 body. Each target
+This implements contract v1 plus proposals P7/P8: a per-path forward bound (`/qdev/v1/evaluate` 720 s, others 30 s), up to 4
+concurrent leases, an atomic never-evicted SQLite id store (`idStore`, 0600) and one poller per installation. Every envelope must carry `target` (`factory` or `verifier`), a `leaseId` and a base64 body. Each target
 maps to exactly one configured `127.0.0.1` origin: `factoryOrigin`, or the optional `verifierOrigin`. The verifier allowlist is exactly
-the existing qdev verifier host API: POST to `/qdev/v1/{handoff,evaluate,verdict,artifact/file,artifact/commit}`. Forwarding takes at most
-30 s, which fits inside MyEve's ≥ 40 s per-call mailbox timeout. Artifact bodies stay within the 1 MiB envelope limit. See
+the existing qdev verifier host API: POST to `/qdev/v1/{handoff,evaluate,verdict,artifact/file,artifact/commit}`. Artifact bodies stay within the 1 MiB envelope limit. See
 `apps/supervisor/src/mailbox-poller.ts` and the hosted contract. There is no listener on the Mac. The poller long-polls the HTTPS
 mailbox with a 0600 per-installation credential and forwards byte-for-byte to the exact `http://127.0.0.1:<port>` Factory. It records
 each forwarded id durably first and never retries. Proposed contract amendments are in
 `Myeve/output/private-beta-20261103/hosted/MAILBOX-CONTRACT-PROPOSALS.md`.
 
+## Live evidence (no credentials, no OpenAI, no spend)
+- Image `myfactory-owner-codex:hosted-20261105` (`sha256:821ce219…`) is labelled with the source policy `7470540a…`.
+- `Myeve/output/private-beta-20261103/hosted/metered-probe-20261106T053508Z/` (SHA256SUMS) covers:
+  - The agent container reaches only the broker. There were 78 attempts with no leaks, including the host gateway port via
+    host.docker.internal, the VM gateways, the LAN and external DNS/HTTPS.
+  - The broker relays to the host loopback gateway stand-in with the gateway token (HTTP 200, exactly one authorized request).
+  - Hosted tools are refused (403).
+  - The broker is configured only via `docker start -a -i` stdin: no mounts, and the token is in no Docker metadata.
+  - Codex's bubblewrap sandbox starts.
+
 ## Before activation (not done here)
-Rebuild the qualified image with the new `POLICY_SHA` (broker and worker-init changed). Run a live egress/DNS probe from the worker and a
-live metered probe against a loopback stand-in. Re-pin the MyEve template and cohorts to the new `factoryVersion`. Jay sets the OpenAI
-project budget. Jay's final approval is required.
+Independent re-review. Re-pin the MyEve template and cohorts to the new `factoryVersion`. Jay sets the OpenAI project budget. Jay's final
+approval is required.
