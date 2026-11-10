@@ -530,7 +530,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
   }
   function currentConnection(original: FactoryClient): FactoryClient {
     const fresh = refreshClient(original, readClients(connectionsPath));
-    if (resultMode === 'LOCAL_V4' && (typeof fresh.ownerScope !== 'string' || !/^[A-Za-z0-9:_-]{1,128}$/.test(fresh.ownerScope)))
+    if (resultMode === 'LOCAL_V4' && (typeof fresh.ownerScope !== 'string' || !/^[A-Za-z0-9.:_-]{1,128}$/.test(fresh.ownerScope)))
       throw new ActionError('Current owner-scoped connection required', 'forbidden', 403);
     if (resultMode === 'LOCAL_V4' && fresh.purpose === 'myeve-proof' && !currentV4ProofReader(fresh))
       throw new ActionError('Current Proof read grant required', 'forbidden', 403);
@@ -636,7 +636,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
         if (resultMode === 'LOCAL_V4' && client.purpose !== 'myeve-proof' && Object.hasOwn(client, 'expiresAt') &&
             (typeof client.expiresAt !== 'string' || !Number.isFinite(Date.parse(client.expiresAt)) || Date.parse(client.expiresAt) <= Date.now()))
           return json(response, 401, { error: 'Connection expired' });
-        if (resultMode === 'LOCAL_V4' && (typeof client.ownerScope !== 'string' || !/^[A-Za-z0-9:_-]{1,128}$/.test(client.ownerScope)))
+        if (resultMode === 'LOCAL_V4' && (typeof client.ownerScope !== 'string' || !/^[A-Za-z0-9.:_-]{1,128}$/.test(client.ownerScope)))
           return json(response, 403, {error: 'Current owner-scoped connection required'});
         if (resultMode === 'LOCAL_V4' && client.purpose === 'myeve-proof' && !currentV4ProofReader(client))
           return json(response, 403, {error: 'Current Proof read grant required'});
@@ -696,7 +696,7 @@ function createSupervisorInternal(options: SupervisorOptions & {localV4ResourceP
           catch (error) { outcome = { error }; }
           const fresh = authenticateClient({ headers: originalHeaders } as IncomingMessage, readClients(connectionsPath));
           if (fresh.id !== client.id || fresh.ownerScope !== client.ownerScope || fresh.purpose !== client.purpose ||
-              fresh.tokenSha256 !== client.tokenSha256 || typeof fresh.ownerScope !== 'string' || !/^[A-Za-z0-9:_-]{1,128}$/.test(fresh.ownerScope))
+              fresh.tokenSha256 !== client.tokenSha256 || typeof fresh.ownerScope !== 'string' || !/^[A-Za-z0-9.:_-]{1,128}$/.test(fresh.ownerScope))
             return json(response, 403, { error: 'Current owner-scoped connection required' });
           if (fresh.purpose === 'myeve-proof' ? !currentV4ProofReader(fresh) : !fresh.actions.includes('factory.observe'))
             return json(response, 403, { error: 'Current read grant required' });

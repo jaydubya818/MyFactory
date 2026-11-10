@@ -36,7 +36,7 @@ export function readClients(path: string): FactoryClient[] {
         !Array.isArray(client.actions) || client.actions.some((action) => !clientActions.includes(action as typeof clientActions[number])) ||
         (client.actions.includes("evidence.read") &&
           (client.purpose !== "myeve-proof" || typeof client.ownerScope !== "string" ||
-            !/^[A-Za-z0-9:_-]{1,128}$/.test(client.ownerScope) ||
+            !/^[A-Za-z0-9.:_-]{1,128}$/.test(client.ownerScope) ||
             typeof client.expiresAt !== "string" || !Number.isFinite(Date.parse(client.expiresAt)))) ||
         ids.has(client.id) || hashes.has(client.tokenSha256)) {
       throw new Error("Invalid or duplicate connection configuration");

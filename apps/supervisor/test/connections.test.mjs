@@ -129,3 +129,11 @@ test('connection lifetime: Proof still requires a finite supplied expiry and its
   const clients = f.load({...proof, expiresAt: '2099-01-01T00:00:00Z'});
   assert.equal(authenticateClient(f.request, clients).purpose, 'myeve-proof');assert.deepEqual(clients[0].actions, ['evidence.read']);
 });
+
+// Hosted private beta: the per-person owner scope is myeve.hosted:<installation>:<owner> (dots allowed); spaces/slashes still refused.
+test('connection loader: hosted dotted owner scope is a valid proof reader scope', t => {
+  const f = lifetimeFixture(t);
+  const proof = {...f.client, actions: ['evidence.read'], purpose: 'myeve-proof', ownerScope: 'myeve.hosted:jay:owner', expiresAt: '2099-01-01T00:00:00Z'};
+  assert.equal(f.load(proof)[0].ownerScope, 'myeve.hosted:jay:owner');
+  assert.throws(() => f.load({...proof, ownerScope: 'myeve hosted/jay'}));
+});
