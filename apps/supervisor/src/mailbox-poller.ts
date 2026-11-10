@@ -24,6 +24,10 @@ export const MAILBOX_TARGETS = Object.freeze({
   verifier: { methods: ['POST'] as readonly string[], prefixes: [] as readonly string[],
     exact: ['/qdev/v1/handoff', '/qdev/v1/evaluate', '/qdev/v1/verdict', '/qdev/v1/artifact/file', '/qdev/v1/artifact/commit'] as readonly string[],
     headers: ['authorization', 'content-type', 'accept', 'x-request-id', 'x-qdev-candidate', 'x-qdev-binding', 'x-qdev-path', 'x-qdev-sha256'] as readonly string[] },
+  /** Hosted private beta: the Mac-local qualification Relay, only its two remote capability-lease routes (MyEve FactoryRelayLeaseClient). */
+  relay: { methods: ['POST'] as readonly string[], prefixes: [] as readonly string[],
+    exact: ['/api/v2/runtime/capability-leases', '/api/v2/runtime/capability-leases/prepare'] as readonly string[],
+    headers: ['authorization', 'content-type', 'accept', 'x-request-id', 'x-relay-account-id'] as readonly string[] },
 });
 export type MailboxTarget = keyof typeof MAILBOX_TARGETS;
 export const RESPONSE_HEADERS = ['content-type', 'cache-control', 'etag', 'retry-after', 'x-request-id'] as const;
@@ -73,6 +77,8 @@ export interface MailboxPollerOptions {
   factoryOrigin: string;
   /** Exact `http://127.0.0.1:<port>` verifier host origin (contract v1 `target: "verifier"`). Absent: verifier envelopes refuse. */
   verifierOrigin?: string;
+  /** Exact `http://127.0.0.1:<port>` Mac-local Relay origin (target "relay"). Absent: relay envelopes refuse. */
+  relayOrigin?: string;
   /** Required owner-only SQLite store of every forwarded id (never evicted) and the single-poller lock for this installation. */
   idStore: string;
   /** Test seams only (never reachable from the launcher config): mailbox fetch and a loopback HTTP mailbox. */
@@ -242,6 +248,10 @@ export class MailboxPoller {
       this.#ports.verifier = assertLoopbackFactoryOrigin(options.verifierOrigin).port;
       if (this.#ports.verifier === this.#ports.factory) refuse('MAILBOX_TARGETS_NOT_DISTINCT');
     }
+    if (options.relayOrigin !== undefined) {
+      this.#ports.relay = assertLoopbackFactoryOrigin(options.relayOrigin).port;
+      if (this.#ports.relay === this.#ports.factory || this.#ports.relay === this.#ports.verifier) refuse('MAILBOX_TARGETS_NOT_DISTINCT');
+    }
     if (typeof options.installationId !== 'string' || !NAME.test(options.installationId)) refuse('MAILBOX_INSTALLATION_INVALID');
     if (typeof options.credential !== 'string' || !POLLER_CREDENTIAL.test(options.credential)) refuse('MAILBOX_CREDENTIAL_FORMAT');
     this.#store = new ForwardedIdStore(options.idStore, options.installationId);
@@ -336,14 +346,17 @@ export function loadPollerConfig(path: string): MailboxPollerOptions {
   let st; try { st = lstatSync(path); } catch { return refuse('MAILBOX_CONFIG_MISSING'); }
   if (!st.isFile() || st.isSymbolicLink() || st.uid !== process.getuid!() || (st.mode & 0o022) !== 0) refuse('MAILBOX_CONFIG_UNTRUSTED');
   let c: Record<string, unknown>; try { c = JSON.parse(readFileSync(path, 'utf8')); } catch { return refuse('MAILBOX_CONFIG_JSON'); }
-  const keys = ['schema', 'mailboxOrigin', 'installationId', 'credentialFile', 'factoryOrigin', 'idStore', ...(c && typeof c === 'object' && Object.hasOwn(c, 'verifierOrigin') ? ['verifierOrigin'] : [])];
+  const optional = (name: string) => (c && typeof c === 'object' && Object.hasOwn(c, name) ? [name] : []);
+  const keys = ['schema', 'mailboxOrigin', 'installationId', 'credentialFile', 'factoryOrigin', 'idStore', ...optional('verifierOrigin'), ...optional('relayOrigin')];
   if (!c || typeof c !== 'object' || Array.isArray(c) || Object.keys(c).sort().join(',') !== [...keys].sort().join(',') || c.schema !== MAILBOX_POLLER_CONFIG_SCHEMA)
     refuse('MAILBOX_CONFIG_SHAPE');
   assertMailboxOrigin(c.mailboxOrigin as string, false);
   assertLoopbackFactoryOrigin(c.factoryOrigin as string);
   if (c.verifierOrigin !== undefined) assertLoopbackFactoryOrigin(c.verifierOrigin as string);
+  if (c.relayOrigin !== undefined) assertLoopbackFactoryOrigin(c.relayOrigin as string);
   const credential = readSecretFile(c.credentialFile as string);
   return { mailboxOrigin: c.mailboxOrigin as string, installationId: c.installationId as string, credential, factoryOrigin: c.factoryOrigin as string,
     ...(c.verifierOrigin !== undefined ? { verifierOrigin: c.verifierOrigin as string } : {}),
+    ...(c.relayOrigin !== undefined ? { relayOrigin: c.relayOrigin as string } : {}),
     idStore: c.idStore as string };
 }

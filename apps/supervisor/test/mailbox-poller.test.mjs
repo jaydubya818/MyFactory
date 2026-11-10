@@ -149,6 +149,8 @@ test('launcher config: credential only from an owner-only 0600 file; group/world
   write({ factoryOrigin: 'http://localhost:8792' }); assert.throws(() => loadPollerConfig(config), /NOT_LOOPBACK/);
   write({ verifierOrigin: 'http://127.0.0.1:8795' }); assert.equal(loadPollerConfig(config).verifierOrigin, 'http://127.0.0.1:8795');
   write({ verifierOrigin: 'https://verifier.example' }); assert.throws(() => loadPollerConfig(config), /NOT_LOOPBACK/);
+  write({ relayOrigin: 'http://127.0.0.1:8797' }); assert.equal(loadPollerConfig(config).relayOrigin, 'http://127.0.0.1:8797');
+  write({ relayOrigin: 'https://relay.example' }); assert.throws(() => loadPollerConfig(config), /NOT_LOOPBACK/);
   write({ mailboxOrigin: 'http://myeve.example' }); assert.throws(() => loadPollerConfig(config), /REQUIRES_HTTPS/);
   write({ extra: 1 }); assert.throws(() => loadPollerConfig(config), /CONFIG_SHAPE/);
   write({}); chmodSync(config, 0o666); assert.throws(() => loadPollerConfig(config), /CONFIG_UNTRUSTED/);
@@ -268,4 +270,17 @@ test('the poller credential never reaches an endpoint: body, path, query and hea
   assert.ok(POLLER_CREDENTIAL.test(CREDENTIAL));
   for (const bad of ['a'.repeat(64), randomBytes(32).toString('base64url'), 'mfpoll_short'])
     assert.throws(() => h.make({ credential: bad, idStore: join(h.dir, 'ids-x.sqlite') }), /CREDENTIAL_FORMAT/);
+});
+
+test('relay target (hosted private beta): only the two Mac-local Relay lease routes, POST only, its own header allowlist and a distinct origin', () => {
+  for (const path of ['/api/v2/runtime/capability-leases', '/api/v2/runtime/capability-leases/prepare']) assert.equal(assertForwardPath(path, 'relay'), path);
+  for (const path of ['/api/v2/runtime/actions', '/api/v2/runtime/capability-leases/x', '/api/v2/control/capability-fences', '/api/health', '/qdev/v1/verdict'])
+    assert.throws(() => assertForwardPath(path, 'relay'), /MAILBOX/);
+  assert.throws(() => assertForwardPath('/api/v2/runtime/capability-leases', 'factory'), /MAILBOX/);
+  const base = { id: randomUUID(), installationId: 'inst-1', ownerId: 'owner-1', createdAt: new Date().toISOString(), deadline: new Date(Date.now() + 30_000).toISOString(),
+    target: 'relay', method: 'POST', path: '/api/v2/runtime/capability-leases/prepare', headers: { 'content-type': 'application/json', 'x-relay-account-id': 'acct_x' },
+    bodySha256: createHash('sha256').update('{}').digest('hex'), body: Buffer.from('{}').toString('base64'), bodyEncoding: 'base64', leaseId: randomUUID() };
+  assert.equal(parseEnvelope(base, 'inst-1').target, 'relay');
+  assert.throws(() => parseEnvelope({ ...base, method: 'GET', body: '', bodySha256: createHash('sha256').update('').digest('hex') }, 'inst-1'), /MAILBOX/);
+  assert.throws(() => parseEnvelope({ ...base, headers: { 'x-qdev-path': 'a' } }, 'inst-1'), /MAILBOX/);
 });
