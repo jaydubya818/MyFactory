@@ -261,11 +261,15 @@ async function runCodexWith(executablePath: string, options: CodexRunOptions, wo
       '-c', 'model_providers.factory_spend.request_max_retries=0',
       '-c', 'model_providers.factory_spend.stream_max_retries=0',
       '-c', 'web_search="disabled"',
+      // Codex >= 0.163 enables multi_agent by default, which adds a `namespace` tool (multi_agent_v1). The container broker and the
+      // spend gateway accept only local function/custom tool shapes, so the request was refused (403) before any spend. Keep it off.
+      '-c', 'features.multi_agent=false',
     ] : [];
     const ownerArgs = options.ownerLogin ? [
       '--ignore-user-config', '--ignore-rules',
       '-c', 'forced_login_method="chatgpt"',
       '-c', 'web_search="disabled"',
+      '-c', 'features.multi_agent=false',
     ] : [];
     const developerArgs = options.boundedProductiveContext ? ["-c", `developer_instructions=${JSON.stringify(BOUNDED_PRODUCTIVE_INSTRUCTIONS)}`] : [];
     // `exec resume` has no -C/--sandbox: the process cwd is the workspace and the sandbox is a config override.
