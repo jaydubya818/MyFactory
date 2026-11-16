@@ -40,16 +40,24 @@ import successor from '../../../docs/capability-control/source-identity-20261029
 import localSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-local-successor.json' with {type:'json'};
 import containerSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-container-successor.json' with {type:'json'};
 import hostedSuccessor from '../../../docs/capability-control/source-identity-20261105/hosted-metered-successor.json' with {type:'json'};
+import hostedMailboxSuccessor from '../../../docs/capability-control/source-identity-20261116/hosted-mailbox-relay-successor.json' with {type:'json'};
+import {readCurrentProducerSourceIdentity} from '../../supervisor/src/producer-results.ts';
 
 test('inventoried source and configuration bind the exact unqualified source candidate',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
  const computed=JSON.parse(execFileSync(process.execPath,['apps/cloud-control/scripts/cloud-source-identity.mjs'],{cwd:root,encoding:'utf8'}));
  assert.deepEqual(computed,source);
- assert.equal(source.sourceDigest,hostedSuccessor.sourceDigest);
+ assert.equal(source.sourceDigest,hostedMailboxSuccessor.sourceDigest);
+ assert.equal(hostedMailboxSuccessor.predecessorSourceDigest,hostedSuccessor.sourceDigest);
+ assert.equal(hostedMailboxSuccessor.configurationDigest,hostedSuccessor.configurationDigest);
+ assert.equal(hostedMailboxSuccessor.localProducerSourceDigest,readCurrentProducerSourceIdentity());
+ assert.equal(hostedMailboxSuccessor.releaseQualified,false);
+ assert.equal(hostedMailboxSuccessor.installedAuthority,'NONE');
  assert.equal(hostedSuccessor.predecessorSourceDigest,containerSuccessor.sourceDigest);
  assert.equal(hostedSuccessor.configurationDigest,containerSuccessor.configurationDigest);
  assert.equal(hostedSuccessor.releaseQualified,false);
- assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:hostedSuccessor.configurationDigest}),hostedSuccessor.factoryVersion);
+ assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:hostedMailboxSuccessor.configurationDigest}),hostedMailboxSuccessor.factoryVersion);
+ assert.equal(digest({sourceDigest:hostedSuccessor.sourceDigest,configurationDigest:hostedSuccessor.configurationDigest}),hostedSuccessor.factoryVersion);
  assert.equal(containerSuccessor.predecessorSourceDigest,localSuccessor.sourceDigest);
  assert.equal(localSuccessor.predecessorSourceDigest,successor.sourceDigest);
  assert.equal(localSuccessor.releaseQualified,false);
@@ -199,7 +207,8 @@ test('successor inventory binds every receiving schema and the independent witne
  const {record,files}=JSON.parse(execFileSync(process.execPath,['apps/cloud-control/scripts/cloud-source-identity.mjs','--manifest'],{cwd:root,encoding:'utf8'}));
  assert.deepEqual(record,source);
  for(const path of ['apps/cloud-control/migrations/014-receiver-lookup-qualification.sql','apps/cloud-control/migrations/013-capability-control-receipts.sql','docs/capability-control/receiver-witness.sql',
-  'apps/cloud-control/src/ordered-capability-admission.mjs','packages/capability-enforcement/src/factory-preparation-terminal.ts']){
+  'apps/cloud-control/src/ordered-capability-admission.mjs','packages/capability-enforcement/src/factory-preparation-terminal.ts',
+  'apps/supervisor/src/connections.ts','apps/supervisor/src/mailbox-poller.ts','apps/supervisor/src/server.ts']){
   assert.match(files[path],/^[a-f0-9]{64}$/);
   assert.notEqual(digest({...files,[path]:'0'.repeat(64)}),source.sourceDigest);
  }

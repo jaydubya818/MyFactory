@@ -80,9 +80,14 @@ import candidateSuccessor from '../../../docs/capability-control/source-identity
 import localSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-local-successor.json' with {type:'json'};
 import containerSuccessor from '../../../docs/capability-control/source-identity-20261105/owner-container-successor.json' with {type:'json'};
 import hostedSuccessor from '../../../docs/capability-control/source-identity-20261105/hosted-metered-successor.json' with {type:'json'};
+import hostedMailboxSuccessor from '../../../docs/capability-control/source-identity-20261116/hosted-mailbox-relay-successor.json' with {type:'json'};
 
 test('separate successor identity preserves configuration; an old installation cannot authorize it', () => {
- assert.equal(sourceIdentity.sourceDigest,hostedSuccessor.sourceDigest);
+ assert.equal(sourceIdentity.sourceDigest,hostedMailboxSuccessor.sourceDigest);
+ assert.equal(hostedMailboxSuccessor.predecessorSourceDigest,hostedSuccessor.sourceDigest);
+ assert.equal(hostedMailboxSuccessor.configurationDigest,hostedSuccessor.configurationDigest);
+ assert.equal(hostedMailboxSuccessor.realPaidExecution,'NOT_AUTHORIZED');
+ assert.equal(hostedMailboxSuccessor.releaseQualified,false);
  assert.equal(hostedSuccessor.predecessorSourceDigest,containerSuccessor.sourceDigest);
  assert.equal(hostedSuccessor.configurationDigest,containerSuccessor.configurationDigest);
  assert.equal(hostedSuccessor.releaseQualified,false);
