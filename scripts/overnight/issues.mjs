@@ -47,7 +47,9 @@ export function selectIssue(issues, { label, holdLabel, authors, ledger }) {
 export function sections(body) {
   const result = {};
   let current = null;
-  for (const line of String(body ?? "").replace(/\r\n/g, "\n").split("\n")) {
+  // HTML comments (issue-template hints) never count as content or headings.
+  const text = String(body ?? "").replace(/\r\n/g, "\n").replace(/<!--[\s\S]*?-->/g, "");
+  for (const line of text.split("\n")) {
     const heading = /^#{2,3}\s+(.+?)\s*#*\s*$/.exec(line);
     if (heading) { current = heading[1].toLowerCase(); result[current] = []; continue; }
     if (current) result[current].push(line);

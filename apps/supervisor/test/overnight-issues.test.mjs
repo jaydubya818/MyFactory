@@ -89,3 +89,18 @@ test("lists labeled issues through a read-only gh call", async () => {
   assert.ok(seen.includes("GET") && seen.includes("labels=factory:overnight"));
   await assert.rejects(listLabeledIssues({ repository: "a/b", label: "x" }, async () => ({ exitCode: 1, stdout: "", stderr: "" })), /gh login/);
 });
+
+test("the issue template's comments and empty bullets are ignored", async () => {
+  const { readFileSync } = await import("node:fs");
+  const template = readFileSync(new URL("../../../.github/ISSUE_TEMPLATE/factory-overnight.md", import.meta.url), "utf8")
+    .split(/^---$/m).slice(2).join("---");
+  const blank = issueToWork(issue(1, { body: template, labels: [{ name: "factory:overnight" }, { name: "bug" }] }), { repository: "a/b", repositoryPath: "/repo", baseSha: sha });
+  assert.deepEqual(blank.missing, ["## Acceptance criteria", "## Allowed paths", "## Checks"]);
+  assert.equal(blank.input.kind, "feature");
+  const filled = template.replace("## Acceptance criteria\n- ", "## Acceptance criteria\n- Works")
+    .replace("## Allowed paths\n<!-- Relative paths or globs the producer may change. Keep it to a few files. -->\n- ", "## Allowed paths\n- docs/x.md")
+    .replace("## Checks\n<!-- Commands the independent verifier runs. They should finish in a few minutes. -->\n- ", "## Checks\n- npm test");
+  const result = issueToWork(issue(1, { body: filled }), { repository: "a/b", repositoryPath: "/repo", baseSha: sha });
+  assert.equal(result.ok, true, result.missing.join(", "));
+  assert.deepEqual(result.input.allowedPaths, ["docs/x.md"]);
+});
