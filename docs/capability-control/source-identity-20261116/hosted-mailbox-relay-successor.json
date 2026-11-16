@@ -1,0 +1,19 @@
+{
+  "schema": "factory-unified-beta-candidate-source-identity/v1",
+  "authority": "HOSTED_MAILBOX_RELAY_SOURCE_ONLY",
+  "recordedAt": "2026-11-16",
+  "basisCommit": "da9318fc3e035b51dddcc5d042e44ab15718be63",
+  "predecessorRecord": "../source-identity-20261105/hosted-metered-successor.json",
+  "predecessorSourceDigest": "14f91b236f5ae7e892ae54f09dd0391c322338f7a95d8a9e66f62bfa4ec316a8",
+  "sourceDigest": "3221f8a0f4adb81fc90f7a6c67cbf1f778e40311617ecf1fc455e3dec4ebd384",
+  "configurationDigest": "415f52a554e8dbdcc48019609e4611f07085622abf5c91cd67b516e978a593ae",
+  "factoryVersion": "24d55acb39442a74ca60600d66e9c725589a5fc61a40af7d24004a0247a1c17c",
+  "localProducerSourceDigest": "24723509342a96b16e80c0de1cd3645613e4beb5c8e3f9a86a6ca54dfdaea8da",
+  "pricingStatus": "EXPIRED_FOR_REAL_PAID_ADMISSION",
+  "realPaidExecution": "NOT_AUTHORIZED",
+  "releaseQualified": false,
+  "installedAuthority": "NONE",
+  "productionIntegration": "NOT_RUN",
+  "testerChanges": "NOT_AUTHORIZED",
+  "qualificationScope": "Records the exact code on the hosted mailbox branch. A distinct loopback Relay target admits only its two POST lease paths. LOCAL_V4 accepts dots in exact owner scopes. Existing execution and configuration gates apply to this source record."
+}
