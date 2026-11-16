@@ -1,0 +1,19 @@
+{
+  "schema": "factory-unified-beta-candidate-source-identity/v1",
+  "authority": "HOSTED_MAILBOX_RELAY_SOURCE_ONLY",
+  "recordedAt": "2026-11-16",
+  "basisCommit": "d9f2c17960926c757d94430837b55b81af9fe826",
+  "predecessorRecord": "./hosted-mailbox-relay-successor.json",
+  "predecessorSourceDigest": "3221f8a0f4adb81fc90f7a6c67cbf1f778e40311617ecf1fc455e3dec4ebd384",
+  "sourceDigest": "1baf97fb407aa89d9be8271f4b11d6e6a57e060e9a44366478648f8dacb1daf5",
+  "configurationDigest": "415f52a554e8dbdcc48019609e4611f07085622abf5c91cd67b516e978a593ae",
+  "factoryVersion": "5864320b0c19dfd150917e101633c29b3db20dd71f59c8311bcd3f469097198f",
+  "localProducerSourceDigest": "ba70774585cede06c0372c4c7122522d03a2c897d396f8265791f7a232b584cd",
+  "pricingStatus": "EXPIRED_FOR_REAL_PAID_ADMISSION",
+  "realPaidExecution": "NOT_AUTHORIZED",
+  "releaseQualified": false,
+  "installedAuthority": "NONE",
+  "productionIntegration": "NOT_RUN",
+  "testerChanges": "NOT_AUTHORIZED",
+  "qualificationScope": "Hosted mailbox branch plus Codex argv -c features.multi_agent=false (gateway and owner-login), so the metered Responses request carries only local function tools that the container broker and spend gateway accept (owner retry #7 was refused 403 on a namespace tool). Existing execution and configuration gates apply to this source record."
+}

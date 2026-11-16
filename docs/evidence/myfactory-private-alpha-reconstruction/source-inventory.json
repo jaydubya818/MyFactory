@@ -22,7 +22,7 @@
       "authorityBoundary": "Exact provider mode, model, endpoint and identity; no fallback"
     },
     "packages/agents/src/index.ts": {
-      "sha256": "6c5fa714585f51e61d91b6f4ea5c53245fb7e877d3ac0948947866f0278b047b",
+      "sha256": "807d4c805f789bd9a259f692f7295a023a9378955a4a56390ff135736bac7c92",
       "classification": "EXECUTOR_LIFECYCLE",
       "authorityBoundary": "Host-owned Codex lifecycle and event-backed outcomes; default and metered gateway isolation remain unchanged. Owner-login excludes metered gateway/sessionHome, forces ChatGPT auth with user config/rules ignored and allowlisted child environment. Its optional internal watchdog requires safe positive absolute deadlineMonoMs and remainingMs, and exclusively invokes explicit run-deadline mode. Remaining allowance is recomputed after awaited filesystem preparation; expiry refuses before spawn, absolute deadline also covers interpreter startup/lock wait. No fallback to legacy duration mode. Never signal a reaped watchdog PGID; existing UNKNOWN/abort behavior, bounded output and event validation remain enforced. Native PGID containment cannot cover detached tool sessions; HOLD persists. No new tool, sandbox, credential, quota or publication authority. Container successor: trusted host-only immutable image/policy, fixed 600-second Work deadline, existing single-use ledger admission and UNKNOWN fencing; no fallback, provider/pricing/custody/production/tester authority."
     },
