@@ -139,3 +139,9 @@ test("helpers bind identity to the prepared snapshot and decode manifests", () =
   assert.equal(decodeManifest({ encoded: "not json" }), null);
   assert.equal(proofSummary(signed()).checks[0].status, "passed");
 });
+
+test("pipes in check commands are escaped in the morning summary table", () => {
+  const proof = proofSummary(signed("COMPLETED", [{ command: "cat a | grep b", status: "passed", exitCode: 0 }]));
+  const text = renderSummary({ mode: "live", outcome: "ready_for_review", night: "2026-11-15", proof });
+  assert.match(text, /\| `cat a \\\| grep b` \| passed \| 0 \|/);
+});
