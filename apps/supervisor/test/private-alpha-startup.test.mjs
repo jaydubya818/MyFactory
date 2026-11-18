@@ -33,8 +33,8 @@ test('live preparation rejects expanded Work authority before touching persisten
  const input={requestId:randomUUID(),workId:randomUUID(),workGeneration:1,repository:'fixture/golden',deadline:new Date(Date.now()+300000).toISOString(),maxSpendUsd:1.35,input:{},
  spendContract:{version:'WORK_LEDGER_V2',pricingRevision:'startup-test',maxPaidOperations:4,plannedProductiveOperations:3,plannedCompletionOperations:1,completionReserveMicrousd:336864}};
  for(const changed of [{maxSpendUsd:1.36},{deadline:new Date(Date.now()+700000).toISOString()},
-  {spendContract:undefined},{spendContract:{...input.spendContract,maxPaidOperations:5}},
-  {spendContract:{...input.spendContract,plannedProductiveOperations:4}},
+  {spendContract:undefined},{spendContract:{...input.spendContract,maxPaidOperations:6}},
+  {spendContract:{...input.spendContract,plannedProductiveOperations:5}},
   {spendContract:{...input.spendContract,plannedCompletionOperations:2}}])
   await assert.rejects(control.prepare(client,{...input,...changed}),/Private-alpha Work/);
 });

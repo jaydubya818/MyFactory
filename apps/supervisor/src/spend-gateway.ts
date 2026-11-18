@@ -215,7 +215,7 @@ export class SpendGateway {
         const spend=await ledger.read(binding.workId);
         if(!spend)throw Error('Work budget missing');
         const used=spend.operations.filter(op=>op.phase==='productive').length;
-        if(used===spend.plannedProductiveOperations-1)await this.#options.assertImplementationProgress();
+        if(used===Math.min(spend.plannedProductiveOperations,2)-1)await this.#options.assertImplementationProgress();   // before the first repair call only
       }
       stage='identity';
       const outgoing=this.#options.prepareRequest?this.#options.prepareRequest(payload):payload;

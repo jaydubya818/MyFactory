@@ -26,9 +26,9 @@ async function fixture(t, reply, ceiling = 4000, options = {}) {
     outputMicrousdPerMillion: 2_000_000 };
   ledger.createBudget(binding, ceiling, new Date(Date.now() + 60_000).toISOString(),
     {version:'WORK_LEDGER_V2',pricingRevision:price.revision,model:price.model,validUntil:price.validUntil,perOperationReserveMicrousd:1200,
-      plannedProductiveOperations:2,plannedCompletionOperations:1,maxPaidOperations:3,completionReserveMicrousd:1200});
+      plannedProductiveOperations:options.planned??2,plannedCompletionOperations:1,maxPaidOperations:(options.planned??2)+1,completionReserveMicrousd:1200});
   ledger.bindAuthority(binding);
-  const {ledgerWrapper,...gatewayOptions}=options;
+  const {ledgerWrapper,planned:_planned,...gatewayOptions}=options;
   const gateway = new SpendGateway({ ledger:ledgerWrapper?ledgerWrapper(ledger):ledger, binding, price, upstreamOrigin: `http://127.0.0.1:${upstream.address().port}`,
     upstreamApiKey: 'provider-secret', childToken: 'a'.repeat(64),phase:'productive',...gatewayOptions });
   const base = await gateway.listen();
@@ -254,4 +254,17 @@ test('hosted Fetch transport failure is UNKNOWN and never retried',async t=>{
  assert.equal((await call()).status,503);assert.equal(calls,1);
  assert.equal(f.ledger.read(f.binding.workId).unknownExposureMicrousd,1200);
  assert.equal((await call()).status,409);assert.equal(calls,1);
+});
+
+test('R9 repair round: after the productive step the repair gateway admits at most 3 model calls, then yields to the host',async t=>{
+ let boundaries=0,sequence=0,progress=0;
+ const reply=(req,res)=>{req.resume();res.writeHead(200,{'content-type':'application/json','x-request-id':'r9-'+(++sequence)});res.end(JSON.stringify({status:'completed',usage:{input_tokens:10,output_tokens:10}}));};
+ // Plan 1 step + 3 repair calls; the static check funds two conservatively, the rest come from settled headroom.
+ const f=await fixture(t,reply,6000,{planned:4,productiveCheckpointAfter:4,onProductiveBoundary:()=>{boundaries++;},assertImplementationProgress:()=>{progress++;}});
+ f.ledger.reserve({...f.binding,operationId:'step',model:f.price.model,pricingRevision:f.price.revision,reservedMicrousd:1200,phase:'productive'});
+ f.ledger.markDispatched('step');f.ledger.settle('step',30,'provider-step',{input_tokens:10,output_tokens:10});
+ for(let i=0;i<3;i++)assert.equal((await f.call()).status,200);
+ const closed=await f.call();assert.equal(closed.status,409);assert.equal((await closed.json()).error.code,'PRODUCTIVE_PHASE_CLOSED');
+ assert.equal(f.calls,3);assert.equal(boundaries,1);assert.equal(progress,1,'implementation progress is asserted once, before the first repair call');
+ const spend=f.ledger.read(f.binding.workId);assert.equal(spend.paidOperationsUsed,4);assert.equal(spend.completionReserveRemainingMicrousd,1200);
 });

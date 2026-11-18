@@ -27,6 +27,8 @@ export const BOUNDED_PRODUCTIVE_INSTRUCTIONS = [
   "If a missing fact cannot safely be resolved within this response, fail closed and state the missing fact. Do not guess, treat an unchanged tree as success, request extra capacity, or claim new authority.",
   "The host stops/reaps this process, validates scope/tree and runs visible checks. Only a failed implementation check may admit the existing bounded repair slot. No-edit and out-of-scope checkpoints fail closed. Completion is separately admitted, read-only and tool-free.",
   "Only the host may grant operations, budget, writer, candidate custody, verification or publication. Do not commit, publish, access credentials, change model/provider or modify files outside the allowed paths.",
+  "TypeScript projects here use verbatimModuleSyntax: import type-only names with `import type` (or an inline `type` modifier), e.g. `import type { FormEvent } from \"react\"`; never import a type as a value.",
+  "Python is not available in this executor (python and python3 do not exist). Edit files with the apply_patch tool or with shell utilities (sed, printf, cat with a heredoc); do not run python.",
 ].join("\n");
 
 export interface CodexRunOptions {

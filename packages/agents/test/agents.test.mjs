@@ -4,7 +4,7 @@ import { chmod, copyFile, mkdtemp, mkdir, readFile, realpath, rm } from "node:fs
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createCodexAdapter } from "../src/index.ts";
+import { BOUNDED_PRODUCTIVE_INSTRUCTIONS, createCodexAdapter } from "../src/index.ts";
 
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), "factory-agents-"));
@@ -310,4 +310,11 @@ test("a yielded resume must still prove the pinned session identity", async t =>
     assert.equal(result.status, status, prompt);
     if (status === "failed") assert.match(String(result.error), /expected thread identity/);
   }
+});
+
+test('bounded productive instructions carry the verbatimModuleSyntax and no-python editing rules (R9)', () => {
+  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /verbatimModuleSyntax: import type-only names with `import type`/);
+  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /Python is not available in this executor/);
+  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /apply_patch tool or with shell utilities/);
+  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /do not run python\./);
 });

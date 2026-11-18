@@ -195,3 +195,33 @@ test('a successor price cannot reset an existing Work plan or UNKNOWN exposure',
   assert.equal(after.operations[0].pricingRevision,f.plan.pricingRevision);
   assert.equal(after.operations[0].actualMicrousd,30);
 });
+
+// R9 (owner approval 2026-11-17): productive step + a repair round of at most 3 model calls under the unchanged $1.30 Work ceiling.
+test('repair round: 1+3 productive calls fit $1.30 only from remaining headroom; ceiling and completion reserve stay hard', t => {
+  const f = setup(t, { ceiling: 1_300_000, productive: 4, completion: 1, reserve: 336_864 });
+  // Static check funds the productive step + first repair call conservatively; the plan itself is admitted.
+  f.reserve('step'); f.settle('step', 18_539);
+  f.reserve('repair-1'); f.settle('repair-1', 9_185);
+  f.reserve('repair-2'); f.settle('repair-2', 9_185);
+  f.reserve('repair-3'); f.settle('repair-3', 9_185);
+  assert.throws(() => f.reserve('repair-4'), /paid operation limit reached/);
+  f.ledger.beginCompletion(f.binding);
+  f.reserve('complete', 'completion'); f.settle('complete', 30);
+  f.ledger.assertCompleted(f.binding);
+});
+test('repair round: expensive earlier calls make later repair calls fail closed, never over the ceiling', t => {
+  const f = setup(t, { ceiling: 1_300_000, productive: 4, completion: 1, reserve: 336_864 });
+  f.reserve('step'); f.settle('step', 336_864);
+  f.reserve('repair-1'); f.settle('repair-1', 336_864);
+  // 1,300,000 - 336,864 (completion) - 673,728 = 289,408 < 336,864: the third productive call is refused before any send.
+  assert.throws(() => f.reserve('repair-2'), /Hard Work ceiling or protected completion reserve exceeded/);
+  f.ledger.beginCompletion(f.binding);
+  f.reserve('complete', 'completion'); f.settle('complete', 336_864);
+});
+test('repair round: plans beyond 1+3 productive calls, or whose step+first repair cannot be funded, are refused', t => {
+  const f = setup(t, { ceiling: 1_300_000, productive: 4, completion: 1, reserve: 336_864 });
+  assert.throws(() => f.ledger.createBudget({ ...f.binding, workId: 'w5' }, 1_300_000, f.deadline,
+    { ...f.plan, plannedProductiveOperations: 5, maxPaidOperations: 6 }), /Complete conservative paid operation plan/);
+  assert.throws(() => f.ledger.createBudget({ ...f.binding, workId: 'w-small' }, 1_000_000, f.deadline, f.plan),
+    /Complete conservative paid operation plan/);   // 2 x 336,864 + 336,864 > 1,000,000
+});

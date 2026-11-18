@@ -117,6 +117,13 @@ export function assertCompletionOperations(operations: SpendOperation[], binding
       if (operations.some(op => op.phase === 'completion'))
         throw new Error('Completion already consumed');
 }
+/** Repair round (R9, owner approval 2026-11-17): after the single productive step, the bounded repair round may use at most this many
+ *  model calls. Every call is still reserved at the full conservative per-operation amount BEFORE it is sent, against the remaining
+ *  productive headroom (assertReservation: hard Work ceiling and protected completion reserve unchanged). */
+export const REPAIR_ROUND_MAX_MODEL_CALLS = 3;
+/** Productive operations the static plan check must fund conservatively up front: the productive step plus the first repair call.
+ *  Further repair calls (plans of 3..1+REPAIR_ROUND_MAX_MODEL_CALLS) are admitted only from remaining headroom at reservation time. */
+export function guaranteedProductiveOperations(planned: number): number { return Math.min(planned, 2); }
 export function validateBudget(binding: Pick<SpendBinding, "workId" | "workGeneration" | "requestId" | "workOrderId">, ceilingMicrousd: number, deadline: string, plan: SpendPlan | undefined, now = Date.now()): void {
     const { workId, workGeneration, requestId, workOrderId } = binding;
     nonempty(workId, 'workId'); positive(workGeneration, 'workGeneration');
@@ -131,10 +138,11 @@ export function validateBudget(binding: Pick<SpendBinding, "workId" | "workGener
       for (const name of ['perOperationReserveMicrousd', 'plannedProductiveOperations',
         'plannedCompletionOperations', 'maxPaidOperations', 'completionReserveMicrousd'] as const) positive(plan[name], name);
       if (plan.maxPaidOperations !== plan.plannedProductiveOperations + plan.plannedCompletionOperations ||
+        plan.plannedProductiveOperations > 1 + REPAIR_ROUND_MAX_MODEL_CALLS ||
         !Number.isSafeInteger(plan.plannedProductiveOperations * plan.perOperationReserveMicrousd) ||
         !Number.isSafeInteger(plan.plannedCompletionOperations * plan.perOperationReserveMicrousd) ||
         plan.plannedCompletionOperations * plan.perOperationReserveMicrousd > plan.completionReserveMicrousd ||
-        plan.plannedProductiveOperations * plan.perOperationReserveMicrousd > ceilingMicrousd - plan.completionReserveMicrousd)
+        guaranteedProductiveOperations(plan.plannedProductiveOperations) * plan.perOperationReserveMicrousd > ceilingMicrousd - plan.completionReserveMicrousd)
         throw new Error('Complete conservative paid operation plan exceeds Work ceiling or protected completion reserve');
     }
 }

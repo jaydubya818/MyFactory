@@ -1,5 +1,6 @@
 import { assertLocalCapabilityAdmission, runWithOrderedAuthority, type OrderedAuthority } from "./capability-admission.ts";
 import { claimRepairPreparation } from "./review-repair.ts";
+import { REPAIR_ROUND_MAX_MODEL_CALLS } from "../../../packages/storage/src/spend-policy.ts";
 import {assertImplementationProgress} from './execution-context.ts';
 import {contextPolicyFailure,requireStrictSourceOperations} from './local-v4-context-policy.ts';
 import {randomBytes} from 'node:crypto';
@@ -128,9 +129,9 @@ export class FactoryDispatchControl {
    throw new ActionError('Bounded exact preparation required','invalid_input');
   let plan:SpendPlan|undefined,subscriptionCeiling:number|undefined;
   if(this.live&&(!input.spendContract||input.maxSpendUsd>1.35||Date.parse(input.deadline)>Date.now()+600000||
-    input.spendContract.maxPaidOperations>4||input.spendContract.plannedProductiveOperations>3||
+    input.spendContract.maxPaidOperations>2+REPAIR_ROUND_MAX_MODEL_CALLS||input.spendContract.plannedProductiveOperations>1+REPAIR_ROUND_MAX_MODEL_CALLS||
     input.spendContract.plannedCompletionOperations!==1))
-   throw new ActionError('Private-alpha Work requires at most $1.35, 600 seconds, three productive operations and one protected completion','alpha_limits',409);
+   throw new ActionError('Private-alpha Work requires at most $1.35, 600 seconds, one productive step plus a bounded repair round and one protected completion','alpha_limits',409);
   if(this.subscription){
    this.subscription.assertOwner(client);
    ({plan,ceiling:subscriptionCeiling}=this.subscription.plan(input.spendContract));
@@ -224,7 +225,7 @@ export class FactoryDispatchControl {
    let productiveEnd=new AbortController();
    const authorizeDispatch=()=>{this.orderedGate?.assertDispatch(identity.requestId);};
    gateway=new SpendGateway({ledger:this.gatewayLedger(),binding,phase:'productive',
-    ...this.spendFixture,childToken,onDecision,authorizeDispatch,productiveCheckpointAfter:data.request.spendContract.plannedProductiveOperations===2?1:undefined,onProductiveBoundary:()=>productiveEnd.abort(),
+    ...this.spendFixture,childToken,onDecision,authorizeDispatch,productiveCheckpointAfter:data.request.spendContract.plannedProductiveOperations>=2?1:undefined,onProductiveBoundary:()=>productiveEnd.abort(),
     assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
    let current=gateway;
    let repairIssued=false;
@@ -237,13 +238,13 @@ export class FactoryDispatchControl {
      const spendRecord=this.spend.read(binding.workId);
      if(!spendRecord)throw new ActionError('Spend record not found for bound Work','spend_unqualified',409);
      const used=spendRecord.operations.filter(op=>op.phase==='productive').length;
-     if(repairIssued||used!==1||data.request.spendContract?.plannedProductiveOperations!==2)throw Error('Exactly one settled productive operation required before repair');
+     if(repairIssued||used!==1||!(data.request.spendContract!.plannedProductiveOperations>=2))throw Error('Exactly one settled productive operation required before repair');
      repairIssued=true;
      await current.close();
      productiveEnd=new AbortController();
      const repairToken=randomBytes(32).toString('hex');bindToken(repairToken);
      current=new SpendGateway({ledger:this.gatewayLedger(),binding,phase:'productive',...this.spendFixture!,childToken:repairToken,
-      onDecision,authorizeDispatch,productiveCheckpointAfter:2,onProductiveBoundary:()=>productiveEnd.abort(),
+      onDecision,authorizeDispatch,productiveCheckpointAfter:data.request.spendContract!.plannedProductiveOperations,onProductiveBoundary:()=>productiveEnd.abort(),
       assertImplementationProgress:()=>this.implementationProgress(data.run,identity.baseSha,identity.allowedPaths)});
      return {baseUrl:await current.listen(),childToken:repairToken,productiveEndSignal:productiveEnd.signal};
     },

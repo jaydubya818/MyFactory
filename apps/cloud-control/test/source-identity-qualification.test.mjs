@@ -42,25 +42,30 @@ import containerSuccessor from '../../../docs/capability-control/source-identity
 import hostedSuccessor from '../../../docs/capability-control/source-identity-20261105/hosted-metered-successor.json' with {type:'json'};
 import hostedMailboxSuccessor from '../../../docs/capability-control/source-identity-20261116/hosted-mailbox-relay-successor.json' with {type:'json'};
 import hostedLocalToolsSuccessor from '../../../docs/capability-control/source-identity-20261116/hosted-codex-local-tools-successor.json' with {type:'json'};
+import hostedRepairRoundSuccessor from '../../../docs/capability-control/source-identity-20261117/hosted-repair-round-successor.json' with {type:'json'};
 import {readCurrentProducerSourceIdentity} from '../../supervisor/src/producer-results.ts';
 
 test('inventoried source and configuration bind the exact unqualified source candidate',()=>{
  const root=fileURLToPath(new URL('../../../',import.meta.url));
  const computed=JSON.parse(execFileSync(process.execPath,['apps/cloud-control/scripts/cloud-source-identity.mjs'],{cwd:root,encoding:'utf8'}));
  assert.deepEqual(computed,source);
- assert.equal(source.sourceDigest,hostedLocalToolsSuccessor.sourceDigest);
+ assert.equal(source.sourceDigest,hostedRepairRoundSuccessor.sourceDigest);
+ assert.equal(hostedRepairRoundSuccessor.predecessorSourceDigest,hostedLocalToolsSuccessor.sourceDigest);
+ assert.equal(hostedRepairRoundSuccessor.configurationDigest,hostedLocalToolsSuccessor.configurationDigest);
+ assert.equal(hostedRepairRoundSuccessor.releaseQualified,false);
  assert.equal(hostedLocalToolsSuccessor.predecessorSourceDigest,hostedMailboxSuccessor.sourceDigest);
  assert.equal(hostedLocalToolsSuccessor.configurationDigest,hostedMailboxSuccessor.configurationDigest);
  assert.equal(hostedLocalToolsSuccessor.releaseQualified,false);
  assert.equal(hostedMailboxSuccessor.predecessorSourceDigest,hostedSuccessor.sourceDigest);
  assert.equal(hostedMailboxSuccessor.configurationDigest,hostedSuccessor.configurationDigest);
- assert.equal(hostedLocalToolsSuccessor.localProducerSourceDigest,readCurrentProducerSourceIdentity());
+ assert.equal(hostedRepairRoundSuccessor.localProducerSourceDigest,readCurrentProducerSourceIdentity());
  assert.equal(hostedMailboxSuccessor.releaseQualified,false);
  assert.equal(hostedMailboxSuccessor.installedAuthority,'NONE');
  assert.equal(hostedSuccessor.predecessorSourceDigest,containerSuccessor.sourceDigest);
  assert.equal(hostedSuccessor.configurationDigest,containerSuccessor.configurationDigest);
  assert.equal(hostedSuccessor.releaseQualified,false);
- assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:hostedLocalToolsSuccessor.configurationDigest}),hostedLocalToolsSuccessor.factoryVersion);
+ assert.equal(digest({sourceDigest:source.sourceDigest,configurationDigest:hostedRepairRoundSuccessor.configurationDigest}),hostedRepairRoundSuccessor.factoryVersion);
+ assert.equal(digest({sourceDigest:hostedLocalToolsSuccessor.sourceDigest,configurationDigest:hostedLocalToolsSuccessor.configurationDigest}),hostedLocalToolsSuccessor.factoryVersion);
  assert.equal(digest({sourceDigest:hostedMailboxSuccessor.sourceDigest,configurationDigest:hostedMailboxSuccessor.configurationDigest}),hostedMailboxSuccessor.factoryVersion);
  assert.equal(digest({sourceDigest:hostedSuccessor.sourceDigest,configurationDigest:hostedSuccessor.configurationDigest}),hostedSuccessor.factoryVersion);
  assert.equal(containerSuccessor.predecessorSourceDigest,localSuccessor.sourceDigest);
