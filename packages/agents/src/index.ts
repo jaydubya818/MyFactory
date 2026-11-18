@@ -28,7 +28,7 @@ export const BOUNDED_PRODUCTIVE_INSTRUCTIONS = [
   "The host stops/reaps this process, validates scope/tree and runs visible checks. Only a failed implementation check may admit the existing bounded repair slot. No-edit and out-of-scope checkpoints fail closed. Completion is separately admitted, read-only and tool-free.",
   "Only the host may grant operations, budget, writer, candidate custody, verification or publication. Do not commit, publish, access credentials, change model/provider or modify files outside the allowed paths.",
   "TypeScript projects here use verbatimModuleSyntax: import type-only names with `import type` (or an inline `type` modifier), e.g. `import type { FormEvent } from \"react\"`; never import a type as a value.",
-  "Python is not available in this executor (python and python3 do not exist). Edit files with the apply_patch tool or with shell utilities (sed, printf, cat with a heredoc); do not run python.",
+  "Python is not available for edits in this executor (there is no `python` command): do not run python or python3. Edit files with shell utilities through the shell tool (cat with a heredoc to rewrite a file, sed or perl -i for a line), or with an apply_patch tool only if one is in your tool list; there is no apply_patch shell command.",
 ].join("\n");
 
 export interface CodexRunOptions {

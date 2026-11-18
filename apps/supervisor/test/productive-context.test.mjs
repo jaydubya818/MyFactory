@@ -41,7 +41,7 @@ for(const scenario of ['context-contract','targeted-inspection','captured-no-edi
      assert(qualified,'Executor must receive the host productive contract as developer instructions');
      // R9: attempt 8 failed on TS1484 (type imported as a value) and a repair that ran `python` in the python-less image.
      assert(developer.includes('verbatimModuleSyntax')&&developer.includes('import type'),'Sent developer instructions must require `import type` for type-only imports');
-     assert(developer.includes('Python is not available')&&developer.includes('apply_patch')&&developer.includes('do not run python'),'Sent developer instructions must forbid python and name apply_patch/shell');
+     assert(developer.includes('Python is not available for edits')&&developer.includes('do not run python or python3')&&developer.includes('shell utilities through the shell tool')&&developer.includes('apply_patch'),'Sent developer instructions must forbid python and name apply_patch/shell');
      assert(!active.prompt.includes('"field":"quantity"'),'The target fact must actually be absent from supplied context');
      const script="const fs=require('fs');const field=JSON.parse(fs.readFileSync('config/quantity-schema.json','utf8')).field;fs.writeFileSync('quantity.mjs',"+JSON.stringify(correct)+".replace('quantity:',JSON.stringify(field)+':'));";
      output=[{type:'function_call',id:'targeted-'+providerCalls,call_id:'targeted-call-'+providerCalls,name:'exec_command',arguments:JSON.stringify({cmd:'node -e '+"'"+script.replaceAll("'","'\\''")+"'",max_output_tokens:1000,yield_time_ms:1000}),status:'completed'}];

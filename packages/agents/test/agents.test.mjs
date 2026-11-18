@@ -314,7 +314,8 @@ test("a yielded resume must still prove the pinned session identity", async t =>
 
 test('bounded productive instructions carry the verbatimModuleSyntax and no-python editing rules (R9)', () => {
   assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /verbatimModuleSyntax: import type-only names with `import type`/);
-  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /Python is not available in this executor/);
-  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /apply_patch tool or with shell utilities/);
-  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /do not run python\./);
+  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /Python is not available for edits in this executor/);
+  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /Edit files with shell utilities through the shell tool/);
+  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /apply_patch tool only if one is in your tool list; there is no apply_patch shell command/);
+  assert.match(BOUNDED_PRODUCTIVE_INSTRUCTIONS, /do not run python or python3\./);
 });
