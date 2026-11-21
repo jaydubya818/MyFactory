@@ -135,6 +135,13 @@ A live night dispatches only through a supervisor whose dispatch control is live
 
 Files: `$FACTORY_OVERNIGHT_DATA_DIR/overnight/latest.md`, `summaries/<night>-<mode>.md`, `ledger.json`. Logs from launchd: `data/overnight.log`, `data/overnight-error.log`.
 
+## Skipping a night
+
+- Exclude one issue: add `factory:hold` to it. Held issues are never selected.
+- Pause the whole loop: set `FACTORY_OVERNIGHT_ENABLED` to anything but `1` in `data/overnight.env`. The guard then refuses every night until it is `1` again.
+- Stay in rehearsal: leave `FACTORY_OVERNIGHT_LIVE` unset. Dry runs plan the exact request and dispatch nothing.
+- A night is never retried: once the ledger claim is written, a second trigger the same night does nothing.
+
 ## Not yet covered
 
 - Linear intake as an overnight source (GitHub labels only for now).
