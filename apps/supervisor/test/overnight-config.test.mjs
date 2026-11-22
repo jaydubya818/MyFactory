@@ -69,3 +69,13 @@ test("guard enforces enabled, window, one live attempt per night and pause", () 
   // A dry run never consumes or is blocked by the night.
   assert.equal(overnightGuard({ config: config(), now: lateNight, ledger: used }).ok, true);
 });
+
+test("window edges: start is inclusive, end is exclusive, and invalid clocks are rejected", () => {
+  const c = config();
+  assert.equal(isWithinWindow(new Date("2026-11-16T06:00:00Z"), c), true); // 22:00 PST opens the window
+  assert.equal(isWithinWindow(new Date("2026-11-16T05:59:00Z"), c), false); // 21:59 PST
+  assert.equal(isWithinWindow(new Date("2026-11-16T13:59:00Z"), c), true); // 05:59 PST
+  assert.equal(isWithinWindow(new Date("2026-11-16T14:00:00Z"), c), false); // 06:00 PST closes it
+  assert.throws(() => parseWindow("24:00-06:00"), OvernightConfigError);
+  assert.throws(() => parseWindow("22:60-06:00"), OvernightConfigError);
+});
