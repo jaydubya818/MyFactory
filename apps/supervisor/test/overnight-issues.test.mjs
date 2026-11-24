@@ -112,6 +112,7 @@ test("selection breaks created_at ties by issue number, accepts string labels an
   const ledger = { nights: { a: { mode: "live", issue: "11" }, b: { mode: "live", issue: 1.5 }, c: null, d: { mode: "live" } } };
   assert.equal(selectIssue(issues, { ...options, ledger }).issue.number, 11);
   assert.equal(selectIssue([], options).issue, null);
+});
 
 test("rejects issues past the path and check-command ceilings, and truncates long titles", () => {
   const many = (count, prefix) => Array.from({ length: count }, (_, i) => `- ${prefix}${i}`).join("\n");
