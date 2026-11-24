@@ -104,3 +104,12 @@ test("the issue template's comments and empty bullets are ignored", async () => 
   assert.equal(result.ok, true, result.missing.join(", "));
   assert.deepEqual(result.input.allowedPaths, ["docs/x.md"]);
 });
+
+test("selection breaks created_at ties by issue number, accepts string labels and ignores bad ledger entries", () => {
+  const same = "2026-11-10T00:00:00Z";
+  const issues = [issue(12, { created_at: same }), issue(11, { created_at: same, labels: ["factory:overnight"] })];
+  assert.equal(selectIssue(issues, options).issue.number, 11);
+  const ledger = { nights: { a: { mode: "live", issue: "11" }, b: { mode: "live", issue: 1.5 }, c: null, d: { mode: "live" } } };
+  assert.equal(selectIssue(issues, { ...options, ledger }).issue.number, 11);
+  assert.equal(selectIssue([], options).issue, null);
+});
