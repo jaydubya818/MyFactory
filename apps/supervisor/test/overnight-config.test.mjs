@@ -79,3 +79,15 @@ test("window edges: start is inclusive, end is exclusive, and invalid clocks are
   assert.throws(() => parseWindow("24:00-06:00"), OvernightConfigError);
   assert.throws(() => parseWindow("22:60-06:00"), OvernightConfigError);
 });
+
+test("authors default to the repository owner and invalid logins, timezones and origins are rejected", () => {
+  assert.deepEqual(config().authors, ["jaydubya818"]);
+  assert.deepEqual(config({ FACTORY_OVERNIGHT_AUTHORS: " alice , bob " }).authors, ["alice", "bob"]);
+  assert.throws(() => config({ FACTORY_OVERNIGHT_AUTHORS: "bad login" }), /GitHub logins/);
+  assert.throws(() => config({ FACTORY_OVERNIGHT_AUTHORS: "-leading" }), /GitHub logins/);
+  assert.throws(() => config({ FACTORY_OVERNIGHT_TIMEZONE: "Mars/Olympus" }), /IANA timezone/);
+  assert.throws(() => config({ FACTORY_OVERNIGHT_REPOSITORY: "jaydubya818/MyFactory.git" }), /owner\/repo/);
+  assert.throws(() => config({ FACTORY_OVERNIGHT_ORIGIN: "not a url" }), /must be a URL/);
+  assert.throws(() => config({ FACTORY_OVERNIGHT_MAX_SPEND_USD: "abc" }), /must be a number/);
+  assert.equal(config({ FACTORY_OVERNIGHT_ORIGIN: "http://localhost:8789" }).origin, "http://localhost:8789");
+});
