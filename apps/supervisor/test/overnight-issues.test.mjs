@@ -112,4 +112,18 @@ test("selection breaks created_at ties by issue number, accepts string labels an
   const ledger = { nights: { a: { mode: "live", issue: "11" }, b: { mode: "live", issue: 1.5 }, c: null, d: { mode: "live" } } };
   assert.equal(selectIssue(issues, { ...options, ledger }).issue.number, 11);
   assert.equal(selectIssue([], options).issue, null);
+
+test("rejects issues past the path and check-command ceilings, and truncates long titles", () => {
+  const many = (count, prefix) => Array.from({ length: count }, (_, i) => `- ${prefix}${i}`).join("\n");
+  const make = (paths, checks, title = "T") => issue(1, { title, body: `## Acceptance criteria\n- ok\n\n## Allowed paths\n${paths}\n\n## Checks\n${checks}\n` });
+  const ctx = { repository: "a/b", repositoryPath: "/repo", baseSha: sha };
+  const atLimit = issueToWork(make(many(100, "docs/p"), many(20, "npm run c")), ctx);
+  assert.equal(atLimit.ok, true, atLimit.missing.join(", "));
+  const tooManyPaths = issueToWork(make(many(101, "docs/p"), many(1, "npm run c")), ctx);
+  assert.deepEqual(tooManyPaths.missing, ["at most 100 allowed paths"]);
+  const tooManyChecks = issueToWork(make(many(1, "docs/p"), many(21, "npm run c")), ctx);
+  assert.deepEqual(tooManyChecks.missing, ["at most 20 check commands"]);
+  const long = issueToWork(make(many(1, "docs/p"), many(1, "npm run c"), "x".repeat(300)), ctx);
+  assert.equal(long.input.title.length, 200);
+  assert.ok(long.input.title.startsWith("[#1] xxx"));
 });
