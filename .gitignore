@@ -10,3 +10,7 @@ data/
 !docs/evidence/**/*.log
 .DS_Store
 .vercel
+
+# Added by daily-repo-improvement
+build/
+npm-debug.log*
